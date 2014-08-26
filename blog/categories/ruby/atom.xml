@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ruby | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ruby/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-26T18:14:13+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Closure in Different Languages]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/20/104236/"/>
+    <updated>2014-08-20T10:42:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/20/104236</id>
+    <content type="html"><![CDATA[<p>The following code snippets compare closures in several languages.</p>
+
+<p>First is closure in javascript. Here I use <a href="https://github.com/creationix/nvm">nvm</a> to run javascript code.</p>
+
+<pre><code>$ cat closure.js
+function extent() {
+    var n = 0;
+    return function() {
+        n++;
+        console.log("n=" + n);
+    }
+}
+
+extent()();
+extent()();
+f = extent();
+console.log("-----");
+//console.log(extent.uniqueId());
+f();
+f();
+
+$ nvm alias default 0.10
+$ nvm run closure.js
+Running node v0.10.30
+n=1
+n=1
+-----
+n=1
+n=2
+</code></pre>
+
+<p>In above example, the closure is <code>function() { n++; console.log... }</code>. It&rsquo;s bound to variable &ldquo;f&rdquo;. The local variable &ldquo;n&rdquo; is &ldquo;closed&rdquo; into closure. Its lifetime is the same with &ldquo;f&rdquo;. So after the first execution of f, its inner state is saved.</p>
+
+<p>For Python, nested function can only access variables in outer scope, but can&rsquo;t reassign (modify) them. So I use list as a workaround. In Python 3, there is a new keyword &ldquo;nonlocal&rdquo; to remove this restriction.</p>
+
+<pre><code>$ cat closure.py2.py
+def extent():
+    n = [0]
+    def afun():
+        n[0] += 1
+        print('n=' + str(n[0]))
+    return afun
+
+extent()()
+extent()()
+print('-----')
+f = extent()
+f()
+f()
+print("type of f is %s, its id is %d" % (type(f), id(f)))
+
+$ python closure.py2.py 
+n=1
+n=1
+-----
+n=1
+n=2
+type of f is &lt;type 'function'&gt;, its id is 140403684898408
+
+$ cat closure.py3.py
+def extent():
+    n = 0
+    def afun():
+        nonlocal n
+        n += 1
+        print('n=' + str(n))
+    return afun
+
+extent()()
+extent()()
+f = extent()
+print('----')
+f()
+f()
+print("type of f is %s, its id is %d" % (type(f), id(f)))
+
+[0] python3 closure.py3.py
+n=1
+n=1
+----
+n=1
+n=2
+type of f is &lt;class 'function'&gt;, its id is 139914425096528
+</code></pre>
+
+<p>The Ruby environment used here is <a href="http://rvm.io/">RVM</a>. Ruby version is 2.1.2.</p>
+
+<pre><code>$ rvm use 2.1.2 --default
+$ cat closure.rb
+def extent
+    n = 0
+    lambda {
+        n += 1
+        printf "n=%d\n", n
+    }
+end
+
+extent().call()
+extent().call()
+f = extent()
+puts '------'
+f.call()
+f.call()
+puts "class of f is #{f.class.name}, its id is #{f.object_id}"
+
+$ ruby closure.rb
+n=1
+n=1
+------
+n=1
+n=2
+class of f is Proc, its id is 6724520
+</code></pre>
+
+<p>Two versions of Scala, define functions via &ldquo;def&rdquo; and &ldquo;val&rdquo; give different results:</p>
+
+<pre><code>$ diff *.scala
+1c1
+&lt; def extent = {
+---
+&gt; val extent = {
+
+$ cat closure-def.scala
+def extent = {
+    var n = 0
+    () =&gt; {
+        n += 1
+        println("n=" + n)
+    }
+}
+
+extent()
+extent()
+val f = extent
+println("------")
+f()
+f()
+println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
+
+$ scala closure-def.scala
+n=1
+n=1
+------
+n=1
+n=2
+Class of f is class Main$$anon$1$$anonfun$extent$1, its id is 8970973
+
+$ cat closure-val.scala 
+val extent = {
+    var n = 0
+    () =&gt; {
+        n += 1
+        println("n=" + n)
+    }
+}
+
+extent()
+extent()
+val f = extent
+println("------")
+f()
+f()
+println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
+$ scala closure-val.scala 
+n=1
+n=2
+------
+$ scala closure-val.scala 
+n=1
+n=2
+------
+n=3
+n=4
+Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973
+</code></pre>
+]]></content>
+  </entry>
+  
+</feed>
