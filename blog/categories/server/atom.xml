@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Server | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/server/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Setup Lightweight Python FTP Server for Test]]></title>
+    <link href="http://leetschau.github.io/blog/2014/01/24/095359/"/>
+    <updated>2014-01-24T09:53:59+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/01/24/095359</id>
+    <content type="html"><![CDATA[<p>Based on <a href="http://code.google.com/p/pyftpdlib/">Python FTP server library (pyftpdlib)</a></p>
+
+<h1>Install</h1>
+
+<ol>
+<li><p>Start a virtual environment;</p></li>
+<li><p>$ easy_install pyftpdlib (the version number is 1.3.0)</p></li>
+</ol>
+
+
+<p>or download pyftpdlib-1.3.0.tar.gz manually and &ldquo;python setup.py install&rdquo;.</p>
+
+<h1>Usage</h1>
+
+<p>Run the following script to startup server:</p>
+
+<pre><code>from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
+authorizer = DummyAuthorizer()
+authorizer.add_user("user", "12345", "/home/chad/tmp", perm="elradfmw")
+authorizer.add_anonymous("/home/chad/tmp2")
+# you have a named and an anonymous user to login
+handler = FTPHandler
+handler.authorizer = authorizer
+server = FTPServer(("0.0.0.0", 2121), handler)
+server.serve_forever()
+</code></pre>
+
+<p>If you set the port to &ldquo;21&rdquo;, a &ldquo;permission denied&rdquo; error raises. So I changed it to 2121.
+If you only accept local connection, modify server ip as &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.</p>
+
+<p>Use this server in command line:</p>
+
+<pre><code>ftp 10.21.2.7 2121
+// user name and password
+pwd
+ls
+get file1.txt
+put file2.txt
+</code></pre>
+
+<p>And a groovy ftp client:</p>
+
+<pre><code>import org.apache.commons.net.ftp.FTPClient
+println("About to connect....");
+new FTPClient().with {
+    connect "localhost", 2121
+    login "user", "123"
+    def names = listNames("/")
+    print names
+    logout()
+    disconnect()
+}
+println("Done.");
+</code></pre>
+
+<p>Run this client:</p>
+
+<pre><code>groovy -cp .../commons-net-3.1.jar ftpclient.groovy
+</code></pre>
+
+<p>On my machine this path is:
+~/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[用于在公网环境下测试的Telnet/SSH服务器]]></title>
+    <link href="http://leetschau.github.io/blog/2013/03/13/074059/"/>
+    <updated>2013-03-13T07:40:59+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/03/13/074059</id>
+    <content type="html"><![CDATA[<p>google: public telnet server list</p>
+
+<p>for example:</p>
+
+<p>telnet nethack.alt.org</p>
+
+<p>ssh <a href="&#109;&#x61;&#105;&#x6c;&#116;&#111;&#58;&#110;&#101;&#x74;&#x68;&#x61;&#99;&#107;&#64;&#97;&#x6c;&#x74;&#46;&#x6f;&#114;&#x67;">&#110;&#101;&#116;&#104;&#x61;&#99;&#x6b;&#64;&#97;&#x6c;&#x74;&#x2e;&#111;&#x72;&#x67;</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[键盘插拔对用户登录的影响实验]]></title>
+    <link href="http://leetschau.github.io/blog/2013/01/25/072710/"/>
+    <updated>2013-01-25T07:27:10+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/01/25/072710</id>
+    <content type="html"><![CDATA[<p>实验服务器：Ubuntu Server 12.04；</p>
+
+<p>实验过程：</p>
+
+<ol>
+<li><p>在服务器本机上以用户user1登录服务器；</p></li>
+<li><p>在另一台终端上以SSH方式登录服务器，用who命令查看当前登录用户有两个：</p></li>
+</ol>
+
+
+<p> root@guserver:~# who -H
+ NAME  LINE   TIME    COMMENT
+ user1 tty1   2013-01-25 07:21
+ user1 pts/0  2013-01-25 07:22 (10.31.1.32)
+由IP地址可知，上面的tty1是服务器本机登录用户，pts/0是SSH登录用户；</p>
+
+<ol>
+<li><p>拔出服务器上的USB键盘插头，终端上再执行who命令，与上面的结果相同；</p></li>
+<li><p>再插上服务器上的USB键盘，不论是否插入原插槽，都可以继续输入指令，完全不受键盘插拔的影响；</p></li>
+</ol>
+
+
+<p>结论：</p>
+
+<p>键盘登录服务器的方式下，USB键盘的插拔和改变USB插口不会影响用户的登录状态。进一步，键盘作为操作系统的standard input，不受其物理状态（是否连接）的影响。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Install Ubuntu Server on PC With USB Disk]]></title>
+    <link href="http://leetschau.github.io/blog/2012/10/18/194258/"/>
+    <updated>2012-10-18T19:42:58+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/10/18/194258</id>
+    <content type="html"><![CDATA[<h1>使用的工具：</h1>
+
+<ul>
+<li><p><a href="http://www.pendrivelinux.com/downloads/Universal-USB-Installer/Universal-USB-Installer-1.9.1.2.exe">Universal-USB-Installer-1.9.1.2.exe</a>；</p></li>
+<li><p>4G容量的U盘一个；</p></li>
+<li><p>ubuntu-12.04.1-server-amd64.iso；</p></li>
+</ul>
+
+
+<h1>安装过程</h1>
+
+<ol>
+<li><p>用Universal-USB-Installer-1.9.1.2.exe制作一个ubuntu server 12.04的安装盘；</p></li>
+<li><p>安装类型选&#8221;Ubuntu Server 12.04 Installer&#8221;；</p></li>
+<li><p>用制作好的U盘启动计算机，按照屏幕提示安装即可。</p></li>
+</ol>
+
+
+<h1>注意事项</h1>
+
+<ul>
+<li><p>安装过程中需要拔掉网线（刚才未拔网线情况下安装grub这一步报&#8221;The &lsquo;grub-pc&rsquo; package failed to install into /target/ &hellip;&ldquo;错误，安装过程停止，拔掉网线，返回安装&#8221;base system&#8221;这一步重新安装一遍，grub安装成功。）</p></li>
+<li><p>安装完毕后启动系统时需要插上网线，否则启动过程会停在&#8221;config network&#8221;这一步；</p></li>
+</ul>
+
+
+<h1>验证</h1>
+
+<ul>
+<li><p>可以用&#8221;ssh <a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#58;&#x63;&#104;&#x61;&#100;&#x40;&#x31;&#x30;&#46;&#51;&#49;&#46;&#49;&#46;&#x33;&#52;">&#99;&#x68;&#x61;&#x64;&#64;&#49;&#48;&#x2e;&#x33;&#49;&#x2e;&#49;&#46;&#51;&#52;</a>&#8220;连接Ubuntu Server；</p></li>
+<li><p>用sudo passwd创建root用户密码，这次设置的密码是root；</p></li>
+<li><p>安装组件时选择OpenSSH和Tomcat Server，安装完后可看到Java版本是1.6.22，Python版本是2.7.3；</p></li>
+</ul>
+
+
+<h1>关闭计算机</h1>
+
+<p>以root用户执行：shutdown -P now</p>
+
+<h1>其他</h1>
+
+<p>刚才安装时硬盘上已有3个NTFS分区，在&#8221;Partition Policy&#8221;中选&#8221;Use Entire Partition&#8221;，可以保留NTFS分区，如果选&#8221;Entire Disk&#8221;，则整个磁盘会被格式化。</p>
+]]></content>
+  </entry>
+  
+</feed>

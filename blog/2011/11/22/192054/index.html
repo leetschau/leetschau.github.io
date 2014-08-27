@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>用vim注释多行代码 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="例如有下面一段autohotkey代码，需要全部注释，也就是在行首加分号，在vim中有三种方法：替换，列操作和宏， !0:: ;msn DetectHiddenWindows, On Info_msn := TrayIcons(&ldquo;msnmsgr.exe&rdquo;) &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2011/11/22/192054">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">用vim注释多行代码</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-11-22T19:20:54+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>7:20 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>例如有下面一段autohotkey代码，需要全部注释，也就是在行首加分号，在vim中有三种方法：替换，列操作和宏，</p>
+
+<p> !0:: ;msn
+ DetectHiddenWindows, On
+ Info_msn := TrayIcons(&ldquo;msnmsgr.exe&rdquo;)
+ StringSplit, TrayInfo_msn, Info_msn,|
+ PostMessage, TrayInfo_msn1, TrayInfo_msn2, 0x0203,, ahk_id %TrayInfo_msn3%
+ return</p>
+
+<p>处理后变为：</p>
+
+<p> ; !0:: ;msn
+ ; DetectHiddenWindows, On
+ ; Info_msn := TrayIcons(&ldquo;msnmsgr.exe&rdquo;)
+ ; StringSplit, TrayInfo_msn, Info_msn,|
+ ; PostMessage, TrayInfo_msn1, TrayInfo_msn2, 0x0203,, ahk_id %TrayInfo_msn3%
+ ; return</p>
+
+<h1>替换</h1>
+
+<ul>
+<li>不保留行首空格：:%s/^/; /g</li>
+</ul>
+
+
+<p> 可以先用V模式选中要替换的行，然后用s指令替换，vim会自动在:后面加上'&lt;,&lsquo;>，表示后面的指令仅对被选区域有效；</p>
+
+<ul>
+<li><p>保留行首空格：</p></li>
+<li><p>使用&amp;引用search pattern：:%s/^\s*/&; /g</p></li>
+<li><p>使用group + backreference实现：:%s/^(\s*)/\1; /g</p></li>
+</ul>
+
+
+<h1>列操作</h1>
+
+<p> 使用ctrl+q（ Windows的gVim）或者ctrl+v（linux字符终端的vim）进入列编辑模式，进入列编辑模式后与其他visual模式一样先选范围再执行操作，不同之处在于此模式下进入插入模式使用I（normal模式下I表示在行首插入），插入完字符后用Esc返回normal模式后才能看到每行的改变；下面以windows的gVim为例说明具体操作过程：</p>
+
+<p>gg -> ctrl+q -> 5j -> I -> ; -> <ESC></p>
+
+<h1>宏</h1>
+
+<p>gg -> q -> a -> i -> ; -> <ESC> -> j -> q -> 5@a</p>
+
+<p>q表示开始录制宏，a是宏名，后面是插入一个分号，返回normal模式，向下移动一行，至此宏录制完毕，按q结束录制，@后跟宏名表示使用此宏，5表示重复运行5次；</p>
+
+<h1>总结</h1>
+
+<p>替换方法优点是操作简单，可以指定处理行的范围，但仅适用于在行首（或行尾）插入，其他位置实现就很麻烦了，列操作的优点是可以看到选区然后进行操作，比较直观，但操作的行必须连在一起，宏的优点是操作一次以后可以重复使用，可以在不连续的行上进行，可以根据实际情况选择解决方案。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2011-11-22T19:20:54+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>7:20 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/vim/'>vim</a>, <a class='category' href='/blog/categories/lie-mo-shi/'>列模式</a>, <a class='category' href='/blog/categories/hong/'>宏</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2011/11/22/192054/" data-via="" data-counturl="http://leetschau.github.io/blog/2011/11/22/192054/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2011/11/16/105341/" title="Previous Post: PL/SQL中修改字段值">&laquo; PL/SQL中修改字段值</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2011/11/24/090652/" title="Next Post: Linux和windows环境变量中路径分隔符的区别">Linux和windows环境变量中路径分隔符的区别 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

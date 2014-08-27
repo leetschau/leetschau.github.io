@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Unicode | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/unicode/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Unicode and File I/O in Python 2.X and 3.X]]></title>
+    <link href="http://leetschau.github.io/blog/2014/02/17/082031/"/>
+    <updated>2014-02-17T08:20:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/02/17/082031</id>
+    <content type="html"><![CDATA[<p>In Python 2.x, the default string is byte string, which means every byte is convert to a character. If you write a Unicode string, you have to write it as u&#8217;&hellip;&lsquo;. On the contrary, in Python 3.x, the default string is Unicode string. If you want a byte string, you have to write it as b&rsquo;&hellip;&lsquo;.</p>
+
+<p>In Python 3.3:</p>
+
+<pre><code>chn = '将帖子翻译为中\n'
+with open('py3uni', 'w') as f:
+    f.write(chn)
+print(chn.encode('utf-8'))
+mygbk = chn.encode('gbk')
+with open('py3gbk', 'wb') as f:
+  f.write(mygbk)
+readgbk = open('py3gbk', encoding='gbk').read()
+print(readgbk)
+print(type(readgbk))  # &lt;class 'str'&gt;
+</code></pre>
+
+<p>In Python 2.7:</p>
+
+<pre><code># encoding: utf-8
+import codecs
+chn = u'将帖子翻译为中\n'
+with codecs.open('py2uni', 'w', encoding='utf-8') as f:
+    f.write(chn)
+print(chn.encode('utf-8'))
+mygbk = chn.encode('gbk')
+with open('py2gbk', 'wb') as f:
+    f.write(mygbk)
+readgbk = codecs.open('py2gbk', encoding='gbk').read()
+print(readgbk)
+print(type(readgbk))  # &lt;type 'unicode'&gt;
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Unicode到UTF-8编码转换的Java实现]]></title>
+    <link href="http://leetschau.github.io/blog/2012/12/17/151751/"/>
+    <updated>2012-12-17T15:17:51+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/12/17/151751</id>
+    <content type="html"><![CDATA[<p>Unicode到UTF-8转换的规则见笔记 字符编解码的故事 ，下面将转换过程代码化，以演示如何手工对byte数据进行操作，以及需要注意的问题（字节位的高低定义是：high<-->low）。</p>
+
+<p> package encoding;
+ import java.io.UnsupportedEncodingException;
+ import org.junit.Test;
+ public class Converter {
+  public static void main(String[] args) throws UnsupportedEncodingException {
+   char chnChar = &lsquo;联&rsquo;;
+   System.out.println(&ldquo;UTF-8 bytes of &rdquo; + chnChar + &ldquo;: &rdquo; + convUnicode2utf8(chnChar));
+  }
+  /<em>*
+   * 演示unicode到utf-8的转换过程。
+   * @param 要进行转换的汉字
+   * @throws UnsupportedEncodingException
+   * @return 16进制表示的汉字UTF-8编码字节序列
+   </em>/
+  public static String convUnicode2utf8(char input) throws UnsupportedEncodingException {
+   int lowByte = input &amp; 0xff;
+   int highByte = (input &amp; 0xff00) >>> 8;    // 第二次运行时注释掉本行
+   // byte highByte = (byte) ((input &amp; 0xff00) >>> 8); // 第二次运行时取消注释本行
+   System.out.println(&ldquo;Unicode bytes of &rdquo; + input + &ldquo;: &rdquo; + Integer.toHexString(highByte)
+     + &ldquo;, &rdquo; + Integer.toHexString(lowByte));
+   // UTF-8的第1个字节是1110 + highByte前4位
+   int high4inHighByte = highByte >>> 4;
+   System.out.println(&ldquo;highByte>>>4: hex:&rdquo; + Integer.toHexString(high4inHighByte)
+     + &ldquo;, demical:&rdquo; + high4inHighByte);
+   int utf8Byte1 = (7 &lt;&lt; 5) + high4inHighByte;
+   // UTF-8的第2个字节是10 + highByte后4位 + lowByte前2位
+   int low4inHighByte = highByte &amp; 0xf;
+   int high2inLowByte = lowByte >>> 6;
+   int utf8Byte2 = (1 &lt;&lt; 7) + (low4inHighByte &lt;&lt; 2) + high2inLowByte;
+   // UTF-8的第3个字节是10 + lowByte后6位
+   int utf8Byte3 = (1 &lt;&lt; 7) + (lowByte &amp; 0x3f);
+   String result = Integer.toHexString(utf8Byte1) + &ldquo;, &rdquo; + Integer.toHexString(utf8Byte2)
+     + &ldquo;, &rdquo; + Integer.toHexString(utf8Byte3);
+   return result;
+  }
+   public static String bytes2HexString(byte[] b) {
+   String ret = &ldquo;&rdquo;;
+   for (int i = 0; i &lt; b.length; i++) {
+    String hex = Integer.toHexString(b[i] &amp; 0xFF);
+    if (hex.length() == 1) {
+     hex = &lsquo;0&rsquo; + hex;
+    }
+    ret += hex;
+   }
+   return ret;
+  }
+  }</p>
+
+<p>第1次运行结果：</p>
+
+<p> Unicode bytes of 联: 80, 54
+ highByte>>>4: hex:8, demical:8
+ UTF-8 bytes of 联: e8, 81, 94</p>
+
+<p>第2次运行结果：</p>
+
+<p> Unicode bytes of 联: ffffff80, 54
+ highByte>>>4: hex:ffffff8, demical:268435448
+ UTF-8 bytes of 联: 100000d8, 81, 94</p>
+
+<h1>结果分析</h1>
+
+<p>当highByte为byte型时（第二次运行），&#8221;Integer.toHexString(highByte)&ldquo;的运行结果是ffffff80，这是由于toHexString(int i)方法会先将i转换为int型，Java中没有无符号数的概念，0x80作为byte型数据的值是-128，转换成int型的-128就是ffffff80。后面的highByte>>>4也一样，移位操作符（>>和>>>）要求左右的操作数是int或者long，highByte首先被转换为int值0xffffff80，然后无符号右移4位，变为0x0ffffff8，即268435448，最后导致utf8Byte1得到错误的值。可见错误的根本原因在于移位运算符对byte型数据按有符号数进行了“私下”转换。</p>
+
+<h1>解决方法</h1>
+
+<p>当要对数据进行字节位操作时，要特别注意数据是有符号还是无符号的，如果是无符号的（例如汉字编码），并且要进行移位操作（主要是向右移位，向左移位不受是否有符号位影响），应将被处理的byte保存在int型变量中。</p>
+
+<p>参考<a href="http://stackoverflow.com/questions/3948220/behaviour-of-unsigned-right-shift-applied-to-byte-variable%EF%BC%8C%E7%A7%BB%E4%BD%8D%E8%BF%90%E7%AE%97%E7%AC%A6%E7%9A%84%E8%AF%B4%E6%98%8E%E5%8F%82%E8%80%83">http://stackoverflow.com/questions/3948220/behaviour-of-unsigned-right-shift-applied-to-byte-variable%EF%BC%8C%E7%A7%BB%E4%BD%8D%E8%BF%90%E7%AE%97%E7%AC%A6%E7%9A%84%E8%AF%B4%E6%98%8E%E5%8F%82%E8%80%83</a>&#8220;Java in a Nutsehll&#8221;一书中&#8221;Bitwise and Shift Operators&#8221;一节。</p>
+
+<h1>网络传输中的汉字和特殊字符</h1>
+
+<p>Java程序用字节数组接收网络传输数据时，字节的值只要超过0x7f，直接打印出来就是负数，这是Java对byte类型的定义（-128~127）造成的，不是错误，需要打印日志或者屏显时用上面代码中的bytes2HexString()打印hex码。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Django报`ascii Codec Can't Decode Byte ... Ordinal Not in Range 128`错误解决方法]]></title>
+    <link href="http://leetschau.github.io/blog/2012/05/25/174816/"/>
+    <updated>2012-05-25T17:48:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/05/25/174816</id>
+    <content type="html"><![CDATA[<p>下午在Django里连接telnet服务器，总报&#8221;ascii codec can&rsquo;t decode byte &hellip; ordinal not in range 128&#8221;错误，参考，发现是由于Python2.x telnetlib的连接参数要求是str类型，但Django里所有的字符串都是unicode，二者不兼容导致上述错误，解决方法是用Django提供的smart_str()方法将unicode转换为str：</p>
+
+<p>from neconnector.models import Channel
+from django.utils.encoding import smart_str
+import telnetlib
+def translate_str(input):</p>
+
+<p> return smart_str(input, encoding=&lsquo;utf-8&rsquo;, strings_only=False, errors=&lsquo;strict&rsquo;)</p>
+
+<p>ch = get_object_or_404(Channel, pk=conn_id) #从数据库里取出unicode类型对象</p>
+
+<p>ip = translate_str(ch.ip) # 转换为str</p>
+
+<p>tn = telnetlib.Telnet(ip)</p>
+
+<p>&hellip;</p>
+
+<p>同理，写入数据库时需要用smart_unicode方法做逆向转换。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[用AutoHotkey做汉字到Unicode字符串的转换]]></title>
+    <link href="http://leetschau.github.io/blog/2011/03/04/164916/"/>
+    <updated>2011-03-04T16:49:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/03/04/164916</id>
+    <content type="html"><![CDATA[<p>要把汉字转换为&#x641C;的形式，也就是在汉字的Unicode Big Endian编码前面加“&amp;#x”，后面加分号。例如“”字转换后为“&#x641C;”（英文字符无需转换）。</p>
+
+<p>前置条件：native2ascii.exe文件，autohotkey。</p>
+
+<p>算法流程：</p>
+
+<p>输入要转换的汉字；
+生成临时文件；
+用native2ascii处理该文件；
+获取native2ascii的输出放入字符串res中；
+以“\u”分割res，以“&#xAAAA;”形式重新组合，存入字符串res2； 将res2放入剪贴板；
+AHK源码：</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[文字的编码问题]]></title>
+    <link href="http://leetschau.github.io/blog/2010/10/12/135950/"/>
+    <updated>2010-10-12T13:59:50+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/10/12/135950</id>
+    <content type="html"><![CDATA[<p>我们需要将文字保存在磁盘上，但磁盘上只能存储0和1（实际上是存储介质的两种状态），不能存储文字，这就出现了一个问题，如何将文字转换为二进制数字串？</p>
+
+<p>文件的编码/解码就是解决文字&lt;=>二进制串这一环节如何相互转换的问题。</p>
+
+<p> 简单地说，GBK和Unicode分别是一种码表，也就是为每一个字符指定一个两个字节组成的代码，例如 “汉”字的Unicode编码为0x6C49，GBK编码为0xBABA（0x是一个字头，表示后面的是16进制字串）。</p>
+
+<p> Unicode编码 Unicode由ISO（国际标谁化组织）制定，它虽然解决了各种语言之间转换的难题，但也有问题，首先是不论什么字符都2个字节表示，网络上英文信息占大部分，由此造成的空间浪费很可观，其次是 Unicode不兼容ASCII编码方案，为了解决这些问题，出现了 UTF-8方案。</p>
+
+<p> Unicode到UTF-8的转换方法详见 字符编解码的故事 。</p>
+
+<p> GBK编码 GBK编码规则：《汉字内码扩展规范(GBK)》（ 全国信息技术标准化技术委员会 ）：
+ 01-09区为特殊符号；16-55区为一级汉字，按拼音排序；56-87区为二级汉字，按部首/笔画排序。
+每个汉字及符号以两个字节来表示。第一个字节称为“高位字节”，第二个字节称为“低位字节”，用这个字的区、位号加上0xA0就得到了对应的字节码。例如“啊”字是 第16区第1个字，所以 区位码是 1601 ， 编码方法：0xA0+ 16 = 0x B0 ， 0xA0+ 1 = 0x A1 ，所以得到“啊”的 字节码  B0A1 ，可以用UltraEdit查看字符的字节码验证。</p>
+
+<p> GB2312是GBK的早期版本，能表示6000个汉字，由于容量较小，现已被GBK取代。</p>
+
+<p> 解码过程</p>
+
+<p> 在Windows系统中打开文件时，使用猜的方式选择解码方案。如果文件开头使用了FEFF或FFFE，就认为是Unicode/UTF-8编码，否则为ANSI编码，在中文系统下，就是用GBK解码。GBK解码时，如果一个字节大于 0x7F（ 127），就证明这个字节与后面的字节组成了一个汉字，由于汉字的字节码总大于0xA0，英文字节码总小于 0x7F ，因此二者泾渭分明，不会混淆。</p>
+
+<p> 用猜的方式确定文件的编码方案绝大多数情况下没有问题，但凡事总有特例，详见 字符编解码的故事 对“联通”编码/解码过程的说明。</p>
+]]></content>
+  </entry>
+  
+</feed>

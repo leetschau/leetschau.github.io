@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Sed | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/sed/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Sed Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2011/11/08/160948/"/>
+    <updated>2011-11-08T16:09:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/11/08/160948</id>
+    <content type="html"><![CDATA[<h1>Synopsis</h1>
+
+<pre><code>sed [options] [range]&lt;command&gt;[;[range]&lt;command&gt;] &lt;target_file&gt;
+</code></pre>
+
+<p>or:</p>
+
+<pre><code>command_for_sed_input_text | sed [options] [range]&lt;command&gt;
+</code></pre>
+
+<p>其中range可以是指定行，也可以是一个正则表达式（即所有符合表达式的行），<command>可以是开行前插入(i)，在行后追加(a)，替换行&copy;，在终端输出行(p)等等；</p>
+
+<h2>Options</h2>
+
+<ul>
+<li><p>-n: 不显示未处理行，见下面实例；</p></li>
+<li><p>-i: &ldquo;in-place&rdquo; edit，见下面的实例；</p></li>
+</ul>
+
+
+<h1>删除文件中的空行</h1>
+
+<p>包括含几个空格、制表符的行：</p>
+
+<pre><code>sed -i '/^\s*$/d' target-file
+</code></pre>
+
+<h1>显示文件的指定范围</h1>
+
+<p>例如一个200万行的文件名为error.log，需要从第587700行开始显示200行：</p>
+
+<pre><code>sed -n 587700,587900p error.log
+</code></pre>
+
+<p>解释：sed的p指令是将匹配到的行显示到终端上，-n是只显示选中的行，所以使用p指令必加-n选项，-n后面的两个数字分别是起始和终止行号，最后是要处理的文件名。所以显示文件myfile的第m到第n行的命令是：</p>
+
+<pre><code>sed -n m,np myfile
+</code></pre>
+
+<h1>在文件的指定行前插入一行</h1>
+
+<p>在文件distro.txt第7行前插入一行&#8221;ab cd&#8221;：</p>
+
+<pre><code>sed -i '7 i ab cd' distros.txt
+</code></pre>
+
+<p>&ldquo;-i&#8221;表示结果写回原文件，而不是打印到stdout，即&#8221;in-place&rdquo; edit。同理，在第7行后加一行就是：</p>
+
+<pre><code>sed -i '7 a ab cd' distros.txt
+</code></pre>
+
+<p>把第7行替换为&#8221;ab cd&#8221;：</p>
+
+<pre><code>sed '7 c ab cd' distros.txt
+</code></pre>
+
+<h1>将多个编辑操作放在一个sed命令中进行</h1>
+
+<p>$ cat aaa
+the first line
+the 2nd line
+last line</p>
+
+<p>$ sed -e &lsquo;1 a new line&rsquo; -e &lsquo;2 d&rsquo; aaa
+the first line
+new line
+last line</p>
+
+<p>首先，多个操作用&#8221;-e&#8221;选项组合在一起，其次，每个操作中的行指的是原始文件的行，而不是前面操作之后新的行，上面例子中第一个操作是在第一行后插入一行，然后删掉第2行，可以看到删掉的是原文件的第2行，而不是新插入的行。</p>
+
+<h1>使用正则表达式处理多个行</h1>
+
+<p>$ sed &lsquo;/.*line/ a abc&rsquo; aaa
+the first line
+abc
+the 2nd line
+abc
+last line
+abc</p>
+
+<h1>输出指定区域的文本</h1>
+
+<p>有一个配置文件，现在想输出小节名称和后面的两行文本：</p>
+
+<p>$ cat puppet.conf
+[main]
+    The Puppet log directory.
+    The default value is &lsquo;$vardir/log&rsquo;.
+    logdir = /var/log/puppet
+    Where Puppet PID files are kept.
+    &hellip;
+[agent]
+    The file in which puppetd stores a list of the classes
+    associated with the retrieved configuratiion.  Can be loaded in
+    the separate <code>puppet</code> executable using the <code>--loadclasses</code>
+    option.
+    The default value is &lsquo;$confdir/classes.txt&rsquo;.
+    classfile = $vardir/classes.txt
+    &hellip;</p>
+
+<p>$ sed -n &lsquo;/[.*/,+2p&rsquo; puppet.conf
+[main]
+    The Puppet log directory.
+    The default value is &lsquo;$vardir/log&rsquo;.
+[agent]
+    The file in which puppetd stores a list of the classes
+    associated with the retrieved configuratiion.  Can be loaded in</p>
+
+<p>这里使用了&#8221;<pattern>,+N&#8221;输出<pattern>行及以后的N行文本这一模式。</p>
+
+<h1>文件末尾操作</h1>
+
+<p>sed的行号中，&#8221;$&ldquo;代表最后一行，所以下面两句是等价的：</p>
+
+<pre><code>sed '$ a abcd' aaa
+echo "abcd" &gt;&gt; aaa
+</code></pre>
+
+<p>但sed显然功能更强，比如可以用&#8217;$ i &hellip;&lsquo;实现在最后一行前面插入。</p>
+]]></content>
+  </entry>
+  
+</feed>

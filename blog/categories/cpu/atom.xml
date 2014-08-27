@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Cpu | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/cpu/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Get Overall CPU Usage on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/06/30/114910/"/>
+    <updated>2014-06-30T11:49:10+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/06/30/114910</id>
+    <content type="html"><![CDATA[<p>Run the following command to get the overall CPU usage from command line:</p>
+
+<pre><code>top -bn2|grep "Cpu(s)"|sed "s/.*, *\([0-9.]*\)%* *id.*/\1/"|awk '{print 100 - $1 "%"}'|sed -n 2p
+</code></pre>
+
+<p>You can see the result is extracted from &ldquo;top&rdquo; command. You can study this command section by section. The first step is <code>top -bn2</code>, which print 2 frame of &ldquo;top&rdquo; command to console instead of to curses window.</p>
+
+<p>Here we use &ldquo;-bn2&rdquo; instead of &ldquo;-bn1&rdquo; is because the first ouput is always inaccurate. See comments in <a href="http://stackoverflow.com/questions/9229333/how-to-get-overall-cpu-usage-e-g-57-on-linux#9229692">How to get overall CPU Usage (e.g. 57%) on Linux</a> for details.</p>
+
+<p>The second step is <code>top -bn2|grep "Cpu(s)"</code>, the 3rd step is <code>top -bn2|grep "Cpu(s)"|sed "s/.*, *\([0-9.]*\)%* *id.*/\1/"</code>, etc.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Open CPU Support for Virtualizaion Technology]]></title>
+    <link href="http://leetschau.github.io/blog/2013/11/06/080552/"/>
+    <updated>2013-11-06T08:05:52+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/11/06/080552</id>
+    <content type="html"><![CDATA[<p>In BIOS, under &ldquo;Processors Settings&rdquo;, enable the &ldquo;Virtualization Technology&rdquo;.</p>
+
+<p>In some Dell Computers, this option is at [Performance -> Virtualization] in BIOS.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Linux系统CPU信息查询方法]]></title>
+    <link href="http://leetschau.github.io/blog/2012/09/29/095503/"/>
+    <updated>2012-09-29T09:55:03+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/09/29/095503</id>
+    <content type="html"><![CDATA[<h1>lscpu</h1>
+
+<p>cat /proc/cpuinfo对绝大多数Linux适用，lscpu更简练</p>
+
+<h1>cat /proc/cpuinfo</h1>
+
+<p>下面是一个实例：</p>
+
+<pre><code>processor  : 0 
+vendor_id  : GenuineIntel 
+cpu family  : 6 
+model   : 26 
+model name  : Intel(R) Xeon(R) CPU   X5550 @ 2.67GHz 
+stepping  : 5 
+cpu MHz   : 2666.851 
+cache size  : 8192 KB 
+physical id  : 0 
+siblings  : 8 
+core id   : 0 cpu cores  : 4 
+apicid   : 0 
+fpu   : yes 
+fpu_exception  : yes 
+cpuid level  : 11 
+wp   : yes 
+flags   : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm syscall nx rdtscp lm constant_tsc ida nonstop_tsc pni monitor ds_cpl vmx est tm2 cx16 xtpr popcnt lahf_lm 
+bogomips  : 5333.70 
+clflush size  : 64 
+cache_alignment  : 64 
+address sizes  : 40 bits physical, 48 bits virtual 
+power management: [8] 
+processor  : 1 
+... 
+cpu cores  : 4 
+... 
+</code></pre>
+
+<p>processor  : n &hellip; cpu cores  : 4 &hellip; processor  : 15 &hellip; cpu cores  : 4 &hellip;</p>
+
+<p>【所以CPU(processor)的数量是最后一个cpu标号加1，每颗CPU的核数是其中&#8221;cpu cores&#8221;的值，这是一个有16颗4核CPU的服务器】</p>
+
+<p>上面的结论错误，阅读cpuinfo的正确方法是：</p>
+
+<ol>
+<li><p>通过physical id确定有多少个物理CPU（即多少个CPU插槽socket，或者叫物理封装）；</p></li>
+<li><p>通过cpu cores确定某一个物理CPU有多少核；</p></li>
+<li><p>如果siblings数量与cpu core一致，说明没有超线程。反之如果siblings的值大于cpu cores，说明开启了超线程（hyperthreading），开启超线程的另一个证据是不同的processor拥有同样的core id，这一点可以用&#8221;cat /proc/cpuinfo|grep &ldquo;core id&#8221;确认；</p></li>
+<li><p>processor的数量应该等于物理CPU的数量与siblings的乘积；</p></li>
+</ol>
+
+
+<p>根据以上方法分析，上面的服务器有两颗4核CPU（即两个CPU插槽，每个插槽上的CPU有4个核），开启了超线程，共有16个逻辑CPU。</p>
+
+<p>参考<a href="http://www.richweb.com/cpu_info">Understanding Linux /proc/cpuinfo</a></p>
+
+<h1>相关资料</h1>
+
+<ul>
+<li><p>查看CPU是32位还是64的方法是：cpuinfo的flags参数中是否有&#8221;lm&#8221;这一项，lm表示long mode，可以用&#8221;cat /proc/cpuinfo|grep &ldquo;\&lt;lm>&#8221;查询；</p></li>
+<li><p>CPU超线程技术可以参考<a href="https://en.wikipedia.org/wiki/Hyper-threading">Hyper-threading</a>。</p></li>
+</ul>
+
+
+<h1>另：用free指令查看系统内存大小</h1>
+
+<p>用free -g以GB为单位显示内存大小，另外可以通过查看cat /proc/meminfo指令结果第一行的方法确定物理内存大小；</p>
+]]></content>
+  </entry>
+  
+</feed>

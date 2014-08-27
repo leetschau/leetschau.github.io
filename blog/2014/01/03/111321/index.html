@@ -1,0 +1,357 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Run Shell Commands in Python - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="subprocess.call This is the recommended way to run shell commands in Python compared with old-fashioned os module.
+This is a realtime method, which &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2014/01/03/111321">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Run Shell Commands in Python</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-03T11:13:21+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>subprocess.call</h1>
+
+<p>This is the recommended way to run shell commands in Python compared with old-fashioned os module.
+This is a realtime method, which means you can get the shell output on the fly, compared with following &ldquo;subprocess.check_output&rdquo; method, which collect all output in its return value.
+This method return the return value of the command, for example:</p>
+
+<pre><code>ret = subprocess.call('ls -l')
+</code></pre>
+
+<p>where ret=0, while</p>
+
+<pre><code>ret = subprocess.call('cd aaa')
+</code></pre>
+
+<p>ret=2 when there isn&rsquo;t &ldquo;aaa&rdquo; subfolder under CWD.</p>
+
+<p>For ease of use, write a shorthand function:</p>
+
+<pre><code>import subprocess
+def run(cmd):
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        sys.exit('Exec cmd %s error, return value: %s' %(cmd, str(ret)))
+</code></pre>
+
+<p>Then you can simply use &ldquo;run(cmd)&rdquo; as a shell interface. &ldquo;run&rdquo; print command stdout stderr to console stdout, and if there&rsquo;s something wrong during execution, we interrupt it.</p>
+
+<h1>subprocess.check_output</h1>
+
+<p>A more safe way to run shell command is using &ldquo;check_output&rdquo; function. If the return value if not 0, a exception raised, otherwise return the command output.</p>
+
+<pre><code>$ cat myrun.py
+import subprocess
+def run(cmd):
+    return subprocess.check_output(cmd, shell=True)
+$ python -i myrun.py
+&gt;&gt;&gt; ret = run('ls -l|grep donno')
+&gt;&gt;&gt; ret
+'drwxr-xr-x 6 chad chad 4096 Jan 26 18:18 donno-0.1.10\n-rw-r--r-- 1 chad chad 8716 Jan 27 15:53 donno-0.1.10.tar.gz\n'
+&gt;&gt;&gt; ret = run('cd aaa')
+/bin/sh: 1: cd: can't cd to aaa
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "shtest.py", line 3, in run
+    return subprocess.check_output(cmd, shell=True)
+  File "/usr/lib/python2.7/subprocess.py", line 544, in check_output
+    raise CalledProcessError(retcode, cmd, output=output)
+subprocess.CalledProcessError: Command 'cd aaa' returned non-zero exit status 2
+</code></pre>
+
+<h1>subprocess.Popen</h1>
+
+<p>If you want some more powerful tools, use this. You can&rsquo;t use pipe directly in this form. Instead, You have to use subprocess.PIPE:</p>
+
+<pre><code>&gt;&gt;&gt; import subprocess
+&gt;&gt;&gt; lsres = subprocess.Popen(['ls','-l'], stdout=subprocess.PIPE)
+&gt;&gt;&gt; grepres = subprocess.Popen(['grep', 'Do'], stdin=lsres.stdout, stdout=subprocess.PIPE)
+&gt;&gt;&gt; res = grepres.communicate()
+</code></pre>
+
+<p>communicate() interact with process: Send data to stdin. Read data from stdout and stderr, until end-of-file is reached. Wait for process to terminate. It returns a tuple (stdoutdata, stderrdata).</p>
+
+<h2>Full solution of running shell command</h2>
+
+<p>If you want realtime output, while saving output and return code in variables, you should use Popen:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+cmd = 'vmstat 2 3'
+cmd2 = 'exit 3'
+
+p = Popen(cmd, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+line = ''
+while p.poll() is None:
+    out = p.stdout.read(1)
+    if out=='\n':
+        print(line)
+        line = ''
+    else:
+        line = line + out
+print('--------\nret is: %d' % p.returncode)
+</code></pre>
+
+<p>The Popen.stdout is a file object, so its &ldquo;read(size)&rdquo; method here means read every 1 byte.
+&ldquo;close_fds=True&rdquo; is maybe unnecessary, but I keep it for safe.</p>
+
+<h1>os.system</h1>
+
+<p>If it&rsquo;s unnecessary to save command output, this is most convenient way. The output will output to console. You can use space and pipe in command:</p>
+
+<pre><code>&gt;&gt;&gt; import os 
+&gt;&gt;&gt; ret = os.system('ls -l|grep D') 
+</code></pre>
+
+<p>And it will return after the command complete:</p>
+
+<pre><code>&gt;&gt;&gt; ret = os.system('vmstat 3 3')
+</code></pre>
+
+<h1>os.popen</h1>
+
+<p>Use this form if you want to save command output.</p>
+
+<pre><code>&gt;&gt;&gt; retfile = os.popen('pwd')
+&gt;&gt;&gt; ret = retfile.read() 
+&gt;&gt;&gt; ret 
+'/home/lichao\n' 
+&gt;&gt;&gt; retfile 
+&lt;open file 'pwd', mode 'r' at 0xb74aad30&gt;
+</code></pre>
+
+<p>or write it more compact:</p>
+
+<pre><code>&gt;&gt;&gt; result = os.popen('ls|grep enex').read()
+</code></pre>
+
+<h2>Deprecated</h2>
+
+<ul>
+<li><p>commands.getoutput()</p></li>
+<li><p>commands.getstatusoutput()</p></li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-01-03T11:13:21+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:13 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/python/'>python</a>, <a class='category' href='/blog/categories/shell/'>shell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2014/01/03/111321/" data-via="" data-counturl="http://leetschau.github.io/blog/2014/01/03/111321/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/01/02/144055/" title="Previous Post: Search Available Package on Remote Repository">&laquo; Search Available Package on Remote Repository</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/01/04/105849/" title="Next Post: Some Notetaking Softwares">Some Notetaking Softwares &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

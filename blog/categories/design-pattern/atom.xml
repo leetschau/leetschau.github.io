@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Design Pattern | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/design-pattern/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[关于单例模式]]></title>
+    <link href="http://leetschau.github.io/blog/2013/03/22/184919/"/>
+    <updated>2013-03-22T18:49:19+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/03/22/184919</id>
+    <content type="html"><![CDATA[<p>参考：<a href="http://www.cnblogs.com/coffee/archive/2011/12/05/inside-java-singleton.html">【深入】java 单例模式</a></p>
+
+<p>其中的第三种方法比较好，简单、稳定，唯一的缺点是在初始化时加载，没有实现lazy load，但在资源不紧张的场景下，没必要lazy load。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[关于依赖倒置原则]]></title>
+    <link href="http://leetschau.github.io/blog/2013/03/20/123119/"/>
+    <updated>2013-03-20T12:31:19+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/03/20/123119</id>
+    <content type="html"><![CDATA[<p>参考<a href="http://www.cnblogs.com/cbf4life/archive/2009/12/15/1624435.html">《设计模式之禅》作者对依赖倒置原则的解释</a>，其中比较重要的是：</p>
+
+<ol>
+<li><p>设计要分层，高层抽象（业务逻辑）只依赖于接口，而不是某个具体的实现；</p></li>
+<li><p>开闭原则是为了降低软件耦合度而提出的指导思想，依赖倒置是达到这一目标的手段；</p></li>
+<li><p>底层实现模块扩展之后，高层业务代码（也就是所谓的运行时代码）会随之改变，但其他底层实现模块不需要修改；</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[关于职责链模式]]></title>
+    <link href="http://leetschau.github.io/blog/2013/03/20/120246/"/>
+    <updated>2013-03-20T12:02:46+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/03/20/120246</id>
+    <content type="html"><![CDATA[<p>参考<a href="https://en.wikipedia.org/wiki/Chain-of-responsibility_pattern">wiki</a>上 Example -> Java部分的Logger实例，这个实现方法比之前我在GODU中的实现更好，因为Logger的实现类只要实现自己对消息的处理即可，完全不必关心其他事情，而我的实现里AuthUnit实现了抽象类AFuncUnit，在其processRequest方法处理处理消息，还要加上向后传递的动作：</p>
+
+<p> next.writeMessage(msg);</p>
+
+<p>Logger之所以能实现“自动”向后传递，是因为客户处理消息时调用的是Logger.message(msg)方法，而实际处理消息的方法是writeMessage(msg)方法，message(msg)方法分两步：首先是处理消息，然后是向后传递：</p>
+
+<p> next.message(msg);</p>
+
+<p>它使用的是抽象父类的message方法，而不是直接调用next.writeMessage(msg)方法。</p>
+
+<p>writeMessage被子类实现，所以是abstract protected，而message是对外接口，所以是public。</p>
+
+<p>完整代码：</p>
+
+<p> package chainofresp;
+ abstract class Logger {
+  public static int ERR = 3;
+  public static int NOTICE = 5;
+  public static int DEBUG = 7;
+  protected int mask;
+  // The next element in the chain of responsibility
+  protected Logger next;
+  public void setNext(Logger log) {
+   next = log;
+  }
+  public void message(String msg, int priority) {
+   if (priority &lt;= mask) {
+    writeMessage(msg);
+   }
+   if (next != null) {
+    next.message(msg, priority);
+   }
+  }
+  abstract protected void writeMessage(String msg);
+ }
+ class StdoutLogger extends Logger {
+  public StdoutLogger(int mask) {
+   this.mask = mask;
+  }
+  protected void writeMessage(String msg) {
+   System.out.println(&ldquo;Writing to stdout: &rdquo; + msg);
+  }
+ }
+ class EmailLogger extends Logger {
+  public EmailLogger(int mask) {
+   this.mask = mask;
+  }
+  protected void writeMessage(String msg) {
+   System.out.println(&ldquo;Sending via email: &rdquo; + msg);
+  }
+ }
+ class StderrLogger extends Logger {
+  public StderrLogger(int mask) {
+   this.mask = mask;
+  }
+  protected void writeMessage(String msg) {
+   System.err.println(&ldquo;Sending to stderr: &rdquo; + msg);
+  }
+ }
+ public class ChainOfResponsibilityExample {
+  private static Logger createChain() {
+   // Build the chain of responsibility
+   Logger logger = new StdoutLogger(Logger.DEBUG);
+   Logger logger1 = new EmailLogger(Logger.NOTICE);
+   logger.setNext(logger1);
+   Logger logger2 = new StderrLogger(Logger.ERR);<br/>
+   logger1.setNext(logger2);
+   return logger;
+  }
+  public static void main(String[] args) {
+   Logger chain = createChain();
+   // Handled by StdoutLogger (level = 7)
+   chain.message(&ldquo;Entering function y.&rdquo;, Logger.DEBUG);
+   // Handled by StdoutLogger and EmailLogger (level = 5)
+   chain.message(&ldquo;Step1 completed.&rdquo;, Logger.NOTICE);
+   // Handled by all three loggers (level = 3)
+   chain.message(&ldquo;An error has occurred.&rdquo;, Logger.ERR);
+  }
+ }
+ /<em>
+ The output is:
+  Writing to stdout: Entering function y.
+  Writing to stdout: Step1 completed.
+  Sending via e-mail: Step1 completed.
+  Writing to stdout: An error has occurred.
+  Sending via e-mail: An error has occurred.
+  Writing to stderr: An error has occurred.
+ </em>/</p>
+]]></content>
+  </entry>
+  
+</feed>

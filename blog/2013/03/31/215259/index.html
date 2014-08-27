@@ -1,0 +1,255 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>NFA算法笔记 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="NFA(Nondeterministic finite-state automata)是一种在字符串中寻找正则表达式匹配的算法，优点是查找文本的指针不回退，适用于在网络传输的报文中寻找正则表达式描述的目标（因为网络传输中报文是被分段接收的，且分段的方式不确定），在Robert的" &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/03/31/215259">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">NFA算法笔记</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-31T21:52:59+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>9:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>NFA(Nondeterministic finite-state automata)是一种在字符串中寻找正则表达式匹配的算法，优点是查找文本的指针不回退，适用于在网络传输的报文中寻找正则表达式描述的目标（因为网络传输中报文是被分段接收的，且分段的方式不确定），在Robert的"Algorithms"第5.4节"Regular Expressions"中有详细介绍。</p>
+
+<p>NFA算法可以分为定义和执行两部分，定义阶段和执行阶段。</p>
+
+<p>定义阶段是将要查找的正则表达式（String类型）转换为一个有向图（Digraph类型），该图中的边是所有可以进行的空转换（见p795倒数第2行），定义阶段在书中"Building an NFA corresponding to an RE"一节，图示见p803，代码见p802），在代码表现为以一个正则表达式字符串为参数的NFA构造函数；</p>
+
+<p>执行阶段就是判断待处理的文本中是否含有目标正则表达式（见"Simulating an NFA"一节，图示见p798），整个过程是一个循环过程，每次循环待处理文本指针前进一个字符，这次循环由两步组成，首先根据当前正则表达式指针所处位置（最初位置都是0）算出所有空转换可达位置（借助深度优先算法DirectedDFS，可达位置保存在变量pc中），然后将所有可达位置上的字符与待处理文本指针处的字符比较，如果一样则把正则表达式指针的后一位保存在变量match中。然后以match为初始位置重新构造DirectedDFS对象，进而得到可达位置集合pc，然后从中筛选匹配上的位置，如此循环，直到待处理文本指针到达文本尾部，如果pc中有正则表达式长度的那个元素（代表匹配成功的位置，书中代码用类成员M表示），说明匹配正则表达式成功，否则失败。</p>
+
+<p>需要说明的是，从所有可达状态pc中筛选匹配上位置并放入match中之前，需要先将值为M的元素去掉，以用"(A<em>B|AC)D"匹配"AABDC"为例，当目标文本指针等于4时，即指向"AABDC"的最后一个字符C时，pc中已经包含了最终状态11（正则串"((A</em>B|AC)D)&ldquo;的长度），因为AABD符合&rdquo;(A<em>B|AC)D"，但最后的C导致整个文本不匹配"(A</em>B|AC)D"，所以结果仍然是匹配失败。</p>
+
+<p>测试代码如下：</p>
+
+<p> String token = &ldquo;(A<em>B|AC)D&rdquo;;
+ String regexp = &ldquo;(&rdquo; + token + &ldquo;)&rdquo;;
+ // when test if target string &ldquo;contains&rdquo; regex, regexp = &ldquo;(.</em>&rdquo; + token + &ldquo;.*)&rdquo;
+ NFA nfa = new NFA(regexp);
+ String target = &ldquo;AABDC&rdquo;;
+ if (nfa.recognizes(target)) {
+  System.out.println(&ldquo;match: &rdquo; + target);
+ } else {
+  System.out.println(&ldquo;not match: &rdquo; + target);
+ }</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-03-31T21:52:59+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>9:52 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/algorithm/'>algorithm</a>, <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/nfa/'>nfa</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/03/31/215259/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/03/31/215259/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/03/31/141131/" title="Previous Post: wine笔记">&laquo; wine笔记</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/03/31/231152/" title="Next Post: 能够进行多段文本匹配的NFA改良算法">能够进行多段文本匹配的NFA改良算法 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

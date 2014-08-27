@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 编码 | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/bian-ma/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[汉字编码查询的Java实现]]></title>
+    <link href="http://leetschau.github.io/blog/2012/12/18/113227/"/>
+    <updated>2012-12-18T11:32:27+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/12/18/113227</id>
+    <content type="html"><![CDATA[<h1>Java代码</h1>
+
+<p> package encoding;
+ import java.io.UnsupportedEncodingException;
+ import java.util.ArrayList;
+ import java.util.List;
+ public class EncodingProbe {
+  public static void main(String[] args) throws UnsupportedEncodingException {
+   String name = &ldquo;联通移动&rdquo;;
+   List<String> charsets = new ArrayList<String>();
+   charsets.add(&ldquo;gbk&rdquo;);
+   charsets.add(&ldquo;gb18030&rdquo;);
+   charsets.add(&ldquo;unicode&rdquo;);
+   charsets.add(&ldquo;utf-8&rdquo;);
+   for (String charset : charsets) {
+    System.out.println(&ldquo;bytes of &rdquo; + name + &ldquo; in charset &rdquo; + charset
+      + &ldquo; is: &rdquo; + bytes2HexString(name.getBytes(charset)));
+   }
+  }
+  public static String bytes2HexString(byte[] b) {
+   String ret = &ldquo;&rdquo;;
+   for (int i = 0; i &lt; b.length; i++) {
+    String hex = Integer.toHexString(b[i] &amp; 0xFF);
+    if (hex.length() == 1) {
+     hex = &lsquo;0&rsquo; + hex;
+    }
+    ret += hex;
+   }
+   return ret;
+  }
+ }</p>
+
+<h1>Windows平台上的其他方法</h1>
+
+<p>用UltraEdit，保存文件时可以选择编码格式；</p>
+
+<h1>Linux平台上的其他方法</h1>
+
+<p>file指令配合iconv指令。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Linux上中文乱码问题的解决办法]]></title>
+    <link href="http://leetschau.github.io/blog/2012/06/19/163003/"/>
+    <updated>2012-06-19T16:30:03+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/06/19/163003</id>
+    <content type="html"><![CDATA[<p>中文出现乱码，首先需要查看字符串编码和解码的方法是否一致，其次检查Linux的LANG环境变量中的编码是否匹配程序的编解码方法。</p>
+
+<p>建议统一编码为UTF-8，对应的bash脚本：export LANG=zh_CN.UTF-8</p>
+
+<p>编码是字符串转换为字节数组（二进制串），解码是逆过程，charset指定了其中转换/逆转换的方式（见 字符编解码的故事 ）。就Java而言，用指定的charset（例如UTF-8）对字符串编码用&#8221;byte[] dst = input_string.getBytes(&ldquo;UTF-8&rdquo;);&ldquo;实现，解码用“String dst = new String(input_byte_array, &#8220;UTF-8&rdquo;);”实现；</p>
+
+<p>如果编码使用“byte[] dst = input_string.getBytes()”，则具体的编码方式依赖于操作系统，存在编码错误的风险，解码用“String dst = new String(input_byte_array);”也存在解码错误的风险，所以在编/解码过程中最好明确指定使用的charset。</p>
+
+<p>下面的代码将字节数组转换为16进制字节码字符串，以便观察不同的charset如何影响生成的字节码。</p>
+
+<p> public class MQReceiver {
+ public static void main(String[] args) {
+  byte[] buf = mq.recvTextMessage(); // receive msg from mq
+  if (buf != null) {
+   String hexRes = bytes2HexString(buf);
+   System.out.println(hexRes);
+   System.out.println(getChnBytes(hexRes));
+   String bufstr = new String(buf,&ldquo;UTF-8&rdquo;);
+   System.out.println(&ldquo;Recv alarm: &rdquo; + bufstr);
+  } else {
+   System.out.println(&ldquo;buf: &rdquo; + buf);
+  }
+ }</p>
+
+<p> public static String bytes2HexString(byte[] b) {
+  String ret = &ldquo;&rdquo;;
+  for (int i = 0; i &lt; b.length; i++) {
+   String hex = Integer.toHexString(b[i] &amp; 0xFF);
+   if (hex.length() == 1) {
+    hex = &lsquo;0&rsquo; + hex;
+   }
+   ret += hex.toUpperCase();
+  }
+  return ret;
+ }
+ public static String getChnBytes(String input) {
+  String sflag = &ldquo; &lt;FM_ALARM_MSG.AlarmText> &rdquo;;
+  String eflag = &ldquo;&lt;/FM_ALARM_MSG.AlarmText>&rdquo;;
+  byte[] start = sflag.getBytes();
+  byte[] end = eflag.getBytes();
+  String ss = bytes2HexString(start);
+  String se = bytes2HexString(end);
+  int beginIndex = input.indexOf(ss) + ss.length();
+  int endIndex = input.indexOf(se);
+  return input.substring(beginIndex, endIndex);
+ }
+}</p>
+
+<p>其中getChnBytes方法从下面的字符数组中找到汉字，提取出来，以便于观察汉字部分编码的变化，</p>
+
+<p> &lt;FM_ALARM_MSG.EventTime>2012-06-20 14:39:51&lt;/FM_ALARM_MSG.EventTime> &lt;FM_ALARM_MSG.AlarmText> 检查数据库连接产生异常&lt;/FM_ALARM_MSG.AlarmText><C_FP0></C_FP0></p>
+
+<p>例如UTF-8的“ 检查数据库连接产生异常”编码输出如下：</p>
+
+<p> E6A380
+E69FA5
+E695B0
+E68DAE
+E5BA93
+E8BF9E
+E68EA5
+E4BAA7
+E7949F
+E5BC82
+E5B8B8</p>
+
+<p>注： 快典网 可以在线查看汉字的各种编码。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[字符编解码的故事]]></title>
+    <link href="http://leetschau.github.io/blog/2010/10/13/095716/"/>
+    <updated>2010-10-13T09:57:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/10/13/095716</id>
+    <content type="html"><![CDATA[<p>本文为转载，有少许修订，原文出处不详。 很久很久以前，有一群人，他们决定用8个可以开合的晶体管来组合成不同的状态，以表示世界上的万物。他们认为8个开关状态作为原子单位很好，于是他们把这称为&#8221;字节&#8221;。 再后来，他们又做了一些可以处理这些字节的机器，机器开动了，可以用字节来组合出更多的状态，状态开始变来变去。他们看到这样是好的，于是它们就这机器称为&#8221;计算机&#8221;。 开始计算机只在美国用。八位的字节一共可以组合出256（2的8次方）种不同的状态。 他们把其中的编号从0开始的32种状态分别规定了特殊的用途，一但终端设备或者打印机遇上这些约定好的字节时，就要做一些约定的动作。遇上 00x10, 终端就换行，遇上0x07, 终端就向人们嘟嘟叫，例好遇上0x1b, 打印机就打印反白的字，对于终端就用彩色显示字母。他们看到这样很好，于是就把这些0x20（十进制32）以下的字节状态称为&#8221;控制码&#8221;。 他们又把所有的空格、标点符号、数字、大小写字母分别用连续的字节状态表示，一直编到了第127号，这样计算机就可以用不同字节来存储英语的 文字了。大家看到这样，都感觉很好，于是大家都把这个方案叫做 ANSI 的&#8221;Ascii&#8221;编码（American Standard Code for Information Interchange，美国信息互换标准代码）。当时世界上所有的计算机都用同样的ASCII方案来保存英文文字。 后来，就像建造巴比伦塔一样，世界各地的都开始使用计算机，但是很多国家用的不是英文，他们用到的许多字母在ASCII中根本没有，为了也可以在计算机中保存他们的文字，他们决定采用127号之后的空位来表示这些新的字母、符号，还加入了很多画表格时需要用下到的横线、竖线、交叉等形状，一直把序号编到了最后一个状态255。从128到255这一页的字符集被称&#8221;扩展字符集&#8221;。从此之后，贪婪的人类再没有新的状态可以用了，美帝国主义可能没有想到还有第三世界国家的人们也希望可以用到计算机吧！ 等中国人们得到计算机时，已经没有可以利用的字节状态来表示汉字，况且有6000多个常用汉字需要保存呢。但是这难不倒智慧的中国人民，我们不客气地把那些127号之后的奇异符号们直接取消掉，并且规定：一个小于127的字符的意义与原来相同，但两个大于127的字符连在一起时，就表示一个汉字，前面的一个字节（他称之为高字节）从0xA1用到 0xF7，后面一个字节（低字节）从0xA1到0xFE，这样我们就可以组合出大约7000多个简体汉字了。在这些编码里，我们还把数学符号、罗马希腊的字母、日文的假名们都编进去了，连在 ASCII 里本来就有的数字、标点、字母都统统重新编了两个字节长的编码，这就是常说的&#8221;全角&#8221;字符，而原来在127号以下的那些就叫&#8221;半角&#8221;字符了。 中国人民看到这样很不错，于是就把这种汉字方案叫做&#8221;GB2312&#8221;。GB2312 是对 ASCII 的中文扩展。 但是中国的汉字太多了，我们很快就就发现有许多人的人名没有办法在这里打出来，特别是某些很会麻烦别人的国家领导人（如朱镕基的“镕”字）。于是我们不得不继续把 GB2312 没有用到的码位找出来老实不客气地用上。 后来还是不够用，于是干脆不再要求低字节一定是127号之后的内码，只要第一个字节是大于127就固定表示这是一个汉字的开始，不管后面跟的是不是扩展字符集里的内容。结果扩展之后的编码方案被称为 GBK 标准（<a href="https://en.wikipedia.org/wiki/Windows-936%EF%BC%89%EF%BC%8CGBK">https://en.wikipedia.org/wiki/Windows-936%EF%BC%89%EF%BC%8CGBK</a> 包括了 GB2312 的所有内容，同时又增加了近20000个新的汉字（包括繁体字）和符号。 后来少数民族也要用电脑了，于是我们再扩展，又加了几千个新的少数民族的字，GBK 扩成了 GB18030。从此之后，中华民族的文化就可以在计算机时代中传承了。 中国的程序员们看到这一系列汉字编码的标准是好的，于是通称他们叫做 &ldquo;DBCS&#8221;（Double Byte Charecter Set 双字节字符集）。在DBCS系列标准里，最大的特点是两字节长的汉字字符和一字节长的英文字符并存于同一套编码方案里，因此他们写的程序为了支持中文处理，必须要注意字串里的每一个字节的值，如果这个值是大于127的，那么就认为一个双字节字符集里的字符出现了。那时候凡是受过加持，会编程的计算机僧侣们都要每天念下面这个咒语数百遍： &#8220;一个汉字算两个英文字符！一个汉字算两个英文字符……&rdquo; 因为当时各个国家都像中国这样搞出一套自己的编码标准，结果互相之间谁也不懂谁的编码，谁也不支持别人的编码，连大陆和台湾这样只相隔了150海里，使用着同一种语言的兄弟地区，也分别采用了不同的 DBCS 编码方案——当时的中国人想让电脑显示汉字，就必须装上一个&#8221;汉字系统&#8221;，专门用来处理汉字的显示、输入的问题，但是那个台湾的愚昧封建人士写的算命程序就必须加装另一套支持 BIG5 编码的什么&#8221;倚天汉字系统&#8221;才可以用，装错了字符系统，显示就会乱了套！这怎么办？而且世界民族之林中还有那些一时用不上电脑的穷苦人民，他们的文字又怎么办？ 真是计算机的巴比伦塔命题啊！ 正在这时，大天使加百列及时出现了 —— 一个叫ISO（国际标谁化组织）的国际组织决定着手解决这个问题。他们采用的方法很简单：废了所有的地区性编码方案，重新搞一个包括了地球上所有文化、所有字母和符号的编码！他们打算叫它&#8221;Universal Multiple-Octet Coded Character Set&#8221;，简称 UCS, 俗称 &ldquo;UNICODE&#8221;。 UNICODE 开始制订时，计算机的存储器容量极大地发展了，空间再也不成为问题了。于是 ISO 就直接规定必须用两个字节，也就是16位来统一表示所有的字符，对于ascii里的那些&#8221;半角&#8221;字符，UNICODE 包持其原编码不变，只是将其长度由原来的8位扩展为16位，而其他文化和语言的字符则全部重新统一编码。由于&#8221;半角&#8221;英文符号只需要用到低8位，所以其高 8位永远是0，因此这种大气的方案在保存英文文本时会多浪费一倍的空间。 这时候，从旧社会里走过来的程序员开始发现一个奇怪的现象：他们的strlen函数靠不住了，一个汉字不再是相当于两个字符了，而是一个！是 的，从 UNICODE 开始，无论是半角的英文字母，还是全角的汉字，它们都是统一的&#8221;一个字符&#8221;！同时，也都是统一的&#8221;两个字节&#8221;，请注意&#8221;字符&#8221;和&#8221;字节&#8221;两个术语的不同， &#8220;字节&#8221;是一个8位的物理存贮单元，而&#8221;字符&#8221;则是一个文化相关的符号。在UNICODE 中，一个字符就是两个字节。一个汉字算两个英文字符的时代已经快过去了。 从前多种字符集存在时，那些做多语言软件的公司遇上过很大麻烦，他们为了在不同的国家销售同一套软件，就不得不在区域化软件时也加持那个双字节字符集咒语，不仅要处处小心不要搞错，还要把软件中的文字在不同的字符集中转来转去。UNICODE 对于他们来说是一个很好的一揽子解决方案，于是从 Windows NT 开始，MS 趁机把它们的操作系统改了一遍，把所有的核心代码都改成了用 UNICODE 方式工作的版本，从这时开始，WINDOWS 系统终于无需要加装各种本土语言系统，就可以显示全世界上所有文化的字符了。 但是，UNICODE 在制订时没有考虑与任何一种现有的编码方案保持兼容，这使得 GBK 与UNICODE 在汉字的内码编排上完全是不一样的，没有一种简单的算术方法可以把文本内容从UNICODE编码和另一种编码进行转换，这种转换必须通过查表来进行。 如前所述，UNICODE 是用两个字节来表示为一个字符，他总共可以组合出65535不同的字符，这大概已经可以覆盖世界上所有文化的符号。如果还不够也没有关系，ISO已经准备了UCS-4方案，说简单了就是四个字节来表示一个字符，这样我们就可以组合出21亿个不同的字符出来（最高位有其他用途），这大概可以用到银河联邦成立那一天吧！ UNICODE 来到时，一起到来的还有计算机网络的兴起，UNICODE 如何在网络上传输也是一个必须考虑的问题，于是面向传输的众多 UTF（UCS Transfer Format）标准出现了，顾名思义，UTF8就是每次8个位传输数据，而UTF16就是每次16个位，只不过为了传输时的可靠性，从UNICODE到 UTF时并不是直接的对应，而是要过一些算法和规则来转换。 受到过网络编程加持的计算机僧侣们都知道，在网络里传递信息时有一个很重要的问题，就是对于数据高低位的解读方式，一些计算机是采用低位先发送的方法，例如我们PC机采用的 INTEL 架构；而另一些是采用高位先发送的方式。在网络中交换数据时，为了核对双方对于高低位的认识是否是一致的，采用了一种很简便的方法，就是在文本流的开始时向对方发送一个标志符——如果之后的文本是高位在位，那就发送&#8221;FEFF&#8221;，反之，则发送&#8221;FFFE&#8221;。不信你可以用二进制方式打开一个UTF-X格式的文件，看看开头两个字节是不是这两个字节？  从UNICODE到UTF8的转换规则（见<a href="http://www.zehnet.de/2005/02/12/unicode-utf-8-tutorial/">  Unicode, UTF-8 tutorial </a>） ：   Unicode  UTF-8   0000 - 007F  0xxxxxxx   0080 - 07FF  110xxxxx 10xxxxxx   0800 - FFFF  1110xxxx 10xxxxxx 10xxxxxx<br/>
+ 例如&#8221;汉&#8221;字的Unicode编码是6C49。6C49在0800-FFFF之间，所以要用3字节模板：1110xxxx 10xxxxxx 10xxxxxx。将6C49写成二进制是：0110 1100 0100 1001，将这个比特流按三字节模板的分段方法分为0110 110001 001001，依次代替模板中的x，得到：1110-0110 10-110001 10-001001，即E6 B1 89，这就是其UTF8的编码。这个过程的代码实现见笔记 Unicode到UTF-8编码转换的Java实现 。
+ 讲到这里，我们再顺便说说一个很著名的奇怪现象：当你在 windows 的记事本里新建一个文件，输入&#8221;联通&#8221;两个字之后，保存，关闭，然后再次打开，你会发现这两个字已经消失了，代之的是几个乱码！呵呵，有人说这就是联通之所以拼不过移动的原因。 其实这是因为GB2312编码与UTF8编码产生了编码冲撞的原因。 当一个软件打开一个文本时，它要做的第一件事是决定这个文本究竟是使用哪种字符集的哪种编码保存的。软件一般采用三种方式来决定文本的字符集和编码： 检测文件头标识，提示用户选择，根据一定的规则猜测 最标准的途径是检测文本最开头的几个字节，开头字节 Charset/encoding,如下表： EF BB BF UTF-8 FE FF UTF-16/UCS-2, little endian FF FE UTF-16/UCS-2, big endian FF FE 00 00 UTF-32/UCS-4, little endian. 00 00 FE FF UTF-32/UCS-4, big-endian. 当你新建一个文本文件时，记事本的编码默认是ANSI（代表系统默认编码，在中文系统中一般是GB系列编码）, 如果你在ANSI的编码输入汉字，那么他实际就是GB系列的编码方式，在这种编码下，&#8221;联通&#8221;的内码是： c1 1100 0001 aa 1010 1010 cd 1100 1101 a8 1010 1000 注意到了吗？第一二个字节、第三四个字节的起始部分的都是&#8221;110&#8221;和&#8221;10&#8221;，正好与UTF8规则里的两字节模板是一致的， 于是当我们再次打开记事本时，记事本就误认为这是一个UTF8编码的文件，让我们把第一个字节的110和第二个字节的10去掉，我们就得到了&#8221;00001 101010&#8221;，再把各位对齐，补上前导的0，就得到了&#8221;0000 0000 0110 1010&#8221;，不好意思，这是UNICODE的006A，也就是小写的字母&#8221;j&#8221;，而之后的两字节用UTF8解码之后是0368，这个字符什么也不是。这就是只有&#8221;联通&#8221;两个字的文件没有办法在记事本里正常显示的原因。</p>
+
+<p>而如果你在&#8221;联通&#8221;之后多输入几个字，其他的字的编码不见得又恰好是110和10开始的字节，这样再次打开时，记事本就不会坚持这是一个utf8编码的文件，而会用ANSI的方式解读之，这时乱码又不出现了。</p>
+
+<p>2012-8-9补充：汉字基本都在Unicode区间的4E00~9FA5，所以所以UTF-8编码后一定是3个字节，不可能是2个字节。</p>
+
+<p>完整的Unicode字符编码表见Unicode官网的 Code Charts 。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[文字的编码问题]]></title>
+    <link href="http://leetschau.github.io/blog/2010/10/12/135950/"/>
+    <updated>2010-10-12T13:59:50+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/10/12/135950</id>
+    <content type="html"><![CDATA[<p>我们需要将文字保存在磁盘上，但磁盘上只能存储0和1（实际上是存储介质的两种状态），不能存储文字，这就出现了一个问题，如何将文字转换为二进制数字串？</p>
+
+<p>文件的编码/解码就是解决文字&lt;=>二进制串这一环节如何相互转换的问题。</p>
+
+<p> 简单地说，GBK和Unicode分别是一种码表，也就是为每一个字符指定一个两个字节组成的代码，例如 “汉”字的Unicode编码为0x6C49，GBK编码为0xBABA（0x是一个字头，表示后面的是16进制字串）。</p>
+
+<p> Unicode编码 Unicode由ISO（国际标谁化组织）制定，它虽然解决了各种语言之间转换的难题，但也有问题，首先是不论什么字符都2个字节表示，网络上英文信息占大部分，由此造成的空间浪费很可观，其次是 Unicode不兼容ASCII编码方案，为了解决这些问题，出现了 UTF-8方案。</p>
+
+<p> Unicode到UTF-8的转换方法详见 字符编解码的故事 。</p>
+
+<p> GBK编码 GBK编码规则：《汉字内码扩展规范(GBK)》（ 全国信息技术标准化技术委员会 ）：
+ 01-09区为特殊符号；16-55区为一级汉字，按拼音排序；56-87区为二级汉字，按部首/笔画排序。
+每个汉字及符号以两个字节来表示。第一个字节称为“高位字节”，第二个字节称为“低位字节”，用这个字的区、位号加上0xA0就得到了对应的字节码。例如“啊”字是 第16区第1个字，所以 区位码是 1601 ， 编码方法：0xA0+ 16 = 0x B0 ， 0xA0+ 1 = 0x A1 ，所以得到“啊”的 字节码  B0A1 ，可以用UltraEdit查看字符的字节码验证。</p>
+
+<p> GB2312是GBK的早期版本，能表示6000个汉字，由于容量较小，现已被GBK取代。</p>
+
+<p> 解码过程</p>
+
+<p> 在Windows系统中打开文件时，使用猜的方式选择解码方案。如果文件开头使用了FEFF或FFFE，就认为是Unicode/UTF-8编码，否则为ANSI编码，在中文系统下，就是用GBK解码。GBK解码时，如果一个字节大于 0x7F（ 127），就证明这个字节与后面的字节组成了一个汉字，由于汉字的字节码总大于0xA0，英文字节码总小于 0x7F ，因此二者泾渭分明，不会混淆。</p>
+
+<p> 用猜的方式确定文件的编码方案绝大多数情况下没有问题，但凡事总有特例，详见 字符编解码的故事 对“联通”编码/解码过程的说明。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Python脚本文件中使用中文]]></title>
+    <link href="http://leetschau.github.io/blog/2010/01/10/095243/"/>
+    <updated>2010-01-10T09:52:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/01/10/095243</id>
+    <content type="html"><![CDATA[<p>Python做图形用户界面（GUI）开发时经常要在界面上显示中文，需要做如下处理（详见[1]和[2]2.3节）：</p>
+
+<ol>
+<li><p>在py文件的首行写上：# -<em>- coding:utf-8 -</em>-</p></li>
+<li><p>保存py文件时要存为utf-8格式文件。</p></li>
+</ol>
+
+
+<p>[1] Python2.6 Documentation: The Python Language Reference: 2.1.4 Encoding declarations</p>
+
+<p>[2] 孙广磊，征服Python—语言基础与典型应用，北京：人民邮电出版社，2007</p>
+]]></content>
+  </entry>
+  
+</feed>

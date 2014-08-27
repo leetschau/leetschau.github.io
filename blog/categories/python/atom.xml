@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Python | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/python/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-08-26T18:14:13+08:00</updated>
+  <updated>2014-08-27T13:25:34+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -192,6 +192,249 @@ n=2
 n=3
 n=4
 Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Solve Integral Equation Set With Python]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/13/090432/"/>
+    <updated>2014-08-13T09:04:32+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/13/090432</id>
+    <content type="html"><![CDATA[<p>The equation set is provided by 鲍珂 at 2014-8-12.</p>
+
+<p>Host: Windows 7
+VM: CentOS 6.5 minimal, python 2.6.6</p>
+
+<p>Start VM, make sure its ssh service start with <code>service sshd status</code>;</p>
+
+<p>Then connect it with Putty or Kitty;</p>
+
+<h1>Install</h1>
+
+<p>yum install wget
+wget <a href="http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm">http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm</a>
+rpm -ivh epel-release-6-8.noarch.rpm
+yum update</p>
+
+<p>// optional desktop environment, start with <code>startxfce4</code>
+yum groupinstall Xfce
+yum groupinstall Fonts
+yum install xorg-x11-fonts-Type1 xorg-x11-fonts-misc</p>
+
+<p>yum install python-pip
+yum install vim-enhanced
+yum install python-ipython.noarch
+pip install argparse
+pip install sympy
+pip install mpmath
+pip install scipy</p>
+
+<h1>Symbolic Method</h1>
+
+<p>from sympy import *
+var(&lsquo;x y s&rsquo;)
+integrate(gamma(x+y)/(gamma(x)+gamma(y))<em>s**(x-1)</em>(1-s)<strong>(y-1), (s, 0, 0.6))
+integrate(gamma(x+y)/(gamma(x)+gamma(y))*s</strong>(x-1)*(1-s)**(y-1), (s, 0.9, 1))</p>
+
+<p>Ref:
+<a href="http://docs.sympy.org/0.7.0/tutorial.html">http://docs.sympy.org/0.7.0/tutorial.html</a>
+<a href="http://scipy-lectures.github.io/advanced/sympy.html#integration">http://scipy-lectures.github.io/advanced/sympy.html#integration</a>
+<a href="http://docs.sympy.org/dev/modules/integrals/integrals.html">http://docs.sympy.org/dev/modules/integrals/integrals.html</a>
+<a href="http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html">http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html</a></p>
+
+<h1>Numeric Method</h1>
+
+<p>from <strong>future</strong> import division
+from scipy.optimize import fsolve
+from scipy.special import gamma
+from scipy.integrate import fixed_quad</p>
+
+<p>def myfunc(x, y, theta):
+gmp = gamma(x+y) / (gamma(x)+gamma(y))
+return gmp * theta<strong>(x-1) * (1-theta)</strong>(y-1)</p>
+
+<p>def equations(p):
+x, y = p
+intg1 = fixed_quad(myfunc, 0, 0.6, args=(x, y))
+intg2 = fixed_quad(myfunc, 0.9, 1, args=(x, y))
+return (intg1[0] - 0.05, intg2[0] - 0.05)</p>
+
+<p>xr, yr = fsolve(equations, (1, 1))
+print equations((xr, yr))</p>
+
+<p>Ref:
+<a href="http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python">http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python</a>
+<a href="http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad">http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad</a>
+<a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve">http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Python MapReduce on Hadoop Cluster]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/07/112649/"/>
+    <updated>2014-08-07T11:26:49+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/07/112649</id>
+    <content type="html"><![CDATA[<p>Based on <a href="http://www.michael-noll.com/tutorials/writing-an-hadoop-mapreduce-program-in-python/">Writing an Hadoop MapReduce Program in Python</a>.</p>
+
+<ol>
+<li>Create mapper and reducer script and make them executable with <code>chmod 755 *.py</code>:</li>
+</ol>
+
+
+<p>mapper.py:</p>
+
+<pre><code>#!/usr/bin/env python
+import sys
+# input comes from STDIN (standard input)
+for line in sys.stdin:
+    # remove leading and trailing whitespace
+    line = line.strip()
+    # split the line into words
+    words = line.split()
+    # increase counters
+    for word in words:
+        # write the results to STDOUT (standard output); what we output here will be the input for the Reduce step, i.e. the input for reducer.py tab-delimited; the trivial word count is 1
+        print '%s\t%s' % (word, 1)
+</code></pre>
+
+<p>reducer.py:</p>
+
+<pre><code>#!/usr/bin/env python
+
+from operator import itemgetter
+import sys
+
+current_word = None
+current_count = 0
+word = None
+
+# input comes from STDIN
+for line in sys.stdin:
+    # remove leading and trailing whitespace
+    line = line.strip()
+
+    # parse the input we got from mapper.py
+    word, count = line.split('\t', 1)
+
+    # convert count (currently a string) to int
+    try:
+        count = int(count)
+    except ValueError:
+        # count was not a number, so silently ignore/discard this line
+        continue
+
+    # this IF-switch only works because Hadoop sorts map output by key (here: word) before it is passed to the reducer
+    if current_word == word:
+        current_count += count
+    else:
+        if current_word:
+            # write result to STDOUT
+            print '%s\t%s' % (current_word, current_count)
+        current_count = count
+        current_word = word
+
+# do not forget to output the last word if needed!
+if current_word == word:
+    print '%s\t%s' % (current_word, current_count)
+</code></pre>
+
+<ol>
+<li><p>Get input text file and put them into hdfs: download the text version of <a href="http://www.gutenberg.org/etext/20417">The Outline of Science, Vol. 1 (of 4) by J. Arthur Thomson</a>, <a href="http://www.gutenberg.org/etext/5000">The Notebooks of Leonardo Da Vinci</a> and <a href="http://www.gutenberg.org/etext/4300">Ulysses by James Joyce</a>. Then upload them to hdfs:</p>
+
+<p> $ hadoop fs -mkdir gutenberg
+ $ hadoop fs -put pg<em>.txt gutenberg/
+ $ hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-</em>streaming<em>.jar -file /home/hduser/mapper.py -mapper /home/hduser/mapper.py -file /home/hduser/reducer.py -reducer /home/hduser/reducer.py -input /user/hduser/gutenberg/</em> -output /user/hduser/gutenberg-output</p></li>
+</ol>
+
+
+<p>You have to make sure the &ldquo;gutenberg-output&rdquo; folder has not existed. When finished, you can see the result with:</p>
+
+<pre><code>$ hadoop fs -ls gutenberg-output
+$ hadoop fs -cat gutenberg-output/part-00000
+</code></pre>
+
+<p>Verified on CDH 4.3, built on 8 CentOS 6.3 64bit host, Python 2.6.6, 2014-8-7.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Manage Python Versions With Pyenv]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/06/144020/"/>
+    <updated>2014-08-06T14:40:20+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/06/144020</id>
+    <content type="html"><![CDATA[<p><a href="https://github.com/yyuu/pyenv">pyenv</a> is python equivalent of rvm of ruby. It can replace the virtualenvwrapper, and there&rsquo;s no need to install virtualenv before pyenv. It will install virtualenv automatically.</p>
+
+<p>On ArchLinux, you just install it according its documents on the website:</p>
+
+<pre><code>$ curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+</code></pre>
+
+<p>But on Mint 17, you have to install libraries beforehand:</p>
+
+<pre><code>$ sudo apt-get install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl
+</code></pre>
+
+<p>Then run &ldquo;curl &hellip;&rdquo; to install it.</p>
+
+<p>Then add &ldquo;export &hellip; eval &hellip;&rdquo; into ~/.zshrc according to its prompt at the end of the installation.</p>
+
+<h1>Usage</h1>
+
+<pre><code>$ pyenv commands         // list all available commands
+$ pyenv install -l       // list all available versions to install
+$ pyenv install 2.6.6
+$ pyenv rehash           // run this command after install a new version
+$ pyenv versions         // list all installed versions
+$ pyenv shell 2.6.6      // set python version to 2.6.6 in this session (shell)
+$ pyenv local 2.6.6      // create a .python-version file under CWD, it will use 2.6.6 afterwards according to this file
+$ pyenv shell system     // go back to use the system python version
+$ pyevn which python     // check the python path in current environment
+$ pyenv uninstall 2.6.6
+</code></pre>
+
+<h2>No Special Package Nedded</h2>
+
+<p>If your python project need no special dependency packages, use <code>pyenv local 2.6.6</code> is a good idea. It only create a .python-version under the folder. Very clean.</p>
+
+<h2>Need Install Package</h2>
+
+<p>If your project need some package, which you don&rsquo;t want to put into system environment, use</p>
+
+<pre><code>$ pyenv virtualenv 2.6.6 myproj
+</code></pre>
+
+<p>Now you have a INDEPENDENT python environment based on 2.6.6. You can verify this by run:</p>
+
+<pre><code>$ cd myproj
+$ pyenv activate myproj
+$ pyenv which python
+/home/chad/.pyenv/versions/myproj/bin/python
+$ pyenv deactivate
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[List All Possible Sort Result of a List]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/05/183431/"/>
+    <updated>2014-08-05T18:34:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/05/183431</id>
+    <content type="html"><![CDATA[<p>The following Python codes gives all possible sort result of a list:</p>
+
+<pre><code>def mysort(data):
+    if len(data) == 1:
+        return [data]
+    res = []
+    tail = data.pop()
+    all_sort = mysort(data)
+    for one_sort in all_sort:
+        for i in range(0,len(one_sort)):
+            res.append(one_sort[:i] + [tail] + one_sort[i:])
+    return res
+
+aa = [1, 2, 3, 4, 5]
+print(mysort(aa))
 </code></pre>
 ]]></content>
   </entry>

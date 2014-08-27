@@ -1,0 +1,346 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Task Management in Fabric - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2014/03/28/182817">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Task Management in Fabric</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T18:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. So there are 2 strategies:</p>
+
+<ul>
+<li><p>Define global hosts, when detections over, modify the hosts to none, so report and send email will only run once;</p></li>
+<li><p>Use &ldquo;report&rdquo; as entrance, invoke detection within &ldquo;report&rdquo; task.</p></li>
+</ul>
+
+
+<h1>Global hosts style</h1>
+
+<p>fabfile.py:</p>
+
+<pre><code>from fabric.api import run, env, hosts
+import re
+
+env.hosts = ['Chad@10.0.2.47', 'chad@10.0.2.49']
+env.password = 'abaqus67'
+env['report'] = {}
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    env['report'][env.host] = host_report
+    env.hosts = []    # make following tasks run once
+
+def report():
+    print('Test Report:')
+    print(env.report)
+
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab --hide=everything detect report sendmail
+Test Report:
+{'10.0.2.49': {'os': 'Linux', 'jdk': True}, '10.0.2.47': {'os': 'Linux', 'jdk': False}}
+send mail...
+</code></pre>
+
+<h1>&ldquo;execute&rdquo; style</h1>
+
+<p>fab2.py:</p>
+
+<pre><code>from fabric.api import run, env, task, execute
+import re
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    env.password = env.loginfo[env.host_string]
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    return host_report
+
+@task
+def report():
+    env.hosts= ['gcp@10.0.2.48', 'gcp@10.0.2.49', 'gcp@10.0.7.141', 'gcp@10.0.7.142', 'gcp@10.0.7.143:22']
+    pwds = ['gcp', 'gcp', 'gcp@123', 'gcp@123', 'gcp@123']
+    env.loginfo = dict(zip(env.hosts, pwds))
+    res = execute(detect, hosts=host_list)
+    print('Test Report:')
+    print(res)
+
+@task
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab -f fab2.py --hide=everything report sendmail
+Test Report:
+{'gcp@10.0.2.47': {'os': 'Linux', 'jdk': False}, 'gcp@10.0.2.49': {'os': 'Linux', 'jdk': True}, ... }
+send mail...
+</code></pre>
+
+<p>You can see there is no definition and modification of global hosts, no need to maintain global variable env[&lsquo;report&rsquo;] manually in &ldquo;report&rdquo; style, and the &ldquo;detect&rdquo; function is hide from &ldquo;fab&rdquo; command line with the help of &ldquo;@task&rdquo; decorator. If you run &ldquo;fab detect&rdquo;, it will complain &ldquo;Command(s) not found&rdquo;, which provides more accurate visibility control. So I think it&rsquo;s better than the &ldquo;global hosts&rdquo; style.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li><p>Yuo can add attributes to &ldquo;env&rdquo; directly like &ldquo;env.loginfo = &hellip;&rdquo; above. And use this attribute with &ldquo;env.loginfo[&hellip;]&rdquo;;</p></li>
+<li><p>The format of host string is &ldquo;user@ip:port&rdquo;, or &ldquo;user@ip&rdquo; if port is 22;</p></li>
+<li><p>The function &ldquo;execute&rdquo; returns a dict, the key is the host_string, the value is the return value of the function executed (&ldquo;detect&rdquo; in this case). The return value of &ldquo;detect&rdquo; is a dict, so the &ldquo;execute&rdquo; function returns a nested dict.</p></li>
+<li><p>the return value of &ldquo;run&rdquo; is the stdout and stderr of the remote command.</p></li>
+</ol>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T18:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fabric/'>fabric</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2014/03/28/182817/" data-via="" data-counturl="http://leetschau.github.io/blog/2014/03/28/182817/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/03/28/085154/" title="Previous Post: Some Linux Distro System Memory Cost">&laquo; Some Linux Distro System Memory Cost</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/03/31/115253/" title="Next Post: Distribute SSH Pubkey to Multiple Hosts with Fabric">Distribute SSH Pubkey to Multiple Hosts with Fabric &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

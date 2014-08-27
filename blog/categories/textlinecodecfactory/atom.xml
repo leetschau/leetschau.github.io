@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Textlinecodecfactory | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/textlinecodecfactory/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[TextLineCodecFactory笔记]]></title>
+    <link href="http://leetschau.github.io/blog/2012/04/05/160720/"/>
+    <updated>2012-04-05T16:07:20+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/04/05/160720</id>
+    <content type="html"><![CDATA[<p>Mina的TextLineCodecFactory将字符串编码为字节流，将字节流解码为字符串，下面是使用中遇到的两个问题。 TextLineCodecFactory改变了message的类型
+acceptor上挂了textCodec后handler的messageReceived方法中的session是String型（用&#8221;message.getClass().getName()&ldquo;查看），</p>
+
+<p> [INFO] [2012-04-05 16:18:54,317] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : hi(java.lang.String)]</p>
+
+<p>否则是IoBuffer：</p>
+
+<p> [INFO] [2012-04-05 15:23:36,760] [com.leechau.mina.echoServer.EchoProtocolHandler] - [message type is: org.apache.mina.core.buffer.SimpleBufferAllocator$SimpleBuffer]</p>
+
+<p>因此挂上TextLineCodecFactory后在handler的messageReceived方法中message参数可直接强转为String；</p>
+
+<p> 不能正确解码换行符问题及解决办法
+连接Echo Server后有时会出现下面的现象：</p>
+
+<p> hi{enter}</p>
+
+<p>send:</p>
+
+<p>  hi</p>
+
+<p>造成这一现象的原因是下面的配置方法使TextLineCodecFactory使用了默认的编解码行分隔符（encoder/decoder line delimeter），即用Unix LineDelimeter(/n)作为编码行分隔符，用AUTO LineDelimeter（\r或者\n，详见Mina API doc对LineDelimeter类的说明）作为解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;))));</p>
+
+<p>解决这一问题的办法是指定编解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.DEFAULT.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send:
+hi</p>
+
+<p>如果不希望每次session.write(msg)后编码器自动加上回车符，需要将编码行分隔符指定为NUL：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo; textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.NUL.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send: hi</p>
+
+<p> 源代码
+Main.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
+import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+public class Main {
+ private static final int PORT = 8293;
+ public static void main(String[] args) throws Exception {
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  acceptor.getFilterChain().addLast(&ldquo;logger&rdquo;, new LoggingFilter());
+  acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,
+   new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),
+     LineDelimiter.NUL.getValue() , LineDelimiter.DEFAULT.getValue())));
+  acceptor.setHandler(new EchoProtocolHandler());
+  acceptor.bind(new InetSocketAddress(PORT));
+  System.out.println(&ldquo;Listening on port &rdquo; + PORT);
+ }
+}</p>
+
+<p>EchoProtocolHandler.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IoSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+public class EchoProtocolHandler extends IoHandlerAdapter {
+ private static final Logger LOGGER = LoggerFactory
+ .getLogger(EchoProtocolHandler.class);
+ @Override
+ public void messageReceived(IoSession session, Object message) throws Exception {
+  LOGGER.info(&ldquo;Received : &rdquo; + message + &ldquo;(&rdquo; + message.getClass().getName() + &ldquo;)&rdquo;);
+  session.write(&ldquo;send: &rdquo;);
+  session.write(message);
+ }
+}</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Hg | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/hg/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[基于多个本地仓库的功能点开发方法]]></title>
+    <link href="http://leetschau.github.io/blog/2013/05/04/111324/"/>
+    <updated>2013-05-04T11:13:24+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/05/04/111324</id>
+    <content type="html"><![CDATA[<p>软件开发过程中经常需要在现有的稳定版本上开发新性能，直接在原有的代码仓库上修改不是好办法，首先是由于新功能的开发具有比较大的不确定性，其次在原有的仓库中修改会影响使用该仓库的其他程序。比较好的办法是从稳定版仓库中clone一个副本到新的位置，然后开始新功能的开发，当新功能稳定后push到稳定版仓库中。</p>
+
+<p>Hg对上面的工作流程提供了很好的支持，下面以本地仓库间clone为例演示整个过程（如果副本与原版不在一台机器上，使用Hg内置的http server用hg serve启动服务即可实现不同机器间的开发协同）。</p>
+
+<p>假设稳定版仓库位置是c:\tmp\HgRepo下，tip的版本号是6，现在要开发新特性AutoSave，首先clone仓库：</p>
+
+<p> c:\tmp>hg clone HgRepo AutoSave</p>
+
+<p>如果希望从HgRepo的第4个版本开始开发，可以加-r参数：hg clone -r 4 HgRepo AutoSave，用这种方法可以实现比较安全的版本“回退”，比如提交到版本7后发现版本5～7有问题，可以用&#8221;clone -r 4&#8221;建立一个新的副本，原来的仓库可以视情况予以保留或丢弃。</p>
+
+<p>AutoSave中修改完毕后，可以用hg push直接同步到HgRepo中，这是因为AutoSave的默认仓库是其clone来源HgRepo，hg自动在AutoSave的.hg/hgrc中添加如下配置：</p>
+
+<p> [paths]
+ default = c:\tmp\HgRepo</p>
+
+<p>在push之前先用hg out比较一下AutoSave与HgRepo之间的区别，当有其他开发者向HgRepo中提交更新时，out就必不可少了。</p>
+
+<p>或者用pull的方法，在HgRepo下用hg in repoName比较两个仓库。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Hg常用命令]]></title>
+    <link href="http://leetschau.github.io/blog/2013/04/26/184302/"/>
+    <updated>2013-04-26T18:43:02+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/04/26/184302</id>
+    <content type="html"><![CDATA[<ul>
+<li><p>hg add</p></li>
+<li><p>hg cat filename</p></li>
+<li><p>hg ci，简短的注释可以用hg ci -m &ldquo;short comment&#8221;直接提交，如果没有配置用户，会导致提交失败，配置用户方法见笔记“ hg的常用配置 ”；
+hg ci &ndash;amend: 修改上一次提交的备注信息</p></li>
+<li><p>hg diff file：显示某个版本所做的更改</p>
+
+<p>hg diff -c 19 filename；比较两个版本间的差异</p>
+
+<p>hg diff -r 19 -r 20 filename</p></li>
+<li><p>hg heads 列出所有头版本，用于合并分支(hg merge)前的查询</p></li>
+<li><p>hg help <command_name>: show help information of <command_name>;</p></li>
+<li><p>hg init：如果在非空目录中运行此命令，表示将已有的文件纳入到hg库中；</p></li>
+<li><p>hg log</p>
+
+<p>hg log -l n：只显示最近的n个changeset</p>
+
+<p>hg log -v: 包含文件变化列表和完整的提交注释</p>
+
+<p>hg log -k &ldquo;Your Name&#8221;：用户Your Name提交的changeset列表</p>
+
+<p>hg log -G: 用分支图的形式列出changeset，可与-l参数配合使用</p>
+
+<p>hg log filename: 列出与filename有关的各次提交的信息</p></li>
+<li><p>hg merge 合并分支</p></li>
+<li><p>hg pull <source_repo_url>：将<source_repo_url>中的change_set拉到本地repository中来，不影响working directory中的文件；</p>
+
+<p>hg pull -u &lt;=> hg pull &ndash;update &lt;=> &ldquo;hg pull; hg update&rdquo; &lt;=> svn update</p>
+
+<p>DVCS与SVN的区别在于DVCS存在两种类型的同步：repository之间以及本地repository与working directory之间，push/pull用于同步前者，update/commit用于同步后者；</p></li>
+<li><p>hg push</p></li>
+<li><p>hg rollback: 删除最近一次提交(commit)</p></li>
+<li><p>hg st: 无参数表示tip与working dir的区别</p>
+
+<p>hg st &ndash;rev 19：版本19的变化</p>
+
+<p>hg st &ndash;rev x:y：比较x和y版本的变化，x与y的顺序无所谓；</p></li>
+<li><p>hg update：用本地repository中的内容更新working_copy中的文件；</p>
+
+<p>hg update -C: 抛弃本地未提交的更改，用版本库中的文件更新working directory；</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Hg的常用配置]]></title>
+    <link href="http://leetschau.github.io/blog/2013/04/26/181500/"/>
+    <updated>2013-04-26T18:15:00+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/04/26/181500</id>
+    <content type="html"><![CDATA[<p>hg的配置文件分为全局配置和每个Repo自己的配置，
+Linux下全局配置文件是~/.hgrc，Win7系统下是C:\Users\chad\mercurial.ini，
+各repo的配置文件是$REPO_PATH/.hg/hgrc。</p>
+
+<h1>常用配置</h1>
+
+<h2>设置Repo的用户名</h2>
+
+<pre><code>[ui] 
+username = Your Name
+</code></pre>
+
+<h2>push/pull目标仓库</h2>
+
+<pre><code>[paths] 
+default = http://ip_or_hostname:8000/ 
+repo1 = = https://user@bitbucket.org/user/nep
+</code></pre>
+
+<p>之后可以用hg push推送到default库，用hg push repo1推送到repo1库；</p>
+
+<h2>push目标禁用ssl验证</h2>
+
+<pre><code>[web] 
+push_ssl = false 
+allow_push = *
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[使用vimdiff做hg的版本比较工具]]></title>
+    <link href="http://leetschau.github.io/blog/2013/04/26/181254/"/>
+    <updated>2013-04-26T18:12:54+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/04/26/181254</id>
+    <content type="html"><![CDATA[<p>gvim的文本比较功能很强，命令行用法：gvim -d file1 file2，hg自带的hg diff没有颜色标示，含义也不够清晰，所以需要用vim的diff代替它，实现方法是在全局配置文件中增加：</p>
+
+<p> [extensions]
+ hgext.extdiff =
+ [extdiff]
+ cmd.vdiff = D:\Apps\Vim\vim73\gvim.exe
+ opts.vdiff = -d</p>
+
+<p>使用时首先用hg st定位哪些文件有变化，然后hg vdiff filename查看文件的变动，例如：</p>
+
+<p> E:\workspace\JDK6UTF8\GoduServerGD>hg st
+ M conf\logback.xml
+ M &hellip;
+ E:\workspace\JDK6UTF8\GoduServerGD>hg vdiff conf/logback.xml</p>
+
+<p>文件路径和文件名在唯一的情况下可以使用通配符，例如上面的指令可以简写为&#8221;hg vdiff conf/log*&ldquo;；</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[基于hg的多用户单分支协同开发试验]]></title>
+    <link href="http://leetschau.github.io/blog/2013/04/25/124302/"/>
+    <updated>2013-04-25T12:43:02+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/04/25/124302</id>
+    <content type="html"><![CDATA[<h1>协同方法</h1>
+
+<p>在所有开发人员中指定一个Server，类似于svn repo。其他人（Client）的代码是server的副本，修改、测试稳定后立即合并回server（最好通过server的pull方法实现，比client push更保险），server将client提交的更新与自己的更新合并（merge）后立即push回client，要注意的是server在pull之前要确保working directory中没有未提交的更改（未完成功能，用&#8221;hg st&#8221;命令的输出是否为空来检验，为空说明没有未完成功能），因为merge后必须提交一个“合并版本”到版本库，如果有未完成功能，也会被提交到版本库中。</p>
+
+<p>A和B在同步过代码后，如果A提交了新changeset，而此期间B没有提交过，则A可以把变化push给B，这时B不需要merge，只update即可，update后可以用hg log -l 1 -v查看哪些文件发生了变化，以及A的提交说明；</p>
+
+<p>整个协同过程中不需要新建branch或者bookmark，估计是最简单的分布式版本控制系统的协同模型。</p>
+
+<h1>试验过程</h1>
+
+<p>Server（username: Li Chao）新建一个repo，添加文件，提交changeset，Client（username: chadOnPC）clone此repo，修改其中一个文件，与此同时Li Chao修改了另一个文件，chadOnPC将修改push回笔记本，Li Chao合并两部分修改，再修改这两个文件，push到Client，由于这期间Client没有修改，所以只要update就把Server push的内容更新到了working directory中。</p>
+
+<p>========== Server ================</p>
+
+<p>c:\tmp\HgRepo>hg init
+// 新建两个文件：forChadLaptop.txt和forChadPC.txt并写一些内容在文件里
+c:\tmp\HgRepo>hg add <em>.txt
+c:\tmp\HgRepo>hg stat
+A forChadLaptop.txt
+A forChadPC.txt
+c:\tmp\HgRepo>hg ci -m &ldquo;first checkin&rdquo;
+c:\tmp\HgRepo>hg log
+changeset: 0:fd200857b086
+tag:   tip
+user:  Li Chao
+date:  Thu Apr 25 11:32:24 2013 +0800
+summary:  first checkin
+c:\tmp\HgRepo>hg heads
+changeset: 0:fd200857b086
+tag:   tip
+user:  Li Chao
+date:  Thu Apr 25 11:32:24 2013 +0800
+summary:  first checkin
+c:\tmp\HgRepo>hg serve
+listening at <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a> (bound to </em>:8000)
+=========== Client ==============
+E:\lc\clonedRepo>hg clone <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a>
+&hellip;
+E:\lc\clonedRepo>hg log
+changeset: 0:fd200857b086
+tag:   tip
+user:  Li Chao
+date:  Thu Apr 25 11:32:24 2013 +0800
+files:  forChadLaptop.txt forChadPC.txt
+description:
+first checkin
+E:\lc\clonedRepo>hg st
+// edit file &ldquo;forChadPC.txt&rdquo;
+E:\lc\clonedRepo>hg st
+M forChadPC.txt
+E:\lc\clonedRepo>hg ci -m &ldquo;first on pc&rdquo;
+forChadPC.txt
+committed changeset 1:2c5fbbb6645b
+E:\lc\clonedRepo>hg log
+changeset: 1:2c5fbbb6645b
+tag:   tip
+user:  chadOnPC
+date:  Thu Apr 25 11:42:09 2013 +0800
+files:  forChadPC.txt
+description:
+first on pc
+changeset: 0:fd200857b086
+user:  Li Chao
+date:  Thu Apr 25 11:32:24 2013 +0800
+files:  forChadLaptop.txt forChadPC.txt
+description:
+first checkin
+/<strong> 需要在被push的repo的.hg/hgrc文件中增加如下内容（如果文件不存在新建之）：
+ * [web]
+ * push_ssl = false
+ * allow_push = *
+</strong>/
+E:\lc\clonedRepo>hg push <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a>
+pushing to <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a>
+searching for changes
+1 changesets found
+remote: adding changesets
+remote: adding manifests
+remote: adding file changes
+remote: added 1 changesets with 1 changes to 1 files
+============= Server ==================
+// 修改forChadLaptop.txt文件
+c:\tmp\HgRepo>hg st
+M forChadLaptop.txt // 修改被感知到
+c:\tmp\HgRepo>hg heads
+changeset: 1:2c5fbbb6645b
+tag:   tip
+user:  chadOnPC
+date:  Thu Apr 25 11:42:09 2013 +0800
+summary:  first on pc // 与push之前笔记本上&#8221;hg heads&#8221;命令相比，head变成了push过来的那个changeset
+c:\tmp\HgRepo>hg st
+M forChadLaptop.txt // push不改变working dirctory中的文件
+c:\tmp\HgRepo>hg ci -m &ldquo;second commit on laptop&rdquo;
+created new head
+c:\tmp\HgRepo>hg heads
+changeset: 2:42809e7d6c58
+tag:   tip
+parent:  0:fd200857b086
+user:  Li Chao
+date:  Thu Apr 25 11:54:05 2013 +0800
+summary:  second commit on laptop
+changeset: 1:2c5fbbb6645b
+user:  chadOnPC
+date:  Thu Apr 25 11:42:09 2013 +0800
+summary:  first on pc  // head变成了两个
+c:\tmp\HgRepo>hg branch
+default   // branch始终只有default一个
+c:\tmp\HgRepo>hg merge
+1 files updated, 0 files merged, 0 files removed, 0 files unresolved
+(branch merge, don&rsquo;t forget to commit)
+c:\tmp\HgRepo>hg st
+M forChadPC.txt  // merge命令改变了working directory中文件的内容
+c:\tmp\HgRepo>hg ci -m &ldquo;merge from pc&rdquo;
+c:\tmp\HgRepo>hg log
+changeset: 3:ba028970a1d0
+tag:   tip
+parent:  2:42809e7d6c58
+parent:  1:2c5fbbb6645b
+user:  Li Chao
+date:  Thu Apr 25 11:57:17 2013 +0800
+summary:  merge from pc
+changeset: 2:42809e7d6c58
+parent:  0:fd200857b086
+user:  Li Chao
+date:  Thu Apr 25 11:54:05 2013 +0800
+summary:  second commit on laptop
+changeset: 1:2c5fbbb6645b
+user:  chadOnPC
+date:  Thu Apr 25 11:42:09 2013 +0800
+summary:  first on pc
+changeset: 0:fd200857b086
+user:  Li Chao
+date:  Thu Apr 25 11:32:24 2013 +0800
+summary:  first checkin
+=========== Client =====================</p>
+
+<p>E:\lc\clonedRepo>hg serve</p>
+
+<p>=========== Server ===================</p>
+
+<p>c:\tmp\HgRepo>hg push <a href="http://china-a9598ee91:8000/">http://china-a9598ee91:8000/</a></p>
+
+<p>&hellip;</p>
+
+<p>=========== Client ===============</p>
+
+<p>E:\lc\clonedRepo>hg update // 由于Client没有同时修改代码，所以不需要merge，update即可</p>
+]]></content>
+  </entry>
+  
+</feed>

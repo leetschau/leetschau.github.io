@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 异步 | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/yi-bu/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[RMI运行实例]]></title>
+    <link href="http://leetschau.github.io/blog/2012/04/25/101848/"/>
+    <updated>2012-04-25T10:18:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/04/25/101848</id>
+    <content type="html"><![CDATA[<p>计算机的远程通信有很多种方法， RPC 的设计目标是让一台主机（客户端）上的程序能够引用另一台主机（服务端）上对象，并运行它的方法，也就是“跨地址空间的进程间通信”， RMI 是RPC的Java语言实现。</p>
+
+<p>本实例包含5个文件：</p>
+
+<p>// ================= Hello.java ====================</p>
+
+<p>package test.rmi;</p>
+
+<p>import java.rmi.Remote;</p>
+
+<p>import java.rmi.RemoteException;</p>
+
+<p>/**</p>
+
+<ul>
+<li><p>远程方法调用接口，定义远程调用方法</p></li>
+</ul>
+
+
+<p> */</p>
+
+<p>public interface Hello extends Remote {</p>
+
+<p> String sayHello() throws RemoteException;</p>
+
+<p>}</p>
+
+<p> //=================  HelloServer.java =============================
+ package test.rmi;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+/<strong>
+ <em><p>服务器端，实现了Hello接口中的方法，用于实现远程调用方法的具体业务逻辑</p>
+ </em>/
+public class HelloServer extends UnicastRemoteObject implements Hello {
+  private static final long serialVersionUID = 1L;
+  String name;
+  public HelloServer(String s) throws RemoteException {
+   super();
+   name = s;
+  }
+  public String sayHello() throws RemoteException {
+   return &ldquo;Hello from lc!&rdquo;;
+  }
+  public static void main(String[] args) {
+   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
+   * 并且在命令行中使用如下格式
+   * java -Djava.security.policy=java.policy test.rmi.HelloServer
+   <em>/
+   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
+   Registry registry = null;
+   try {
+    /**启动注册服务器，使用了这个语句就不再需要在命令行环境中
+    </em>启动registry服务了
+    <em>/
+    registry = LocateRegistry.getRegistry();
+    /</em> 若没有获得连接，则此句会抛出异常，后面在捕获后进行相关处理 */
+    registry.list();
+    System.out.println(&ldquo;Register the exist server!&rdquo;); //$NON-NLS-1$
+   } catch (RemoteException re) {
+    try {
+     int port = Integer.parseInt(Configur
+        .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;)); //$NON-NLS-1$
+     registry = LocateRegistry.createRegistry(port);
+     System.out.println(&ldquo;Create Registry Server!&rdquo;); //$NON-NLS-1$
+    } catch (Exception e) {
+     e.printStackTrace();
+    }
+   }
+   try {
+    HelloServer helloServer = new HelloServer(&ldquo;Hello&rdquo;);
+    registry.rebind(
+       Configur.getString(&ldquo;HelloServer.HelloServerName&rdquo;), helloServer); //$NON-NLS-1$
+    System.out.println(&ldquo;HelloServer server start!&rdquo;); //$NON-NLS-1$
+   } catch (Exception e) {
+    e.printStackTrace();
+   }
+  }
+}</p>
+
+<p>//==================  HelloClient.java ============================
+ package test.rmi;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+/<strong>
+ * <p>客户端，需要注册服务器并使用jndi</p>
+ */
+public class HelloClient {
+  public static void main(String[] args) {
+   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
+   * 并且在命令行中使用如下格式
+   * java -Djava.security.policy=java.policy test.rmi.HelloServer
+   <em>/
+   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
+   try {
+    /</em> 注册服务器 */
+    String hostName = Configur
+       .getString(&ldquo;HelloServer.RegistryServerName&rdquo;);
+    int port = Integer.parseInt(Configur
+       .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;));
+    Registry registry = LocateRegistry.getRegistry(hostName, port);
+    Hello hello = (Hello) registry.lookup(Configur
+       .getString(&ldquo;HelloServer.HelloServerName&rdquo;));
+    String message = hello.sayHello();
+    System.out.println(message);
+   } catch (Exception e) {
+    e.printStackTrace();
+   }
+  }
+}</p>
+
+<p>//================= Configur.java =============================
+ package test.rmi;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+/<em>*
+ * <p>获取系统运行所需要的配置信息，对应的配置文件名称为config.properties</p>
+ </em>/
+public class Configur {
+ private static final String BUNDLE_NAME = &ldquo;test.rmi.config&rdquo;;
+ private static final ResourceBundle RESOURCE_BUNDLE = ResourceBundle
+   .getBundle(BUNDLE_NAME);
+ private Configur() {
+ }</p>
+
+<p> /<em>*
+  * <p>通过key名称获得配置文件的相关信息</p>
+  * @param key key名称
+  * @return String 配置文件信息
+  </em>/
+ public static String getString(String key) {
+  try {
+   return RESOURCE_BUNDLE.getString(key);
+  } catch (MissingResourceException e) {
+   return &lsquo;!&rsquo; + key + &lsquo;!&rsquo;;
+  }
+ }
+}</p>
+
+<p>//================= config.properties =============================
+ HelloServer.RegistryServerPort=1111
+HelloServer.HelloServerName=HelloServer
+HelloServer.RegistryServerName=10.31.1.71</p>
+
+<p> 源代码目录是e:\MyDoc\JEx\Ex1\src，Eclipse自动生成的class文件在e:\MyDoc\JEx\Ex1\bin（以及包目录）下。 运行方法：</p>
+
+<ol>
+<li>E:\MyDoc\JEx\Ex1\bin> rmic test.rmi.HelloServer  （rmic.exe是$JAVA_HOME/bin里的文件）</li>
+</ol>
+
+
+<p> 生成e:\MyDoc\JEx\Ex1\bin\test\rmi\HelloServer_Stub.class文件（没有生成skeleton文件）</p>
+
+<ol>
+<li>E:\MyDoc\JEx\Ex1\bin> java test.rmi.HelloServer</li>
+</ol>
+
+
+<p> Create Registry Server!
+ HelloServer server start!</p>
+
+<ol>
+<li><p>关闭本机的Windows防火墙；</p></li>
+<li><p>copy HelloClient.class, HelloServer_Stub.class, Hello.class, Configur.class, config.properties到另一台机器，运行 java test.rmi.HelloClient ，返回&#8221;Hello from lc!&ldquo;。</p></li>
+</ol>
+
+
+<p>要运行Server只需要Hello.class, HelloServer.class, Configur.class, config.properties 4个文件，HelloServer_Stub.class只在客户端需要。</p>
+
+<p>可以看到客户端新建了一个Hello类型的对象，然后调用了这个对象的方法sayHello，而这个对象和方法的定义在另一台主机上。</p>
+
+<p>RMI是一种同步调用方式，也就是说代码运行到&#8221;String message = hello.sayHello()&ldquo;是会阻塞（block），直到服务端返回sayHello的结果，与此相对， JMS 是异步发送消息，客户端发送完消息后不等待结果返回，运行后面的代码。</p>
+]]></content>
+  </entry>
+  
+</feed>

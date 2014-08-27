@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 日期 | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ri-qi/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[日期格式转换的正则表达式实现]]></title>
+    <link href="http://leetschau.github.io/blog/2011/07/19/164331/"/>
+    <updated>2011-07-19T16:43:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/07/19/164331</id>
+    <content type="html"><![CDATA[<p>原始文本：</p>
+
+<blockquote><p>2011年7月18日：修改密码的核心功能开发完毕；
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<p>目标格式文本：</p>
+
+<blockquote><p>2011-7-18：修改密码的核心功能开发完毕；
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<h1>vim实现</h1>
+
+<pre><code>:%s/\(\d\{4}\).\(\d\{1,2}\).\(\d\{1,2}\)./\1-\2-\3/g 
+</code></pre>
+
+<p>说明： 采用 :%s/old/new/g 命令进行替换，其中%表示对所有行进行替换操作，最后的g参数表明对一行中所有的new均替换为old。\d代表任意数字，old pattern中每个括号（即(&hellip;)）中的内容构成一个group member，new pattern中对group member的引用用\1、\2、\3&hellip;代表，即&#8221;BRE&#8221;, back references.</p>
+
+<h1>Groovy实现</h1>
+
+<pre><code>oriStr = '''2011年7月18日：修改密码的核心功能开发完毕； 
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；'''; 
+pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+matcher = oriStr =~ pattern; 
+matcher.each { all,y,m,d-&gt; 
+    println 'Patten is: '+all; 
+    println 'Replaced by: '+y+'-'+m+'-'+d; 
+}; 
+println '*****'; 
+println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;}; 
+</code></pre>
+
+<p>运行结果：</p>
+
+<pre><code>Patten is: 2011年7月18日 
+Replaced by: 2011-7-18 
+Patten is: 2011年7月19日 
+Replaced by: 2011-7-19 
+***** 
+2011-7-18：修改密码的核心功能开发完毕； 
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<p>说明： 跨行字符串用三引号括起来；匹配模式用“ /&hellip;/” 括起来；用模式匹配字符串时，每一次成功匹配构成了matcher的一个元素（代码中用matcher.each得到），如果模式当中包含group（可以matcher.hasGroup()判断），则这个元素本身也是一个List，其中第一个元素是符合模式的substring（代码中的all），各个group member可以用下标引用，也可以分别起名字（代码中分别为y、m、d）。这部分内容可参见《Groovy in Action》（2007版）第3.5节“Working with regular expressions”。Groovy的String.replaceAll方法包括两个参数，第一个是要被代替的pattern，第二个是用来代替pattern的closure，该closure的返回结果是最后一行代码的值。</p>
+
+<p>例如：<code>println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;return 'Date'};</code> 的输出是：</p>
+
+<pre><code>Date：修改密码的核心功能开发完毕； 
+Date：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<h1>基于文件读写的Groovy实现</h1>
+
+<pre><code>pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+convStr = ''; 
+new File('f:/Edit3.txt').eachLine{ 
+    convStr += (it.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d})+'\n' 
+} 
+new File('f:/conv.txt').write convStr; 
+</code></pre>
+
+<p>说明： 第4行的it表示此行文本（字符串）。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[数码照片按拍摄时间分文件夹保存]]></title>
+    <link href="http://leetschau.github.io/blog/2011/06/27/154047/"/>
+    <updated>2011-06-27T15:40:47+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/06/27/154047</id>
+    <content type="html"><![CDATA[<h2>拍摄的大量数码照片需要根据拍摄的时间分别放到不同的文件夹里，例如2011年6月27日拍摄的照片要放在名为“2011-6-27”的文件夹里。拍摄时间是根据文件的“最后修改时间”属性确定的，因为“创建时间”属性是会随着文件的拷贝而变化的，不能作为拍摄时间的根据。当然如果用画图或者photoshop修改了照片，那么 “最后修改时间”属性也不是拍摄时间了，但文件的【属性->摘要->照片拍照时间】项仍能显示出真实的拍照时间，但如何取这个属性尚不清楚，故本文不涉及。下面是源代码： </h2>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> # Author:  Li Chao</p>
+
+<p> # Created:  27-06-2011</p>
+
+<p> #</p>
+
+<p> # Purpose: 将相机SD卡上的照片按照拍摄日期放入硬盘上当前目录下的不同的文件夹中。</p>
+
+<p> #</p>
+
+<p> # Usage:</p>
+
+<p> # step 1: 将本文件拷贝到目标文件夹中；</p>
+
+<p> # step 2: 在这个文件夹下新建一个run.bat，内容如下：</p>
+
+<p> #   python arrangePhotos.py [photo_path] [last_backup_date]</p>
+
+<p> #   第1个参数是SD卡里照片所在文件夹路径，第二个参数是已备份的最后日期；</p>
+
+<p> # step 3: 运行run.bat</p>
+
+<p> #</p>
+
+<p> # Example: python arrangePhotos.py h:/transfer/pics 2011-06-10</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> import sys, os, time, shutil</p>
+
+<p> from datetime import date</p>
+
+<p> def main():</p>
+
+<p>  photos_path = sys.argv[1]</p>
+
+<p>  last_bp = time.strptime(sys.argv[2], &ldquo;%Y.%m.%d&rdquo;)</p>
+
+<p>  last_bp_epoch = time. mktime (last_bp)</p>
+
+<p>  for item in os.listdir(photos_path):</p>
+
+<p>   modif_time = os.path. getmtime (os.path.join(photos_path,item))</p>
+
+<p>   if modif_time - last_bp_epoch &lt;= 3600*24 :</p>
+
+<pre><code>continue 
+</code></pre>
+
+<p>   cre_date_obj = date.fromtimestamp(modif_time)</p>
+
+<p>   cre_date = cre_date_obj.strftime(&ldquo;%Y.%m.%d&rdquo;)</p>
+
+<p>   if not os.path.exists(cre_date):</p>
+
+<pre><code>os.mkdir(cre_date) 
+
+print '\n%s' %cre_date 
+</code></pre>
+
+<p>   shutil.copy2(os.path.join(photos_path,item), cre_date)</p>
+
+<pre><code>print '.', 
+</code></pre>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  main()</p>
+
+<hr />
+
+<p> 对源代码的解释：</p>
+
+<ol>
+<li>时区问题：</li>
+</ol>
+
+
+<p>  由于time.mktime()方法和os.path.getmtime()都是以1970-1-1 08:00:00为起点，因此将这些时间数转换为日期、时间时，一定要用time.localtime()方法，如果用time.gmtime()，则会得到错误的值，下面这段代码演示了两种方法的区别：</p>
+
+<p> import time</p>
+
+<p> gm_sec = time.gmtime(0)</p>
+
+<p> print gm_sec</p>
+
+<p> gm = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, gm_sec)</p>
+
+<p> print &lsquo;UTC start point is %s&rsquo; %gm</p>
+
+<p> lc_sec = time.localtime(0)</p>
+
+<p> print lc_sec</p>
+
+<p> lc = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, lc_sec)</p>
+
+<p> print &lsquo;local time start point is %s&rsquo; %lc</p>
+
+<p> second_day = time.mktime(time.strptime(&lsquo;1970-1-2&rsquo;, &ldquo;%Y-%m-%d&rdquo;))</p>
+
+<p> print &lsquo;second day is %s hours after first day&rsquo; %(second_day/3600)</p>
+
+<p>输出为：</p>
+
+<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
+
+<p> UTC start point is 1970-01-01, 00:00:00</p>
+
+<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=8, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
+
+<p> local time start point is 1970-01-01, 08:00:00</p>
+
+<p> second day is 16.0 hours after first day</p>
+
+<p>加粗的部分表明东8区的时间起点是1970-1-1 08:00:00。</p>
+
+<ol>
+<li>为什么修改时间要比最后一次备份时间多一天（即24小时，3600*24秒）？</li>
+</ol>
+
+
+<p> 例如最后一次备份时间是2011年6月27日，last_bp_epoch的值对应于27日0点0分，当处理一张2011年6月27日晚11点拍摄的照片时，modif_time - last_bp_epoch = 23 hour，这张照片已经备份过了，不应该再次备份，因此modif_time - last_bp_epoch > 24hour时才需要备份；</p>
+
+<ol>
+<li>怎样让print语句的输出不换行？</li>
+</ol>
+
+
+<p> 在字符串后面加逗号即可。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[删除过期的文件夹]]></title>
+    <link href="http://leetschau.github.io/blog/2011/05/11/150130/"/>
+    <updated>2011-05-11T15:01:30+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/05/11/150130</id>
+    <content type="html"><![CDATA[<p>BVT将每天检出并运行单元测试的源代码放入一个以日期命名的文件夹中，每个文件夹都很大，因此需要及时清除比较老的文件夹以节约磁盘空间，例如今天是5月11日，bvt运行目录e:\bvt_build下有如下文件夹和文件：</p>
+
+<p> 2011-04-18\</p>
+
+<p> 2011-04-19\</p>
+
+<p> 2011-04-22\</p>
+
+<p> 2011-04-25\</p>
+
+<p> 2011-04-27\</p>
+
+<p> 2011-05-10\</p>
+
+<p> 2011-05-09\</p>
+
+<p>  2011-05-08\</p>
+
+<p> backup\</p>
+
+<p> note.txt</p>
+
+<p>现在的要求是仅保留今天、昨天和前天共3天的文件夹，其余文件夹删除（文件都保留），技术关键有两点：一是怎样将字符串形式的日期转换为可以用来做减法的date对象，以便判断与今天的间隔，这里采用的方法是：先将字符串转换为一个datetime对象，然后转换为一个timestamp（实数），再将timestamp转换为date对象；二是怎样将时间间隔（timedelta）对象转换为整型数以便进行比较，这里用的方法是得到timedelta对象后取其days属性。代码如下：</p>
+
+<p> import os,shutil,time</p>
+
+<p> from datetime import datetime, timedelta, date</p>
+
+<p> today = date.today()</p>
+
+<p> sub_items = os.listdir(&lsquo;e:/bvt_build&rsquo;)</p>
+
+<p> for item in sub_items:</p>
+
+<p>  try:</p>
+
+<p>   timeFloat = time.mktime(time.strptime(item, &ldquo;%Y-%m-%d&rdquo;))</p>
+
+<p>   the_day = date.fromtimestamp(timeFloat)</p>
+
+<p>   time_span = (today - the_day).days</p>
+
+<p>   if time_span > 2:</p>
+
+<pre><code>shutil.rmtree(os.path.join('e:/bvt_build',item)) 
+</code></pre>
+
+<p>  except:</p>
+
+<p>   continue</p>
+
+<p>运行后的结果如下：</p>
+
+<p> 2011-05-09\</p>
+
+<p> 2011-05-10\</p>
+
+<p> backup\</p>
+
+<p> note.txt</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[用pysvn和svnant检出某一日期的svn库中的源代码]]></title>
+    <link href="http://leetschau.github.io/blog/2011/03/28/163404/"/>
+    <updated>2011-03-28T16:34:04+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/03/28/163404</id>
+    <content type="html"><![CDATA[<p>任务要求：用户给出一个时间起点和一个终点，检出此时间段内每天的svn库中的源代码进行代码行变化分析。</p>
+
+<h1>pysvn方案</h1>
+
+<p>pysvn检出特定日期源代码需要在checkout（或者export）方法中的revision参数中设置日期值，此参数是一个pysvn.Revision对象，构造此对象需要提供一个float型的参数（从epoch到指定日期的秒数），因此将一个可指定偏移量的日期时间对象转换为这个float对象是程序的难点，具体方法是：</p>
+
+<p>利用date（或者datetime）对象和timedelta得到区间内每天的date对象=>转换为字符串=>用time.strptime()方法将其转换为struct_time对象=>用time.mktime()方法将其转换为float时间。</p>
+
+<p>源代码：</p>
+
+<p> from datetime import datetime, timedelta
+ theDay = datetime.strptime(&lsquo;2011-4-1&rsquo;, &ldquo;%Y-%m-%d&rdquo;)
+ yesterday = theDay - timedelta(days=1)
+ yesterdayStr = yesterday.strftime(&ldquo;%Y-%m-%d&rdquo;)
+ print yesterdayStr</p>
+
+<p>或者转换为float时间：
+ import os, sys, commands, shutil, time
+ from datetime import date, timedelta
+ sys.path.append(&lsquo;E:/BVT/Hudson/jobs/GODU/workspace/GODU_BVT/tools&rsquo;)
+ os.environ[&lsquo;Path&rsquo;] = &lsquo;E:/BVT/Hudson/jobs/GODU/workspace/GODU_BVT/tools;&rsquo;+os.getenv(&lsquo;Path&rsquo;)
+ proj_list = [&lsquo;GODU_SERVER&rsquo;, &lsquo;GAPI&rsquo;, &lsquo;GODU_WEB&rsquo;]
+ src_path = os.path.join(os.getcwd(),&lsquo;checkoutSrc&rsquo;)
+ svn_root = &lsquo;<a href="http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/">http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/</a>&rsquo;
+ svn_path_list = [&lsquo;GODU_SERVER&rsquo;, &lsquo;GAPI&rsquo;, &lsquo;GODU_Web/goduDS&rsquo;]
+ def createReport(startYear, startMon, startDay, endYear, endMon, endDay):
+  try:
+   resultFile = open(&lsquo;diffcountReport.txt&rsquo;,&lsquo;wt&rsquo;)
+   import pysvn
+   svn_client = pysvn.Client()
+   svn_client.set_default_username(&lsquo;bvt&rsquo;)
+   svn_client.set_default_password(&lsquo;bvt&rsquo;)
+   startDate = date(startYear, startMon, startDay)
+   endDate = date(endYear, endMon, endDay)
+   timeSpan = (endDate - startDate).days + 1
+   for i in range(timeSpan):
+     theDay = startDate+timedelta(days=i)
+    yesterday = theDay - timedelta(days=1)
+    dayStr = str(theDay)
+    timeStruct = time.strptime(dayStr,&ldquo;%Y-%m-%d&rdquo;)
+    # if dayStr is a datetime object, the format string should be &ldquo;%Y-%m-%d %H:%M:%S&rdquo;
+    timeFloat = time.mktime(timeStruct)
+    revdate = pysvn.Revision(pysvn.opt_revision_kind.date, timeFloat)
+    resultFile.write(dayStr+&lsquo;:\n\n&rsquo;)
+    try:
+     for i in range(3):
+      svn_client.export(svn_root+svn_path_list[i], os.path.join(src_path,
+            dayStr,proj_list[i]),revision=revdate)
+      oldCodePath = os.path.join(src_path, str(yesterday), proj_list[i])
+      newCodePath = os.path.join(src_path, dayStr, proj_list[i])
+      resultFile.write(proj_list[i]+&lsquo;:\n&rsquo;)
+      resultFile.write(os.popen(&lsquo;diffcount &rsquo; + oldCodePath +&lsquo; &rsquo;+ newCodePath).read())
+    except Exception,e:
+     print e
+    oldSumCodePath = os.path.join(src_path, str(yesterday))
+    newSumCodePath = os.path.join(src_path, dayStr)
+    resultFile.write(&lsquo;Summary:\n&rsquo;)
+    resultFile.write(os.popen(&lsquo;diffcount &rsquo; + oldSumCodePath +&lsquo; &rsquo;+ newSumCodePath).read())
+   return True
+  finally:
+   resultFile.close()</p>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:
+  createReport(2011, 1, 26, 2011, 3, 30)</p>
+
+<h1>svnant方案</h1>
+
+<p>svnant中指定时间相对比较简单，因为它的<svn>本身就接受字符串格式的日期，但ant中并没有提供日期偏移的方法，因此如果只检出1天（或几天）的代码，用svnant比较好，但如果检出几十天的代码，就必须手工实现日期偏移的方法了。</p>
+
+<p>安装svnant的方法比较简单，将svnant.jar、svnClientAdapter.jar、svnjavahl.jar、svnkit.jar共4个jar包copy到$ANT_HOME/lib下，在build.xml里添加一个taskdef就OK了，见下面的源代码：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ <project name="CheckoutSrc" basedir="./" default="checkout">
+  <property name="proj.root.url" value="http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/GAPI/doc"/>
+   <property name="src.dir" value="${basedir}/checkouts"/>
+   <typedef classpath="svnant.jar" resource="org/tigris/subversion/svnant/svnantlib.xml"/>
+   <target name="checkout">
+   <svn username="bvt" password="bvt" dateFormatter="yyyy-MM-DD">
+    <export srcUrl="${proj.root.url}" destPath="${src.dir}" revision="2011-01-27"/>
+   </svn>
+  </target>
+ </project></p>
+
+<p>参考文献：</p>
+
+<p><a href="http://blogold.chinaunix.net/u/25096/showart_1671401.html">python中解析日期时间字符串为struct_time对象</a></p>
+
+<h1>pysvn和svnant中取svn的旧版本</h1>
+
+<p>不加说明时，pysvn和svnant都是取最新版本（Head版本）的svn数据，但也可以取指定的版本，二者都支持根据版本号或者版本日期两种方式确定export的内容。</p>
+
+<h2>pysvn</h2>
+
+<p> svn_client.export(config.get(&lsquo;svn&rsquo;,&lsquo;test_proj_path&rsquo;), config.get(&lsquo;local&rsquo;,&lsquo;build_folder_name&rsquo;),revision=pysvn.Revision(pysvn.opt_revision_kind.number, 4712))
+详细说明见pysvn文档中对pysvn.Revision对象的说明。</p>
+
+<h2>svnant</h2>
+
+<p> <export srcUrl="${proj.root.url}/@{projName}" destPath="${build.tmp.dir}" revision="4712"/>
+详细说明见svnant中对export的解释：<a href="http://subclipse.tigris.org/svnant/svn.html#export">http://subclipse.tigris.org/svnant/svn.html#export</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[利用Python计算日期平移]]></title>
+    <link href="http://leetschau.github.io/blog/2010/02/19/113320/"/>
+    <updated>2010-02-19T11:33:20+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/02/19/113320</id>
+    <content type="html"><![CDATA[<p>数码相机的日期如果不准，推算出正确的日期比较麻烦，下面的python代码可以解决这个问题，例如某张标记日期为2009年9月11日的照片，实际拍摄时间是2010年2月17日，那么标记时间是2009年7月1日的照片的实际拍摄时间是：
+from datetime import date
+delta = date(2010,2,17) - date(2009,9,11)
+date(2009,7,1) + delta</p>
+]]></content>
+  </entry>
+  
+</feed>

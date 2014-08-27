@@ -1,0 +1,301 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Linux Benchmarking - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Some Theory http://stackoverflow.com/questions/368472/linux-benchmarking-tools
+Linux Benchmarking HOWTO. Tools Disk IO Benchmark Writing Speed $ dd &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2014/04/08/170400">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Linux Benchmarking</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-08T17:04:00+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>Some Theory</h1>
+
+<ul>
+<li><p><a href="http://stackoverflow.com/questions/368472/linux-benchmarking-tools">http://stackoverflow.com/questions/368472/linux-benchmarking-tools</a></p></li>
+<li><p><a href="http://tldp.org/HOWTO/Benchmarking-HOWTO.html">Linux Benchmarking HOWTO</a>.</p></li>
+</ul>
+
+
+<h1>Tools</h1>
+
+<h2>Disk IO Benchmark</h2>
+
+<h3>Writing Speed</h3>
+
+<pre><code>$ dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync
+</code></pre>
+
+<p>from <a href="http://systembash.com/content/simple-disk-benchmarking-in-linux-using-dd/">Simple Disk Benchmarking in Linux Using &lsquo;dd&rsquo;</a></p>
+
+<h3>Reading Speed</h3>
+
+<pre><code>$ hdparm -tT $(df $HOME|awk 'FNR == 2 {print $1}')
+</code></pre>
+
+<p>where &ldquo;df $HOME|awk &lsquo;FNR == 2 {print $1}&rsquo;&rdquo; get the disk name of the $HOME folder. For example, on my laptop it is /dev/sda1, on 49 server it is /dev/mapper/vg_bocoty49-lv_root. In awk command, &ldquo;FNR == 2&rdquo; means the second line.
+This is the &ldquo;origin&rdquo; version:</p>
+
+<pre><code>$ hdparm -tT /dev/sda
+</code></pre>
+
+<p>from <a href="http://www.lostsaloon.com/technology/how-to-test-the-read-and-write-speeds-of-a-hard-disk-in-linux/">How to Test the Read and Write Speeds of a Hard Disk in Linux</a>.</p>
+
+<p>Another reference: <a href="https://wiki.archlinux.org/index.php/Hdparm">https://wiki.archlinux.org/index.php/Hdparm</a></p>
+
+<h2>Network Throughput Benchmark</h2>
+
+<p>Run the following command on the &ldquo;server&rdquo; host, not the &ldquo;client&rdquo; host which is testd.</p>
+
+<pre><code>$ cat testspeed.sh
+
+filesize=$3
+dd bs=1M count=$filesize if=/dev/zero of=test
+timeres=$(/usr/bin/time -p scp test $1@$2:/home/$1/ 2&gt;&amp;1 &gt;/dev/null)
+echo timeres: $timeres
+duration=$(echo $timeres|awk 'FNR == 1 {print $2}')
+echo duration: $duration
+speed=$(echo "scale=2; $filesize / $duration" | bc -l)
+echo $speed MB/s
+</code></pre>
+
+<p>The output format of &ldquo;time&rdquo; and &ldquo;bc&rdquo; command varies depending on distro of OS, so I only implements above on my OS: Linux Mint 14.
+The &ldquo;-p&rdquo; options give a better output format of this command.
+The output of &ldquo;scp&rdquo; is in stdout, while that of &ldquo;time&rdquo; in stderr, so I hide stdout and redirect stderr to stdout, so the output can be processed by the following &ldquo;awk&rdquo;.
+&ldquo;bc -l&rdquo; do a float division instead of a integer division.
+&ldquo;scale=2&rdquo; set the division scale (precision) to 2 digits after the period.</p>
+
+<p>Run this scprit with a 64MB test file:</p>
+
+<pre><code>$ ./speed.sh chad 10.0.2.49 64
+</code></pre>
+
+<p>Now with a 128MB test file:</p>
+
+<pre><code>$ ./testspeed.sh 128
+</code></pre>
+
+<p>Note: iperf is network throughput tool, but it has to be installed. So it&rsquo;s a little complicated.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-04-08T17:04:00+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:04 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/benchmark/'>benchmark</a>, <a class='category' href='/blog/categories/linux/'>linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2014/04/08/170400/" data-via="" data-counturl="http://leetschau.github.io/blog/2014/04/08/170400/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/04/04/120436/" title="Previous Post: Ruby on Rails Note">&laquo; Ruby on Rails Note</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/04/09/153003/" title="Next Post: Use Apt Fast to Speedup apt-get">Use Apt Fast to Speedup apt-get &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,474 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Netty Echo Server传输机制分析 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="工作目录：/home/godu/backup；上传netty-3.2.6.Final.jar；
+源文件：
+EchoServer.java import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
+import &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2012/03/23/124324">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Netty Echo Server传输机制分析</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-23T12:43:24+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>12:43 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>工作目录：/home/godu/backup；上传netty-3.2.6.Final.jar；
+源文件：
+EchoServer.java import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
+import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+public class EchoServer {
+  public static void main(String[] args) throws Exception {
+   // Configure the server.
+   ServerBootstrap bootstrap = new ServerBootstrap(
+     new NioServerSocketChannelFactory(
+        Executors.newCachedThreadPool(),
+        Executors.newCachedThreadPool()));
+   // Set up the pipeline factory.
+   bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+    public ChannelPipeline getPipeline() throws Exception {
+     return Channels.pipeline(new EchoServerHandler());
+    }
+   });
+   // Bind and start to accept incoming connections.
+   bootstrap.bind(new InetSocketAddress(8349));
+  }
+}
+EchoServerHandler.java import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+public class EchoServerHandler extends SimpleChannelUpstreamHandler {
+  private static final Logger logger = Logger
+    .getLogger(EchoServerHandler.class.getName());
+  private final AtomicLong transferredBytes = new AtomicLong();
+  public long getTransferredBytes() {
+   return transferredBytes.get();
+  }
+  @Override
+  public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
+   // Send back the received message to the remote peer.
+   transferredBytes.addAndGet(((ChannelBuffer) e.getMessage())
+     .readableBytes());
+   e.getChannel().write(e.getMessage());
+  }
+  @Override
+  public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
+   // Close the connection when an exception is raised.
+   logger.log(Level.WARNING, &ldquo;Unexpected exception from downstream.&rdquo;,
+     e.getCause());
+   e.getChannel().close();
+  }
+}
+启动Echo Server：
+javac -cp .:./netty-3.2.6.Final.jar EchoServerHandler.java
+javac -cp .:./netty-3.2.6.Final.jar EchoServer.java
+java -cp .:./netty-3.2.6.Final.jar EchoServer</p>
+
+<p>连接Server：XShell里运行： telnet 10.0.2.47 8349 ，建立连接后输入 bcde 并回车后可以看到收到了bcde，整个过程用wireshark监控内容如下（监控完后导出结果方法：File->Export->File，保存类型为txt）： No.  Time  Source    Destination   Protocol Length Info
+  1 0.000000 10.32.1.103   10.0.2.47    TCP  66  10811 > 8394 [SYN] Seq=0 Win=8192 Len=0 MSS=1460 WS=256 SACK_PERM=1
+Frame 1: 66 bytes on wire (528 bits), 66 bytes captured (528 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 0, Len: 0
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 0 (relative sequence number)
+ Header length: 32 bytes
+ Flags: 0x02 (SYN)
+ Window size value: 8192
+ [Calculated window size: 8192]
+ Checksum: 0x976d [validation disabled]
+ Options: (12 bytes)
+No.  Time  Source    Destination   Protocol Length Info
+  2 0.000267 10.0.2.47    10.32.1.103   TCP  66  8394 > 10811 [SYN, ACK] Seq=0 Ack=1 Win=5840 Len=0 MSS=1460 SACK_PERM=1 WS=128
+Frame 2: 66 bytes on wire (528 bits), 66 bytes captured (528 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 0, Ack: 1, Len: 0
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 0 (relative sequence number)
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 32 bytes
+ Flags: 0x12 (SYN, ACK)
+ Window size value: 5840
+ [Calculated window size: 5840]
+ Checksum: 0x0552 [validation disabled]
+ Options: (12 bytes)
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  3 0.000295 10.32.1.103   10.0.2.47    TCP  54  10811 > 8394 [ACK] Seq=1 Ack=1 Win=65536 Len=0
+Frame 3: 54 bytes on wire (432 bits), 54 bytes captured (432 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 1, Ack: 1, Len: 0
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x5bf4 [validation disabled]
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  4 5.669101 10.32.1.103   10.0.2.47    TCP  58  10811 > 8394 [PSH, ACK] Seq=1 Ack=1 Win=65536 Len=4
+Frame 4: 58 bytes on wire (464 bits), 58 bytes captured (464 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 1, Ack: 1, Len: 4
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ [Next sequence number: 5 (relative sequence number)]
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x18 (PSH, ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x951f [validation disabled]
+ [SEQ/ACK analysis]
+Data (4 bytes)
+0000 62 63 64 65           bcde
+ Data: 62636465
+ [Length: 4]
+No.  Time  Source    Destination   Protocol Length Info
+  5 5.669359 10.0.2.47    10.32.1.103   TCP  60  8394 > 10811 [ACK] Seq=1 Ack=5 Win=5888 Len=0
+Frame 5: 60 bytes on wire (480 bits), 60 bytes captured (480 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 1, Ack: 5, Len: 0
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ Acknowledgement number: 5 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 46
+ [Calculated window size: 5888]
+ [Window size scaling factor: 128]
+ Checksum: 0x5cc2 [validation disabled]
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  6 5.669397 10.32.1.103   10.0.2.47    TCP  56  10811 > 8394 [PSH, ACK] Seq=5 Ack=1 Win=65536 Len=2
+Frame 6: 56 bytes on wire (448 bits), 56 bytes captured (448 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 5, Ack: 1, Len: 2
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 5 (relative sequence number)
+ [Next sequence number: 7 (relative sequence number)]
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x18 (PSH, ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x4edc [validation disabled]
+ [SEQ/ACK analysis]
+Data (2 bytes)
+0000 0d 0a            ..
+ Data: 0d0a
+ [Length: 2]
+No.  Time  Source    Destination   Protocol Length Info
+  7 5.669574 10.0.2.47    10.32.1.103   TCP  60  8394 > 10811 [ACK] Seq=1 Ack=7 Win=5888 Len=0
+Frame 7: 60 bytes on wire (480 bits), 60 bytes captured (480 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 1, Ack: 7, Len: 0
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ Acknowledgement number: 7 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 46
+ [Calculated window size: 5888]
+ [Window size scaling factor: 128]
+ Checksum: 0x5cc0 [validation disabled]
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  8 5.682922 10.0.2.47    10.32.1.103   TCP  60  8394 > 10811 [PSH, ACK] Seq=1 Ack=7 Win=5888 Len=6
+Frame 8: 60 bytes on wire (480 bits), 60 bytes captured (480 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 1, Ack: 7, Len: 6
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ [Next sequence number: 7 (relative sequence number)]
+ Acknowledgement number: 7 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x18 (PSH, ACK)
+ Window size value: 46
+ [Calculated window size: 5888]
+ [Window size scaling factor: 128]
+ Checksum: 0x88df [validation disabled]
+ [SEQ/ACK analysis]
+Data (6 bytes)
+0000 62 63 64 65 0d 0a         bcde..
+ Data: 626364650d0a
+ [Length: 6]
+No.  Time  Source    Destination   Protocol Length Info
+  9 5.887726 10.32.1.103   10.0.2.47    TCP  54  10811 > 8394 [ACK] Seq=7 Ack=7 Win=65536 Len=0
+Frame 9: 54 bytes on wire (432 bits), 54 bytes captured (432 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 7, Ack: 7, Len: 0
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 7 (relative sequence number)
+ Acknowledgement number: 7 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x5be8 [validation disabled]
+ [SEQ/ACK analysis]
+可以看到第4个包是C向S发送bcde，第6个是向S发送回车，第8个包是S向C返回bcde回车；</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2012-03-23T12:43:24+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>12:43 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/netty/'>netty</a>, <a class='category' href='/blog/categories/wireshark/'>wireshark</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2012/03/23/124324/" data-via="" data-counturl="http://leetschau.github.io/blog/2012/03/23/124324/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/03/20/085110/" title="Previous Post: 用autohotkey运行命令行指令">&laquo; 用autohotkey运行命令行指令</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/03/26/113633/" title="Next Post: Netty笔记">Netty笔记 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Multi-thread | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/multi-thread/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Multi-thread Echo Server: Python Version]]></title>
+    <link href="http://leetschau.github.io/blog/2013/02/10/114625/"/>
+    <updated>2013-02-10T11:46:25+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/02/10/114625</id>
+    <content type="html"><![CDATA[<p>源代码（mulThrServ.py）：</p>
+
+<p> import socket
+ import threading
+ import SocketServer
+ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
+  def handle(self):
+   data = self.request.recv(1024)
+   cur_thread = threading.current_thread()
+   print &ldquo;cur_thread: &rdquo; + cur_thread.name
+   print &ldquo;data: &rdquo; + data
+   response = &ldquo;{}: {}&rdquo;.format(cur_thread.name, data)
+   self.request.sendall(response)
+ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+  pass
+ def client(ip, port, message):
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  sock.connect((ip, port))
+  try:
+   sock.sendall(message)
+   response = sock.recv(1024)
+   print &ldquo;Received: {}&rdquo;.format(response)
+  finally:
+   sock.close()
+ if <strong>name</strong> == &ldquo;<strong>main</strong>&rdquo;:
+  # Port 0 means to select an arbitrary unused port
+  HOST, PORT = &ldquo;localhost&rdquo;, 0
+  server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+  ip, port = server.server_address
+ # Start a thread with the server &ndash; that thread will then start one
+  # more thread for each request
+  server_thread = threading.Thread(target=server.serve_forever)
+  # Exit the server thread when the main thread terminates
+  server_thread.daemon = True
+  server_thread.start()
+  print &ldquo;Server loop running in thread:&rdquo;, server_thread.name
+  client(ip, port, &ldquo;Hello World 1&rdquo;)
+  client(ip, port, &ldquo;Hello World 2&rdquo;)
+  client(ip, port, &ldquo;Hello World 3&rdquo;)
+  server.shutdown()</p>
+
+<p>运行（Ubuntu Server 12.04）：</p>
+
+<p>$ python mulThrServ.py</p>
+
+<p>Server loop running in thread: Thread-1</p>
+
+<p>Received: Thread-2: Hello World 1</p>
+
+<p>Received: Thread-3: Hello World 2</p>
+
+<p>Received: Thread-4: Hello World 3</p>
+
+<p>可以看到对客户端的每次连接，服务端都启动了新的线程进行处理。此程序在python 2.7上运行完成，在python 2.6上运行时字符串的format函数写法与2.7不同，需要修改。</p>
+]]></content>
+  </entry>
+  
+</feed>

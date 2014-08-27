@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Gapi | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/gapi/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[GAPI的同步返回实现方法]]></title>
+    <link href="http://leetschau.github.io/blog/2011/07/26/091657/"/>
+    <updated>2011-07-26T09:16:57+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/07/26/091657</id>
+    <content type="html"><![CDATA[<p>GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。</p>
+
+<p>测试用例：</p>
+
+<p> public class SimpleExpScriptTest {</p>
+
+<p>   private IConnection conn;</p>
+
+<p>  @Test</p>
+
+<p>  public void testPWD() throws Exception {</p>
+
+<p>   conn = ConnFactory.getInstance().getConnection(Constants.PORT_CONNECT_GODU_DATA);</p>
+
+<p>   conn.setSyncType(Constants.TYPE_DATA_CMD_SYNC);</p>
+
+<p>   if (conn.getConnection(&ldquo;<aa><7001><administrator><autocmd>&rdquo;, &ldquo;goduapp&rdquo;, &ldquo;10.0.2.47&rdquo;, 1234, 100)) {</p>
+
+<pre><code>System.out.println("Connect GODU OK!"); 
+</code></pre>
+
+<p>   }</p>
+
+<p>   conn.sendGoduCmd(&ldquo;settelnetcodec switch=y&rdquo;);</p>
+
+<p>   conn.set_script_timeout(500);</p>
+
+<p>   Map&lt;String, Object> params = new HashMap&lt;String, Object>();</p>
+
+<p>   params.put(&ldquo;user_name&rdquo;, &ldquo;test&rdquo;);</p>
+
+<p>   params.put(&ldquo;old_pwd&rdquo;, &ldquo;godu123&rdquo;);</p>
+
+<p>   params.put(&ldquo;new_pwd&rdquo;, &ldquo;testgodu&rdquo;);</p>
+
+<p>   IResult result = conn. execScript (&ldquo;-1200187081&rdquo;, &ldquo;script/PWD&rdquo;, &ldquo;&rdquo;, params);</p>
+
+<p>   System.out.println(&ldquo;***result is:\n&rdquo; + result.getString());</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> execScript 方法：</p>
+
+<p> package com.boco.godu.gapi.conn;</p>
+
+<p> import &hellip;</p>
+
+<p> public class GoduDataConnection extends AbstractConnection {</p>
+
+<p>  private static final GapiLogger logger = LogUtils.getLogger(this.getClass().getName());</p>
+
+<p>  private final Object lock = new Object(); //对象锁</p>
+
+<p>  public IResult execScript(String ne_id, String scriptPath, String name, Map&lt;String, Object> params) throws &hellip; {</p>
+
+<p>   // check if connected GODU successfully</p>
+
+<p>   &hellip;</p>
+
+<p>   // parse script file</p>
+
+<p>   GoduScript gs = new GoduScript(scriptPath, script_buffer_size, params);</p>
+
+<p>   // add execute_script filter</p>
+
+<p>   session.getFilterChain().addBefore(&hellip;);</p>
+
+<p>   // open NE</p>
+
+<p>   &hellip;</p>
+
+<p>   // 在执行完脚本或者超时之前阻止代码继续运行，在ExecScriptFilter.messageReceived方法中解锁</p>
+
+<p>   GapiIosessionUtils. lockSession (session, lock , script_timeout );</p>
+
+<p>   GoduReturnResult res = new GoduReturnResult();</p>
+
+<p>   String script_result = (String) session.getAttribute(</p>
+
+<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RESULT, ""); 
+</code></pre>
+
+<p>   res.setArrays(script_result.getBytes());</p>
+
+<p>   int return_status = (Integer) session.getAttribute(</p>
+
+<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RETURN_STATUS, 0); 
+</code></pre>
+
+<p>   res.setReturnStatus(return_status);</p>
+
+<p>   return res;</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> 这样代码运行到lockSession时暂停，直到超时时间到，或者被其他线程上持有同一个锁的“唤醒”方法唤醒，这实现了同步方式的前一半：下面是同步方式的后一半：filter执行脚本完毕后唤醒主线程继续运行：</p>
+
+<p> package com.boco.godu.gapi.mina.filter.data;</p>
+
+<p> import &hellip;</p>
+
+<p> public class ExecScriptFilter extends AGapiFilter {</p>
+
+<p>  @Override</p>
+
+<p>  public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+
+<pre><code>     Object message) throws Exception { 
+</code></pre>
+
+<p>   &hellip;</p>
+
+<p>   if (&hellip;) { // 如果脚本执行完毕：</p>
+
+<pre><code>... 
+
+GapiIosessionUtils. unlockSession (session); 
+
+return; 
+</code></pre>
+
+<p>   }</p>
+
+<p>   &hellip;</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p>那么 lockSession 和 unlockSession 方法又是如何实现的呢，继续往下看：</p>
+
+<p> public class GapiIosessionUtils {</p>
+
+<p>  public static void lockSession(final IoSession session, final Object lock , final int timeout ) throws &hellip; {</p>
+
+<p>   try {</p>
+
+<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
+
+ long beforeLockTime = System.currentTimeMillis(); 
+
+ session.setAttribute(GoduFilterConstants. GODU_DATA_LOCK , lock ); 
+
+ session.getConfig().setBothIdleTime(timeout); 
+
+ ThreadUtil. waitIt ( lock , timeout * 1000 + 1000); 
+
+ long afterLockTime = System.currentTimeMillis(); 
+
+ logger.debug("lockTime=" + (afterLockTime - beforeLockTime) + "ms"); 
+
+} 
+</code></pre>
+
+<p>   } catch (Exception e) {</p>
+
+<pre><code>e.printStackTrace(); 
+
+logger.error("lockSession exception: ", e); 
+
+throw new GapiException(e); 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p>  public static void unlockSession(final IoSession session) throws &hellip; {</p>
+
+<p>   try {</p>
+
+<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
+
+ Object status = session.getAttribute(GoduFilterConstants. GODU_DATA_LOCK ); 
+
+ ThreadUtil.notifyIt(status); 
+
+} 
+</code></pre>
+
+<p>   } catch (Exception e) {</p>
+
+<pre><code>... 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> 可以看到加锁的时候将锁（lock对象）放在了session的一个attribute上，解锁的时候从这个attribute上取出这个锁，然后解锁。这里用到的 冻结线程的 waitIt 方法以及唤醒线程的 notifyIt 方法实现如下：</p>
+
+<p> package com.boco.godu.common.util;</p>
+
+<p> public class ThreadUtil {</p>
+
+<p>  public static void  waitIt  (final Object o, final long time) {</p>
+
+<p>   synchronized (o) {</p>
+
+<pre><code>try { 
+
+ if (time == -1) { 
+
+  o.wait(); 
+
+ } else { 
+
+  o.wait(time); 
+
+ } 
+
+} catch (InterruptedException iex) { 
+
+ iex.printStackTrace(); 
+
+} 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p>   public static void  notifyIt (final Object o) {</p>
+
+<p>   synchronized (o) {</p>
+
+<pre><code> o.notifyAll(); 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> 当代码到 o.wait(time); 时进入阻塞状态（停止运行，实际上是java.lang.Object.wait()方法），直到下列情况之一出现：</p>
+
+<ol>
+<li><p>超时时间time到；</p></li>
+<li><p>被唤醒，也就是调用同一个对象的notifyAll方法（即java.lang.Object.notifyAll()方法）。</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+</feed>

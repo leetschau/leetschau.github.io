@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Script | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/script/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Run Clojure Script With External Dependencies Without Leiningen]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/04/163536/"/>
+    <updated>2013-12-04T16:35:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/04/163536</id>
+    <content type="html"><![CDATA[<p>The normal way of deploy clojure files is using leiningen. But if we have no leiningen, or the script is small and unnecessary to pack as a leiningen project, we can build a &ldquo;bare&rdquo; clojure script in the following way.</p>
+
+<ol>
+<li><p>Get the dependency jar files, 2 options:</p>
+
+<ol type="a">
+<li><p>download the jar file directly;</p></li>
+<li><p>if the dependency project provide the dependency as leiningen dependency items in porject.clj (for example, &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; in <a href="https://github.com/clojure/data.json">data.json</a>), you can build the leiningen project following Parse Sonarqube Data via Web API in Clojure , then copy the denpendency jar files from the ~/.m2/repository folder;</p></li>
+</ol>
+</li>
+<li><p>Build srcipt: get-sonar-data.clj</p>
+
+<p> (require &lsquo;[clojure.data.json :as json])
+ (def url &ldquo;<a href="http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes">http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes</a>&rdquo;)
+ (def data (json/read-str (slurp url)))
+ (println ((first data) &ldquo;name&rdquo;))
+ (println ((first ((first data) &ldquo;msr&rdquo;)) &ldquo;val&rdquo;))</p></li>
+<li><p>Run script: java -cp &lsquo;./*:.&rsquo; clojure.main get-sonar-data.clj</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Clojure Script Portable]]></title>
+    <link href="http://leetschau.github.io/blog/2013/11/22/172634/"/>
+    <updated>2013-11-22T17:26:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/11/22/172634</id>
+    <content type="html"><![CDATA[<p>leiningen is great, but it&rsquo;s for project-level application. How to run clojure script on a bare host, like python script?</p>
+
+<p>Yes, python is build-in for almost all Linux host. But you can build your clojure environment on a host only depends JVM:</p>
+
+<ol>
+<li><p>Download clojure distribution from <a href="http://clojure.org/">clojure official website</a>, and extract it somewhere, say, ~/apps/clojure-1.5.1;</p></li>
+<li><p>Add a alias in your ~/.bashrc:</p></li>
+</ol>
+
+
+<p> alias clj=&lsquo;java -cp ~/apps/clojure-1.5.1/clojure-1.5.1.jar clojure.main&rsquo;</p>
+
+<ol>
+<li>Validate your .bashrc: &ldquo;. ~/.bashrc&rdquo;;</li>
+</ol>
+
+
+<p>That&rsquo;s it!</p>
+
+<p>Now run clojure repl with command &ldquo;clj&rdquo;. Then write a clojure hello world file &ldquo;hw.clj&rdquo;: (println &ldquo;hello world&rdquo;), then run &ldquo;clj hw.clj&rdquo;, you can see the output is the same as you run it in clojure repl console.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Notes About Kitty]]></title>
+    <link href="http://leetschau.github.io/blog/2013/01/10/173804/"/>
+    <updated>2013-01-10T17:38:04+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/01/10/173804</id>
+    <content type="html"><![CDATA[<h1>用Kitty的login script实现自动运行脚本</h1>
+
+<p>Kitty相对于putty的一个改进是增加了&#8221;Login Script&#8221;功能（在Connection -> Data中），这个script file的格式是：</p>
+
+<p> exp1</p>
+
+<p> send1</p>
+
+<p> exp2</p>
+
+<p> send2</p>
+
+<p> &hellip;</p>
+
+<h2>自动登录</h2>
+
+<p>主要是Telnet协议下的自动登录，SSH由于有输入密码的地方，所以用它来自动登录，基本的Telnet自动登录可以写成d:\some\path\loginSvr1.txt这个样子：</p>
+
+<p> assword:</p>
+
+<p> goduty
+因为用户名已经在&#8221;Auto-login&#8221; username里定义了，所以这个只“预期-发送”密码就可以了。</p>
+
+<h2>登录后的自动运行脚本</h2>
+
+<p>SSH协议可以通过配置用户名和密码的方法自动登录，但可以用login script脚本做自动任务，例如下面的autoJob.txt实现了登录后顺序执行&#8221;ls -l&#8221;和&#8221;pwd&#8221;指令：</p>
+
+<p> $
+ ls -l
+ $
+ pwd</p>
+
+<p>这个脚本与-m参数不同，-m运行后会直接退出连接，这个脚本不退出。</p>
+
+<h1>Switch Full Screen mode in Kitty</h1>
+
+<p>Temporary: Ctrl + mouse right click -> Full Screen;</p>
+
+<p>Always enable alt+enter to switch full screen: modify &ldquo;FullScreenOnAltEnter\0\&rdquo; to &ldquo;FullScreenOnAltEnter\1\&rdquo; in $KITTY_HOME/Sessions/Default%20Settings</p>
+
+<h1>Search in Kitty</h1>
+
+<p>Ctrl + Righ click -> Copy to Clipboard, then paste in vim, then search;</p>
+]]></content>
+  </entry>
+  
+</feed>

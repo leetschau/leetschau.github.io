@@ -1,0 +1,353 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>SequentialSearchST算法成本的图形演示 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="中文版238页图3.1.3演示了SequentialSearchST算法中每次写入单词数量（put方法中）时需要进行的比较次数，也就是此算法的成本，但书中没有生成此图的代码，下面是我自己的实现（第一个是新增的类，后两个是修改的类）： package edu.princeton.cs.algs4; &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/01/24/155123">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">SequentialSearchST算法成本的图形演示</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-24T15:51:23+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:51 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>中文版238页图3.1.3演示了SequentialSearchST算法中每次写入单词数量（put方法中）时需要进行的比较次数，也就是此算法的成本，但书中没有生成此图的代码，下面是我自己的实现（第一个是新增的类，后两个是修改的类）：</p>
+
+<p> package edu.princeton.cs.algs4;
+ public class VisualAccumulator {
+  private double total;
+  private int N;
+  public VisualAccumulator(int trials, double max) {
+   StdDraw.setXscale(0, trials);
+   StdDraw.setYscale(0, max);
+   StdDraw.setPenRadius(.005);
+  }
+  public void addDataValue(double val) {
+   N++;
+   total += val;
+   StdDraw.setPenColor(StdDraw.DARK_GRAY);
+   StdDraw.point(N, val);
+   StdDraw.setPenColor(StdDraw.RED);
+   StdDraw.point(N, total / N);
+   StdOut.println(&ldquo;Red point value:&rdquo; + total / N);// 平均比较次数
+  }
+  public double mean() {
+   return total / N;
+  }
+  @Override
+  public String toString() {
+   return &ldquo;Mean (&rdquo; + N + &ldquo; values): &rdquo; + String.format(&ldquo;%7.5f&rdquo;, mean());
+  }
+  public static void main(String[] args) {
+   int T = 300;
+   VisualAccumulator a = new VisualAccumulator(T, 1.0);
+   for (int t = 0; t &lt; T; t++) {
+    a.addDataValue(StdRandom.random());
+   }
+   StdOut.println(a);
+  }
+ }</p>
+
+<p> public class SequentialSearchST&lt;Key, Value> {
+  private final List<Integer> compareTimes = new ArrayList<Integer>();
+  public List<Integer> getComparisionTimes() {
+   return compareTimes;
+  }
+  public void put(Key key, Value val) {
+   int compareTime = 0;
+   if (val == null) {
+    compareTimes.add(1);
+    delete(key);
+    return;
+   }
+   for (Node x = first; x != null; x = x.next) {
+    compareTime++;
+    if (key.equals(x.key)) {
+     x.val = val;
+     compareTimes.add(compareTime);
+     return;
+    }
+   }
+   first = new Node(key, val, first);
+   N++;
+   compareTimes.add(compareTime);
+  }
+  public static void main(String[] args) {
+   StdIn2.setInputFile(&ldquo;data/tale.txt&rdquo;);
+   SequentialSearchST&lt;String, Integer> st = new SequentialSearchST&lt;String, Integer>();
+   for (int i = 0; !StdIn2.isEmpty(); i++) {
+    String key = StdIn2.readString();
+    st.put(key, i);
+   }
+   List<Integer> comparisionTimes = st.getComparisionTimes();
+   VisualAccumulator va = new VisualAccumulator(comparisionTimes.size(), 1.0);
+   for (int t = 0; t &lt; comparisionTimes.size(); t++) {
+    va.addDataValue(comparisionTimes.get(t));
+   }
+   for (String s : st.keys())
+    StdOut.println(s + &ldquo; &rdquo; + st.get(s));
+  }
+ }</p>
+
+<p> public class FrequencyCounter {
+  public static void main(String[] args) {
+   StdIn2.setInputFile(&ldquo;data/tale.txt&rdquo;);
+   int distinct = 0, words = 0;
+   int minlen = 8; // this is the first parameter
+   SequentialSearchST&lt;String, Integer> st = new SequentialSearchST&lt;String, Integer>();
+   while (!StdIn2.isEmpty()) {
+    String key = StdIn2.readString();
+    if (key.length() &lt; minlen)
+     continue;
+    words++;
+    if (st.contains(key)) {
+     st.put(key, st.get(key) + 1);
+    } else {
+     st.put(key, 1);
+     distinct++;
+    }
+   }
+   String max = &ldquo;&rdquo;;
+   st.put(max, 0);
+   for (String word : st.keys()) {
+    if (st.get(word) > st.get(max))
+     max = word;
+   }
+   StdOut.println(max + &ldquo; &rdquo; + st.get(max));
+   StdOut.println(&ldquo;distinct = &rdquo; + distinct);
+   StdOut.println(&ldquo;words = &rdquo; + words); // 以上是原始版本的代码，修改了获取输入的方法
+   List<Integer> comparisionTimes = st.getComparisionTimes(); // 获取原始成本数据
+   int maxComp = 0;
+   for (Integer i : comparisionTimes) {
+    if (i > maxComp) {
+     maxComp = i;
+    }
+   } // 获得原始成本最大值，以确定画布的Y轴高度
+   VisualAccumulator va = new VisualAccumulator(comparisionTimes.size(), maxComp);
+   for (int t = 0; t &lt; comparisionTimes.size(); t++) {
+    va.addDataValue(comparisionTimes.get(t));
+   } // 画图
+  }
+ }</p>
+
+<p>以上VisualAccumulator是完整的类，SequentialSearchST只写出了新增的属性compareTimes及其get方法，和修改后的put和main方法；FrequencyCounter类中修改后的main方法，</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-01-24T15:51:23+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:51 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/algorithm/'>algorithm</a>, <a class='category' href='/blog/categories/robert-sedgewick/'>robert sedgewick</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/01/24/155123/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/01/24/155123/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/01/23/125458/" title="Previous Post: 调试Algorithms一书中带有输入重定向的代码">&laquo; 调试Algorithms一书中带有输入重定向的代码</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/01/24/174632/" title="Next Post: Notes about multiboot usb creator">Notes about multiboot usb creator &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

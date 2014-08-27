@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Sonar | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/sonar/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[SonarQube and Postgresql on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/23/113751/"/>
+    <updated>2013-12-23T11:37:51+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/23/113751</id>
+    <content type="html"><![CDATA[<h1>Authentication</h1>
+
+<p>$POSTGRESQL_HOME/data/pg_hba.conf</p>
+
+<ul>
+<li><p>Modify &ldquo;local all all peer&rdquo; to &ldquo;local all all trust&rdquo; to enable &ldquo;sonar&rdquo; login in with &ldquo;psql -U sonar&rdquo;.</p></li>
+<li><p>Modify &ldquo;host all all 127.0.0.1/32 ident&rdquo; to &ldquo;host all all 127.0.0.1/32 trust&rdquo; to enable SonarQube communicate with Postgresql database; or define a access rule in &ldquo;pg_ident.conf&rdquo;.</p></li>
+<li><p>If you can connect to SonarQube server only on localhost, try shutdown firewall: &ldquo;service iptables stop&rdquo; or open the port following Configure Firewalls on Linux .</p></li>
+<li><p>List all projects in Postgresql database:</p></li>
+</ul>
+
+
+<p> $ psql -U sonar</p>
+
+<p> select * from projects;</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Parse Sonarqube Data via Web API in Clojure]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/04/114616/"/>
+    <updated>2013-12-04T11:46:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/04/114616</id>
+    <content type="html"><![CDATA[<ol>
+<li><p>build project: lein new sonar-parser</p></li>
+<li><p>add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; in :dependencies in project.clj;</p></li>
+<li><p>update (download) dependency jars (into ~/.m2/repository folder): lein deps</p></li>
+<li><p>start repl: lein repl</p></li>
+<li><p>test in repl:</p></li>
+</ol>
+
+
+<p> (require &lsquo;[clojure.data.json :as json])</p>
+
+<p> (def data (json/read-str (slurp &ldquo;<a href="http://...">http://&#8230;</a>&rdquo;)))</p>
+
+<p> ((first ((first data) &ldquo;msr&rdquo;)) &ldquo;val&rdquo;) ; => 5.0</p>
+
+<ol>
+<li><p>add script into src/sonar-parser/core.clj;</p></li>
+<li><p>pack project: lein uberjar</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Parse Sonarqube Data via Web API in Groovy]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/04/100446/"/>
+    <updated>2013-12-04T10:04:46+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/04/100446</id>
+    <content type="html"><![CDATA[<h1>Shell</h1>
+
+<h2>getdata.groovy</h2>
+
+<pre><code>url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
+
+addr = url.toURL() 
+conn= addr.openConnection() 
+status = conn.getResponseCode() 
+reader = new BufferedReader(new InputStreamReader(conn.getInputStream())) 
+datastr = reader.readLine()
+
+import groovy.json.JsonSlurper
+
+slurper = new JsonSlurper()
+
+data = slurper.parseText(datastr)
+
+msr = data[0].msr.frmt_val[0]
+</code></pre>
+
+<h2>Run Shell Script</h2>
+
+<ol>
+<li><p>start shell: &ldquo;groovysh&rdquo;</p></li>
+<li><p>load script file: &ldquo;. getdata.groovy&rdquo;;</p></li>
+<li><p>all variables in script file can be used in shell; evaluate variable value by its name directly;</p></li>
+<li><p>reload file: &ldquo;purge all&rdquo; then &ldquo;. getdata.groovy&rdquo;;</p></li>
+</ol>
+
+
+<h1>Script</h1>
+
+<h2>getdata_scpt.groovy</h2>
+
+<pre><code>def url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
+def addr = url.toURL()
+def conn= addr.openConnection()
+def status = conn.getResponseCode()
+def reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))
+println reader.readLine()
+</code></pre>
+
+<h2>run script</h2>
+
+<p>groovy getdata_scpt.groovy</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Retrieve Sonarqube Data With Java]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/02/152923/"/>
+    <updated>2013-12-02T15:29:23+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/02/152923</id>
+    <content type="html"><![CDATA[<p>The following class &ldquo;GetData&rdquo; can retrieve data from Sonarqube. But you have to</p>
+
+<p> import java.net.URL;
+ import java.net.HttpURLConnection;
+ import java.net.MalformedURLException;
+ import java.io.IOException;
+ import java.io.BufferedReader;
+ import java.io.InputStreamReader;
+ public class GetData {
+  private static String url = &ldquo;<a href="http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes">http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes</a>&rdquo;;
+  public static void main(String[] args) {
+   HttpURLConnection myURLConnection = null;
+   int status = -1;
+   String cont = null;
+   try {
+    URL myURL = new URL(url);
+    myURLConnection = (HttpURLConnection)myURL.openConnection();
+    myURLConnection.connect();
+    status = myURLConnection.getResponseCode();
+    switch (status) {
+     case 200:
+     case 201:
+      BufferedReader br = new BufferedReader(new InputStreamReader(myURLConnection.getInputStream()));
+      StringBuilder sb = new StringBuilder();
+      String line;
+      while ((line = br.readLine()) != null) {
+       sb.append(line+&ldquo;\n&rdquo;);
+      }
+      br.close();
+      cont = sb.toString();
+    }
+   }
+   catch (MalformedURLException e) {
+    System.out.println(&ldquo;url error&rdquo;);
+   }
+   catch (IOException e) {
+    System.out.println(&ldquo;other io error&rdquo;);
+   }
+   System.out.println(&ldquo;my conn ret code: &rdquo; + status);
+   System.out.println(&ldquo;my conn: &rdquo; + cont);
+  }
+ }</p>
+
+<p>$ java GetData</p>
+
+<p>my conn ret code: 200
+my conn: [{&ldquo;id&rdquo;:8251,&ldquo;key&rdquo;:&ldquo;ESB:com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;name&rdquo;:&ldquo;com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;scope&rdquo;:&ldquo;DIR&rdquo;,&ldquo;qualifier&rdquo;:&ldquo;PAC&rdquo;,&ldquo;date&rdquo;:&ldquo;2013-11-29T17:02:10+0800&rdquo;,&ldquo;lname&rdquo;:&ldquo;com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;lang&rdquo;:&ldquo;java&rdquo;,&ldquo;msr&rdquo;:[{&ldquo;key&rdquo;:&ldquo;classes&rdquo;,&ldquo;val&rdquo;:5.0,&ldquo;frmt_val&rdquo;:&ldquo;5&rdquo;}]}]</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Manipulate Sonarqube Database in PostgreSQL With JDBC]]></title>
+    <link href="http://leetschau.github.io/blog/2013/11/29/172706/"/>
+    <updated>2013-11-29T17:27:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/11/29/172706</id>
+    <content type="html"><![CDATA[<p>Use the following Java class to manipulate Sonarqube database in postgresql.</p>
+
+<h1>ManipulateSonarPost.java</h1>
+
+<p> import java.sql.Connection;
+ import java.sql.DatabaseMetaData;
+ import java.sql.DriverManager;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ import java.sql.Statement;
+ public class TestPost {
+  private static Connection connection = null;
+  public static void main(String[] args) throws SQLException, java.lang.ClassNotFoundException {
+   String url = &ldquo;jdbc:postgresql://localhost/sonar&rdquo;;
+   String user = &ldquo;sonar&rdquo;;
+   String password = &ldquo;sonar&rdquo;;
+   String driver = &ldquo;org.postgresql.Driver&rdquo;;</p>
+
+<p>   Class.forName(driver);
+   connection = DriverManager.getConnection(url+&ldquo;?user=&rdquo;+user+&ldquo;&amp;password=&rdquo;+password);
+   if ((connection == null) || (connection.isClosed())) return;
+   System.out.println(&ldquo;Connection is: &rdquo;+connection);</p>
+
+<p>   listTables();
+   String table = &ldquo;projects&rdquo;;
+   printTable(table);
+   connection.close();</p>
+
+<p>  }</p>
+
+<p>  private static void listTables() throws SQLException {
+   DatabaseMetaData md = connection.getMetaData();
+   ResultSet rs = md.getTables(null, null, &ldquo;%&rdquo;, null);
+   while (rs.next()) {
+    System.out.println(rs.getString(3));
+   }
+   rs.close();</p>
+
+<p>  }</p>
+
+<p>  private static void printTable(String tableName) throws SQLException {
+   Statement st = connection.createStatement();
+   ResultSet rs = st.executeQuery(&ldquo;SELECT * FROM &rdquo; + tableName);
+   while (rs.next()) {
+     System.out.println(&ldquo;Column 1: &rdquo; + rs.getString(1));
+     System.out.println(&ldquo;Column 2: &rdquo; + rs.getString(2));
+     System.out.println(&ldquo;Column 3: &rdquo; + rs.getString(3));
+   }
+   rs.close();
+   st.close();
+  }
+ }</p>
+
+<h1>Compile and Run</h1>
+
+<p>$ javac -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar ManipulateSonarPost.java</p>
+
+<p>$ java -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar:. ManipulateSonarPost</p>
+]]></content>
+  </entry>
+  
+</feed>

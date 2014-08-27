@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Gdb | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/gdb/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Debug Binary File Reading C++ Codes With Gdb]]></title>
+    <link href="http://leetschau.github.io/blog/2014/05/23/171938/"/>
+    <updated>2014-05-23T17:19:38+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/05/23/171938</id>
+    <content type="html"><![CDATA[<p>We need debug a C++ file, which read and analyze a binary file. We use gdb and xxd in this case. In tmux, split a window horizontally, run gdb in the upper bigger pane, and list file content in lower smaller pane.</p>
+
+<pre><code>$ tmux new -s basic
+A-f,-   // split window, I define &lt;prefix&gt; of tmux as A-f in ~/.tmux.conf: set -g prefix M-f
+A-f,JJ  // make upper pane larger
+$ xxd -l 33 &lt;input-binary-file&gt;.dat   // print first 32 bytes of this file
+0000000: 202a 463b 862e d108 2100 ab55 8006 f407   *F;....!..U....
+0000010: 0000 0000 0a0e 0401 0102 1800 5201 0501  ............R...
+0000020: 15
+A-f,k   // jump to upper window
+$ cat readfile.cc
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+using namespace std;
+
+typedef unsigned char BYTE;
+
+BYTE *read_section(FILE *istream, int *length);
+
+int main() {
+    string filename = "/home/chad/docs/eclipsews/MrParser/doc/ns-output/1296_2014_04_25_10_00_MR.dat";
+    char *fn = const_cast&lt;char*&gt;(filename.c_str());
+    FILE *rstream = fopen(fn, "rb"); // 打开.dat文件
+    BYTE *buffer = NULL;
+    int length = 0;
+    buffer = read_section(rstream, &amp;length);
+    fclose(rstream);
+    printf("Read file length: %d\n", length);
+    return 0;
+}
+
+BYTE *read_section(FILE *istream, int *length) {
+    int count = 0;
+    size_t ret = 0;
+    BYTE buf[128];
+    BYTE *buffer = NULL;
+
+    ret = fread(buf, sizeof(char), 8, istream); if (8 != ret) return NULL;
+    ret = fread(buf, sizeof(char), 2, istream); if (2 != ret) return NULL;
+    *length = buf[1] * 256 + buf[0];
+    if ( 0 == *length) return NULL;
+    buffer = new BYTE[*length];
+    fseek(istream, -10, SEEK_CUR);
+    ret = fread(buffer, sizeof(char), *length, istream);
+    if (*length != ret) {
+        delete [] buffer;
+        return NULL;
+    }
+    return buffer;
+}
+$ g++ -g readfile.cc -o rr
+$ gdb rr
+l
+// list source code, we want to probe the content of variable "buffer" after the "fread" operation. So we add a breakpoint after that line
+b 37
+r
+(gdb) p/x *buffer@33
+$1 = {0x20, 0x2a, 0x46, 0x3b, 0x86, 0x2e, 0xd1, 0x8, 0x21, 0x0, 0xab, 0x55, 0x80, 0x6, 0xf4, 0x7, 0x0, 0x0, 0x0, 0x0, 0xa, 0xe, 0x4, 0x1, 0x1,
+  0x2, 0x18, 0x0, 0x52, 0x1, 0x5, 0x1, 0x15}
+p/x buffer[0]
+$2 = 0x20
+c
+q
+</code></pre>
+
+<p>where l=list, r=run, p/x means &ldquo;print value in hex format&rdquo;, c=continue, q=quit.
+You can see the bytes of &ldquo;buffer&rdquo; is exactly the same with the output of xxd command: 0x20, 0x2a, &hellip;, 0x15.</p>
+
+<p>The format of gdb&rsquo;s print see <a href="http://www.delorie.com/gnu/docs/gdb/gdb_55.html">8.4 Output formats</a> for details.</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,386 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Subversion Backup and Restore - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Backup Specified Revision Backup specified revision (here is 20): $ cd /opt/svnRepo $ svnadmin dump deployTest/ -r 20 > deploy-r20.dump
+Restore &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/10/31/174404">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Subversion Backup and Restore</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-10-31T17:44:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>5:44 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>Backup Specified Revision</h1>
+
+<ol>
+<li><p>Backup specified revision (here is 20):</p>
+
+<p> $ cd /opt/svnRepo
+ $ svnadmin dump deployTest/ -r 20 > deploy-r20.dump</p></li>
+<li><p>Restore backup:</p>
+
+<p> $ mv deploy-r20.dump /opt/Gcp/tmp
+ $ cd /opt/Gcp/tmp
+ $ svnadmin create deploy20
+ $ svnadmin load deploy20 &lt; deploy-r20.dump</p></li>
+</ol>
+
+
+<h1>Verify</h1>
+
+<ol>
+<li><p>Get revision 20 of &ldquo;deploy.exp&rdquo; in original repository</p>
+
+<p> $ svn cat -r 20 file:///opt/svnRepo/deployTest/CalcServer/deploy.exp > r20</p></li>
+<li><p>Get &ldquo;deploy.exp&rdquo; in restored repository</p>
+
+<p> $ svn cat file:///opt/Gcp/tmp/deploy20/CalcServer/deploy.exp > restore20</p></li>
+<li><p>Compare them:</p>
+
+<p> $ diff r20 restore20</p></li>
+</ol>
+
+
+<p>They are identical.</p>
+
+<ol>
+<li><p>Compare logs:</p>
+
+<h2> [root@cloud141 /opt/svnRepo]$ svn log -r 20 file:///opt/svnRepo/deployTest/ </h2>
+
+ r20 | bvt | 2013-08-30 17:30:03 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> remove unittest in source file </h2>
+
+<h2> [root@cloud141 /opt/svnRepo]$ svn log file:///opt/Gcp/tmp/deploy20 </h2>
+
+ r1 | bvt | 2013-08-30 17:30:03 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> remove unittest in source file </h2></li>
+</ol>
+
+
+<p>So you can see the restored repository is identical to that part of original repository <strong>except</strong> the revision number.</p>
+
+<h1>Backup Specified Revisions</h1>
+
+<pre><code>$ svnadmin dump deployTest/ -r 10:20 &gt; deploy-r20.dump
+</code></pre>
+
+<h1>Incremental Backup</h1>
+
+<ol>
+<li><p>Backup:</p>
+
+<p> $svnadmin dump myrepos -r 0:1000 > 0-1000.dumpfile
+ $svnadmin dump myrepos -r 1001:2000 &ndash;incremental > 1001-2000.dumpfile
+ $svnadmin dump myrepos -r 2001:3000 &ndash;incremental > 2001:3000.dumpfile</p></li>
+<li><p>Restore:</p>
+
+<p> $svnadmin load myrepos &lt; 0-1000.dumpfile
+ $svnadmin load myrepos &lt; 1001-2000.dumpfile
+ $svnadmin load myrepos &lt; 2001:3000.dumpfile</p></li>
+</ol>
+
+
+<h2>Experiment on incremental dump</h2>
+
+<ol>
+<li><p>Create a incremental backup:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ svnadmin dump deployTest/ &ndash;incremental -r 9:11 > r9-11.dump</p></li>
+<li><p>Create a full backup:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ svnadmin dump deployTest/ -r 9:11 > backup9-11.dump</p></li>
+<li><p>Compare the size of these two dump files, full backup is obviously larger than the incremental counterpart:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ ll
+ total 984
+ -rw-r&ndash;r&ndash; 1 root root 997105 Oct 31 19:08 backup9-11.dump
+ drwxr-xr-x 6 root root 4096 Aug 22 18:09 deployTest
+ -rw-r&ndash;r&ndash; 1 root root 2509 Oct 31 19:07 r9-11.dump</p></li>
+<li><p>Restore a incremental backup in a fresh repository:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ mv r9-11.dump ../Gcp/tmp
+ [root@cloud141 /opt/Gcp/tmp]$ svnadmin create new9
+ [root@cloud141 /opt/Gcp/tmp]$ svnadmin load new9 &lt; r9-11.dump
+ &lt;&lt;&lt; Started new transaction, based on original revision 9
+ svnadmin: File not found: transaction &lsquo;0-0&rsquo;, path &lsquo;CalcServer/src/com/boco/deploy/ConfigLoader.java&rsquo;</p>
+
+<ul>
+<li> editing path : CalcServer/src/com/boco/deploy/ConfigLoader.java &hellip;[root@</li>
+</ul>
+</li>
+</ol>
+
+
+<p>You can see the restore failed.</p>
+
+<ol>
+<li><p>Restore a incremental backup (revision 9~11) in a &ldquo;root&rdquo; repository (restored from revision 8) :</p>
+
+<p> [root@cloud141 /opt/Gcp/tmp]$ svnadmin load backup8 &lt; r9-11.dump
+ &hellip;</p>
+
+<h2> [root@cloud141 /opt/Gcp/tmp]$ svn log file:///opt/Gcp/tmp/backup8 </h2>
+
+ r4 | bvt | 2013-08-30 16:35:10 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> initial import project </h2>
+
+ r3 | bvt | 2013-08-30 15:31:47 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> make new project basedir </h2>
+
+ r2 | bvt | 2013-08-29 14:32:15 +0800 (Thu, 29 Aug 2013) | 1 line
+
+<h2> remove unittest in source file to pass compile without junit </h2>
+
+ r1 | bvt | 2013-08-29 14:31:10 +0800 (Thu, 29 Aug 2013) | 1 line
+
+<h2> remove unittest in source file to pass compile without junit </h2></li>
+</ol>
+
+
+<p>Now the restore succeed.</p>
+
+<h2>Summary</h2>
+
+<p>Backup a huge repository in the following steps:</p>
+
+<ol>
+<li><p>Execute a full backup at a revision. If the revision n is not 0, you will lose all revisions from 0 to n-1;</p></li>
+<li><p>Execute incremental backups weekly, use the revision arrange as file name: &ldquo;inc-rev-from-to.dump&rdquo;, like &ldquo;inc-rev-35-46.dump&rdquo;;</p></li>
+<li><p>When original repository corrupts, first load the full backup, then load the incremental ones according to their revision numbers;</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<ul>
+<li><p><a href="http://blog.csdn.net/windone0109/article/details/2908133">SVN版本库的备份、还原、移植（初级篇、中级篇和高级篇）</a></p></li>
+<li><p><a href="http://greyshine.blog.51cto.com/1003856/415113">SVN备份及其还原——dump/load方法</a></p></li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-10-31T17:44:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>5:44 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/backup/'>backup</a>, <a class='category' href='/blog/categories/svn/'>svn</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/10/31/174404/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/10/31/174404/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/10/31/104730/" title="Previous Post: Tell Thunderbird Not to Wrap Lines When Sending Email">&laquo; Tell Thunderbird Not to Wrap Lines When Sending Email</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/11/01/093934/" title="Next Post: Grouping and Backreference in Replacement of vim">Grouping and Backreference in Replacement of vim &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

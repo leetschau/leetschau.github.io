@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>文字的编码问题 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="我们需要将文字保存在磁盘上，但磁盘上只能存储0和1（实际上是存储介质的两种状态），不能存储文字，这就出现了一个问题，如何将文字转换为二进制数字串？ 文件的编码/解码就是解决文字&lt;=>二进制串这一环节如何相互转换的问题。 简单地说，GBK和Unicode分别是一种码表， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2010/10/12/135950">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">文字的编码问题</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-12T13:59:50+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>1:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>我们需要将文字保存在磁盘上，但磁盘上只能存储0和1（实际上是存储介质的两种状态），不能存储文字，这就出现了一个问题，如何将文字转换为二进制数字串？</p>
+
+<p>文件的编码/解码就是解决文字&lt;=>二进制串这一环节如何相互转换的问题。</p>
+
+<p> 简单地说，GBK和Unicode分别是一种码表，也就是为每一个字符指定一个两个字节组成的代码，例如 “汉”字的Unicode编码为0x6C49，GBK编码为0xBABA（0x是一个字头，表示后面的是16进制字串）。</p>
+
+<p> Unicode编码 Unicode由ISO（国际标谁化组织）制定，它虽然解决了各种语言之间转换的难题，但也有问题，首先是不论什么字符都2个字节表示，网络上英文信息占大部分，由此造成的空间浪费很可观，其次是 Unicode不兼容ASCII编码方案，为了解决这些问题，出现了 UTF-8方案。</p>
+
+<p> Unicode到UTF-8的转换方法详见 字符编解码的故事 。</p>
+
+<p> GBK编码 GBK编码规则：《汉字内码扩展规范(GBK)》（ 全国信息技术标准化技术委员会 ）：
+ 01-09区为特殊符号；16-55区为一级汉字，按拼音排序；56-87区为二级汉字，按部首/笔画排序。
+每个汉字及符号以两个字节来表示。第一个字节称为“高位字节”，第二个字节称为“低位字节”，用这个字的区、位号加上0xA0就得到了对应的字节码。例如“啊”字是 第16区第1个字，所以 区位码是 1601 ， 编码方法：0xA0+ 16 = 0x B0 ， 0xA0+ 1 = 0x A1 ，所以得到“啊”的 字节码  B0A1 ，可以用UltraEdit查看字符的字节码验证。</p>
+
+<p> GB2312是GBK的早期版本，能表示6000个汉字，由于容量较小，现已被GBK取代。</p>
+
+<p> 解码过程</p>
+
+<p> 在Windows系统中打开文件时，使用猜的方式选择解码方案。如果文件开头使用了FEFF或FFFE，就认为是Unicode/UTF-8编码，否则为ANSI编码，在中文系统下，就是用GBK解码。GBK解码时，如果一个字节大于 0x7F（ 127），就证明这个字节与后面的字节组成了一个汉字，由于汉字的字节码总大于0xA0，英文字节码总小于 0x7F ，因此二者泾渭分明，不会混淆。</p>
+
+<p> 用猜的方式确定文件的编码方案绝大多数情况下没有问题，但凡事总有特例，详见 字符编解码的故事 对“联通”编码/解码过程的说明。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2010-10-12T13:59:50+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>1:59 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/ansi/'>ansi</a>, <a class='category' href='/blog/categories/gb2312/'>gb2312</a>, <a class='category' href='/blog/categories/gbk/'>gbk</a>, <a class='category' href='/blog/categories/unicode/'>unicode</a>, <a class='category' href='/blog/categories/utf-8/'>utf-8</a>, <a class='category' href='/blog/categories/bian-ma/'>编码</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2010/10/12/135950/" data-via="" data-counturl="http://leetschau.github.io/blog/2010/10/12/135950/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2010/10/11/173852/" title="Previous Post: 用Python做不同进制间的数字转换">&laquo; 用Python做不同进制间的数字转换</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2010/10/13/095716/" title="Next Post: 字符编解码的故事">字符编解码的故事 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

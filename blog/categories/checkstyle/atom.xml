@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Checkstyle | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/checkstyle/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Reuse Sonar Checkstyle Violation Report for Custom Data Analysis]]></title>
+    <link href="http://leetschau.github.io/blog/2013/06/06/201203/"/>
+    <updated>2013-06-06T20:12:03+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/06/06/201203</id>
+    <content type="html"><![CDATA[<ol>
+<li><p>Write a violation rules file;</p></li>
+<li><p>Import it into Sonar as a Quality Profile named as &ldquo;MyRules&rdquo;;</p></li>
+<li><p>Add the following properties to ant script:</p>
+
+<p> <property name="sonar.profile" value="MyRules" />
+ <property name="sonar.checkstyle.generateXml" value="true" /></p></li>
+<li><p>Run Ant script, and you can get the report at $PROJECT_HOME/.sonar/checkstyle-result.xml;</p></li>
+<li><p>Use the following python script to extract data from the report:</p>
+
+<p> from xml.etree import ElementTree as ET
+ tree = ET.parse(&lsquo;/path/to/checkstyle-result.xml&rsquo;)
+ root = tree.getroot()
+ cycleCnt = 0
+ nestCnt = 0
+ for error in root.iter(&lsquo;error&rsquo;):
+     msg = error.get(&lsquo;message&rsquo;)
+     if msg.startswith(&lsquo;Cyclomatic&rsquo;):
+         cycleCnt += 1
+     if msg.startswith(&lsquo;Nested&rsquo;):
+         nestCnt += 1
+ print &ldquo;Cyclomatic:&rdquo;,cycleCnt,&ldquo;Nested:&rdquo;,nestCnt</p></li>
+</ol>
+
+
+<p>See &ldquo;Section 19.7: xml.etree.ElementTree&rdquo; of documentation of Python 2.7.5 for details.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[CodeReview of JDK Source Code]]></title>
+    <link href="http://leetschau.github.io/blog/2013/05/21/202314/"/>
+    <updated>2013-05-21T20:23:14+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/05/21/202314</id>
+    <content type="html"><![CDATA[<p>jdk1.6.0_35/src.zip, only java package is reviewd(full package review caused a OutofMemory on java heap size).</p>
+
+<h1>Checkstyle Review</h1>
+
+<h2>tyRules.xml:</h2>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt; 
+&lt;!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN" "http://www.puppycrawl.com/dtds/configuration_1_3.dtd"&gt; 
+&lt;module name="Checker"&gt; 
+    &lt;property name="severity" value="warning"/&gt; 
+    &lt;module name="TreeWalker"&gt; 
+        &lt;metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;module name="MethodLength"&gt; 
+            &lt;property name="max" value="200"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="NestedIfDepth"&gt; 
+            &lt;property name="max" value="5"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="CyclomaticComplexity"/&gt; 
+            &lt;module name="ParameterNumber"&gt; 
+            &lt;property name="max" value="6"/&gt; 
+        &lt;/module&gt; 
+    &lt;/module&gt; 
+    &lt;module name="StrictDuplicateCode"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="min" value="75"/&gt; 
+    &lt;/module&gt; 
+    &lt;module name="FileLength"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="max" value="1000"/&gt; 
+    &lt;/module&gt; 
+&lt;/module&gt; 
+</code></pre>
+
+<h2>Run code review</h2>
+
+<pre><code>java -jar checkstyle-5.6-all.jar -c tyRules.xml -r /home/chad/tmp/jdksrc -o result.txt
+</code></pre>
+
+<h2>Get Review Result</h2>
+
+<pre><code>grep "Method length is" result.txt|wc -l
+grep "Nested if-else depth is" result.txt|wc -l
+grep "More than 6 parameters" result.txt|wc -l
+grep "max allowed is 1,000" result.txt|wc -l
+grep "Found duplicate of" result.txt|wc -l
+grep "Cyclomatic Complexity is" result.txt|wc -l
+</code></pre>
+
+<h1>Sonar Review</h1>
+
+<h2>sonar-project.properties:</h2>
+
+<pre><code>sonar.projectKey=jdk.sonar.analysis 
+sonar.projectName=JDK 
+sonar.projectVersion=1.6 
+sonar.sources=jdksrc 
+sonar.login=liuyan 
+sonar.password=liuyan 
+sonar.language=java 
+sonar.profile=TongYong 
+sonar.skipDesign=true 
+sonar.dynamicAnalysis=false 
+</code></pre>
+
+<h2>Run code review</h2>
+
+<pre><code>/opt/sonar-server/runner/sonar-runner-2.2/bin/sonar-runner
+</code></pre>
+
+<p>The profile TongYong is imported from above tyRules.xml.</p>
+
+<h1>Result</h1>
+
+<h2>From Sonar</h2>
+
+<p>Lines of code: 202,505 (NBNC, not blank not comment code lines);</p>
+
+<p>559,577 lines (total lines = NBNC + blank + comment);</p>
+
+<p>Above can be verified by cloc.</p>
+
+<p>2172 Classes, 21,275 methods, 675 method cyclomatic complexity are greater than 10,</p>
+
+<h2>Cyclomatic Complxity</h2>
+
+<p>GCP: 298/6276 = 4.75%</p>
+
+<p>JDK: 674/21275 = 3.17%</p>
+
+<h2>Duplicate Lines</h2>
+
+<p>GCP:</p>
+
+<p>JDK: 825/</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Auto Code Review Based on Jenkins and Checkstyle]]></title>
+    <link href="http://leetschau.github.io/blog/2013/05/15/164215/"/>
+    <updated>2013-05-15T16:42:15+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/05/15/164215</id>
+    <content type="html"><![CDATA[<p>Based on Jenkins 1.509 and Checkstyle 5.6.</p>
+
+<p>Now we need practising code review, as a step of BVT of course. The ideal solution is based on Sonar and its checkstyle plugin. But I am not very familiar with sonar&rsquo;s java runner and other features. So I decided to use some &ldquo;plain&rdquo; method to embed code review into the process of BVT.</p>
+
+<h1>Preparations</h1>
+
+<ol>
+<li><p>Install checkstyle plugin of jenkins;</p></li>
+<li><p>copy checkstyle-5.6-all.jar to /opt/checkstyle;</p></li>
+<li><p>create a code review rule file tyRules.xml at /opt/checkstyle:</p></li>
+</ol>
+
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> &lt;!DOCTYPE module PUBLIC &ldquo;-//Puppy Crawl//DTD Check Configuration 1.3//EN&rdquo; &ldquo;<a href="http://www.puppycrawl.com/dtds/configuration_1_3.dtd">http://www.puppycrawl.com/dtds/configuration_1_3.dtd</a>&rdquo;>
+ <module name="Checker">
+  <property name="severity" value="warning"/>
+  <module name="TreeWalker">
+  <metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/>
+  <module name="MethodLength">
+   <property name="max" value="200"/>
+  </module>
+  <module name="NestedIfDepth">
+   <property name="max" value="5"/>
+  </module>
+  <module name="CyclomaticComplexity"/>
+  <module name="ParameterNumber">
+   <property name="max" value="6"/>
+  </module>
+  </module>
+  <module name="StrictDuplicateCode">
+  <property name="min" value="75"/>
+  </module>
+  <module name="FileLength">
+  <property name="max" value="1000"/>
+  </module>
+ </module></p>
+
+<ol>
+<li><p>Project -> Configuration -> Source Code Management -> Subversion -> Repo URL: svn://localhost/ServerMeter</p></li>
+<li><p>Project -> Configuration -> Post-build Actions -> Publish Checkstyle analysis results: <em>*/codeReview</em>.xml;</p></li>
+<li><p>Project -> Configuration -> Post-build Actions -> E-mail Notification: &hellip;</p></li>
+</ol>
+
+
+<h1>As part of ant build</h1>
+
+<ol>
+<li>add a target &ldquo;checkcode&rdquo; in build.xml:</li>
+</ol>
+
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ <project name="checkstyleTest" basedir="./" default="checkcode">
+   <taskdef resource="checkstyletask.properties" classpath="/opt/checkstyle/checkstyle-5.6-all.jar"/>
+   <property name="build.dir" value="${basedir}/build" />
+   <target name="init">
+     <delete dir="${build.dir}"/>
+     <mkdir dir="${build.dir}"/>
+   </target>
+   <target name="checkcode" depends="init">
+     <checkstyle config="/opt/checkstyle/tyRules.xml">
+       <fileset dir="src" includes="**/*.java"/>
+       <formatter type="xml" toFile="build/codeReviewResult.xml"/>
+     </checkstyle>
+   </target>
+ </project></p>
+
+<ol>
+<li>Jenkins setup: Project -> Configuration -> Build -> Invoke Ant -> Targets: checkcode;</li>
+</ol>
+
+
+<p>PROS: simple config, with the power of ant;</p>
+
+<p>CONS: build scripts of every project have to be modified, which violates the DRY principle;</p>
+
+<h1>As an independent step in build process</h1>
+
+<p>Jenkins setup: Project -> Configuration -> Build -> Execute shell:</p>
+
+<p> rm -rf build
+ mkdir build
+ find . -depth -name .svn -exec rm -fr {} \;
+ java -jar /opt/checkstyle/checkstyle-5.6-all.jar -c /opt/checkstyle/tyRules.xml -r src -f xml -o build/codeReviewResult.xml</p>
+
+<p>PROS: no need to modify any thing in project, do one thing in only ONE place;</p>
+
+<p>CONS: there are some dirty work in shell script, for example you have to delete and create build folder manually (otherwise checkstyle report can not be created correctly), and remove all .svn folder recursively (otherwise checkstyle will find some duplicate codes in normal code file and backup file in .svn folder).</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[使用CheckStyle做代码检查]]></title>
+    <link href="http://leetschau.github.io/blog/2013/03/20/172355/"/>
+    <updated>2013-03-20T17:23:55+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/03/20/172355</id>
+    <content type="html"><![CDATA[<h1>命令行应用</h1>
+
+<p>官网文档对命令行用法讲解的很详细，基本分为以下几步。</p>
+
+<h2>安装</h2>
+
+<p>下载独立运行包（checkstyle-5.6-bin.zip），解压到d:\apps下；</p>
+
+<h2>写配置文件</h2>
+
+<p>可以在eclipse中用插件eclipse-cs写出来，然后查到这个配置的文件名，然后拷贝出来作为配置文件；</p>
+
+<p>cc.xml内容如下：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ &lt;!DOCTYPE module PUBLIC &ldquo;-//Puppy Crawl//DTD Check Configuration 1.3//EN&rdquo; &ldquo;<a href="http://www.puppycrawl.com/dtds/configuration_1_3.dtd">http://www.puppycrawl.com/dtds/configuration_1_3.dtd</a>&rdquo;>
+ <module name="Checker">
+  <property name="severity" value="warning"/>
+  <module name="TreeWalker">
+  <metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/>
+  <property name="fileExtensions" value="java"/>
+  <module name="MethodLength">
+   <property name="max" value="200"/>
+  </module>
+  <module name="NestedIfDepth">
+   <property name="max" value="5"/>
+  </module>
+  <module name="CyclomaticComplexity"/>
+  <module name="ParameterNumber">
+   <property name="max" value="6"/>
+  </module>
+  </module>
+  <module name="StrictDuplicateCode">
+  <property name="fileExtensions" value="java"/>
+  <property name="min" value="75"/>
+  </module>
+  <module name="FileLength">
+  <property name="fileExtensions" value="java"/>
+  <property name="max" value="1000"/>
+  </module>
+ </module></p>
+
+<p>注意<module>内如果有名为severity的子标签，值为ignore表示该项检查被忽略（无效），如果要执行此项检查可以去掉该子标签或者把值改为warning：</p>
+
+<p> <module name="Checker"></p>
+
+<p>  <property name="severity" value="warning"/></p>
+
+<p>  &hellip;</p>
+
+<p>在Jenkins上执行Checkstyle检查时需要将severity设置为wanning，因为默认违反规则将被作为error，导致ant脚本执行结果被标记为失败，从而整个BVT执行失败。</p>
+
+<h2>执行代码检查</h2>
+
+<p>下面的命令检查了E:\workspace\JDK6UTF8\Godu3NewBuffer\src目录中所有代码的圈复杂度：</p>
+
+<p>E:\workspace\JDK6UTF8\Godu3NewBuffer>java -jar d:\Apps\checkstyle-5.6\checkstyle-5.6-all.jar -c cc.xml -r src -o result.txt</p>
+
+<p>其中-c后面写规则（配置）文件名，-r后面写待检查的文件/目录名，-o后面是结果输出文件名，-f xml表示输出为xml文件（默认是plain文本文件），如果不需要保存到文件中，只是查看一下结果，去掉-o，结果输出到屏幕上；</p>
+
+<h1>以Ant任务形式运行</h1>
+
+<ol>
+<li><p>将上述zip包中的checkstyle-5.6-all.jar文件拷贝到$ANT_HOME/lib下；</p></li>
+<li><p>下面是一个简单的checkstyle任务，更多的检查方法参考<a href="http://checkstyle.sourceforge.net/anttask.html">Ant Task of Checkstyle</a></p></li>
+</ol>
+
+
+<p> <target name="review">
+  &lt;cs:checkstyle config=&ldquo;tyRules.xml&rdquo; xmlns:cs=&ldquo;antlib:com.puppycrawl.tools.checkstyle&rdquo;>
+   <fileset dir="src" includes="**/*.java"/>
+   <formatter type="plain"/>
+   <formatter type="xml" toFile="checkstyle_reports.xml"/>
+  &lt;/cs:checkstyle>
+ </target></p>
+
+<h1>作为Eclipse插件</h1>
+
+<h2>安装</h2>
+
+<p>这个插件叫<a href="http://eclipse-cs.sourceforge.net/">eclipse-cs</a>，先是在线装，连不上，改为下载zip包，解压到dropins目录的方法安装成功。</p>
+
+<h2>使用</h2>
+
+<p>CheckStyle的功能是通过一个具体的配置（configuration）来发挥作用的，对于被检查的项目，在属性里activate checkstyle，它就会在每次构建（build）项目的时候自动运行，如果是自动构建，则每次保存文件都会触发checkstyle执行代码检查。</p>
+
+<p>使用CheckStyle分为两步，首先是Window->Preference里新建一个configuration，用来定义要检查的项目（如代码的圈复杂度、javadoc格式等），然后在被检查的项目属性里指定使用这个configuration，并定义检查的范围（例如只检查打开的文件、指定具体的包等）。</p>
+
+<h3>进行代码复杂度检查</h3>
+
+<p>第一步配置执行复杂度检查的configuration: Window -> Preference -> CheckStyle -> Global check configurations -> new，打开新建conf的窗口，写一个名字然后点OK：</p>
+
+<p>在configuration窗体里选中 Metrics -> Cyclomatic Complexity：</p>
+
+<p>点Add后出现配置窗体，在这里输入严重级别和判断标准，默认值为10，即当圈复杂度超过10时标记出来，确认退出。</p>
+
+<p>第二步是在被检查的项目属性的checkstyle窗体中配置参数，首先是激活checkstyle，然后是选择一个configuration，最后是配置那些文件不进行检查，配好后确认就OK了。</p>
+
+<p>检查结果的汇总在Window -> Show View -> Checkstyle violations中，还提供了一个饼图窗口；</p>
+
+<p>GODU的新版本有些方法复杂度已经超过20了，汗，后面得好好重构才行。下面是checkstyle推荐的复杂度判断标准：</p>
+
+<p> Generally 1-4 is considered good, 5-7 ok, 8-10 consider re-factoring, and 11+ re-factor now!</p>
+
+<h1>总结</h1>
+
+<p>Eclipse插件没有生成报告功能，优点是提供了离线安装包，安装过程对我等天朝草民来说比较简单；</p>
+
+<p>与PMD相比，CheckStyle适合在写代码的同时打开代码检查功能进行“实时监控”，如果是代码已写完，需要对整体质量进行评估，或者找问题点，则PMD比较适合，因为它具备PMD视图，可以对结果汇总。</p>
+]]></content>
+  </entry>
+  
+</feed>

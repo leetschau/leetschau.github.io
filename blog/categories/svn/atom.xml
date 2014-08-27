@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Svn | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/svn/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Svn检出文件名中含中文文件失败问题解决方法]]></title>
+    <link href="http://leetschau.github.io/blog/2014/02/27/163511/"/>
+    <updated>2014-02-27T16:35:11+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/02/27/163511</id>
+    <content type="html"><![CDATA[<p>有时使用svn检出时遇到这样的错误：</p>
+
+<p>svn: Can&rsquo;t convert string from &lsquo;UTF-8&rsquo; to native encoding: &hellip;</p>
+
+<p>这是可能是由于svn所在主机的当前字符集不支持Unicode造成的，确认方法是：运行&#8221;locale&#8221;指令，输出为：</p>
+
+<pre><code>LANG=en_US.UTF-8
+LANGUAGE=
+LC_CTYPE="en_US"
+LC_NUMERIC="en_US"
+LC_TIME="en_US"
+LC_COLLATE="en_US"
+LC_MONETARY="en_US"
+LC_MESSAGES="en_US"
+LC_PAPER="en_US"
+LC_NAME="en_US"
+LC_ADDRESS="en_US"
+LC_TELEPHONE="en_US"
+LC_MEASUREMENT="en_US"
+LC_IDENTIFICATION="en_US"
+LC_ALL=en_US
+</code></pre>
+
+<p>&ldquo;en_US&#8221;后面没有&rdquo;.UTF-8&#8221;，/etc/default/locale文件的内容是：</p>
+
+<pre><code>LC_ALL="en_US"
+</code></pre>
+
+<p>也没有&#8221;.UTF-8&#8221;，解决方法很简单，在后面加上&#8221;.UTF-8&#8221;，变为</p>
+
+<pre><code>LC_ALL="en_US.UTF-8"
+</code></pre>
+
+<p>这时再运行locale命令，结果如下：</p>
+
+<pre><code>LANG=en_US.UTF-8
+LANGUAGE=
+LC_CTYPE="en_US.UTF-8"
+LC_NUMERIC="en_US.UTF-8"
+LC_TIME="en_US.UTF-8"
+LC_COLLATE="en_US.UTF-8"
+LC_MONETARY="en_US.UTF-8"
+LC_MESSAGES="en_US.UTF-8"
+LC_PAPER="en_US.UTF-8"
+LC_NAME="en_US.UTF-8"
+LC_ADDRESS="en_US.UTF-8"
+LC_TELEPHONE="en_US.UTF-8"
+LC_MEASUREMENT="en_US.UTF-8"
+LC_IDENTIFICATION="en_US.UTF-8"
+LC_ALL=en_US.UTF-8
+</code></pre>
+
+<p>这时再检出中文文件名文件就不报错了。</p>
+
+<p>在CentOS上，对应的locale文件是/etc/sysconfig/i18n。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Subversion Backup and Restore]]></title>
+    <link href="http://leetschau.github.io/blog/2013/10/31/174404/"/>
+    <updated>2013-10-31T17:44:04+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/10/31/174404</id>
+    <content type="html"><![CDATA[<h1>Backup Specified Revision</h1>
+
+<ol>
+<li><p>Backup specified revision (here is 20):</p>
+
+<p> $ cd /opt/svnRepo
+ $ svnadmin dump deployTest/ -r 20 > deploy-r20.dump</p></li>
+<li><p>Restore backup:</p>
+
+<p> $ mv deploy-r20.dump /opt/Gcp/tmp
+ $ cd /opt/Gcp/tmp
+ $ svnadmin create deploy20
+ $ svnadmin load deploy20 &lt; deploy-r20.dump</p></li>
+</ol>
+
+
+<h1>Verify</h1>
+
+<ol>
+<li><p>Get revision 20 of &ldquo;deploy.exp&rdquo; in original repository</p>
+
+<p> $ svn cat -r 20 file:///opt/svnRepo/deployTest/CalcServer/deploy.exp > r20</p></li>
+<li><p>Get &ldquo;deploy.exp&rdquo; in restored repository</p>
+
+<p> $ svn cat file:///opt/Gcp/tmp/deploy20/CalcServer/deploy.exp > restore20</p></li>
+<li><p>Compare them:</p>
+
+<p> $ diff r20 restore20</p></li>
+</ol>
+
+
+<p>They are identical.</p>
+
+<ol>
+<li><p>Compare logs:</p>
+
+<h2> [root@cloud141 /opt/svnRepo]$ svn log -r 20 file:///opt/svnRepo/deployTest/ </h2>
+
+ r20 | bvt | 2013-08-30 17:30:03 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> remove unittest in source file </h2>
+
+<h2> [root@cloud141 /opt/svnRepo]$ svn log file:///opt/Gcp/tmp/deploy20 </h2>
+
+ r1 | bvt | 2013-08-30 17:30:03 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> remove unittest in source file </h2></li>
+</ol>
+
+
+<p>So you can see the restored repository is identical to that part of original repository <strong>except</strong> the revision number.</p>
+
+<h1>Backup Specified Revisions</h1>
+
+<pre><code>$ svnadmin dump deployTest/ -r 10:20 &gt; deploy-r20.dump
+</code></pre>
+
+<h1>Incremental Backup</h1>
+
+<ol>
+<li><p>Backup:</p>
+
+<p> $svnadmin dump myrepos -r 0:1000 > 0-1000.dumpfile
+ $svnadmin dump myrepos -r 1001:2000 &ndash;incremental > 1001-2000.dumpfile
+ $svnadmin dump myrepos -r 2001:3000 &ndash;incremental > 2001:3000.dumpfile</p></li>
+<li><p>Restore:</p>
+
+<p> $svnadmin load myrepos &lt; 0-1000.dumpfile
+ $svnadmin load myrepos &lt; 1001-2000.dumpfile
+ $svnadmin load myrepos &lt; 2001:3000.dumpfile</p></li>
+</ol>
+
+
+<h2>Experiment on incremental dump</h2>
+
+<ol>
+<li><p>Create a incremental backup:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ svnadmin dump deployTest/ &ndash;incremental -r 9:11 > r9-11.dump</p></li>
+<li><p>Create a full backup:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ svnadmin dump deployTest/ -r 9:11 > backup9-11.dump</p></li>
+<li><p>Compare the size of these two dump files, full backup is obviously larger than the incremental counterpart:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ ll
+ total 984
+ -rw-r&ndash;r&ndash; 1 root root 997105 Oct 31 19:08 backup9-11.dump
+ drwxr-xr-x 6 root root 4096 Aug 22 18:09 deployTest
+ -rw-r&ndash;r&ndash; 1 root root 2509 Oct 31 19:07 r9-11.dump</p></li>
+<li><p>Restore a incremental backup in a fresh repository:</p>
+
+<p> [root@cloud141 /opt/svnRepo]$ mv r9-11.dump ../Gcp/tmp
+ [root@cloud141 /opt/Gcp/tmp]$ svnadmin create new9
+ [root@cloud141 /opt/Gcp/tmp]$ svnadmin load new9 &lt; r9-11.dump
+ &lt;&lt;&lt; Started new transaction, based on original revision 9
+ svnadmin: File not found: transaction &lsquo;0-0&rsquo;, path &lsquo;CalcServer/src/com/boco/deploy/ConfigLoader.java&rsquo;</p>
+
+<ul>
+<li> editing path : CalcServer/src/com/boco/deploy/ConfigLoader.java &hellip;[root@</li>
+</ul>
+</li>
+</ol>
+
+
+<p>You can see the restore failed.</p>
+
+<ol>
+<li><p>Restore a incremental backup (revision 9~11) in a &ldquo;root&rdquo; repository (restored from revision 8) :</p>
+
+<p> [root@cloud141 /opt/Gcp/tmp]$ svnadmin load backup8 &lt; r9-11.dump
+ &hellip;</p>
+
+<h2> [root@cloud141 /opt/Gcp/tmp]$ svn log file:///opt/Gcp/tmp/backup8 </h2>
+
+ r4 | bvt | 2013-08-30 16:35:10 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> initial import project </h2>
+
+ r3 | bvt | 2013-08-30 15:31:47 +0800 (Fri, 30 Aug 2013) | 1 line
+
+<h2> make new project basedir </h2>
+
+ r2 | bvt | 2013-08-29 14:32:15 +0800 (Thu, 29 Aug 2013) | 1 line
+
+<h2> remove unittest in source file to pass compile without junit </h2>
+
+ r1 | bvt | 2013-08-29 14:31:10 +0800 (Thu, 29 Aug 2013) | 1 line
+
+<h2> remove unittest in source file to pass compile without junit </h2></li>
+</ol>
+
+
+<p>Now the restore succeed.</p>
+
+<h2>Summary</h2>
+
+<p>Backup a huge repository in the following steps:</p>
+
+<ol>
+<li><p>Execute a full backup at a revision. If the revision n is not 0, you will lose all revisions from 0 to n-1;</p></li>
+<li><p>Execute incremental backups weekly, use the revision arrange as file name: &ldquo;inc-rev-from-to.dump&rdquo;, like &ldquo;inc-rev-35-46.dump&rdquo;;</p></li>
+<li><p>When original repository corrupts, first load the full backup, then load the incremental ones according to their revision numbers;</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<ul>
+<li><p><a href="http://blog.csdn.net/windone0109/article/details/2908133">SVN版本库的备份、还原、移植（初级篇、中级篇和高级篇）</a></p></li>
+<li><p><a href="http://greyshine.blog.51cto.com/1003856/415113">SVN备份及其还原——dump/load方法</a></p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Remove All Subversion Unversoned Files and Directories Automatically]]></title>
+    <link href="http://leetschau.github.io/blog/2013/10/22/113552/"/>
+    <updated>2013-10-22T11:35:52+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/10/22/113552</id>
+    <content type="html"><![CDATA[<p>svn status | grep ^\? | cut -c9- | xargs -d \n rm -r</p>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/239340/automatically-remove-subversion-unversioned-files">http://stackoverflow.com/questions/239340/automatically-remove-subversion-unversioned-files</a></p>
+
+<p>Note:</p>
+
+<ol>
+<li><p>In &ldquo;cut -c9-&rdquo;, &ldquo;-c&rdquo; means character, &ldquo;9-&rdquo; means retaining all characters from the 9th to the end of each line of input file;</p></li>
+<li><p>In &ldquo;xargs -d \n&hellip;&rdquo;, -d specifies the delimiter, here it&rsquo;s the carriage return(\n);</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Copy, Tag and Branch of Subversion]]></title>
+    <link href="http://leetschau.github.io/blog/2013/08/30/180938/"/>
+    <updated>2013-08-30T18:09:38+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/08/30/180938</id>
+    <content type="html"><![CDATA[<p>Tag and branch are the same from the point of view of svn server. They are both the &ldquo;copy&rdquo; operation (this is why they use the same menu item in TortoiseSVN, they are actually the &ldquo;svn copy&rdquo; command). Copy operation of svn server will create a link to original revision. So create tag or branch will not double the disk space usage. The disk space usage is actually related with how many files are modified based on a specific revision.</p>
+
+<p>What is the difference of tag and branch? When you create a &ldquo;tag&rdquo;, you mean you will save this link at a &ldquo;baseline area&rdquo; where it&rsquo;s prohibited to do checkout-modify-checkin operation. On the contrary, if you create a &ldquo;branch&rdquo;, you will do checkout-modify-checkin operation in the future for new feature development or bug fix.</p>
+
+<p>Use &ldquo;svn help copy&rdquo; for explanations.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[SVN命令行客户端使用方法]]></title>
+    <link href="http://leetschau.github.io/blog/2013/08/07/164139/"/>
+    <updated>2013-08-07T16:41:39+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/08/07/164139</id>
+    <content type="html"><![CDATA[<p>主要是Linux上的命令行客户端。</p>
+
+<h1>常用命令</h1>
+
+<ul>
+<li><p>svn mkdir -m &ldquo;some notes&rdquo; <svn_url>： 在svn_url指定的位置建立文件夹，一般用于建立项目根目录；</p></li>
+<li><p>svn import -m &ldquo;some notes&rdquo; <local_folder_to_be_imported> <svn_url>： 注意只有文件夹下的内容（文件和文件夹）会被导入，文件夹本身不会被导入，所以如果想导入当前目录下的testProject文件夹到svn根目录下，应执行下面的指令（testProject要写两次）：</p>
+
+<p>  svn import -m &ldquo;initial import project&rdquo; testProject svn://10.0.7.141/testProject</p></li>
+</ul>
+
+
+<p>常用的用法是导入当前文件夹下的所有文件，这时<local_folder_to_be_imported>不写，直接写成：</p>
+
+<pre><code>svn import -m "..." svn://10.0.7.141/testProject
+</code></pre>
+
+<ul>
+<li><p>svn info：显示当前repo对应的SVN路径、版本号、用户名等；</p></li>
+<li><p>svn ci -m &ldquo;&hellip;&rdquo; [filename]: 提交改动，首先用svn st查看改动情况；如果没有配置默认用户，增加&ndash;username <user>来指定使用哪个用户提交；</p></li>
+<li><p>svn co svn://localhost/Trunk/Project1 targetFolder: 将repo中Project1的内容检出到当前目录的targetFolder文件夹中；</p></li>
+<li><p>svn log -l 3：显示当前目录对应的repo文件夹的最近3次提交，可以在log后面增加目标repo地址指定要显示的目标；</p>
+
+<p>  svn log -l 3 <file_name>: 针对某一个文件的最近3次提交；</p></li>
+<li><p>svn ls [svn://localhost [-R]]: 列出repo中的内容（加-R表示包含子目录内容）；</p></li>
+<li><p>svn st: 查看文件改动情况；</p></li>
+<li><p>svn add <file>: 将svn st查到的未纳入版本控制的文件加入到版本控制中；</p></li>
+<li><p>svn up：更新working directory，当在working dir中提交版本后，需要用svn up更新svn客户端库，才能在svn log中看到新提交的版本；update之前先用status查看一下本地有没有未提交的修改，否则易造成冲突；</p></li>
+<li><p>svn diff <file_name>: 比较head revision与本地working copy之间的差异；</p>
+
+<p>  svn diff -r 1345:1346 <file_name>：比较文件<file_name>的r1345版本与r1346版本的区别（先用svn log &hellip; <file_name>确定要比较的版本号；</p></li>
+<li><p>svn move <source> <destination></p></li>
+<li><p>svn revert <file_name>: If you add some file but not commit yet, and you find it&rsquo;s useless and want to remove it,you can use this command;</p></li>
+<li><p>svn cat [-r<version_number>] <file_path_on_server></p></li>
+</ul>
+
+
+<p>可以用svn help列出所有可用命令，svn help <cmd_name>查询某个命令的使用方法。</p>
+
+<h1>设置忽略列表</h1>
+
+<h2>一次性设置</h2>
+
+<ul>
+<li><p>svn propset svn:ignore folder .：将folder放入ignore列表中；如果多次使用此命令，后面的<folder>会覆盖前面的（而不是追加）；</p></li>
+<li><p>如果有多个项目，用多行命令，每行一个忽略元素：</p>
+
+<p>  svn propset svn:ignore &ldquo;folder1
+  folder2
+  folder3&rdquo; .</p></li>
+<li><p>列出当前的忽略列表：svn propget svn:ignore</p></li>
+</ul>
+
+
+<h2>编辑忽略列表</h2>
+
+<pre><code>svn propedit svn:ignore .
+</code></pre>
+
+<p>这样会打开一个文本编辑器，内容是当前的忽略列表（每行一个元素），编辑之后保存即可修改忽略列表。</p>
+
+<p>用&#8221;echo $EDITOR&#8221;查看默认编辑器，用&#8221;export EDITOR=vi&#8221;将其改为vi；</p>
+
+<h1>查看默认用户</h1>
+
+<p>~/.subversion/auth/svn.simple下的文件中保存着默认用户名，如果想更改默认用户，删掉这个保存默认用户的文件，然后使用一个svn命令，在提示中输入用户名；</p>
+]]></content>
+  </entry>
+  
+</feed>

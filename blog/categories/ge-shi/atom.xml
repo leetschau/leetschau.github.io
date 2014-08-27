@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 格式 | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ge-shi/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[日期格式转换的正则表达式实现]]></title>
+    <link href="http://leetschau.github.io/blog/2011/07/19/164331/"/>
+    <updated>2011-07-19T16:43:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/07/19/164331</id>
+    <content type="html"><![CDATA[<p>原始文本：</p>
+
+<blockquote><p>2011年7月18日：修改密码的核心功能开发完毕；
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<p>目标格式文本：</p>
+
+<blockquote><p>2011-7-18：修改密码的核心功能开发完毕；
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<h1>vim实现</h1>
+
+<pre><code>:%s/\(\d\{4}\).\(\d\{1,2}\).\(\d\{1,2}\)./\1-\2-\3/g 
+</code></pre>
+
+<p>说明： 采用 :%s/old/new/g 命令进行替换，其中%表示对所有行进行替换操作，最后的g参数表明对一行中所有的new均替换为old。\d代表任意数字，old pattern中每个括号（即(&hellip;)）中的内容构成一个group member，new pattern中对group member的引用用\1、\2、\3&hellip;代表，即&#8221;BRE&#8221;, back references.</p>
+
+<h1>Groovy实现</h1>
+
+<pre><code>oriStr = '''2011年7月18日：修改密码的核心功能开发完毕； 
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；'''; 
+pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+matcher = oriStr =~ pattern; 
+matcher.each { all,y,m,d-&gt; 
+    println 'Patten is: '+all; 
+    println 'Replaced by: '+y+'-'+m+'-'+d; 
+}; 
+println '*****'; 
+println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;}; 
+</code></pre>
+
+<p>运行结果：</p>
+
+<pre><code>Patten is: 2011年7月18日 
+Replaced by: 2011-7-18 
+Patten is: 2011年7月19日 
+Replaced by: 2011-7-19 
+***** 
+2011-7-18：修改密码的核心功能开发完毕； 
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<p>说明： 跨行字符串用三引号括起来；匹配模式用“ /&hellip;/” 括起来；用模式匹配字符串时，每一次成功匹配构成了matcher的一个元素（代码中用matcher.each得到），如果模式当中包含group（可以matcher.hasGroup()判断），则这个元素本身也是一个List，其中第一个元素是符合模式的substring（代码中的all），各个group member可以用下标引用，也可以分别起名字（代码中分别为y、m、d）。这部分内容可参见《Groovy in Action》（2007版）第3.5节“Working with regular expressions”。Groovy的String.replaceAll方法包括两个参数，第一个是要被代替的pattern，第二个是用来代替pattern的closure，该closure的返回结果是最后一行代码的值。</p>
+
+<p>例如：<code>println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;return 'Date'};</code> 的输出是：</p>
+
+<pre><code>Date：修改密码的核心功能开发完毕； 
+Date：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<h1>基于文件读写的Groovy实现</h1>
+
+<pre><code>pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+convStr = ''; 
+new File('f:/Edit3.txt').eachLine{ 
+    convStr += (it.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d})+'\n' 
+} 
+new File('f:/conv.txt').write convStr; 
+</code></pre>
+
+<p>说明： 第4行的it表示此行文本（字符串）。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Log4j日志输出格式参数定义]]></title>
+    <link href="http://leetschau.github.io/blog/2010/10/08/175808/"/>
+    <updated>2010-10-08T17:58:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/10/08/175808</id>
+    <content type="html"><![CDATA[<p>PatternLayout (Apache Log4j 1.2.16 API)</p>
+
+<p> Conversion Character
+ Effect
+ c
+ Used to output the category of the logging event. The category conversion specifier can be optionally followed by precision specifier , that is a decimal constant in brackets.
+ If a precision specifier is given, then only the corresponding number of right most components of the category name will be printed. By default the category name is printed in full.
+ For example, for the category name &ldquo;a.b.c&rdquo; the pattern %c{2} will output &ldquo;b.c&rdquo;.
+  C
+ Used to output the fully qualified class name of the caller issuing the logging request. This conversion specifier can be optionally followed by precision specifier , that is a decimal constant in brackets.
+ If a precision specifier is given, then only the corresponding number of right most components of the class name will be printed. By default the class name is output in fully qualified form.
+ For example, for the class name &ldquo;org.apache.xyz.SomeClass&rdquo;, the pattern %C{1} will output &ldquo;SomeClass&rdquo;.
+ WARNING Generating the caller class information is slow. Thus, use should be avoided unless execution speed is not an issue.
+  d
+ Used to output the date of the logging event. The date conversion specifier may be followed by a date format specifier enclosed between braces. For example, %d{HH:mm:ss,SSS} or %d{dd MMM yyyy HH:mm:ss,SSS} . If no date format specifier is given then ISO8601 format is assumed.
+ The date format specifier admits the same syntax as the time pattern string of the  SimpleDateFormat . Although part of the standard JDK, the performance of SimpleDateFormat is quite poor.
+ For better results it is recommended to use the log4j date formatters. These can be specified using one of the strings &ldquo;ABSOLUTE&rdquo;, &ldquo;DATE&rdquo; and &ldquo;ISO8601&rdquo; for specifying  AbsoluteTimeDateFormat ,  DateTimeDateFormat  and respectively  ISO8601DateFormat . For example, %d{ISO8601} or %d{ABSOLUTE} .
+ These dedicated date formatters perform significantly better than  SimpleDateFormat .
+  F
+ Used to output the file name where the logging request was issued.
+ WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
+  l
+ Used to output location information of the caller which generated the logging event.
+ The location information depends on the JVM implementation but usually consists of the fully qualified name of the calling method followed by the callers source the file name and line number between parentheses.
+ The location information can be very useful. However, its generation is extremely slow and should be avoided unless execution speed is not an issue.
+  L
+ Used to output the line number from where the logging request was issued.
+ WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
+  m
+ Used to output the application supplied message associated with the logging event.
+ M
+ Used to output the method name where the logging request was issued.
+ WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
+  n
+ Outputs the platform dependent line separator character or characters.
+ This conversion character offers practically the same performance as using non-portable line separator strings such as &ldquo;\n&rdquo;, or &ldquo;\r\n&rdquo;. Thus, it is the preferred way of specifying a line separator.
+  p
+ Used to output the priority of the logging event.
+ r
+ Used to output the number of milliseconds elapsed from the construction of the layout until the creation of the logging event.
+ t
+ Used to output the name of the thread that generated the logging event.
+ x
+ Used to output the NDC (nested diagnostic context) associated with the thread that generated the logging event.
+ X
+ Used to output the MDC (mapped diagnostic context) associated with the thread that generated the logging event. The X conversion character must be followed by the key for the map placed between braces, as in %X{clientNumber} where clientNumber is the key. The value in the MDC corresponding to the key will be output.
+ See  MDC  class for more details.
+  %
+ The sequence %% outputs a single percent sign.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[VIM文本格式转换一例]]></title>
+    <link href="http://leetschau.github.io/blog/2010/07/06/141019/"/>
+    <updated>2010-07-06T14:10:19+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/07/06/141019</id>
+    <content type="html"><![CDATA[<p>原文本：
+ public static final int GODU_CMD_PORT = 1234;
+ public static final int GODU_MONITOR_PORT = 5678;
+ public static final int GODU_SUBSCRIBE_PORT = 6789;
+ public static final String LOGIN = &ldquo;login:&rdquo;;
+ public static final String LOGIN_PASSWORD = &ldquo;password:&rdquo;;
+ public static final String GODU_PROMPT = &ldquo;[GODU-CMD]&rdquo;;
+ public static final String GODU_OPT_START = &ldquo;BOCOGODUACKSTART&rdquo;;
+ public static final String GODU_OPT_END = &ldquo;BOCOGODUACKEND&rdquo;;
+ public static final String NE_OPT_START = &ldquo;BOCOGODUCMDSTART&rdquo;;
+ public static final String NE_OPT_END = &ldquo;BOCOGODUCMDEND&rdquo;;
+目标文本：
+ godu.cmd.port = 1234
+ godu.monitor.port = 5678
+ godu.subscribe.port = 6789
+ login = login:
+ login.password = password:
+ godu.prompt = [GODU-CMD]
+ godu.opt.start = BOCOGODUACKSTART
+ godu.opt.end = BOCOGODUACKEND
+ ne.opt.start = BOCOGODUCMDSTART
+ ne.opt.end = BOCOGODUCMDEND
+操作过程：
+1. 删除前导空格：:%s/^\s*//g
+1. 删除每行的前4个单词，将第5个单词转化为小写（使用宏）： qad4wguwjq 9@a
+1. 将下划线改为点号：:%s/_/./g
+1. 删除行尾分号：:%s/;$//g
+1. 删除双引号：:%s/”//g</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Word中生成目录格式的VBA代码]]></title>
+    <link href="http://leetschau.github.io/blog/2008/10/12/091134/"/>
+    <updated>2008-10-12T09:11:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2008/10/12/091134</id>
+    <content type="html"><![CDATA[<p>要求在页面的最右边生成一个右对齐的制表符（以控制页码的位置），制表符的前导字符是“-”（标题与页码之间的符号），页码统一写为“A-5”，然后手工输入正确的页码。
+Sub makeMenu()
+ Selection.MoveDown Unit:=wdParagraph, Count:=1
+ Selection.EndKey
+ Selection.ParagraphFormat.TabStops.Add Position:=CentimetersToPoints(15.24 _
+  ), Alignment:=wdAlignTabRight, Leader:=wdTabLeaderDashes
+ Selection.TypeText Text:=vbTab
+ Selection.TypeText Text:=&ldquo;A-5&rdquo;
+End Sub</p>
+]]></content>
+  </entry>
+  
+</feed>

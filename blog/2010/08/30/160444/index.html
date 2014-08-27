@@ -1,0 +1,313 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>解析java源文件 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="尝试从java源文件中解析出类、方法、属性等信息，但下面的代码没有完全实现。 Sub parseJava() Dim package_name as String &lsquo;read a file Documents.Open FileName:=&ldquo;f:\CommandCm. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2010/08/30/160444">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">解析java源文件</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-30T16:04:44+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>尝试从java源文件中解析出类、方法、属性等信息，但下面的代码没有完全实现。</p>
+
+<p>Sub parseJava()
+  Dim package_name as String
+  &lsquo;read a file
+  Documents.Open FileName:=&ldquo;f:\CommandCm.java&rdquo;, ConfirmConversions:=False, ReadOnly:=True
+  paraNo = ActiveDocument.Paragraphs.Count
+  For lineNo = 1 To paraNo
+   Set curParaWords = ActiveDocument.Paragraphs(lineNo).Range.Words
+   Dim strCurPara as String
+   strCurPara = ActiveDocument.Paragraphs(lineNo).Range.Text
+   If InStr(strCurPara, &ldquo;package&rdquo;)=1 Then
+    '包名是package后、分号前的部分
+    tmpStr = Right(strCurPara,Len(strCurPara)-Len(&ldquo;package&rdquo;)-1)
+    package_name = Left(tmpStr, Len(tmpStr)-2)
+   End If
+   If InStr(strCurPara, &ldquo;public class&rdquo;)=1 Then
+    '类名是这一行的第三个单词，且不含末尾空格
+    class_name = RTrim(curParaWords(3).Text)
+   End If
+   If InStr(strCurPara, &ldquo;public interface&rdquo;)=1 Then
+    '接口名是这一行的第三个单词，且不含末尾空格
+    class_name = RTrim(curParaWords(3).Text)
+   End If
+   Select Case curParaWords(2).Text
+   Case &ldquo;public&rdquo;</p>
+
+<p>   Case &ldquo;private&rdquo;
+   Case &ldquo;protected&rdquo;
+   Case Else
+   End Case
+   If curParaWords(2)=&ldquo;public&rdquo; Then
+    &lsquo;接口名是这一行的第三个单词，且不含末尾空格
+    class_name = RTrim(ActiveDocument.Paragraphs(lineNo).Range.Words(3).Text)
+   End If
+  Next lineNo
+  ActiveDocument.Close
+End Sub</p>
+
+<p> 下面是业务逻辑：</p>
+
+<p>数据结构：</p>
+
+<p> 类相关数据表ClassInfo（Map）</p>
+
+<p> key: name, description, class_name, package, extends, interface;</p>
+
+<p>属性数据表PropInfo（List<Map>）</p>
+
+<p>方法数据表MethodInfo（List<Map>）</p>
+
+<p>文本格式约定：</p>
+
+<p>顶格、package起首代码行为package声明行；</p>
+
+<p>顶格、public class起首的代码行是类声明行；</p>
+
+<p> 顶格、 public  interface起首的代码行是接口声明行；</p>
+
+<p> 一个tab后跟public、private、protected是方法或者属性</p>
+
+<p> 有左括号的是方法， 左括号前单词是方法名，方法名前是返回值的数据类型；</p>
+
+<p> 无左括号 的是 属性，等号左边单词是属性名，若无等号分号前单词是属性名，若都没有输出一条 “文件名：行号：异常属性/方法，手工提取” 提示；</p>
+
+<p> 一个tab后跟其他字母 输出一条“文件名：行号：异常属性/方法，手工提取”提示；</p>
+
+<p> 一个tab后跟非字母符号（如/*是注释，@是编译标志）略过；</p>
+
+<p>流程：</p>
+
+<p> 用户输入目标目录</p>
+
+<p> 将文件名保存在ClassInfo.name和class_name中；</p>
+
+<p> 加载该目录下所有java文件， 对于一个java文件：</p>
+
+<p>第一次文本逐行读取：提取除方法/属性说明外所有信息；</p>
+
+<p>第二次文本逐行读取：寻找以“* 方法名”开始的行，作为方法说明，放入对应的方法Map中；</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2010-08-30T16:04:44+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:04 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/vba/'>vba</a>, <a class='category' href='/blog/categories/jiao-ben/'>脚本</a>, <a class='category' href='/blog/categories/jie-xi/'>解析</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2010/08/30/160444/" data-via="" data-counturl="http://leetschau.github.io/blog/2010/08/30/160444/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2010/08/23/125605/" title="Previous Post: Java程序员的推荐阅读书籍">&laquo; Java程序员的推荐阅读书籍</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2010/08/31/113536/" title="Next Post: VBA语法概述">VBA语法概述 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

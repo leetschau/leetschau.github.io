@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Thread | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/thread/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[用ps指令查看进程内的线程数量]]></title>
+    <link href="http://leetschau.github.io/blog/2012/09/18/202220/"/>
+    <updated>2012-09-18T20:22:20+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/09/18/202220</id>
+    <content type="html"><![CDATA[<p>[godu@goduserver ~]$ jps
+24121 Jps
+23854 PoolServer
+22522 AppMain
+22351 ResFreshAppMain
+23898 PoolServer
+22713 SimpleJettyServer</p>
+
+<p>[godu@goduserver ~]$ ps -p 23854 -L -o tid,pcpu,state,nlwp
+ TID %CPU S NLWP
+23854 0.0 S 40
+23855 0.0 S 40
+23856 0.0 S 40</p>
+
+<p>其中-L参数是列出进程内的线程（详见man ps的&#8221;THREAD DISPLAY&#8221;一节），-o是指定输出项（详见man ps的&#8221;STANDARD FORMAT SPECIFIERS&#8221;一节）。</p>
+
+<p>参考：<a href="http://www.thegeekstuff.com/2011/04/ps-command-examples/">UNIX / Linux: 7 Practical PS Command Examples for Process Monitoring</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Java多线程间的数据共享]]></title>
+    <link href="http://leetschau.github.io/blog/2012/07/20/174616/"/>
+    <updated>2012-07-20T17:46:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/07/20/174616</id>
+    <content type="html"><![CDATA[<p>下面的程序演示了一个对象被两个线程访问的方法，&#8221;monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在&#8221;MyObject&#8221;的线程里，而不是&#8221;monitor&#8221;线程里。
+BusyWaiting.java:</p>
+
+<p> public class BusyWaiting {
+  public static void main(String[] args) {
+   Monitor monitor = new Monitor();
+   MyObject o = new MyObject(monitor);
+   new Thread(o, &ldquo; MyObject &rdquo;).start();
+   new Thread(monitor, &ldquo; monitor &rdquo;).start();
+   System.out.println(&ldquo;main thread exit&hellip;&rdquo;);
+  }
+}</p>
+
+<p>MyObject.java</p>
+
+<p> import java.util.concurrent.TimeUnit; public class MyObject implements Runnable {  private final Monitor monitor;  public MyObject(Monitor monitor) {    this.monitor = monitor;  }  public void run() {    try {     TimeUnit.SECONDS.sleep(3);     System.out.println(&ldquo;i&rsquo;m going.&rdquo;);     monitor.gotMessage();    } catch (InterruptedException e) {     e.printStackTrace();    }  } }</p>
+
+<p>Monitor.java</p>
+
+<p> public class Monitor implements Runnable {
+  private volatile boolean go = false;
+  public void gotMessage() throws InterruptedException {
+   go = true;
+  }
+  public void watching() {
+   while (go == false)
+    ;
+   System.out.println(&ldquo;He has gone.&rdquo;);
+  }
+  public void run() {
+   watching();
+  }
+}</p>
+
+<p>另外采用</p>
+
+<p>   MyObject o = new MyObject(monitor);
+   new Thread(o, &ldquo; thread1 &rdquo;).start();
+   new Thread(o, &ldquo;thread2&rdquo;).start();</p>
+
+<p> 也是一种常用的多个线程共享数据的方式，</p>
+]]></content>
+  </entry>
+  
+</feed>

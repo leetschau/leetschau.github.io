@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 格式化字符串 | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ge-shi-hua-zi-fu-chuan/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[更新ivy资源库的自动化脚本]]></title>
+    <link href="http://leetschau.github.io/blog/2011/06/28/145204/"/>
+    <updated>2011-06-28T14:52:04+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/06/28/145204</id>
+    <content type="html"><![CDATA[<p>为产品库添加一个新jar包需要下面几个步骤：</p>
+
+<ol>
+<li><p>根据jar包名字，从maven库里得到依赖定义字符串；</p></li>
+<li><p>将该字符串加上配置说明和下载脚本（参见笔记“依赖管理常用vim脚本”）；</p></li>
+<li><p>将已下载条目备份文件（installed.txt）另存为old.bpk；</p></li>
+<li><p>将build.xml中的下载条目插入到installed.txt中（按字母顺序排列）；</p></li>
+<li><p>用新的下载脚本替换build.xml中原有的下载脚本；</p></li>
+<li><p>运行ant命令将jar包下载到产品库中；</p></li>
+<li><p>在ivy.xml中加入依赖条目，解析之；</p></li>
+</ol>
+
+
+<p>以下是上面1~5步的自动化脚本。</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> # Purpose:  download jars to public repo</p>
+
+<p> # Author:  Li Chao</p>
+
+<p> # Created:  28-06-2011</p>
+
+<p> #</p>
+
+<p> # Demonstration:</p>
+
+<p> # install Apache Log4j 1.2</p>
+
+<p> #  1. from mvnrepository.com we got the dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16"/></p>
+
+<p> #  2. modify dep_str in this file with above dep string:</p>
+
+<p> #  3. run this file, copy modified dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16" conf="compile->master&#8221;/></p>
+
+<p> #  4. open a shell and run ant cmd to download jars of log4j</p>
+
+<p> #  5. paste modified dep string to ivy.xml and resolve it</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> import os, re</p>
+
+<p> dep_str = &lsquo;<dependency org="log4j" name="log4j" rev="1.2.16"/>&rsquo;</p>
+
+<p> cmd_pattern = &lsquo;&lt;ivy:install.+from=&ldquo;\${from.resolver}&rdquo; to=&ldquo;\${to.resolver}&rdquo;/>&rsquo;</p>
+
+<p> script = &lsquo;build.xml&rsquo;</p>
+
+<p> def conv_str():</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>   covert dep_str to custom_ivy_dep string and ivy_install string;</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>  custom_ivy_dep = dep_str.replace(&lsquo;/>&rsquo;,&lsquo; conf=&ldquo;compile->master&rdquo;/>&rsquo;)</p>
+
+<p>  print &lsquo;Copy the following String:\n%s&rsquo; %custom_ivy_dep</p>
+
+<p>  keys = re.findall(r&#8217;&ldquo;\S+&rdquo;&lsquo;, dep_str)</p>
+
+<p>  if len(keys)!=3:</p>
+
+<p>   raise Exception(&lsquo;Format wrong of input string!&rsquo;)</p>
+
+<p>  global ivy_install</p>
+
+<p>  ivy_install = &lsquo;&lt;ivy:install organisation=%s module=%s revision=%s &rsquo;\</p>
+
+<pre><code>  'from="${from.resolver}" to="${to.resolver}"/&gt;' %tuple(keys) 
+</code></pre>
+
+<p> def do_bpk():</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>   create backup file(filename: installed.txt/old.bpk):</p>
+
+<pre><code>1 extract old install string from build.xml; 
+
+2 delete old.bpk if it exists; 
+
+3 rename installed.txt to old.bpk; 
+
+4 read old.bpk file, insert old install string and create installed.txt file; 
+</code></pre>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>  installed = &lsquo;installed.txt&rsquo;</p>
+
+<p>  old_bpk =&lsquo;old.bpk&rsquo;</p>
+
+<p>  xml_file = open(script)</p>
+
+<p>  global xml_str</p>
+
+<p>  xml_str = xml_file.read()</p>
+
+<p>  xml_file.close()</p>
+
+<p>  old_install = re.findall(cmd_pattern, xml_str, re.M)[0]</p>
+
+<p>  print &lsquo;old install string is:\n%s&rsquo; %old_install</p>
+
+<p>  if os.path.exists(old_bpk): os.remove(old_bpk)</p>
+
+<p>  if os.path.exists(installed):</p>
+
+<p>   os.rename(installed, old_bpk)</p>
+
+<p>  else:</p>
+
+<p>   raise Exception(&lsquo;%s does not exist!&rsquo;%installed)</p>
+
+<p>  installed_file = open(old_bpk)</p>
+
+<p>  installed_items = installed_file.read()</p>
+
+<p>  installed_file.close()</p>
+
+<p>  all_items = installed_items.split(&lsquo;\n&rsquo;)</p>
+
+<p>  all_items.append(old_install)</p>
+
+<p>  all_items.sort()</p>
+
+<p>  bpk_file = open(installed,&lsquo;w&rsquo;)</p>
+
+<p>  bpk_file.write( &lsquo;\n&rsquo;.join(all_items) )</p>
+
+<p>  bpk_file.close()</p>
+
+<p> def build_script():</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>   modify install script(build.xml): replace old install string with new one</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>  xml_file = open(script,&lsquo;w&rsquo;)</p>
+
+<p>  new_xml = re.sub(cmd_pattern, ivy_install, xml_str)</p>
+
+<p>  xml_file.write(new_xml)</p>
+
+<p>  xml_file.close()</p>
+
+<p> def main():</p>
+
+<p>  conv_str()</p>
+
+<p>  do_bpk()</p>
+
+<p>  build_script()</p>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  main()</p>
+
+<p>代码中的技术点包括：</p>
+
+<ol>
+<li><p>格式化字符串的生成方法：%后面必须接一个tuple；</p></li>
+<li><p>如何使用正则表达式进行文本的搜索（findall）和替换(sub)；</p></li>
+<li><p>字符串的join方法进行list的组合，也可以用reduce方法： total_str = reduce(lambda x,y:x+y, str_list)</p></li>
+</ol>
+
+
+<p>  但用join方法更简洁。</p>
+]]></content>
+  </entry>
+  
+</feed>

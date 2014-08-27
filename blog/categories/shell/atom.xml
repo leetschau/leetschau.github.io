@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Shell | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/shell/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Replay Recent Executed Commands]]></title>
+    <link href="http://leetschau.github.io/blog/2014/06/20/121235/"/>
+    <updated>2014-06-20T12:12:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/06/20/121235</id>
+    <content type="html"><![CDATA[<ul>
+<li><p>Replay recent executed 15 commands: <code>fc -l -15</code>;</p></li>
+<li><p>Replay recent executed 15 commands in reverse order: <code>fc -lr -15</code>;</p></li>
+<li><p>Replay recent executed 15 commands without list number: <code>fc -ln -15</code>;</p></li>
+<li><p>Replay recent executed commands from &ldquo;man &hellip;&rdquo;: <code>fc -ln man</code>;</p></li>
+<li><p>Edit some last commands (from No.14 to No.24) and execute them: <code>fc -e vi 14 24</code>;</p></li>
+</ul>
+
+
+<p>You can also use &ldquo;-s&rdquo; options to modify commands ant execute, see <code>man fc</code> for details.</p>
+
+<ul>
+<li>Clear history: <code>history -c</code>.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Script on Remote Host via SSH]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/27/115808/"/>
+    <updated>2014-03-27T11:58:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/27/115808</id>
+    <content type="html"><![CDATA[<p>user=&lsquo;bvt&rsquo;
+host=&lsquo;10.0.2.47&rsquo;
+ssh $user@$host &lsquo;bash&rsquo; &lt;&lt;EOF
+source /etc/profile
+java -version
+hostname
+EOF</p>
+
+<p>You need copy your ssh pub key to target host before hand, or you will have to enter the password at runtime.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Start a Service and Wait Until It's Up]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/03/145805/"/>
+    <updated>2014-03-03T14:58:05+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/03/145805</id>
+    <content type="html"><![CDATA[<p>In this case the GcpServer is a background service. If the port 5556 is listening, that means the service start successfully.</p>
+
+<pre><code>chmod 755 GcpServerCore/cmd/*.sh
+cd GcpServerCore/cmd;./start.sh;cd -
+while ! nc -zv localhost 5556; do sleep 5; done
+</code></pre>
+
+<p>This solution based on the netcat utility.</p>
+
+<p>Ref: <a href="http://snipplr.com/view/43113/">bash: how to start a service and wait until it&rsquo;s up</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Shell Commands in Python]]></title>
+    <link href="http://leetschau.github.io/blog/2014/01/03/111321/"/>
+    <updated>2014-01-03T11:13:21+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/01/03/111321</id>
+    <content type="html"><![CDATA[<h1>subprocess.call</h1>
+
+<p>This is the recommended way to run shell commands in Python compared with old-fashioned os module.
+This is a realtime method, which means you can get the shell output on the fly, compared with following &ldquo;subprocess.check_output&rdquo; method, which collect all output in its return value.
+This method return the return value of the command, for example:</p>
+
+<pre><code>ret = subprocess.call('ls -l')
+</code></pre>
+
+<p>where ret=0, while</p>
+
+<pre><code>ret = subprocess.call('cd aaa')
+</code></pre>
+
+<p>ret=2 when there isn&rsquo;t &ldquo;aaa&rdquo; subfolder under CWD.</p>
+
+<p>For ease of use, write a shorthand function:</p>
+
+<pre><code>import subprocess
+def run(cmd):
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        sys.exit('Exec cmd %s error, return value: %s' %(cmd, str(ret)))
+</code></pre>
+
+<p>Then you can simply use &ldquo;run(cmd)&rdquo; as a shell interface. &ldquo;run&rdquo; print command stdout stderr to console stdout, and if there&rsquo;s something wrong during execution, we interrupt it.</p>
+
+<h1>subprocess.check_output</h1>
+
+<p>A more safe way to run shell command is using &ldquo;check_output&rdquo; function. If the return value if not 0, a exception raised, otherwise return the command output.</p>
+
+<pre><code>$ cat myrun.py
+import subprocess
+def run(cmd):
+    return subprocess.check_output(cmd, shell=True)
+$ python -i myrun.py
+&gt;&gt;&gt; ret = run('ls -l|grep donno')
+&gt;&gt;&gt; ret
+'drwxr-xr-x 6 chad chad 4096 Jan 26 18:18 donno-0.1.10\n-rw-r--r-- 1 chad chad 8716 Jan 27 15:53 donno-0.1.10.tar.gz\n'
+&gt;&gt;&gt; ret = run('cd aaa')
+/bin/sh: 1: cd: can't cd to aaa
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "shtest.py", line 3, in run
+    return subprocess.check_output(cmd, shell=True)
+  File "/usr/lib/python2.7/subprocess.py", line 544, in check_output
+    raise CalledProcessError(retcode, cmd, output=output)
+subprocess.CalledProcessError: Command 'cd aaa' returned non-zero exit status 2
+</code></pre>
+
+<h1>subprocess.Popen</h1>
+
+<p>If you want some more powerful tools, use this. You can&rsquo;t use pipe directly in this form. Instead, You have to use subprocess.PIPE:</p>
+
+<pre><code>&gt;&gt;&gt; import subprocess
+&gt;&gt;&gt; lsres = subprocess.Popen(['ls','-l'], stdout=subprocess.PIPE)
+&gt;&gt;&gt; grepres = subprocess.Popen(['grep', 'Do'], stdin=lsres.stdout, stdout=subprocess.PIPE)
+&gt;&gt;&gt; res = grepres.communicate()
+</code></pre>
+
+<p>communicate() interact with process: Send data to stdin. Read data from stdout and stderr, until end-of-file is reached. Wait for process to terminate. It returns a tuple (stdoutdata, stderrdata).</p>
+
+<h2>Full solution of running shell command</h2>
+
+<p>If you want realtime output, while saving output and return code in variables, you should use Popen:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+cmd = 'vmstat 2 3'
+cmd2 = 'exit 3'
+
+p = Popen(cmd, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+line = ''
+while p.poll() is None:
+    out = p.stdout.read(1)
+    if out=='\n':
+        print(line)
+        line = ''
+    else:
+        line = line + out
+print('--------\nret is: %d' % p.returncode)
+</code></pre>
+
+<p>The Popen.stdout is a file object, so its &ldquo;read(size)&rdquo; method here means read every 1 byte.
+&ldquo;close_fds=True&rdquo; is maybe unnecessary, but I keep it for safe.</p>
+
+<h1>os.system</h1>
+
+<p>If it&rsquo;s unnecessary to save command output, this is most convenient way. The output will output to console. You can use space and pipe in command:</p>
+
+<pre><code>&gt;&gt;&gt; import os 
+&gt;&gt;&gt; ret = os.system('ls -l|grep D') 
+</code></pre>
+
+<p>And it will return after the command complete:</p>
+
+<pre><code>&gt;&gt;&gt; ret = os.system('vmstat 3 3')
+</code></pre>
+
+<h1>os.popen</h1>
+
+<p>Use this form if you want to save command output.</p>
+
+<pre><code>&gt;&gt;&gt; retfile = os.popen('pwd')
+&gt;&gt;&gt; ret = retfile.read() 
+&gt;&gt;&gt; ret 
+'/home/lichao\n' 
+&gt;&gt;&gt; retfile 
+&lt;open file 'pwd', mode 'r' at 0xb74aad30&gt;
+</code></pre>
+
+<p>or write it more compact:</p>
+
+<pre><code>&gt;&gt;&gt; result = os.popen('ls|grep enex').read()
+</code></pre>
+
+<h2>Deprecated</h2>
+
+<ul>
+<li><p>commands.getoutput()</p></li>
+<li><p>commands.getstatusoutput()</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Get Total Testcase Number in JUnit Report File With Grep and Awk]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/06/111936/"/>
+    <updated>2013-12-06T11:19:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/06/111936</id>
+    <content type="html"><![CDATA[<p>Under $JENKINS_HOME/jobs/GSP/workspace/build/work/plugins(we call this folder as &ldquo;basedir&rdquo;), there are many bundle folders. Some of them were compiled, so there are many test report file &ldquo;TEST-<full-name>.xml&rdquo; in <bundle-name>/build/unittest_report, for example, com.boco.gsp.element.decision.config/build/unittest_report/TEST-com.boco.gsp.decision.config.parser.DecisionParserTest.xml. The content of this file is:</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo; ?></p>
+
+<p> <testsuite errors="0" failures="0" hostname="
+pwm" name="com.boco.gsp.decision.config.parser.DecisionParserTest" tests="3" time="0.127" timestamp="2013-12-05T19:25:11"></p>
+
+<p>  <properties></p>
+
+<p>   &hellip;</p>
+
+<p> </testsuite></p>
+
+<p>In this case the testcase number is 3 according to &lsquo;test=&ldquo;3&rdquo;&rsquo;. Now we need get the total number of testcases with following steps:</p>
+
+<ol>
+<li><p>find all these test report file under ${basedir};</p></li>
+<li><p>get the testcase number;</p></li>
+<li><p>add all these number up;</p></li>
+<li><p>print the result;</p></li>
+</ol>
+
+
+<p>We achieve this by the following command under ${basedir}:</p>
+
+<p> grep -Po &lsquo;(?&lt;=tests=&ldquo;)\d+&rsquo; <em>*/TEST-</em>.xml | awk -F&#8217;:&lsquo; &rsquo;{SUM += $2; print $1 &rdquo;: &ldquo; $2} END {print &#8220;Total: &rdquo; SUM}&#8217;</p>
+
+<p>&ldquo;-P&rdquo; let grep interpret pattern as perl regular expression. &ldquo;-o&rdquo; means only output the matched part. &ldquo;(?>=&hellip;)&rdquo; eliminates the text in parenthesis. &ldquo;-F&rdquo; of awk specify the delimiter. This command works on zsh because the &ldquo;<em>*/</em>&rdquo; syntax only valid on zsh. If you use bash, you have to modify this.</p>
+]]></content>
+  </entry>
+  
+</feed>

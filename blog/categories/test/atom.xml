@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Test | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/test/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[怎样在类外部测试私有方法和设置/读取私有变量]]></title>
+    <link href="http://leetschau.github.io/blog/2011/02/23/105520/"/>
+    <updated>2011-02-23T10:55:20+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/02/23/105520</id>
+    <content type="html"><![CDATA[<p>有些私有方法有很明确的功能，算法比较复杂，不测可能会出问题。测的话最简单的方法是把测试用例写在类内部，例如下面的类：</p>
+
+<p> package com.boco.godu.gapi;</p>
+
+<p> import static org.junit.Assert.assertEquals;</p>
+
+<p> import org.junit.Test;</p>
+
+<p> public class ConnManager {</p>
+
+<p> private static String buildConnPoolID(int connType, String ip, int port, String loginArg1, String loginArg2) {</p>
+
+<p> return connType + ip;</p>
+
+<p> }</p>
+
+<p> @Test</p>
+
+<p> public void testPoolID() {</p>
+
+<p> assertEquals(&ldquo;23ipstr&rdquo;, buildConnPoolID(23, &ldquo;ipstr&rdquo;, 3, null, null));</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p>但这样测会有几个问题：首先是如果测试方法很多，会把源代码文件搞得很臃肿，其次发布的时候需要将测试代码删除（毕竟不是产品的一部分），以后再需要测试的时候还得重写，最后这样的测试在BVT的时候无法运行，工作量也无法体现出来（BVT的测试用例都是写在单独的测试类中）。所以理想的方法是把测试方法写在单独的测试类中。</p>
+
+<p>下面采用Java的反射机制实现这一目标。首先是被测类：</p>
+
+<p> package org.leechau.testPrivateMethod;</p>
+
+<p> public class ClassTested {</p>
+
+<p> private String buffer ;</p>
+
+<p> private String privateFoo (int a, String b) {</p>
+
+<p> return a + b;</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p>然后是测试类：</p>
+
+<p> package org.leechau.testPrivateMethod;</p>
+
+<p> import static org.junit.Assert.assertEquals;</p>
+
+<p> import java.lang.reflect.InvocationTargetException;</p>
+
+<p> import java.lang.reflect.Method;</p>
+
+<p> import org.junit.BeforeClass;</p>
+
+<p> import org.junit.Test;</p>
+
+<p> public class PrivateMethodTest {</p>
+
+<p> private static ClassTested oClassTested;</p>
+
+<p> private static Method newPrivateFoo;</p>
+
+<p> private static Field buffer;</p>
+
+<p> @BeforeClass</p>
+
+<p> public static void buildDupObj() throws NoSuchMethodException {</p>
+
+<p> // Get the class of the private method.</p>
+
+<p> oClassTested = new ClassTested();</p>
+
+<p> Class&lt;?> cNewClassTested = oClassTested. getClass ();</p>
+
+<p> // Change the property of the private method to be accessible.</p>
+
+<p> newPrivateFoo = cNewClassTested. getDeclaredMethod (&ldquo;privateFoo&rdquo;,</p>
+
+<p> int.class, String.class);</p>
+
+<p> newPrivateFoo. setAccessible (true);</p>
+
+<p> buffer =  cNewClassTested  . getDeclaredField (&ldquo;buffer&rdquo;);</p>
+
+<p> buffer. setAccessible (true);</p>
+
+<p> buffer. set ( oClassTested  , &ldquo;abcdefg&rdquo;);</p>
+
+<p> }</p>
+
+<p> @Test</p>
+
+<p> public void privateFooTest() throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {</p>
+
+<p> // Run the private method.</p>
+
+<p> Object oActual = newPrivateFoo. invoke (oClassTested, new Integer(169),  new String(&ldquo;_ABC&rdquo;));</p>
+
+<p> // Test the private method</p>
+
+<p> String sActual = oActual.toString();</p>
+
+<p> String sExpected = &ldquo;169_ABC&rdquo;;</p>
+
+<p> assertEquals(sActual, sExpected);</p>
+
+<p> Object result = buffer. get ( oClassTested );</p>
+
+<p> assertEquals(&ldquo;bcdefg&rdquo;, result);</p>
+
+<p> }</p>
+
+<p> @Test</p>
+
+<p> public void privateFooTest2() throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {</p>
+
+<p> Object oActual = newPrivateFoo. invoke (oClassTested, new Integer(169), new String(&ldquo;_DEF&rdquo;));</p>
+
+<p> String sActual = oActual.toString();</p>
+
+<p> String sExpected = &ldquo;169_DEF&rdquo;;</p>
+
+<p> assertEquals(sActual, sExpected);</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p>这里要注意的是，JUnit 4里一个测试类执行顺序为：@BeforeClass –> @Before –> @Test –> @After –> @AfterClass，其中@BeforeClass和@AfterClass标记仅在测试类的初始化和清理时运行一次且必须是static方法，而@Before/@After标记是在每个@Test方法运行前/后都运行一遍，因此每一个测试方法的调用顺序为：@Before –> @Test –> @After。在JUnit 3里没有@BeforeClass和@AfterClass标记，起初始化和清理任务的方法必须命名为SetUp()和TearDown()。</p>
+]]></content>
+  </entry>
+  
+</feed>

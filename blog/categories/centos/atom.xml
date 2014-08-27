@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Centos | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/centos/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-08-26T18:14:13+08:00</updated>
+  <updated>2014-08-27T13:25:34+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -31,6 +31,157 @@ sudo make install
 
 <p>Ref:
 <a href="http://unix.stackexchange.com/questions/94479/jemalloc-and-other-errors-making-redis-on-centos-6-4">jemalloc and other errors making redis on centos 6.4</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Install Hadoop With CDH on CentOS]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/24/153852/"/>
+    <updated>2014-07-24T15:38:52+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/24/153852</id>
+    <content type="html"><![CDATA[<h1>Define hostname on every node</h1>
+
+<p>Add &ldquo;HOSTNAME=cloud60&rdquo; into file /etc/sysconfig/network on host 10.12.2.60. Then reboot system.
+Do this with it&rsquo;s own hostname on every node.</p>
+
+<h1>Add host name to every node</h1>
+
+<p>Add /etc/hosts to every node:</p>
+
+<pre><code>10.12.2.60 cloud60
+10.12.2.61 cloud61
+10.12.2.62 cloud62
+10.12.2.63 cloud63
+10.12.2.90 cloud90
+10.12.2.91 cloud91
+10.12.2.92 cloud92
+10.12.2.93 cloud93
+</code></pre>
+
+<p>where 10.12.2.60 is the manager node (where the cloudera manager is installed).</p>
+
+<h1>Local Repository</h1>
+
+<p>Copy DVD iso file to manager node, mount it. Create a link of /mnt/cdrom to /var/www/html with httpd:</p>
+
+<pre><code># mkdir /mnt/cdrom
+# mount -o loop /path/to/CentOS6.3-DVD.iso /mnt/cdrom
+# cd /var/www/html
+# ln -s /mnt/cdrom cdrom
+</code></pre>
+
+<p>Then add file cdrom.repo under /etc/yum.repos.d/:</p>
+
+<pre><code>[cdrom]
+name = CDROM
+baseurl = http://10.12.2.60/cdrom/
+gpgcheck = 0
+</code></pre>
+
+<h1>Other notes</h1>
+
+<ul>
+<li><p>Add user &ldquo;boco&rdquo; to &ldquo;sudoers&rdquo; on all nodes: add &ldquo;boco ALL=(ALL) NOPASSWD: ALL&rdquo; to /etc/sudoers;</p></li>
+<li><p>The manager node can ssh to any other node with no password (ssh-copy-id &hellip;);</p></li>
+<li><p>SSH from normal node to manager node to remove &ldquo;are you sure you want to continue connecting (yes/no)?&rdquo; prompt;</p></li>
+<li><p>Shutdown iptables on all nodes: <code>service iptables stop</code> and <code>chkconfig iptables off</code>;</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Reset Forgotten Password in CentOS]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/23/154955/"/>
+    <updated>2014-07-23T15:49:55+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/23/154955</id>
+    <content type="html"><![CDATA[<ol>
+<li><p>When system booting, press Space bar to interrupt the GRUB process;</p></li>
+<li><p>Press &ldquo;a&rdquo; and <Enter>;</p></li>
+<li><p>When see &ldquo;rhgb quiet&rdquo;, add &ldquo; 1&rdquo; after &ldquo;quiet&rdquo; and press <Enter>;</p></li>
+</ol>
+
+
+<p>Now CentOS boot in single user mode, you login as root, use <code>passwd</code> to reset password.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fix NIC Name of Cloned CentOS VMs]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/23/151635/"/>
+    <updated>2014-07-23T15:16:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/23/151635</id>
+    <content type="html"><![CDATA[<p>Sometimes the NIC name in output of <code>ip addr</code> or <code>ifconfig</code> is not the same with that defined in /etc/sysconfig/network-scripts/ifcfg-eth0, for example, in ifcfg-eth0, the first line is:</p>
+
+<pre><code>DEVICE="eth0"
+</code></pre>
+
+<p>but the output of <code>ip addr</code> is:</p>
+
+<pre><code>2: eth1: &lt;BROADCAST...
+</code></pre>
+
+<p>This is because the source of <code>ip addr</code> is /etc/udev/rules.d/70-persistent-net.rules. Edit this file to correct the NIC name.</p>
+
+<p>The total step to fix network of a centos VM is:</p>
+
+<ol>
+<li><p>vi /etc/sysconfig/network   // fix hostname and gateway IP</p></li>
+<li><p>vi /etc/sysconfig/network-scripts/ifcfg-eth0 // fix NIC name, host IP and netmask</p></li>
+<li><p>vi /etc/udev/rules.d/70-persistent-net.rules  // NIC name and hardware address should be the same with that in file ifcfg-eth0</p></li>
+<li><p>reboot</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Build Working Environment on CentOS Minimal]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/18/142036/"/>
+    <updated>2014-07-18T14:20:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/18/142036</id>
+    <content type="html"><![CDATA[<h1>System</h1>
+
+<ol>
+<li><p>Install CentOS with CentOS-6.5-i386-minimal.iso;</p></li>
+<li><p>Choose &ldquo;Install system with basic video driver&rdquo;;</p></li>
+</ol>
+
+
+<h1>Network</h1>
+
+<ol>
+<li><p>After Installation, login as root, modify &ldquo;NM_CONTROLLED&rdquo; to &ldquo;no&rdquo; and &ldquo;ONBOOT&rdquo; to &ldquo;yes&rdquo;, and &ldquo;BOOTPROTO&rdquo; to &ldquo;dhcp&rdquo; in file /etc/sysconfig/network-scripts/ifcfg-eth0;</p></li>
+<li><p>run <code>service network restart</code>, verify network with <code>ip addr</code> and <code>ping www.baidu.com</code>;</p></li>
+</ol>
+
+
+<h1>Desktop Environment</h1>
+
+<p>Install epel repository: on x84_64 host:</p>
+
+<pre><code># rpm -Uvh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+</code></pre>
+
+<p>Instead &ldquo;x86_64&rdquo; above with &ldquo;i386&rdquo; on x86 (32bit) host.</p>
+
+<pre><code># yum update
+# yum groupinstall Xfce Fonts
+# useradd -m chad
+</code></pre>
+
+<p>Reboot and login as chad, run <code>startxfce4</code> and the Desktop Environment start (you can&rsquo;t run this command when you switch from another user via &ldquo;su&rdquo;).</p>
+
+<h1>Other</h1>
+
+<pre><code># yum install git zsh tmux
+# yum install rabbitvcs-thunar rabbitvcs-cli  // a tortoise-svn like subversion &amp; git client, start repo browser with `rabbitvcs browser` or right-click in a thunar window
+</code></pre>
+
+<h1>Define Shortcuts</h1>
+
+<p>Alt-F2 -> xfce4-appfinder -> keyboard -> Application Shortcuts -> Add:
+    Command: xfce4-appfinder; ShortCut: Alt-[</p>
 ]]></content>
   </entry>
   

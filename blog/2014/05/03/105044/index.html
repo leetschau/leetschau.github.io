@@ -1,0 +1,354 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Install 32bit Arch Linux - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Partition Disk and Install 32bit Arch Linux Create usb install key: $ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2014/05/03/105044">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Install 32bit Arch Linux</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-03T10:50:44+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>Partition Disk and Install 32bit Arch Linux</h1>
+
+<ol>
+<li><p>Create usb install key:</p>
+
+<p> $ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync</p></li>
+<li><p>Startup laptop with usb key and select &ldquo;Boot Arch Linux (i686)&rdquo;;</p></li>
+<li><p>Connect wifi:</p>
+
+<p> # wpa_supplicant -B -i wlp5s0 -c &lt;(wpa_passphrase TP-LINK_PocketAP_8344C2 py25)
+ # dhcpcd wlp5s0</p></li>
+<li><p>Partition disk:</p>
+
+<p> # sgdisk &ndash;zap-all /dev/sda
+ # cgdisk /dev/sda    // create 20G, 50G, 20G, 50G, 20G, 50G, 20G, 50G, 105G, totally 9 partitions
+ // This is a gpt partition, where can&rsquo;t install Windows, because Windows only support MBR partition
+ # parted /dev/sda print   // print the partition tables
+ # mkfs.ext4 /dev/sda1
+ # mkfs.ext4 /dev/sda2
+ # lsblk -f                // display the current partition layout</p></li>
+<li><p>Mount partition:</p>
+
+<p> # mount /dev/sda1 /mnt
+ # mkdir /mnt/home
+ # mount /dev/sda2 /mnt/home</p></li>
+<li><p>Select a mirror:</p>
+
+<p> # vi /etc/pacman.d/mirrorlist</p></li>
+<li><p>Install the base system: (so cool~)</p>
+
+<p> # pacstrap -i /mnt base</p></li>
+<li><p>Create fstab and chroot:</p>
+
+<p> # genfstab -U -p /mnt >> /mnt/etc/fstab
+ # arch-chroot /mnt /bin/bash</p></li>
+<li><p>Set locale:</p>
+
+<p> # vi /etc/locale.gen  // uncomment en_US.UTF-8 &amp; zh_CN.UTF-8
+ # locale-gen
+ # echo LANG=en_US.UTF-8 > /etc/locale.conf
+ # export LANG=en_US.UTF-8
+ # setfont Lat2-Terminus16 (optional)</p></li>
+<li><p>Set time zone:</p>
+
+<p> # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime    // now <code>date</code> command will give corrent time
+ # hwclock &ndash;systohc &ndash;utc</p></li>
+<li><p>Set hostname:</p>
+
+<p> # echo blackpad > /etc/hostname
+ # vi /etc/hosts</p></li>
+<li><p>Config wireless:</p>
+
+<p> # pacman -S iw wpa_supplicant dialog wpa_actiond
+ # systemctl enable <a href="&#109;&#x61;&#105;&#108;&#116;&#x6f;&#58;&#110;&#x65;&#116;&#x63;&#x74;&#x6c;&#x2d;&#x61;&#117;&#x74;&#x6f;&#x40;&#119;&#108;&#112;&#53;&#x73;&#48;&#46;&#115;&#101;&#x72;&#x76;&#105;&#99;&#x65;">&#110;&#101;&#x74;&#x63;&#x74;&#x6c;&#x2d;&#x61;&#117;&#116;&#111;&#64;&#x77;&#108;&#x70;&#53;&#115;&#x30;&#x2e;&#115;&#x65;&#114;&#x76;&#x69;&#x63;&#x65;</a></p></li>
+<li><p>Set root passwd:</p>
+
+<p> # passwd</p></li>
+<li><p>Install and configure a bootloader:</p>
+
+<p> # pacman -S gptfdisk
+ # pacman -S syslinux     // install syslinux boot loader because we create gpt partition earlier. Install grub will produce an error.
+ # syslinux-install_update -i -a -m
+ # vi /boot/syslinux/syslinux.cfg     // modify &ldquo;APPEND root=/dev/sda1 rw&rdquo; in &ldquo;LABEL arch&rdquo; section</p></li>
+<li><p>Shutdown, unplugged usb key and restart laptop;</p></li>
+<li><p>Start wifi connection:</p>
+
+<p> # wifi-menu wlp5s0     // get interface name with <code>iw dev</code></p></li>
+</ol>
+
+
+<p>Choose a SSID, enter the key, press &ldquo;OK&rdquo;, then you can see &ldquo;Interface wlp5s0 is controlled by netctl-auto&rdquo;, use <code>ip addr</code> or <code>ping ...</code> to verify network.</p>
+
+<ol>
+<li><p>Install SSH service:</p>
+
+<p> # pacman -Syu openssh
+ # systemctl start sshd
+ # systemctl enable sshd.service</p></li>
+</ol>
+
+
+<h1>Install the second System</h1>
+
+<ol>
+<li><p>Start laptop with YUMI usb key;</p></li>
+<li><p>Startup a openSUSE 13.1 live dvd, install system on /dev/sda3 and /dev/sda4, reboot;</p></li>
+<li><p>startup laptop, it prints: multiple active partitions, start failed;</p></li>
+<li><p>Startup labtop with Arch USB key, delete openSUSE partitions, reboot, Arch is back;</p></li>
+<li><p>Startup a CentOS live DVD, install system on /dev/sda3 and /dev/sda4, rebuild boot loader, reboot;</p></li>
+<li><p>Startup laptop, only CentOS can start, it print &ldquo;boot error&rdquo; when choose &ldquo;Arch Linux&rdquo; to start;</p></li>
+<li><p>Startup labtop with Arch USB key, delete CentOS partitions, reboot, only a GNU Grub command line;</p></li>
+</ol>
+
+
+<p>This experiment failed.</p>
+
+<h1>Install i3</h1>
+
+<pre><code># useradd -m -s /usr/bin/bash chad
+# pacman -S xorg-server xorg-server-utils xorg-xinit
+# pacman -S dmenu i3
+# pacman -S gnome     // this big one (almost 1GB) is necessary, only gnome-shell can't work
+# pacman -S xf86-video-intel xf86-input-synaptics
+// video and touchpad driver, there will be a "could not open module intel" error without them
+// they take effect after installation without reboot
+# su - chad
+$ echo "exec i3" &gt;  ~/.xinitrc
+$ startx
+</code></pre>
+
+<h1>Install Chinese IM</h1>
+
+<pre><code># pacman -S ibus-libpinyin
+# su - chad
+$ ibus-setup
+</code></pre>
+
+<p>Then select &ldquo;Chinese - Intelligent Pinyin&rdquo; under &ldquo;Input Method&rdquo; tab, and click &ldquo;Preferences&rdquo; to customize it.
+The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
+&ldquo;ibus-pinyin&rdquo; can&rsquo;t work properly.
+&ldquo;ibus-rime&rdquo; can only input traditional Chinese.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-05-03T10:50:44+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:50 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/arch/'>arch</a>, <a class='category' href='/blog/categories/linux/'>linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2014/05/03/105044/" data-via="" data-counturl="http://leetschau.github.io/blog/2014/05/03/105044/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/05/02/133411/" title="Previous Post: Gentoo Notes">&laquo; Gentoo Notes</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/05/04/173927/" title="Next Post: Set Static IP on Linux">Set Static IP on Linux &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

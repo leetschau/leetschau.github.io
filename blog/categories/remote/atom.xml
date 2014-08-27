@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Remote | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/remote/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[A Remote Execution Tool Without Installation]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/29/111148/"/>
+    <updated>2014-07-29T11:11:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/29/111148</id>
+    <content type="html"><![CDATA[<p>The following is a question I want to post to StackOverflow.com:</p>
+
+<p>I am developing a environment detection tools, which gather information of many hosts and compare them with some standards.</p>
+
+<p>However it&rsquo;s not allowed to install anything on these hosts. So my plan is running some shell scripts remotely on these hosts via ssh, such as &ldquo;free&rdquo;, &ldquo;df&rdquo;, &ldquo;java -version&rdquo;, etc.</p>
+
+<p>There are many tools for deployment automation, such as Salt, Puppet, CFEngine, etc. But they all need to install something all the client. I found Fabric meet my needs, but the function is a little limited. So my question is:</p>
+
+<p>Are there any remote execution tools without installation on client, like Fabric?</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run GUI Application on Remote Host]]></title>
+    <link href="http://leetschau.github.io/blog/2014/06/25/114456/"/>
+    <updated>2014-06-25T11:44:56+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/06/25/114456</id>
+    <content type="html"><![CDATA[<p>Install: <code>apt-get install xpra</code>;</p>
+
+<p>I want to run Thunderbird on host 10.32.1.81:</p>
+
+<pre><code>ssh chad@10.32.1.81 xpra start :100 --start-child=thunderbird
+xpra attach ssh:10.32.1.81:100
+</code></pre>
+
+<p>Now Thunderbird window appears. You can use &ldquo;Attach&rdquo; to add attachment from the disk of remote server, which means all GUIs from the &ldquo;root&rdquo; GUI can be accessed remotely.</p>
+
+<p>When it&rsquo;s done, press &ldquo;Ctrl-c&rdquo; in the terminal window to close Thunderbird window. Do not click &ldquo;close&rdquo; button, it will kill the Thunderbird window in DISPLAY 100, and you can&rsquo;t visit it any more.</p>
+
+<p>If you want visit this window later:</p>
+
+<pre><code>ssh chad@10.32.1.81 xpra list    // so you get the $DISPLAY number 100
+xpra attach ssh:10.32.1.81:100   // run this command in AppFinder (Alt-F2) instead of terminal
+xpra detach ssh:81:100           // run this command in AppFinder (Alt-F2) instead of terminal
+</code></pre>
+
+<p>If you want clear all:</p>
+
+<pre><code>ssh chad@10.32.1.81 xpra stop :100        // run this command on remote server
+</code></pre>
+
+<p>If you want to attach to a xpra server on localhost, run <code>xpra attach :100</code>;</p>
+
+<h1>Use ssh alias</h1>
+
+<p>Add 81 as alias of &ldquo;<a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#99;&#x68;&#97;&#x64;&#64;&#x31;&#48;&#x2e;&#x33;&#x32;&#x2e;&#x31;&#46;&#56;&#x31;">&#99;&#x68;&#x61;&#x64;&#x40;&#x31;&#48;&#46;&#x33;&#50;&#x2e;&#x31;&#46;&#56;&#x31;</a>&rdquo; in ~/.ssh/config. Then you can use xpra in the following way:</p>
+
+<pre><code>ssh 81 xpra start :111 --start-child=gedit
+xpra attach ssh:81:111
+ssh 81 xpra list
+ssh 81 xpra stop :111
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A Python Environment Detector]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/27/120107/"/>
+    <updated>2014-03-27T12:01:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/27/120107</id>
+    <content type="html"><![CDATA[<p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
+
+<p>The application module, detapp.py:</p>
+
+<pre><code>import logging
+from envdet import rcmd
+
+logger = logging.getLogger('DetectApp')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('detect.log')
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+logger.addHandler(ch)
+logger.addHandler(fh)
+
+
+def isOracleJDK(str):
+    return 'Java(TM)' in str
+
+res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
+logger.info('Check result:%s' % res)
+</code></pre>
+
+<p>The environment detection module, envdet.py:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+import signal
+import logging
+
+logger = logging.getLogger('DetectApp.envdet')
+
+def handler(signum, frame):
+    logger.error('Signal handler called with signal: %d' % signum)
+    raise IOError("Command execution timeout!")
+
+def rcmd(user, host, cmd, check_handler, timeout=10):
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+
+    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
+
+    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+    fullres = line = ''
+    while p.poll() is None:
+        out = p.stdout.read(1)
+        fullres = fullres + out
+        if out=='\n':
+            logger.debug(line)
+            line = ''
+        else:
+            line = line + out
+    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
+    return check_handler(fullres)
+</code></pre>
+
+<p>The technical points here are:</p>
+
+<ul>
+<li><p>Run shell command in Python and retrieve output and return code;</p></li>
+<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
+<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

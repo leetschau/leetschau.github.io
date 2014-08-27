@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Dead Lock | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/dead-lock/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Java程序线程死锁分析]]></title>
+    <link href="http://leetschau.github.io/blog/2012/05/19/145826/"/>
+    <updated>2012-05-19T14:58:26+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/05/19/145826</id>
+    <content type="html"><![CDATA[<p>Linux平台
+jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报：&#8221;The VM does not support the attach mechanism&#8221;错误；</p>
+
+<p>C:\Users\chad> jps 1308 DeadLock
+4780 Jps</p>
+
+<p>C:\Users\chad> F:\Software\jdk1.6.0_27\bin\jstack.exe 1308
+2012-05-19 14:45:29
+Full thread dump Java HotSpot&trade; Client VM (20.2-b06 mixed mode):</p>
+
+<p>&hellip;</p>
+
+<h1>Found one Java-level deadlock : </h1>
+
+<p>&ldquo;Thread-1&rdquo;:
+ waiting to lock monitor 0x01adee04 (object 0x03c002d8, a deadlockEx.DeadLock$Friend),
+ which is held by &ldquo;Thread-0&rdquo;
+&ldquo;Thread-0&rdquo;:
+ waiting to lock monitor 0x01ae0664 (object 0x03c002e8, a deadlockEx.DeadLock$Friend),
+ which is held by &ldquo;Thread-1&rdquo;
+&hellip;
+Found 1 deadlock.</p>
+
+<p> 测试样例（来自 Deadlock on Java docs ）：
+package deadlockEx;
+public class DeadLock {
+ static class Friend {
+  private final String name;
+  public Friend(String name) {
+   this.name = name;
+  }
+  public String getName() {
+   return this.name;
+  }
+  public synchronized void bow(Friend bower) {
+   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed to me!%n&rdquo;, this.name,
+    bower.getName());
+   bower.bowBack(this);
+  }
+  public synchronized void bowBack(Friend bower) {
+   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed back to me!%n&rdquo;, this.name,
+    bower.getName());
+  }
+ }
+ public static void main(String[] args) {
+  final Friend alphonse = new Friend(&ldquo;Alphonse&rdquo;);
+  final Friend gaston = new Friend(&ldquo;Gaston&rdquo;);
+  new Thread(new Runnable() {
+   public void run() {
+    alphonse.bow(gaston);
+   }
+  }).start();
+  new Thread(new Runnable() {
+   public void run() {
+    gaston.bow(alphonse);
+   }
+  }).start();
+ }
+} HP-UX平台</p>
+
+<p>用gcore <pid>（不支持gcore的UX可用gdb <pid>?）生成dump文件，文件名为core.<pid>，用jmap将此文件转为hprof文件，再用visualVM分析；</p>
+]]></content>
+  </entry>
+  
+</feed>

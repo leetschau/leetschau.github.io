@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>基于Tor网络的HTTP代理搭建过程 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="使用工具： Vidalia , Tor and Polipo ； 用Tor连接tor网络，vidalia是tor的图形化配置界面，但tor只提供socks5代理，需要用polipo将socks5转为http代理，以供其他程序使用，下面是搭建过程。 第一步：安装Polipo，下载安装包（polipo &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2012/02/02/174801">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">基于Tor网络的HTTP代理搭建过程</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-02-02T17:48:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:48 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>使用工具： Vidalia , Tor and Polipo ；</p>
+
+<p>用Tor连接tor网络，vidalia是tor的图形化配置界面，但tor只提供socks5代理，需要用polipo将socks5转为http代理，以供其他程序使用，下面是搭建过程。</p>
+
+<p>第一步：安装Polipo，下载安装包（polipo-1.0.4.1-forbidden-1-win32.exe），运行之，安装在f:\Software\Polipo下，然后写配置文件（f:\Software\Polipo\polipo.conf）：</p>
+
+<p> socksParentProxy = &ldquo;localhost:9050&rdquo;</p>
+
+<p> socksProxyType = socks5</p>
+
+<p> diskCacheRoot=&ldquo;&rdquo;</p>
+
+<p> #disableLocalInterface=true</p>
+
+<p>第二步：下载 Tor Browser Bundle ，里面包括了Tor, Vidalia和一个便携版的Firefox，解压后运行Start Tor Browser.exe，出现vidalia界面：</p>
+
+<p>Vidalia Control Panal -> Settings -> General -> Proxy Application下勾选“Start a proxy &hellip;”，下面写上polipo.exe的路径，Application Arguments下面写： -c <polipo conf file path> ，如下图：</p>
+
+<p>配好后重启vidalia，验证tor和polipo运行成功的方法是命令行中运行： netstat -ano|findstr 9050 和 netstat -ano|findstr 8123 ，其中9050是tor绑定的端口，8123是polipo绑定的端口；</p>
+
+<p>第三步：配置要使用http代理的软件。</p>
+
+<p>以GreenBrowser为例：在【工具->代理->设置代理】里新建一个名为polipo，地址为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> 的代理，【工具->代理】下会多一个【polipo】项，选中它，在地址栏中输入 www.facebook.com , bingo!</p>
+
+<p>主要参考文章：</p>
+
+<p> Tor, Polipo &amp; Vidalia</p>
+
+<p>应用实例1：calibre的代理设置。</p>
+
+<p>在windows系统中设置一个名为 HTTP_PROXY 的环境变量，值为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> ，然后在calibre安装目录下运行</p>
+
+<p>calibre-debug -c &ldquo;from calibre import get_proxies; print get_proxies()&rdquo;</p>
+
+<p>如果出现 Using proxies: {&lsquo;http&rsquo;: &lsquo;127.0.0.1:8123&rsquo;} 说明配置成功，启动calibre，在Preference->Miscellaneous里可以看到代理已启动。</p>
+
+<p>应用实例2：iTunes的代理设置。</p>
+
+<p>iTunes使用IE的代理设置，所以只要在IE里设置好polipo的信息（ 127.0.0.1:8123 ）就OK了，但要注意Evernote也使用IE的代理设置，所以不需要iTunes联网时不要开启IE的代理。</p>
+
+<p>应用实例3：Eclipse的代理设置。</p>
+
+<p>Active Provider: Manual;</p>
+
+<p>HTTP -> Edit, Host: 127.0.0.1, Port: 8123，如下图：</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2012-02-02T17:48:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:48 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/http/'>http</a>, <a class='category' href='/blog/categories/polipo/'>polipo</a>, <a class='category' href='/blog/categories/proxy/'>proxy</a>, <a class='category' href='/blog/categories/socks5/'>socks5</a>, <a class='category' href='/blog/categories/tor/'>tor</a>, <a class='category' href='/blog/categories/vidalia/'>vidalia</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2012/02/02/174801/" data-via="" data-counturl="http://leetschau.github.io/blog/2012/02/02/174801/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/02/01/112546/" title="Previous Post: 文件夹监控工具比较">&laquo; 文件夹监控工具比较</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/02/09/140940/" title="Next Post: GODU连接SSH网元的日志分析">GODU连接SSH网元的日志分析 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mina学习笔记 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="1 Mina 在客户端和服务端的工作流程是什么？ 1.1 客户端通信过程 1. 通过 SocketConnector 同服务器端建立连接 2. 链接建立之后 I/O 的读写交给了 I/O Processor 线程， I/O Processor 是多线程的 3. 通过 I/O Processor &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2010/05/28/110522">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Mina学习笔记</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-05-28T11:05:22+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:05 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>1 Mina 在客户端和服务端的工作流程是什么？
+ 1.1 客户端通信过程
+ 1. 通过 SocketConnector 同服务器端建立连接
+ 2. 链接建立之后 I/O 的读写交给了 I/O Processor 线程， I/O Processor 是多线程的
+ 3. 通过 I/O Processor 读取的数据经过 IoFilterChain 里所有配置的 IoFilter ， IoFilter 进行消息的过滤，格式的转换，在这个层面可以制定一些自定义的协议
+ 4. 最后 IoFilter 将数据交给 Handler 进行业务处理，完成了整个读取的过程
+ 5. 写入过程也是类似，只是刚好倒过来，通过 IoSession.write 写出数据，然后 Handler 进行写入的业务处理，处理完成后交给 IoFilterChain ，进行消息过滤和协议的转换，最后通过 I/O Processor 将数据写出到 socket 通道
+ 2 IoAcceptor 与 IoConnector 的区别是什么？
+ 2.1 Acceptor
+ 作为服务器端的连接接受者， SocketAcceptor 用来监听端口，同客户端建立连接，连接建立之后的 I/O 操作全部交给 IoProcessor 进行处理
+ IoAcceptor acceptor = new NioSocketAcceptor();
+ acceptor.bind( new InetSocketAddress(PORT) );
+ 2.2 Connector
+ 作为连接客户端， SocketConector 用来和服务器端建立连接，连接成功，创建 IoProcessor Thread （不能超过指定的 processorCount ）， Thread 由指定的线程池进行管理， IoProcessor 利用 NIO 框架对 IO 进行处理，同时创建 IoSession 。连接的建立是通过 Nio 的 SocketChannel 进行。
+ NioSocketConnector connector = new NioSocketConnector(processorCount);
+ ConnectFuture future = connector.connect(new InetSocketAddress(HOSTNAME, PORT)); 建立一个 I/O 通道
+ 3 IoService 与 IoSession 的区别是什么？
+ IoSession 是用来保持 IoService 的上下文，一个 IoService 在建立 Connect 之后建立一个 IoSession （一个连接一个 session ）， IoSession 的生命周期从 Connection 建立到断开为止。
+ IoSession 做两件事情：
+ 1. 通过 IoSession 可以获取 IoService 的所有相关配置对象 ( 持有对 IoService ， Processor 池， SocketChannel ， SessionConfig 和 IoService.IoHandler 的引用 )
+ 2. 通过 IoSession.write 是数据写出的入口</p>
+
+<p> 详见： jjvv 在 javaeye 上的博文： MINA 原理
+ <a href="http://www.javaeye.com/topic/599925">http://www.javaeye.com/topic/599925</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2010-05-28T11:05:22+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:05 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/mina/'>mina</a>, <a class='category' href='/blog/categories/wang-luo/'>网络</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2010/05/28/110522/" data-via="" data-counturl="http://leetschau.github.io/blog/2010/05/28/110522/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2010/05/26/110813/" title="Previous Post: Eclipse快捷键">&laquo; Eclipse快捷键</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2010/05/31/114226/" title="Next Post: 更改默认的SVN用户">更改默认的SVN用户 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

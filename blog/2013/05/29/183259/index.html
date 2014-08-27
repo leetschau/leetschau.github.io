@@ -1,0 +1,354 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Code Metrics Management With Sonar - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="I added coverage test with cobertura and test the demo project built yesterday. Then I add Sonar Ant task in the ant script and saved test result &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/05/29/183259">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Code Metrics Management With Sonar</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-29T18:32:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I added coverage test with cobertura and test the demo project built yesterday. Then I add Sonar Ant task in the ant script and saved test result into Sonar database.</p>
+
+<p>The following is a standard build script(add junit-4.*.jar and cobertura.jar to $ANT_HOME/lib, in Ubuntu it is /usr/share/ant/lib):</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
+&lt;property name="build.dir" value="${basedir}/build" /&gt;
+&lt;target name="init"&gt;
+    &lt;delete dir="${build.dir}"/&gt;
+    &lt;mkdir dir="${build.dir}"/&gt;
+&lt;/target&gt;
+
+&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+&lt;target name="compile-src" depends="init"&gt;
+    &lt;mkdir dir="${src.class.dir}"/&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+&lt;/target&gt;
+&lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+&lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+&lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+
+&lt;target name="instrument" depends="compile-src"&gt;
+    &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+    &lt;fileset dir="${src.class.dir}"&gt;
+        &lt;include name="**/*.class" /&gt;
+    &lt;/fileset&gt;
+    &lt;/cobertura-instrument&gt;
+&lt;/target&gt;
+
+&lt;property name="test.dir" value="${basedir}/test" /&gt;
+&lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+&lt;target name="compile-test" depends="instrument"&gt;
+    &lt;mkdir dir="${test.class.dir}"/&gt;
+    &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+        &lt;/classpath&gt;
+    &lt;/javac&gt;
+&lt;/target&gt;
+
+&lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+&lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+&lt;target name="unittest" depends="compile-test"&gt;
+    &lt;mkdir dir="${unittest.report.dir}"/&gt;
+    &lt;junit printsummary="yes" fork="yes"&gt;
+        &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;pathelement location="${test.class.dir}"/&gt;
+            &lt;pathelement location="${src.dir}"/&gt;
+            &lt;path refid="lib.path"/&gt;
+        &lt;/classpath&gt;
+        &lt;formatter type="xml"/&gt;
+        &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+            &lt;fileset dir="${test.dir}"&gt;
+                &lt;include name="**/*.java" /&gt;
+            &lt;/fileset&gt;
+        &lt;/batchtest&gt;
+    &lt;/junit&gt;
+&lt;/target&gt;
+
+&lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+&lt;target name="coverage-report" depends="unittest"&gt;
+    &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+&lt;/target&gt;
+
+&lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+&lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+&lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+&lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+&lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+&lt;property name="sonar.projectVersion" value="2.1" /&gt;
+&lt;property name="sonar.language" value="java" /&gt;
+&lt;property name="sonar.sources" value="src" /&gt;
+&lt;property name="sonar.tests" value="test" /&gt;
+&lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+&lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+&lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+&lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+&lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+&lt;target name="sonar" depends="coverage-report"&gt;
+    &lt;taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"&gt;
+        &lt;classpath path="/usr/share/ant/lib/sonar-ant-task-2.1.jar" /&gt;
+    &lt;/taskdef&gt;
+    &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+&lt;/target&gt;
+&lt;/project&gt;
+</code></pre>
+
+<p>To run this script successfully:</p>
+
+<ol>
+<li><p>build a demo java project and put this script at project root;</p></li>
+<li><p>copy sonar-ant-task-2.1.jar and junit-4.11.jar to $ANT_HOME/lib;</p></li>
+<li><p>start Sonar server: $SONAR_HOME/bin/sonar.sh console;</p></li>
+<li><p>run this script: ant sonar;</p></li>
+</ol>
+
+
+<p>Note1: you have to add &ldquo;sonar.core.codeCoveragePlugin&rdquo; or coverage result can&rsquo;t be collected by Sonar. This is not mentioned in official documents<a href="http://docs.codehaus.org/display/SONAR/Code+Coverage+by+Unit+Tests+for+Java+Project">Code Coverage by Unit Tests for Java Project</a>;</p>
+
+<p>Note2: take care of the spelling: &ldquo;sonar.surefire.report<strong>s</strong>Path&rdquo; while &ldquo;sonar.cobertura.reportPath&rdquo;;</p>
+
+<p>Note3: the &ldquo;xmlns:sonar="antlib:org.sonar.ant&rdquo; in &ldquo;sonar:sonar&rdquo; is necessary or the prefix &ldquo;sonar&rdquo; would be unbound;</p>
+
+<p>Note4: if unit test results can&rsquo;t be collected by Sonar, try to specify &ldquo;sonar.binaries&rdquo; carefully as above shows;</p>
+
+<p>Note5: the value of junit report path &ldquo;sonar.surefire.reportsPath&rdquo; is a <strong>directory</strong>(because there are lots of reports under this folder), while the value of cobertura report is a <strong>file</strong>, if sonar can not get junit or cobertura report, verify these settings;</p>
+
+<p>Note6: if there are &ldquo;class &hellip; is not accessible through the ClassLoader.&rdquo; in output of sonar task, there are two solutions:</p>
+
+<ol>
+<li><p>remove property &ldquo;sonar.binaries&rdquo;, where Sonar will not check bytecode;</p></li>
+<li><p>in case you want Sonar check bytecodes, add property &ldquo;sonar.libraries&rdquo; like follows:</p>
+
+<p> <property name="sonar.libraries" value="src/lib/*.jar,src/lib/dom4j/*.jar"/></p></li>
+</ol>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-05-29T18:32:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:32 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/cobertura/'>cobertura</a>, <a class='category' href='/blog/categories/junit/'>junit</a>, <a class='category' href='/blog/categories/sonar/'>sonar</a>, <a class='category' href='/blog/categories/{-not-eaten-equals->-wordpress-post-}/'>{"not_eaten"=>["wordpress post"]}</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/05/29/183259/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/05/29/183259/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/05/29/145502/" title="Previous Post: Note about Cobertura">&laquo; Note about Cobertura</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/05/30/113911/" title="Next Post: The essential of HIght Order Functions">The essential of HIght Order Functions &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

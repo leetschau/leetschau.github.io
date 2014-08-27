@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ant | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ant/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Virtual BVT System]]></title>
+    <link href="http://leetschau.github.io/blog/2014/06/23/135000/"/>
+    <updated>2014-06-23T13:50:00+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/06/23/135000</id>
+    <content type="html"><![CDATA[<h1>Prerequisites</h1>
+
+<ol>
+<li><p>The host server of the environment is 10.0.2.47;</p></li>
+<li><p>Install <a href="http://www.vagrantup.com/">vagrant</a> on server 47;</p></li>
+<li><p>Add vagrant box of precise x86_64: <code>vagrant box add ...</code>;</p></li>
+<li><p>Create a directory named &ldquo;bvt-package&rdquo; under ~/warez, which contains:
+ apache-ant-1.9.3-bin.tar.bz2
+ cobertura.jar
+ hamcrest-core-1.3.jar
+ jdk-6u45-linux-x64.bin
+ jenkins-1.544.war
+ junit-4.8.1.jar
+ sonar-3.6.1.zip
+ svn_amd64_ubuntu12.04
+     libapr1_1.4.6-1_amd64.deb
+     libaprutil1_1.3.12+dfsg-3_amd64.deb
+     libdb4.8_4.8.30-11ubuntu1_amd64.deb
+     libneon27-gnutls_0.29.6-1_amd64.deb
+     libsvn1_1.6.17dfsg-3ubuntu3_amd64.deb
+     subversion_1.6.17dfsg-3ubuntu3_amd64.deb
+ unzip_6.0-4ubuntu1_amd64.deb
+ zip_3.0-4_amd64.deb</p></li>
+<li><p>The demo product codes in subversion repository is <a href="http://10.0.2.59:8118/svn/gcp/Development-Area/GNDP">GNDP</a>;</p></li>
+</ol>
+
+
+<h1>Build BVT Environment</h1>
+
+<pre><code>$ cd /home/bvt/docs
+$ take mybvt
+$ vagrant box list
+$ vagrant init precise64
+// Add the following texts into Vagrantfile after the line 'config.vm.box = "precise64":'
+  config.vm.define "bs" do |bvtserver|
+    bvtserver.vm.hostname = "bvt-server"
+    bvtserver.vm.network "private_network", ip: "192.168.50.3",
+        virtualbox__intnet: "testnet"
+    bvtserver.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+      vbox.customize ["modifyvm", :id, "--memory", 1000]
+    end
+    bvtserver.vm.provision :shell, path: "provision.sh", privileged: false
+    bvtserver.vm.network "forwarded_port", guest: 9000, host: 9000
+    bvtserver.vm.network "forwarded_port", guest: 8088, host: 8088
+  end
+$ scp -r bvt@10.0.2.47:/home/bvt/warez/bvt-package packages
+$ vagrant up bs
+</code></pre>
+
+<h1>Use This Environment</h1>
+
+<ol>
+<li><p>Open <a href="http://10.0.2.47:9000">Sonarqube website</a>, login with &ldquo;admin/admin&rdquo;, in Settings -> Qualify Profiles, add rules &ldquo;TongYong&rdquo; with import &ldquo;tyrules.xml&rdquo; on local disk (the next section its content);;</p></li>
+<li><p>Open <a href="http://10.0.2.47:8088/">Jenkins website</a>;</p></li>
+<li><p>Create Jenkins project: create a project named &ldquo;GNDP&rdquo; and add a &ldquo;shell&rdquo; build step: &ldquo;/vagrant/bvt-gndp.sh&rdquo;;</p></li>
+<li><p>Build this project;</p></li>
+<li><p>You get the build log on jenkins website and code analysis results on sonarqube website;</p></li>
+</ol>
+
+
+<h1>Needed Scripts</h1>
+
+<h2>Vagrant provision script</h2>
+
+<p>This is the environment building script executed during the vagrant provision period, so it&rsquo;s cited in Vagrantfile.</p>
+
+<pre><code>$ cat /home/bvt/docs/mybvt/provision.sh
+#!/bin/sh
+
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+sudo dpkg -i /vagrant/packages/svn_amd64_ubuntu12.04/*.deb
+sudo dpkg -i /vagrant/packages/zip_3.0-4_amd64.deb
+sudo dpkg -i /vagrant/packages/unzip_6.0-4ubuntu1_amd64.deb
+APP_HOME=/home/vagrant/apps
+mkdir $APP_HOME
+cd $APP_HOME
+chmod 755 /vagrant/packages/jdk-6u45-linux-x64.bin
+sh /vagrant/packages/jdk-6u45-linux-x64.bin
+tar jxf /vagrant/packages/apache-ant-1.9.3-bin.tar.bz2
+unzip /vagrant/packages/sonar-3.6.1.zip
+
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+export JENKINS_HOME=/home/vagrant/jenkinshome
+mkdir $JENKINS_HOME
+
+sonar-3.6.1/bin/linux-x86-64/sonar.sh start
+nohup java -jar /vagrant/packages/jenkins-1.544.war --httpPort=8088 1&gt;jenkins.log 2&gt;jenkins-err.log &amp;
+</code></pre>
+
+<h2>BVT shell script</h2>
+
+<p>This script checkout the source code to be built, then invoke the Ant script. It&rsquo;s cited in Jenkins project definition.</p>
+
+<pre><code>$ cat /home/bvt/docs/mybvt/bvt-gndp.sh
+#!/bin/sh
+
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+
+svnprefix='svn co --non-interactive --no-auth-cache --username bvt_common --password password'
+svnroot='http://10.0.2.59:8118/svn/gcp/Development-Area'
+prod=GNDP
+$svnprefix ${svnroot}/3-SCL/Trunk/$prod /vagrant/codes/$prod
+
+rm -rf /vagrant/codes/*.zip
+cd /vagrant/codes/$prod;  ant
+</code></pre>
+
+<h2>Ant build script</h2>
+
+<p>This script resides in the root folder of the source project GNDP in subversion repository.</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
+&lt;property name="build.dir" value="${basedir}/build" /&gt;
+&lt;target name="init"&gt;
+    &lt;delete dir="${build.dir}"/&gt;
+    &lt;mkdir dir="${build.dir}"/&gt;
+&lt;/target&gt;
+
+&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+&lt;target name="compile-src" depends="init"&gt;
+    &lt;mkdir dir="${src.class.dir}"/&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+&lt;/target&gt;
+&lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+&lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+&lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+
+&lt;target name="instrument" depends="compile-src"&gt;
+    &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+    &lt;fileset dir="${src.class.dir}"&gt;
+        &lt;include name="**/*.class" /&gt;
+    &lt;/fileset&gt;
+    &lt;/cobertura-instrument&gt;
+&lt;/target&gt;
+
+&lt;property name="test.dir" value="${basedir}/test" /&gt;
+&lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+&lt;target name="compile-test" depends="instrument"&gt;
+    &lt;mkdir dir="${test.class.dir}"/&gt;
+    &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+        &lt;/classpath&gt;
+    &lt;/javac&gt;
+&lt;/target&gt;
+
+&lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+&lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+&lt;target name="unittest" depends="compile-test"&gt;
+    &lt;mkdir dir="${unittest.report.dir}"/&gt;
+    &lt;junit printsummary="yes" fork="yes"&gt;
+        &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;pathelement location="${test.class.dir}"/&gt;
+            &lt;pathelement location="${src.dir}"/&gt;
+            &lt;path refid="lib.path"/&gt;
+        &lt;/classpath&gt;
+        &lt;formatter type="xml"/&gt;
+        &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+            &lt;fileset dir="${test.dir}"&gt;
+                &lt;include name="**/*.java" /&gt;
+            &lt;/fileset&gt;
+        &lt;/batchtest&gt;
+    &lt;/junit&gt;
+&lt;/target&gt;
+
+&lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+&lt;target name="coverage-report" depends="unittest"&gt;
+    &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+&lt;/target&gt;
+
+&lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+&lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+&lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+&lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+&lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+&lt;property name="sonar.projectVersion" value="2.1" /&gt;
+&lt;property name="sonar.language" value="java" /&gt;
+&lt;property name="sonar.sources" value="src" /&gt;
+&lt;property name="sonar.tests" value="test" /&gt;
+&lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+&lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+&lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+&lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+&lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+&lt;target name="sonar" depends="coverage-report"&gt;
+    &lt;taskdef classpath="sonar-ant-task-2.1.jar" uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"/&gt;
+    &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+&lt;/target&gt;
+&lt;/project&gt;
+</code></pre>
+
+<h2>Code Static check rules</h2>
+
+<p>This file defines the static check rules used by Sonarqube. It&rsquo;s imported manually from file &ldquo;tyrules.xml&rdquo; on local hard disk.</p>
+
+<pre><code>$ cat ~/docs/tyrules.xml
+
+&lt;?xml version="1.0" encoding="UTF-8"?&gt; 
+&lt;!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN" "http://www.puppycrawl.com/dtds/configuration_1_3.dtd"&gt; 
+&lt;module name="Checker"&gt; 
+    &lt;property name="severity" value="warning"/&gt; 
+    &lt;module name="TreeWalker"&gt; 
+        &lt;metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;module name="MethodLength"&gt; 
+            &lt;property name="max" value="200"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="NestedIfDepth"&gt; 
+            &lt;property name="max" value="5"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="CyclomaticComplexity"/&gt; 
+            &lt;module name="ParameterNumber"&gt; 
+            &lt;property name="max" value="6"/&gt; 
+        &lt;/module&gt; 
+    &lt;/module&gt; 
+    &lt;module name="StrictDuplicateCode"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="min" value="75"/&gt; 
+    &lt;/module&gt; 
+    &lt;module name="FileLength"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="max" value="1000"/&gt; 
+    &lt;/module&gt; 
+&lt;/module&gt; 
+</code></pre>
+
+<h1>For Unit Test</h1>
+
+<ol>
+<li>copy junit-4.*.jar, cobertura.jar and hamcrest-core-1.3.jar to $ANT_HOME/lib;</li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Compile Java Codes in Linux Shell Instead of Ant Script]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/07/172525/"/>
+    <updated>2014-03-07T17:25:25+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/07/172525</id>
+    <content type="html"><![CDATA[<p>The following is frequently used ant script, compile some java source codes with a libary path, then copy all non-java files to compiled folder:</p>
+
+<pre><code>&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${webroot.dir}/web-inf/classes" /&gt;
+&lt;path id="lib.path"&gt;
+    &lt;fileset dir="${webroot.dir}/web-inf/lib"&gt;
+        &lt;include name="**/*.jar" /&gt;
+    &lt;/fileset&gt;
+&lt;/path&gt;
+&lt;target name="compile-src" depends="init" description="compile java sources"&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="utf-8"
+            debug="true" classpathref="lib.path" failonerror="false"/&gt;
+    &lt;copy todir="${src.class.dir}"&gt;
+        &lt;fileset dir="${src.dir}"&gt;
+            &lt;exclude name="**/*.java" /&gt;
+        &lt;/fileset&gt;
+    &lt;/copy&gt;
+&lt;/target&gt;
+</code></pre>
+
+<p>The corresponding shell script is:</p>
+
+<pre><code>src_dir=/vagrant/codes/GCP6.1/src
+web_build=/vagrant/codes/web_build
+class_dir=$web_build/web_server/webapps/GCP6.1/WEB-INF/classes
+lib_dir=/vagrant/codes/GCP6.1/WebRoot/WEB-INF/lib
+find $src_dir -type f -name "*.java" -exec javac -cp "$lib_dir/*:$src_dir" -d $class_dir {} \;
+rsync -auC --exclude='*.java' $src_dir/ $class_dir/
+</code></pre>
+
+<p>Take care there&rsquo;s no folder named &ldquo;core&rdquo; in $src_dir, or it will be excluded by the &ldquo;-C&rdquo; option of rsync command.</p>
+
+<h1>A Test Case</h1>
+
+<pre><code>$ tree
+.
+├── classes
+├── lib
+│   ├── libadd.jar
+│   └── libmul.jar
+├── libadd
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── add
+│                   ├── MyAdd.class
+│                   └── MyAdd.java
+├── libmul
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── mul
+│                   ├── MyMul.class
+│                   └── MyMul.java
+└── main
+    └── com
+        └── boco
+            └── gcp
+                ├── Test.java
+                └── util
+                    └── MyUtil.java
+
+17 directories, 8 files
+
+$ find . -name '*.java' -exec cat {} \; -exec echo "--------" \;
+package com.boco.gcp.util;
+
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.mul.MyMul;
+
+public class MyUtil {
+    public int newadd(int x, int y) {
+        MyAdd add = new MyAdd();
+        MyMul mul = new MyMul();
+        return add.myadd(3,5) + mul.mymul(3,5);
+    }
+}
+--------
+package com.boco.gcp;
+
+import com.boco.gcp.mul.MyMul;
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.util.MyUtil;
+
+public class Test {
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        MyAdd add = new MyAdd();
+        System.out.println(mul.mymul(3,5));
+        System.out.println(add.myadd(3,5));
+        MyUtil util = new MyUtil();
+        System.out.println(util.newadd(3,5));
+    }
+}
+--------
+package com.boco.gcp.mul;
+
+public class MyMul {
+    public int mymul(int x, int y) {
+        return 10*x*y;
+    }
+
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        System.out.println(mul.mymul(3,5));
+    }
+}
+--------
+package com.boco.gcp.add;
+
+public class MyAdd {
+    public int myadd(int x, int y){
+        return 10*x+y;
+    }
+
+    public static void main(String[] args) {
+        MyAdd add = new MyAdd();
+        System.out.println(add.myadd(3,5));
+    }
+}
+--------
+$ find main -name '*.java' -exec javac -cp 'lib/*:main' {} -d classes \;
+$ tree classes/
+classes/
+└── com
+    └── boco
+        └── gcp
+            ├── Test.class
+            └── util
+                └── MyUtil.class
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Add Multiple Classpath Items in One Tag]]></title>
+    <link href="http://leetschau.github.io/blog/2013/11/14/160706/"/>
+    <updated>2013-11-14T16:07:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/11/14/160706</id>
+    <content type="html"><![CDATA[<p>I have to add many jar files to a &ldquo;javac&rdquo; and a &ldquo;junit&rdquo; task from command line arguments. The <pathemelent path/> inside <classpath/> tag is suited for this situation.</p>
+
+<p>Ant script:</p>
+
+<p> &lt;javac srcdir=&ldquo;${test.dir}&rdquo;</p>
+
+<p>  destdir=&ldquo;${test.class.dir}&rdquo;
+  encoding=&ldquo;UTF-8&rdquo;
+  debug=&ldquo;true&rdquo;
+  failonerror=&ldquo;true&rdquo;>
+  <classpath>
+   <pathelement location="${instrumented.class.dir}"/>
+   <pathelement location="${src.class.dir}"/>
+   <pathelement path="${pdegen.classpath}"/>
+  </classpath>
+ </javac></p>
+
+<p> <junit printsummary="yes" fork="yes">
+  <sysproperty key="net.sourceforge.cobertura.datafile"
+   file="${cobertura.data.file}" />
+  <classpath>
+   <pathelement location="${instrumented.class.dir}"/>
+   <pathelement location="${src.class.dir}"/>
+   <pathelement location="${test.class.dir}"/>
+   <pathelement location="${src.dir}"/>
+   <pathelement location="${cobertura.path}"/>
+   <pathelement path="${pdegen.classpath}"/>
+  </classpath>
+  <formatter type="xml"/>
+  <batchtest todir="${unittest.report.dir}" haltonerror="yes">
+   <fileset dir="${test.dir}">
+    <include name="**/*.java" />
+   </fileset>
+  </batchtest>
+ </junit></p>
+
+<p>The corresponding command line is:</p>
+
+<p> ant -Dpdegen.classpath=/path/to/jar1:/path/to/jar2 target_name</p>
+
+<p>Here is the working Python script:</p>
+
+<p>  from subprocess import call</p>
+
+<p>  test_cmd = &lsquo;ant -buildfile unittest.xml -Drootdir=&rsquo;+ base_dir + \</p>
+
+<pre><code>pkg_name +' -Dcobertura.path=/usr/share/ant/lib/cobertura.jar -Dpdegen.classpath='+classpath[pkg_name] 
+</code></pre>
+
+<p>  ret = call(test_cmd.split())</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Path Settings in Ant]]></title>
+    <link href="http://leetschau.github.io/blog/2013/07/25/151854/"/>
+    <updated>2013-07-25T15:18:54+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/07/25/151854</id>
+    <content type="html"><![CDATA[<h1>classpath settings</h1>
+
+<p>classpath is nested element of &ldquo;javac&rdquo; and &ldquo;junit&rdquo; task. You can add &ldquo;pathelement&rdquo; and &ldquo;path&rdquo; in classpath:</p>
+
+<p> <classpath>
+  <pathelement location="${instrumented.class.dir}"/>
+  <pathelement location="${src.class.dir}"/>
+  <path refid="lib.path"/>
+ </classpath></p>
+
+<h1>javac settings for multiple src directories</h1>
+
+<p>option 1, multiple nested src tags:</p>
+
+<p> <javac destdir="${src.class.dir}" encoding="UTF-8" debug="true"
+   classpathref="lib.path" failonerror="true">
+  <src path="${src1.dir}"/></p>
+
+<p>  <src path="${src2.dir}"/></p>
+
+<p>  <compilerarg line="-XDignore.symbol.file=true" />
+ </javac></p>
+
+<p>option 2, multiple includes items:</p>
+
+<p> <target name="compile-src" depends="init">
+  <javac srcdir="${basedir}" destdir="${src.class.dir}" encoding="GBK"
+   debug="true" classpathref="lib.path" failonerror="true"
+   includes="src/**,common/**,map/**" >
+   <compilerarg line="-XDignore.symbol.file=true" />
+  </javac>
+ </target></p>
+
+<p>option 2 is better, because if you use src dirs somewhere else, you can set &ldquo;src/<strong>,common/</strong>,map/**&rdquo; as a property, and reuse this property.</p>
+
+<h1>Path settings</h1>
+
+<h2>fileset in path</h2>
+
+<p> <path id="lib.path">
+  <fileset dir="${basedir}/WebContent/WEB-INF/lib">
+   <include name="**/*.jar" />
+  </fileset>
+ </path></p>
+
+<h2>pathelement in path</h2>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Zip Directories With/without Root Directory]]></title>
+    <link href="http://leetschau.github.io/blog/2013/07/19/144931/"/>
+    <updated>2013-07-19T14:49:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/07/19/144931</id>
+    <content type="html"><![CDATA[<p>Under directory docs there is a build.xml and a &ldquo;tmp&rdquo; subdir like this:</p>
+
+<p>tmp</p>
+
+<p>|&ndash; aaa</p>
+
+<p>`&ndash; newdir</p>
+
+<p> `&ndash; bbb</p>
+
+<p>If you want create a zip file with tmp as the root folder, you should write build.xml like this:</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ <project name="MyProject" basedir="./" default="zip">
+  <target name="zip"></p>
+
+<p>   <zip destfile="mz.zip" basedir="." includes="tmp/**"/></p>
+
+<p>  </target></p>
+
+<p> </project></p>
+
+<p>If you only want zip all contents under tmp (without root folder tmp), you should modify build.xml like this:</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ <project name="MyProject" basedir="./" default="zip">
+  <target name="zip"></p>
+
+<p>   <zip destfile="mz.zip" basedir="tmp"/></p>
+
+<p>  </target></p>
+
+<p> </project></p>
+]]></content>
+  </entry>
+  
+</feed>

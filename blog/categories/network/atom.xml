@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Network | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/network/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-08-26T18:14:13+08:00</updated>
+  <updated>2014-08-27T13:25:34+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -14,130 +14,155 @@
 
   
   <entry>
-    <title type="html"><![CDATA[网络流量监控工具]]></title>
-    <link href="http://leetschau.github.io/blog/2013/02/21/175453/"/>
-    <updated>2013-02-21T17:54:53+08:00</updated>
-    <id>http://leetschau.github.io/blog/2013/02/21/175453</id>
-    <content type="html"><![CDATA[<p>2014-7-14更新：</p>
+    <title type="html"><![CDATA[Fix NIC Name of Cloned CentOS VMs]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/23/151635/"/>
+    <updated>2014-07-23T15:16:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/23/151635</id>
+    <content type="html"><![CDATA[<p>Sometimes the NIC name in output of <code>ip addr</code> or <code>ifconfig</code> is not the same with that defined in /etc/sysconfig/network-scripts/ifcfg-eth0, for example, in ifcfg-eth0, the first line is:</p>
 
-<ul>
-<li><p>nethogs: 按进程查看流量占用</p></li>
-<li><p>iptraf: 按连接/端口查看流量</p></li>
-<li><p>ifstat: 按设备查看流量</p></li>
-<li><p>ethtool: 诊断工具</p></li>
-<li><p>tcpdump: 抓包工具</p></li>
-</ul>
-
-
-<hr />
-
-<p>2014-8-25更新：</p>
-
-<p>iptraf-ng用于监测网络流量很好用，在ArchLinux和Mint中可以直接安装。
-其中的&#8221;Ip traffic monitor&#8221;可以监测网卡的实时接收/发送 (RX/TX) 数据，可以显示对端IP地址和端口，本方接收IP地址和端口，但不能显示实时传输速率，
-&ldquo;General interface statistics&rdquo; 可以显示所有网卡实时发送/接收数据的速率，但不能显示对端IP和端口，二者互为补充。
-今天测试在同一网段中的两台机器之间用scp传送大文件，速率稳定在99MB/s，比较靠谱的一个结果，间接说明scp传大文件可以用来检测网络的最大传输速率。</p>
-
-<p>Ref: <a href="http://www.tecmint.com/command-line-tools-to-monitor-linux-performance/">20 Command Line Tools to Monitor Linux Performance</a></p>
-
-<hr />
-
-<p>参考：<a href="http://www.dynacont.net/documentation/linux/network_monitoring/">Bandwidth Monitoring Tools For Linux</a></p>
-
-<h1>实时流量监控：pv</h1>
-
-<p>OS: Ubuntu Server 12.04.</p>
-
-<h2>netcat &amp; pv</h2>
-
-<p>apt-get install pv</p>
-
-<p>监控端口5555上的实时网络流量：</p>
-
-<pre><code>nc -l 5555 | pv &gt; /dev/null
+<pre><code>DEVICE="eth0"
 </code></pre>
 
-<p>向服务器113上发送数据：</p>
+<p>but the output of <code>ip addr</code> is:</p>
 
-<pre><code>nc 10.31.1.113 5555
+<pre><code>2: eth1: &lt;BROADCAST...
 </code></pre>
 
-<h1>ifstat</h1>
+<p>This is because the source of <code>ip addr</code> is /etc/udev/rules.d/70-persistent-net.rules. Edit this file to correct the NIC name.</p>
 
-<p>Homepage: <a href="http://gael.roualland.free.fr/ifstat/">http://gael.roualland.free.fr/ifstat/</a></p>
-
-<h2>使用</h2>
-
-<pre><code>ifstat -i eth0 1 5 // 监测网口eth0的流量，每一秒测试一次，共测试5次
-</code></pre>
-
-<p>该工具不需要root权限</p>
-
-<h2>安装</h2>
-
-<p>Ubuntu可以用apt-get直接装，官网上的ifstat-1.1.tar.gz包是源码包，在RedHat上安装需要编译，过程很简单，根据INSTALL文档的说明：</p>
-
-<pre><code>./configure
-make
-make install
-</code></pre>
-
-<h2>atsar</h2>
-
-<p>atsar（Unix的sar指令的Linux移植版，可以用apt-get安装）也有几个选项是用来监控网络情况的，例如每隔2秒显示一次系统当前TCP流量：</p>
-
-<pre><code>atsar -t 2 5
-</code></pre>
-
-<h2>iftop</h2>
-
-<p>Ubuntu: apt-get install iftop.</p>
-
-<p>监控与47的交互：</p>
-
-<pre><code>iftop -n -i eth0 -f "host 10.0.2.47" // 监测47与113的双向传输数据
-iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
-</code></pre>
-
-<p>目前看来iftop显示的信息最全，但需要好好看手册，每个值都是什么意思；使用它需要root权限；</p>
-
-<p>参考：<a href="https://sickbits.net/iftop-finding-traffic-hogs/">https://sickbits.net/iftop-finding-traffic-hogs/</a></p>
-
-<h2>trafshow</h2>
-
-<p>Ubuntu: apt-get install trafshow</p>
-
-<p>监控与47的交互：<code>trafshow -n -i eth0 host 10.0.2.47</code>;</p>
-
-<h1>网络带宽测试：iperf</h1>
-
-<p>又叫bandwidth或者throughput测试，用来测试Server和Client间的最大传输速率。</p>
-
-<p>iperf是命令行工具，还有一个基于Java的图形界面<a href="https://code.google.com/p/xjperf/">jperf</a>可运行在Windows和linux上；</p>
-
-<p>安装：Ubuntu用apt-get install iperf安装，Redhat需要在&#8221;<a href="http://pkgs.repoforge.org/iperf/">http://pkgs.repoforge.org/iperf/</a>&ldquo;上根据操作系统的版本和架构选择一个rpm下载（47服务器系统为Redhat 5.4, x86_64，下载的是iperf-2.0.4-1.el5.rf.x86_64.rpm），然后用rpm -ivh <file_name>安装；</p>
-
-<h2>用法</h2>
+<p>The total step to fix network of a centos VM is:</p>
 
 <ol>
-<li><p>启动服务端：iperf -s；</p></li>
-<li><p>启动客户端：iperf -c 10.0.2.47 -i 1 -f M（-c后面跟服务器IP地址，-i表示发送的时间间隔，-f M表示返回结果以MByte为单位）；</p></li>
+<li><p>vi /etc/sysconfig/network   // fix hostname and gateway IP</p></li>
+<li><p>vi /etc/sysconfig/network-scripts/ifcfg-eth0 // fix NIC name, host IP and netmask</p></li>
+<li><p>vi /etc/udev/rules.d/70-persistent-net.rules  // NIC name and hardware address should be the same with that in file ifcfg-eth0</p></li>
+<li><p>reboot</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Build Working Environment on CentOS Minimal]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/18/142036/"/>
+    <updated>2014-07-18T14:20:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/18/142036</id>
+    <content type="html"><![CDATA[<h1>System</h1>
+
+<ol>
+<li><p>Install CentOS with CentOS-6.5-i386-minimal.iso;</p></li>
+<li><p>Choose &ldquo;Install system with basic video driver&rdquo;;</p></li>
 </ol>
 
 
-<p>或者启动图像客户端jperf，点击&#8221;Run IPerf&#8221;按钮就可以测网络带宽了。给出的结果是笔记本电脑与113服务器之间单向单流（1 stream）带宽为1.8MB/s左右；</p>
+<h1>Network</h1>
 
-<p>iperf作为客户端还有两个比较有用的选项分别是-d和-d -r，前者表示测试同时双向传输的速率，后者表示先进行client to server的单向传输测试，完毕后互换角色，反过来进行server to client的单向传输测试，过程如下：</p>
+<ol>
+<li><p>After Installation, login as root, modify &ldquo;NM_CONTROLLED&rdquo; to &ldquo;no&rdquo; and &ldquo;ONBOOT&rdquo; to &ldquo;yes&rdquo;, and &ldquo;BOOTPROTO&rdquo; to &ldquo;dhcp&rdquo; in file /etc/sysconfig/network-scripts/ifcfg-eth0;</p></li>
+<li><p>run <code>service network restart</code>, verify network with <code>ip addr</code> and <code>ping www.baidu.com</code>;</p></li>
+</ol>
 
-<p>server: iperf -s</p>
 
-<p>client: iperf -c 10.0.2.47 -i 1 -f M -d（或者iperf -c 10.0.2.47 -i 1 -f M -d -r）</p>
+<h1>Desktop Environment</h1>
 
-<p>参考：</p>
+<p>Install epel repository: on x84_64 host:</p>
 
-<p><a href="http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf">http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf</a></p>
+<pre><code># rpm -Uvh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+</code></pre>
 
-<p><a href="http://openmaniak.com/iperf.php">http://openmaniak.com/iperf.php</a></p>
+<p>Instead &ldquo;x86_64&rdquo; above with &ldquo;i386&rdquo; on x86 (32bit) host.</p>
+
+<pre><code># yum update
+# yum groupinstall Xfce Fonts
+# useradd -m chad
+</code></pre>
+
+<p>Reboot and login as chad, run <code>startxfce4</code> and the Desktop Environment start (you can&rsquo;t run this command when you switch from another user via &ldquo;su&rdquo;).</p>
+
+<h1>Other</h1>
+
+<pre><code># yum install git zsh tmux
+# yum install rabbitvcs-thunar rabbitvcs-cli  // a tortoise-svn like subversion &amp; git client, start repo browser with `rabbitvcs browser` or right-click in a thunar window
+</code></pre>
+
+<h1>Define Shortcuts</h1>
+
+<p>Alt-F2 -> xfce4-appfinder -> keyboard -> Application Shortcuts -> Add:
+    Command: xfce4-appfinder; ShortCut: Alt-[</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Connect Internet via Wired Network for Arch Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/15/113913/"/>
+    <updated>2014-07-15T11:39:13+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/15/113913</id>
+    <content type="html"><![CDATA[<p>After start up Arch Linux host, plugin the ethernet cable, the lights of network interface card is off. Now run command</p>
+
+<pre><code>ip link set enp0s25 up
+</code></pre>
+
+<p>the lights will turned on. Then run</p>
+
+<pre><code>dhcpcd enp0s25
+</code></pre>
+
+<p>Now the host will get a IP. If you can ping 8.8.8.8 (which is google&rsquo;s dns server), but not www.baidu.com, you have to assign a valid DNS provider. Using OpenDNS is a safe solution. So add the following lines into /etc/resolv.conf:</p>
+
+<pre><code>nameserver 208.67.222.222
+nameserver 208.67.220.220
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fix Jenkins Startup and Access Failure on CentOS]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/11/095843/"/>
+    <updated>2014-03-11T09:58:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/11/095843</id>
+    <content type="html"><![CDATA[<p>Today I install Jenkins on CentOS 6. When start the service with &ldquo;java -jar jenkins.war &ndash;httpPort=8088&rdquo;, it raised a &ldquo;java.net.unknownhostexception: Temporary failure in name resolution&rdquo; error.</p>
+
+<p>Resolution: add hostname (&ldquo;tybvt&rdquo; here) into &ldquo;127.0.0.1&rdquo; name of /etc/hosts, from:</p>
+
+<pre><code>127.0.0.1  localhost.localdomain localhost
+</code></pre>
+
+<p>to:</p>
+
+<pre><code>127.0.0.1  tybvt localhost.localdomain localhost
+</code></pre>
+
+<p>When Jenkins start successfully, only can access from &ldquo;localhost:8088&rdquo;, &ldquo;10.0.2.47:8088&rdquo; is rejected. It&rsquo;s because the firewall &ldquo;iptables&rdquo; service. So we need to add a rule into iptables configuration. Add:</p>
+
+<pre><code>-A INPUT -i eth0 -p tcp --dport 8088 -j ACCEPT
+</code></pre>
+
+<p><strong>right after</strong> the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo; in file /etc/sysconfig/iptables.
+Or simply stop the service with &ldquo;service iptables stop&rdquo; if security is not a concern.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Network Tools on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/07/135434/"/>
+    <updated>2014-03-07T13:54:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/07/135434</id>
+    <content type="html"><![CDATA[<ul>
+<li><p>aria2c, curl, wget: Download tools;</p></li>
+<li><p>ping: ping -c 4 bing.com;</p></li>
+<li><p>tracepath bing.com;</p></li>
+<li><p>mtr bing.com: combination of ping and tracepath;</p></li>
+<li><p>host bing.com; host 204.79.197.200</p></li>
+<li><p>whois bing.com</p></li>
+<li><p>ifconfig;</p></li>
+<li><p>ifup; ifdown;</p></li>
+<li><p>ifplugstatus: sudo apt-get install ifplugd</p></li>
+<li><p>netstat -p; netstat -s;</p></li>
+<li><p>dhclient (root privilege): free IP address, and get a new one from DHCP server;</p></li>
+</ul>
+
+
+<p>Ref: <a href="http://www.geekfan.net/7192/">如何用Linux命令行管理网络：11个你必须知道的命令</a></p>
 ]]></content>
   </entry>
   

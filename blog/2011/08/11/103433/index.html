@@ -1,0 +1,340 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Log4j使用笔记 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2011/08/11/103433">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Log4j使用笔记</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-11T10:34:33+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。layout是appender的属性，决定appender所代表的输出中，一条具体的记录由哪些信息组成，排列顺序等。</p>
+
+<p>每一个logger都有一个名字，名字是logger初始化时由getLogger的参数决定的，例如下面的logger的名字是com.foo：</p>
+
+<pre><code>Logger logger = Logger.getLogger("com.foo"); 
+</code></pre>
+
+<p>名字是logger的唯一标识符，例如下面的x和y两个logger实际上是同一个对象：</p>
+
+<pre><code>Logger x = Logger.getLogger("wombat"); 
+Logger y = Logger.getLogger("wombat"); 
+</code></pre>
+
+<p>名字还具有继承性，例如名为com.foo.bar的logger是com.foo这个logger的子logger，com.foo又是com的子logger，子logger会继承所有上级logger的appender。这种继承类似于java包的父目录和子目录的关系，详见[1]的"Named Hierarchy"部分。</p>
+
+<p>类似于根目录的概念，rootLogger是logger hierarchy的顶端，简单的log4j应用中，只定义rootLogger的appender，所有类中的logger就继承了rootLogger的特性。</p>
+
+<p>为一个logger指定appender是在log4j配置文件中定义的，格式是：</p>
+
+<pre><code>log4j.rootLogger=level_name, appender_name1, appender_name2, ... 
+</code></pre>
+
+<p>或： log4j.logger.logger_name=level_name, appender_name1, appender_name2, &hellip;</p>
+
+<p>前者为rootLogger指定appender，后者为某一个具体的logger指定appender。定义appender属性的方法是：</p>
+
+<pre><code>log4j.appender.appender_name=... 
+log4j.appender.appender_name.layout=... 
+</code></pre>
+
+<p>例如下面的代码为rootLogger指定了appender A1，并设置A1为界面输出，然后指定了输出的格式，最后一行指定了com.foo的输出级别为WARN，com.foo及其子logger低于WARN的日志将不记录，由于com.foo没有指定appender，所以继承rootLogger的A1作为其输出：</p>
+
+<pre><code>log4j.rootLogger=DEBUG, A1 
+log4j.appender.A1=org.apache.log4j.ConsoleAppender 
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout 
+log4j.appender.A1.layout.ConversionPattern=%d [%t] %-5p %c - %m%n 
+log4j.logger.com.foo=WARN 
+</code></pre>
+
+<p>logger的级别常用的有debug, info, warn, error四种，详见“ log4j日志的输出级别设置 ”；appender常用的有 ConsoleAppender（控制台输出）、 DailyRollingFileAppender（按照一定的频率滚动输出日志，例如每月、每周、每天、每小时等）和 RollingFileAppender（到一定文件大小时滚动输出） 三种；layout常用的有SimpleLayout, PatternLayout, HTMLLayout, XMLLayout四种，后两种用来输出html和xml文本。不论哪种layout，都输出的是纯文本，因此各种appender与各种layout可以随意组合。</p>
+
+<p>如果对项目中一些类的日志进行特殊处理（例如更改输出级别、指定新的输出文件等），见笔记“ 在包一级定制log4j日志输出 ”。</p>
+
+<p>下面是一个完整的日志演示，首先是测试用例，只打一条日志：</p>
+
+<pre><code>package com.boco.godu.gapi.logger; 
+import org.apache.log4j.Logger; 
+import org.junit.Test; 
+public class Log4jDemo { 
+    private final Logger logger = Logger.getLogger(this.getClass()); 
+    @Test 
+    public void testGapiLogger() { 
+        logger.info(" Apache Logger "); 
+    } 
+} 
+</code></pre>
+
+<p>log4j.properties文件：</p>
+
+<p> log4j.rootLogger=debug, console, ft, fh, fx
+ log4j.appender.console=org.apache.log4j.ConsoleAppender
+ log4j.appender.console.layout=org.apache.log4j.SimpleLayout
+ log4j.appender.ft=org.apache.log4j.RollingFileAppender
+ log4j.appender.ft.File=./log/debug.log
+ log4j.appender.ft.Append=false
+ log4j.appender.ft.MaxFileSize=2MB
+ log4j.appender.ft.MaxBackupIndex=10
+ log4j.appender.ft.layout=org.apache.log4j.PatternLayout
+ log4j.appender.ft.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n
+ log4j.appender.fh=org.apache.log4j.RollingFileAppender
+ log4j.appender.fh.File=./log/debug.html
+ log4j.appender.fh.Append=false
+ log4j.appender.fh.MaxFileSize=2MB
+ log4j.appender.fh.MaxBackupIndex=10
+ log4j.appender.fh.layout=org.apache.log4j.HTMLLayout
+ log4j.appender.fh.layout.LocationInfo=true
+ log4j.appender.fh.layout.Title=Test Log4j Layout
+ log4j.appender.fx=org.apache.log4j.RollingFileAppender
+ log4j.appender.fx.File=./log/debug.xml
+ log4j.appender.fx.Append=false
+ log4j.appender.fx.MaxFileSize=2MB
+ log4j.appender.fx.MaxBackupIndex=10
+ log4j.appender.fx.layout=org.apache.log4j.xml.XMLLayout
+ log4j.appender.fx.layout.LocationInfo=true</p>
+
+<p>rootLogger一共挂了4个appender，分别是一个控制台输出，一个纯文本格式日志，一个html格式日志，一个xml格式日志。</p>
+
+<p>运行测试用例后的效果如下（黑体字和红圈是源代码打出的日志）：</p>
+
+<p>控制台输出：</p>
+
+<pre><code>INFO - Apache Logger 
+</code></pre>
+
+<p>纯文本文件：</p>
+
+<p>08-11 16:04:03,343 main com.boco.godu.gapi.logger.Log4jDemo,11 INFO - Apache Logger</p>
+
+<p>html文件：</p>
+
+<p>xml文件：</p>
+
+<pre><code>&lt;log4j:event logger="com.boco.godu.gapi.logger.Log4jDemo" timestamp="1313049843343" level="INFO" thread="main"&gt; 
+    &lt;log4j:message&gt;&lt;![CDATA[ Apache Logger ]]&gt;&lt;/log4j:message&gt; 
+    &lt;log4j:locationInfo class="com.boco.godu.gapi.logger.Log4jDemo" method="testGapiLogger" file="Log4jDemo.java" line="11"/&gt; 
+&lt;/log4j:event&gt;
+</code></pre>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2011-08-11T10:34:33+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:34 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/log4j/'>log4j</a>, <a class='category' href='/blog/categories/slf4j/'>slf4j</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2011/08/11/103433/" data-via="" data-counturl="http://leetschau.github.io/blog/2011/08/11/103433/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2011/08/10/201926/" title="Previous Post: Mantis安装过程笔记">&laquo; Mantis安装过程笔记</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2011/08/11/104245/" title="Next Post: 日志文件的筛选">日志文件的筛选 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

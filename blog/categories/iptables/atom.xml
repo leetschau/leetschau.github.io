@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Iptables | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/iptables/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Fix Jenkins Startup and Access Failure on CentOS]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/11/095843/"/>
+    <updated>2014-03-11T09:58:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/11/095843</id>
+    <content type="html"><![CDATA[<p>Today I install Jenkins on CentOS 6. When start the service with &ldquo;java -jar jenkins.war &ndash;httpPort=8088&rdquo;, it raised a &ldquo;java.net.unknownhostexception: Temporary failure in name resolution&rdquo; error.</p>
+
+<p>Resolution: add hostname (&ldquo;tybvt&rdquo; here) into &ldquo;127.0.0.1&rdquo; name of /etc/hosts, from:</p>
+
+<pre><code>127.0.0.1  localhost.localdomain localhost
+</code></pre>
+
+<p>to:</p>
+
+<pre><code>127.0.0.1  tybvt localhost.localdomain localhost
+</code></pre>
+
+<p>When Jenkins start successfully, only can access from &ldquo;localhost:8088&rdquo;, &ldquo;10.0.2.47:8088&rdquo; is rejected. It&rsquo;s because the firewall &ldquo;iptables&rdquo; service. So we need to add a rule into iptables configuration. Add:</p>
+
+<pre><code>-A INPUT -i eth0 -p tcp --dport 8088 -j ACCEPT
+</code></pre>
+
+<p><strong>right after</strong> the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo; in file /etc/sysconfig/iptables.
+Or simply stop the service with &ldquo;service iptables stop&rdquo; if security is not a concern.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Configure Firewalls on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/23/140812/"/>
+    <updated>2013-12-23T14:08:12+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/23/140812</id>
+    <content type="html"><![CDATA[<p>The firewall in CentOS is the &ldquo;iptables&rdquo; service.</p>
+
+<h1>List all rules: iptables -nvL</h1>
+
+<p>You can get all chains and all rules of each chain.</p>
+
+<h1>Control iptables service</h1>
+
+<ul>
+<li>service iptables start|stop|restart</li>
+</ul>
+
+
+<h1>Open a port (port 9000 in this case)for incoming connection:</h1>
+
+<p>Add the following line <strong>right after</strong> the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo; in file /etc/sysconfig/iptables:</p>
+
+<pre><code>-A INPUT -i eth0 -p tcp --dport 9000 -j ACCEPT
+</code></pre>
+
+<p>where &ldquo;INPUT&rdquo; is a <chain_name> you can get in above list operation. -i is the incoming interface name, -p means protocol, &ndash;dport means &ldquo;destination port&rdquo;, -j means target name. See man iptables for details.</p>
+
+<p>Note 1: the position is important. If you put this line elsewhere, it&rsquo;s possible to fail. Maybe it&rsquo;s because the position in a &ldquo;chain&rdquo; is important?</p>
+
+<p>Note 2: after saving the rule file, you need restart service to validate the modification. Use the list command above to see your modification.</p>
+]]></content>
+  </entry>
+  
+</feed>

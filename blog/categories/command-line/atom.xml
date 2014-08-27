@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Command Line | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/command-line/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[A Powerful Linux Command Line Calculator Based on Bc]]></title>
+    <link href="http://leetschau.github.io/blog/2014/04/30/110339/"/>
+    <updated>2014-04-30T11:03:39+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/04/30/110339</id>
+    <content type="html"><![CDATA[<p>Create a shell script named my-calculator.sh under ~/apps:</p>
+
+<pre><code>#!/bin/bash
+
+# Example: ./my-calculator ih od 23A+34B =&gt; echo 'ibase=16;obase=10;23A+34B' | bc
+#     where "ih" means "input is hex", "od" means "output is decimal"
+#     ./my-calculator ih oh echo 'ibase=16;obase=10;A+A' | bc
+
+if [[ $# -gt 3 ]]; then
+    echo Bad format: more than 3 arguments found
+    exit 1
+fi
+in=10
+out=10
+for op in $@; do
+    if [[ $op = 'ib' ]]; then
+        in=2
+    elif [[ $op = 'id' ]]; then
+        in=10
+    elif [[ $op = 'ih' ]]; then
+        in=16
+    elif [[ $op = 'ob' ]]; then
+        out=2
+    elif [[ $op = 'od' ]]; then
+        out=10
+    elif [[ $op = 'oh' ]]; then
+        out=16
+    else 
+        expr=$op
+    fi
+done
+echo echo \"obase=$out\;ibase=$in\;$expr\" \| bc
+echo "obase=$out;ibase=$in;$expr" | bc
+</code></pre>
+
+<p>Note: put obase BEFORE ibase, or the obase will based on ibase. For example, the result of</p>
+
+<pre><code>echo "ibase=16;obase=10;A+A" | bc
+</code></pre>
+
+<p>is 14, but not 20. After &ldquo;ibase=16&rdquo;, the &ldquo;10&rdquo; in &ldquo;obase=10&rdquo; is actually a hex, not a decimal. To avoid interfered by ibase, we should always declare obase before ibase.</p>
+
+<p>Now add &ldquo;alias mc=/home/chad/apps/my-calculator.sh&rdquo; into your ~/.zshrc, you can do hex calculation by:</p>
+
+<pre><code>$ mc ih oh A+A
+</code></pre>
+
+<p>Add hex numbers and output to decimal:</p>
+
+<pre><code>$ mc ih A+A
+</code></pre>
+
+<p>Convert a hex into decimal:</p>
+
+<pre><code>$ mc ih 23B
+</code></pre>
+
+<p>Convert a decimal to hex:</p>
+
+<pre><code>$ mc oh 23432
+</code></pre>
+
+<p>Some ordinary decimal calculation:</p>
+
+<pre><code>$ mc 234+345
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Compile Java Codes in Linux Shell Instead of Ant Script]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/07/172525/"/>
+    <updated>2014-03-07T17:25:25+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/07/172525</id>
+    <content type="html"><![CDATA[<p>The following is frequently used ant script, compile some java source codes with a libary path, then copy all non-java files to compiled folder:</p>
+
+<pre><code>&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${webroot.dir}/web-inf/classes" /&gt;
+&lt;path id="lib.path"&gt;
+    &lt;fileset dir="${webroot.dir}/web-inf/lib"&gt;
+        &lt;include name="**/*.jar" /&gt;
+    &lt;/fileset&gt;
+&lt;/path&gt;
+&lt;target name="compile-src" depends="init" description="compile java sources"&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="utf-8"
+            debug="true" classpathref="lib.path" failonerror="false"/&gt;
+    &lt;copy todir="${src.class.dir}"&gt;
+        &lt;fileset dir="${src.dir}"&gt;
+            &lt;exclude name="**/*.java" /&gt;
+        &lt;/fileset&gt;
+    &lt;/copy&gt;
+&lt;/target&gt;
+</code></pre>
+
+<p>The corresponding shell script is:</p>
+
+<pre><code>src_dir=/vagrant/codes/GCP6.1/src
+web_build=/vagrant/codes/web_build
+class_dir=$web_build/web_server/webapps/GCP6.1/WEB-INF/classes
+lib_dir=/vagrant/codes/GCP6.1/WebRoot/WEB-INF/lib
+find $src_dir -type f -name "*.java" -exec javac -cp "$lib_dir/*:$src_dir" -d $class_dir {} \;
+rsync -auC --exclude='*.java' $src_dir/ $class_dir/
+</code></pre>
+
+<p>Take care there&rsquo;s no folder named &ldquo;core&rdquo; in $src_dir, or it will be excluded by the &ldquo;-C&rdquo; option of rsync command.</p>
+
+<h1>A Test Case</h1>
+
+<pre><code>$ tree
+.
+├── classes
+├── lib
+│   ├── libadd.jar
+│   └── libmul.jar
+├── libadd
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── add
+│                   ├── MyAdd.class
+│                   └── MyAdd.java
+├── libmul
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── mul
+│                   ├── MyMul.class
+│                   └── MyMul.java
+└── main
+    └── com
+        └── boco
+            └── gcp
+                ├── Test.java
+                └── util
+                    └── MyUtil.java
+
+17 directories, 8 files
+
+$ find . -name '*.java' -exec cat {} \; -exec echo "--------" \;
+package com.boco.gcp.util;
+
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.mul.MyMul;
+
+public class MyUtil {
+    public int newadd(int x, int y) {
+        MyAdd add = new MyAdd();
+        MyMul mul = new MyMul();
+        return add.myadd(3,5) + mul.mymul(3,5);
+    }
+}
+--------
+package com.boco.gcp;
+
+import com.boco.gcp.mul.MyMul;
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.util.MyUtil;
+
+public class Test {
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        MyAdd add = new MyAdd();
+        System.out.println(mul.mymul(3,5));
+        System.out.println(add.myadd(3,5));
+        MyUtil util = new MyUtil();
+        System.out.println(util.newadd(3,5));
+    }
+}
+--------
+package com.boco.gcp.mul;
+
+public class MyMul {
+    public int mymul(int x, int y) {
+        return 10*x*y;
+    }
+
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        System.out.println(mul.mymul(3,5));
+    }
+}
+--------
+package com.boco.gcp.add;
+
+public class MyAdd {
+    public int myadd(int x, int y){
+        return 10*x+y;
+    }
+
+    public static void main(String[] args) {
+        MyAdd add = new MyAdd();
+        System.out.println(add.myadd(3,5));
+    }
+}
+--------
+$ find main -name '*.java' -exec javac -cp 'lib/*:main' {} -d classes \;
+$ tree classes/
+classes/
+└── com
+    └── boco
+        └── gcp
+            ├── Test.class
+            └── util
+                └── MyUtil.class
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Haskell Command-line Application Building]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/15/122240/"/>
+    <updated>2013-12-15T12:22:40+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/15/122240</id>
+    <content type="html"><![CDATA[<h1>Haskeline Package</h1>
+
+<p><a href="http://hackage.haskell.org/package/haskeline">Haskeline</a> provides a user interface for line input in command-line programs. This library is similar in purpose to readline, but since it is written in Haskell it is (hopefully) more easily used in other Haskell programs.</p>
+
+<p>A tab-completion solution based on haskeline: <a href="http://stackoverflow.com/questions/6147201/haskell-haskeline-word-completion">Haskell (haskeline) word completion</a></p>
+
+<h1>Command Suite Parse</h1>
+
+<p><a href="http://hackage.haskell.org/package/console-program">console-program</a> provides an infrastructure to build command line programs. It provides the following features:</p>
+
+<ul>
+<li><p>Declare any number of &ldquo;commands&rdquo; (modes of operation) of the program;</p></li>
+<li><p>Declare options of these commands;</p></li>
+<li><p>Collect options from a configuration file and the command line, and execute the proper command;</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Command-line Application Framework of Python]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/08/201109/"/>
+    <updated>2013-12-08T20:11:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/08/201109</id>
+    <content type="html"><![CDATA[<h1>Criteria</h1>
+
+<ul>
+<li><p>Parse command and command suite;</p></li>
+<li><p>Help and Manual auto-creation;</p></li>
+<li><p>Deploy tools;</p></li>
+<li><p>Configuration tools;</p></li>
+</ul>
+
+
+<h1>Candidates</h1>
+
+<p><a href="http://pythonhosted.org/configglue/">configglue in 2.7+</a>: build-in package in 2.7.3</p>
+
+<p><a href="http://docs.python.org/2/library/argparse.html">argparse in 2.7+</a>: build-in package in 2.7.3</p>
+
+<p>docopt</p>
+
+<p>cli</p>
+
+<p><a href="http://docs.python.org/2/howto/curses.html">curses</a>: help to implement incremental search</p>
+
+<p><a href="https://github.com/kennethreitz/clint">clint</a></p>
+
+<p><a href="https://pypi.python.org/pypi/CommandLineApp">CommandLineApp</a></p>
+
+<p>Ref: <a href="http://pauloortins.com/creating-python-command-line-interfaces-docopt/">Creating python command line applications with docopt</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Command Line Shortcuts in Linux Shell]]></title>
+    <link href="http://leetschau.github.io/blog/2013/09/17/083522/"/>
+    <updated>2013-09-17T08:35:22+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/09/17/083522</id>
+    <content type="html"><![CDATA[<h1>Shortcuts in bash</h1>
+
+<ul>
+<li><p>C-d: exit from the shell or a command (like ftp);</p></li>
+<li><p>C-c: cancel current command;</p></li>
+<li><p>C-p or M-p: previous command, same as up arrow key;</p></li>
+<li><p>C-n or M-n: next command, same as down arrow key;</p></li>
+<li><p>C-r: allows you to search through the previous commands;</p></li>
+<li><p>C-o: Execute the current item in the history list and advance to the next one. Useful when you are trying to re-execute a sequence of commands in the history list. For example, run &ldquo;ps&rdquo;, &ldquo;pwd&rdquo;, &ldquo;ls&rdquo; one by one, then use C-p back to &ldquo;ps&rdquo;, then press C-o, you can see the effect;</p></li>
+<li><p>!!: last command, scenario: use &ldquo;sudo !!&rdquo; after &ldquo;vi /etc/passwd&rdquo; for permission denied;</p></li>
+<li><p>!<string>: Repeat last history list item <strong>starting</strong> with string, for example: &ldquo;!ssh&rdquo; will be expanded to the last ssh command you used, which is very useful when use a set of commands repeatedly;</p></li>
+<li><p>!?<string>: Repeat last history list item <strong>containing</strong> string. For example: &ldquo;!?49&rdquo; could be expanded to &ldquo;ssh 10.0.2.49&rdquo;;</p></li>
+<li><p>!<num>: <num> is the number of the result of &ldquo;history&rdquo; command, for example:</p>
+
+<p>  history|grep scp|sort|uniq</p></li>
+</ul>
+
+
+<p>list all history command contains &ldquo;scp&rdquo;, sort them and remove duplicate command. Then use !<num> to run this command;</p>
+
+<ul>
+<li><p>!$: arguments of last command, scenario: &ldquo;mkdir a/b/c/d/e&rdquo;, then use &ldquo;cd !$&rdquo; to go to subfolder e;</p></li>
+<li><p>^old<sup>new</sup>: replace &ldquo;old&rdquo; with &ldquo;new&rdquo; in last command;</p></li>
+<li><p>history|grep erlang; !2217: use history to get the command number, use &ldquo;!<cmd_no>&rdquo; to run this command;</p></li>
+</ul>
+
+
+<p>Ref:</p>
+
+<ul>
+<li><p>Chapter 8: Advanced Keyboard Tricks in &ldquo;The Linux Command Line&rdquo; by William E. Shotts;</p></li>
+<li><p><a href="http://lifehacker.com/5743814/become-a-command-line-ninja-with-these-time+saving-shortcuts">http://lifehacker.com/5743814/become-a-command-line-ninja-with-these-time+saving-shortcuts</a></p></li>
+</ul>
+
+
+<h2>Command Line Editing</h2>
+
+<h3>Move Cursor</h3>
+
+<ul>
+<li><p>M-f or C-right arrow key: Move forward one word;</p></li>
+<li><p>M-b or C-left arrow key: Move backward one word;</p></li>
+<li><p>C-a: Move to the beginning of the line;</p></li>
+<li><p>C-e: Move to the end of the line;</p></li>
+<li><p>C-f: Move forward a character, same as right arrow key;</p></li>
+<li><p>C-b: Move backward a character, same as left arrow key;</p></li>
+<li><p>C-l: same as command &ldquo;clear&rdquo;;</p></li>
+<li><p>C-t: exchange the character at the cursor location with the one preceding it;</p></li>
+<li><p>M-t: exchange the word at the cursor location with the one preceding it;</p></li>
+</ul>
+
+
+<h3>Modifying Text</h3>
+
+<ul>
+<li><p>C-u: clears the current command line;</p></li>
+<li><p>M-d: kill text from cursor to the end of the current word;</p></li>
+<li><p>M-Backspace or C-w: kill text from cursor to the beginning of the current word, or the previous word if cursor is at the beginning of a word;</p></li>
+<li><p>C-y: Yank text from the kill-ring and insert it at the cursor location;</p></li>
+<li><p>C-k: deletes the line from the position of the cursor to the end of the line;</p></li>
+</ul>
+
+
+<p>A use case: I want to run &ldquo;scp file1 user@10.0.2.47:/home/user/warez/&rdquo; and &ldquo;scp file1 user@10.0.2.51:/home/user/warez/&rdquo; one by one, after the first command is executed, I can run the 2nd in this way:</p>
+
+<pre><code>C-p M-b M-b M-b C-w 51:/&lt;Enter&gt;
+</code></pre>
+
+<p>where M-b move the cursor one word backward, C-w delete the word before cursor.</p>
+
+<h2>Completion</h2>
+
+<p>Beside the path name completion, you can use &ldquo;Tab&rdquo; key to complete:</p>
+
+<ul>
+<li><p>Host name: after a &ldquo;@&rdquo; sign, the available hosts are defined in /etc/hosts;</p></li>
+<li><p>Variable name: after a dollar sign &ldquo;$&rdquo;;</p></li>
+<li><p>User name: after a tilde sign &ldquo;~&rdquo;;</p></li>
+</ul>
+
+
+<h1>Define alias in zsh</h1>
+
+<p>In this case we want to build a subversion client command-line utility, especially for browse purpose.</p>
+
+<pre><code>alias sl="svn ls"
+alias -g 59="http://10.0.2.59:8118/svn/gcp"
+</code></pre>
+
+<p>Now &ldquo;sl gcp&rdquo; equals to &ldquo;svn sl <a href="http://10.0.2.59:8118/svn/gcp">http://10.0.2.59:8118/svn/gcp</a>&rdquo;.</p>
+
+<p>The restriction of zsh alias is that there must be a blank between aliases, regular or global. So if you want to define a shortcut &ldquo;sshec&rdquo; for saving keyboard input of &ldquo;ssh -i /home/lichao/Documents/lichao-key-pair-us-west-1.pem <a href="&#x6d;&#x61;&#x69;&#x6c;&#116;&#x6f;&#x3a;&#x65;&#99;&#x32;&#x2d;&#117;&#115;&#x65;&#114;&#64;&#49;&#x30;&#46;&#48;&#x2e;&#50;&#x2e;&#x33;&#51;">&#101;&#99;&#50;&#45;&#x75;&#x73;&#x65;&#114;&#x40;&#49;&#48;&#46;&#x30;&#x2e;&#50;&#46;&#51;&#51;</a>&rdquo;, you can&rsquo;t define &ldquo;alias sshec=&lsquo;ssh -i /home/lichao/Documents/lichao-key-pair-us-west-1.pem ec2-user@&rsquo;&rdquo;, because there is no blank between &ldquo;@&rdquo; and &ldquo;10.0.2.33&rdquo;. When you input &ldquo;sshec10.0.2.33&rdquo;, you get a unknown command error. You can use [Application Finder -> Custom Actions] in Mint to define this kind of shortcuts.</p>
+
+<p>Ref: <a href="http://www.acm.uiuc.edu/workshops/zsh/alias.html">zsh aliases</a></p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,304 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>能够进行多段文本匹配的NFA改良算法 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="下面的代码基于NFA算法实现了在多段字符串中匹配正则表达式，对比NFA算法可以看到它将pc由局部变量提升为类成员，以保存中间匹配状态，另外在匹配成功后将pc恢复到null状态。实际使用中，此类还应该增加一个"reset"方法，将pc值置为null，以便用户可以显式要求重新开始匹配。 public &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/03/31/231152">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">能够进行多段文本匹配的NFA改良算法</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-31T23:11:52+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>11:11 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>下面的代码基于NFA算法实现了在多段字符串中匹配正则表达式，对比NFA算法可以看到它将pc由局部变量提升为类成员，以保存中间匹配状态，另外在匹配成功后将pc恢复到null状态。实际使用中，此类还应该增加一个"reset"方法，将pc值置为null，以便用户可以显式要求重新开始匹配。</p>
+
+<p> public class MultiSegmentNFA {
+  private final Digraph G; // digraph of epsilon transitions
+  private final String regexp; // regular expression
+  private final int M; // number of characters in regular expression
+  private Bag<Integer> pc = null;
+  public MultiSegmentNFA(String regexp) {
+   &hellip; // same as NFA
+  }
+  public boolean recognizes(String target) {
+   if (pc == null) {
+    DirectedDFS dfs = new DirectedDFS(G, 0);
+    pc = new Bag<Integer>();
+    for (int v = 0; v &lt; G.V(); v++)
+     if (dfs.marked(v))
+      pc.add(v);
+   }
+   for (int i = 0; i &lt; target.length(); i++) {
+    Bag<Integer> match = new Bag<Integer>();
+    for (int v : pc) {
+     if (v == M)
+      continue;
+     if ((regexp.charAt(v) == target.charAt(i))
+       || regexp.charAt(v) == &lsquo;.&rsquo;)
+      match.add(v + 1);
+    }
+    DirectedDFS dfs = new DirectedDFS(G, match);
+    pc = new Bag<Integer>();
+    for (int v = 0; v &lt; G.V(); v++)
+     if (dfs.marked(v))
+      pc.add(v);
+    if (pc.size() == 0)
+     return false;
+   }
+   for (int v : pc)
+    if (v == M) {</p>
+
+<pre><code> pc = null; 
+ return true;
+
+} 
+</code></pre>
+
+<p>   return false;
+  }</p>
+
+<p>  public static void main(String[] args) {
+   LinkedList<String> msgs = new LinkedList<String>();
+   msgs.offer(&ldquo;welcome lonely logoout&rdquo;);
+   msgs.offer(&ldquo;to flog&rdquo;);
+   msgs.offer(&ldquo;into a fog&rdquo;);
+   String token = &ldquo;outto&rdquo;;  // 这个目标由第1和第2个字符串拼接而成
+   String pat = &ldquo;(.<em>&rdquo; + token + &ldquo;.</em>)&rdquo;;
+   MultiSegmentNFA mnfa = new MultiSegmentNFA(pat);
+   String target = msgs.poll();
+   while (target != null) {
+    if (mnfa.recognizes(target)) {
+     break;
+    }
+    target = msgs.poll();
+   }
+   if (target == null) {
+    System.out.println(&ldquo;cannot find &rdquo; + token + &ldquo; in msgs.&rdquo;);
+   } else {
+    System.out.println(&ldquo;find pat in &lt;&rdquo; + target + &ldquo;>&rdquo;);
+   }
+  }
+ }</p>
+
+<p>Note: Java的Pattern类使用的就是基于NFA的搜索算法，见JDK 6文档java.util.regex.Pattern的"Comparison to Perl 5"一节。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-03-31T23:11:52+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>11:11 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/algorithm/'>algorithm</a>, <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/nfa/'>nfa</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/03/31/231152/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/03/31/231152/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/03/31/215259/" title="Previous Post: NFA算法笔记">&laquo; NFA算法笔记</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/04/01/150952/" title="Next Post: NoClassDefFoundError与ClassNotFoundException的区别">NoClassDefFoundError与ClassNotFoundException的区别 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

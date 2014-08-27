@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 监控 | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/jian-kong/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[用jstack监控远程主机上的java进程]]></title>
+    <link href="http://leetschau.github.io/blog/2012/09/19/105207/"/>
+    <updated>2012-09-19T10:52:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/09/19/105207</id>
+    <content type="html"><![CDATA[<p>前面提到用visualvm监控远程主机上的java进程，这种方法的好处是可以“实时”监控，缺点是需要启动jstatd，且只能看到线程总数，无法显示每个线程的详细情况，jstack可以生成某一进程的dump，包含在特定时刻（命令执行时）Java进程内部各个线程的详细情况。</p>
+
+<p>首先用&#8221;jps -l&#8221;找到目标进程的PID，然后用&#8221;jstack [PID]&ldquo;获得dump，对于大型程序这个dump一般也比较大，所以用&#8221;jstack [PID] > dump_file_name&#8221;的方法将结果保存在文件dump_file_name里。</p>
+
+<p>下面是dump文件中的一段：</p>
+
+<p>&ldquo; HSQLDB Timer @5a1b5e32 &rdquo; daemon prio=3 tid=0x0000000101116800 nid=0x420a in Object.wait() [0xfffffffb5c2ff000]
+ java.lang.Thread.State : TIMED_WAITING (on object monitor)
+  at java.lang.Object.wait(Native Method)
+  - waiting on <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer$TaskQueue.park(HsqlTimer.java:883)
+  - locked <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer.nextTask(HsqlTimer.java:531)
+  - locked <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer$TaskRunner.run(HsqlTimer.java:611)
+  at java.lang.Thread.run(Thread.java:662)</p>
+
+<p>以上文本包含的信息包括：</p>
+
+<p>线程名：HSQLDB Timer @5a1b5e32</p>
+
+<p>锁住的资源：<0xfffffffb721e7700></p>
+
+<p>线程堆栈</p>
+
+<p>线程类型：daemon;</p>
+
+<p>线程优先级（prio）：3</p>
+
+<p>线程ID（tid）：0x0000000101116800</p>
+
+<p>线程状态：&#8221;Object.wait()&ldquo;和&#8221;TIMED_WAITING&rdquo;</p>
+
+<p>下面的一段供对照：</p>
+
+<p>&ldquo; T-14319652 &rdquo; prio=3 tid=0x000000010294d000 nid=0x4208 runnable [0xfffffffb5d5f8000]
+ java.lang.Thread.State: RUNNABLE
+  at org.hsqldb.ExpressionColumn.getValue(ExpressionColumn.java:627)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1172)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)</p>
+
+<p>参考：</p>
+
+<p><a href="http://zheng12tian.iteye.com/blog/1420508">Java自带的性能监测工具用法简介——jstack、jconsole、jinfo、jmap、jdb、jsta、jvisualvm</a></p>
+
+<p><a href="http://www.blogjava.net/jzone/articles/303979.html">JAVA线程dump的分析 &mdash; jstack pid</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[用visualvm监控远程主机上的java进程]]></title>
+    <link href="http://leetschau.github.io/blog/2012/09/18/193739/"/>
+    <updated>2012-09-18T19:37:39+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/09/18/193739</id>
+    <content type="html"><![CDATA[<h1>启动参数配置</h1>
+
+<p>要监控PoolServer的运行情况，需要在启动时加上以下参数：</p>
+
+<p> &ldquo;${JAVA_HOME}/bin/java&rdquo; -Dcom.sun.management.jmxremote \
+ -Dcom.sun.management.jmxremote.port=9090 \
+ -Dcom.sun.management.jmxremote.authenticate=false \
+ -Dcom.sun.management.jmxremote.ssl=false \
+ -Djava.rmi.server.hostname=10.0.2.47 \
+ -Dservice_name=godu-3.0 -cp $JARS transfer.PoolServer</p>
+
+<h1>系统配置</h1>
+
+<p>首先在jstatd所在目录下（$JAVA_HOME/bin）新建一个policy文件jstatd.all.policy：</p>
+
+<p>grant codebase &ldquo;file:${java.home}/../lib/tools.jar&rdquo; {</p>
+
+<p> permission java.security.AllPermission;</p>
+
+<p>};</p>
+
+<p>然后运行jstatd：</p>
+
+<p> jstatd -J-Djava.security.policy=jstatd.all.policy</p>
+
+<p>程序启动后没有任何输出，但用jps和netstat -an|grep 1099可以验证jstatd是否启动成功。</p>
+
+<p>参考：<a href="http://liwenqiu.github.com/blog/2012/02/22/use-visualvm-monitor-remote-java/">用VisualVM远程监控Java进程</a>（此文应该是基于<a href="http://docs.oracle.com/javase/6/docs/technotes/tools/share/jstatd.html">jstatd - Virtual Machine jstat Daemon</a>），注意其中的policy文件的写法，不要把${java.home}误写成${java_home}，因为这不是环境变量。</p>
+
+<hr />
+
+<p>2013-02-22更新</p>
+
+<p>不运行上述&#8221;jstatd -J-D&hellip;&ldquo;情况下连接113服务器失败，运行jstatd命令需要首先安装openjdk6，装完后运行该命令，又用Ctrl+C停止，在jVisualVM中配置远程主机10.31.1.113，在上面右键：添加JMX连接，“连接”项设为10.31.1.113:9090，连接成功后在“抽样器”中首先进行“CPU设置”，仅分析&#8221;transfer.*&#8221;，然后点击&#8221;CPU&#8221;按钮进行CPU抽样，可以看到各个public方法的执行时间。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[文件夹监控工具比较]]></title>
+    <link href="http://leetschau.github.io/blog/2012/02/01/112546/"/>
+    <updated>2012-02-01T11:25:46+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/02/01/112546</id>
+    <content type="html"><![CDATA[<p>对文件夹监控软件的要求是：能同时监控多个指定的文件夹，能够根据事件类型决定是否监控（例如是否只监控文件夹生成或者删除等），能够记录监控日志。</p>
+
+<p><a href="http://leelusoft.blogspot.com/2011/10/watch-4-folder-23.html">Watch 4 Folder</a>: 目前的版本2.3监测不到子目录文件的变化，不可用；</p>
+
+<p>FolderMonitor和TrackFolderChanges同样功能太弱；</p>
+
+<p>另有<a href="http://www.watchdirectory.net/index.html">watchDirectory</a>，收费软件，没有试；</p>
+
+<p>基于TotalCMD的文件夹监控方法：改变前用TotalCMD的<a href="http://www.totalcmd.net/plugring/diskdir_extended.html">DiskDir Extended</a>扩展为文件夹的所有子文件夹和文件做一个记录（方法见 TotalCommander的两款目录插件 ），改变后再做一次，然后用文本比较工具（例如vim diff或者notepad++的都很好用）观察变化；</p>
+]]></content>
+  </entry>
+  
+</feed>

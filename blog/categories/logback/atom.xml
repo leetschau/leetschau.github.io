@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Logback | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/logback/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2014-08-27T13:25:34+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[运行时动态指定文件名的日志工具实现方法]]></title>
+    <link href="http://leetschau.github.io/blog/2013/04/23/110349/"/>
+    <updated>2013-04-23T11:03:49+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/04/23/110349</id>
+    <content type="html"><![CDATA[<p>网元日志的特点是：每个网元的日志要写在单独的文件中，文件名要能够唯一地确定一组“用户-网元”连接，因此不可能预先指定或者写在配置文件里，只能在运行时根据登录的用户名和连接网元的ID动态生成。</p>
+
+<p>使用JDK原生的java.io.FileOutputStream等类可以达到上述目的，但文件的关闭比较麻烦，由于JVM垃圾回收的特点，日志包装类被回收的时间是不确定的，如果它被回收的比较慢，文件句柄就不会被关闭，导致系统资源消耗变大。</p>
+
+<p>下面的代码基于Logback实现了运行时动态指定日志文件名的日志工具，并发500个线程写日志文件，大约耗时3s左右。</p>
+
+<p> import ch.qos.logback.classic.Logger;
+ import ch.qos.logback.classic.LoggerContext;
+ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+ import ch.qos.logback.classic.spi.ILoggingEvent;
+ import ch.qos.logback.core.FileAppender;
+ public class DynamicLogWriter {
+  private String loggerName = null;
+  private final Logger logbackLogger;
+  public DynamicLogWriter(String logfileName) {
+   loggerName = logfileName;
+   LoggerContext loggerContext = new LoggerContext();
+   FileAppender<ILoggingEvent> fileAppender = new FileAppender<ILoggingEvent>();
+   fileAppender.setContext(loggerContext);
+   fileAppender.setName(&ldquo;logfile&rdquo;);
+   fileAppender.setFile(&ldquo;log/&rdquo; + loggerName + &ldquo;.log&rdquo;);
+   PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+   encoder.setContext(loggerContext);
+   encoder.setPattern(&ldquo;%msg&rdquo;);
+   encoder.start();
+   fileAppender.setEncoder(encoder);
+   fileAppender.start();
+   logbackLogger = loggerContext.getLogger(&ldquo;nelogger&rdquo;);
+   logbackLogger.addAppender(fileAppender);
+   // OPTIONAL: print logback internal status messages
+   // StatusPrinter.print(loggerContext);
+  }
+  public void writeNeLog(String msg) {
+   logbackLogger.debug(msg);
+  }
+  public static void main(String[] args) {
+   for (int i = 0; i &lt; 500; i++) {
+    new Thread(new ThreadWrapper(i)).start();
+   }
+  }
+ }
+ class ThreadWrapper implements Runnable {
+  private final int id;
+  public ThreadWrapper(int i) {
+   id = i;
+  }
+  @Override
+  public void run() {
+   DynamicLogWriter logWriter = new DynamicLogWriter(&ldquo;192.168.0.2.&rdquo; + id);
+   logWriter.writeNeLog(&ldquo;Welcome t&rdquo;);
+   logWriter.writeNeLog(&ldquo;o Ubuntu 11.4\r\nlogi&rdquo;);
+   logWriter.writeNeLog(&ldquo;n:user\r\npasswor&rdquo;);
+   logWriter.writeNeLog(&ldquo;d:\r\nlast login&hellip;&rdquo;);
+  }
+ }</p>
+
+<p>参考： <a href="http://stackoverflow.com/questions/7824620/logback-set-log-file-name-programatically">http://stackoverflow.com/questions/7824620/logback-set-log-file-name-programatically</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Logback笔记]]></title>
+    <link href="http://leetschau.github.io/blog/2012/05/10/112349/"/>
+    <updated>2012-05-10T11:23:49+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/05/10/112349</id>
+    <content type="html"><![CDATA[<ul>
+<li><p>打印logback调试信息：<configuration debug="true"></p></li>
+<li><p>自动感知文件变化：<configuration scan="true" scanPeriod="30 seconds" >，不加scanPeriod的话，默认值是1分钟，一般用默认值就行；</p></li>
+<li><p>不打印第一行格式信息：</p></li>
+<li><p>不打印调试信息：将ch.qos.logback.core.ConsoleAppender包含的<layout>改为<encoder></p></li>
+<li><p>appender的级别设置：在appender里加filter，在filter上附加level；</p></li>
+<li><p>日志中的日期格式：</p>
+
+<p>  %date{yyyy-MMM-dd;HH:mm:ss.SSS} 2012-五月-14;16:05:44.667 &hellip;
+  %date{yyyy-MM-dd;HH:mm:ss}   2012-05-14;16:05:44</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

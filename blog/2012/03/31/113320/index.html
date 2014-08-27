@@ -1,0 +1,430 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mina读写事件的发生顺序 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。 import java.net.InetSocketAddress; import org.apache. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2012/03/31/113320">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Mina读写事件的发生顺序</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-31T11:33:20+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>11:33 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。</p>
+
+<p>import java.net.InetSocketAddress;</p>
+
+<p>import org.apache.mina.transport.socket.SocketAcceptor;</p>
+
+<p>import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
+
+<p>public class Main {</p>
+
+<p>public static void main(String[] args) throws Exception {</p>
+
+<p>SocketAcceptor acceptor = new NioSocketAcceptor();</p>
+
+<p>acceptor.getFilterChain().addLast(&ldquo;myfilter1&rdquo;, new MyFilter1());</p>
+
+<p>acceptor.getFilterChain().addLast(&ldquo;myfilter2&rdquo;, new MyFilter2());</p>
+
+<p>acceptor.setHandler(new EchoProtocolHandler());</p>
+
+<p>acceptor.bind(new InetSocketAddress(8293));</p>
+
+<p>System.out.println(&ldquo;Listening on port &rdquo; + PORT);</p>
+
+<p>}</p>
+
+<p>}</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilter;</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
+
+<p>import org.apache.mina.core.session.IdleStatus;</p>
+
+<p>import org.apache.mina.core.session.IoSession;</p>
+
+<p>import org.apache.mina.core.write.WriteRequest;</p>
+
+<p>import org.slf4j.Logger;</p>
+
+<p>import org.slf4j.LoggerFactory;</p>
+
+<p>public class MyFilter1 implements IoFilter {</p>
+
+<p>private static final Logger LOGGER = LoggerFactory</p>
+
+<p>.getLogger(MyFilter1.class);</p>
+
+<p>public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+
+<p>Object message) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;MessageReceived!&rdquo;);</p>
+
+<p>nextFilter.messageReceived(session, message);</p>
+
+<p>}</p>
+
+<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;messageSent!&rdquo;);</p>
+
+<p>nextFilter.messageSent(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;filterWrite!&rdquo;);</p>
+
+<p>nextFilter.filterWrite(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>  // some other methods must implemented.</p>
+
+<p>}</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilter;</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
+
+<p>import org.apache.mina.core.session.IdleStatus;</p>
+
+<p>import org.apache.mina.core.session.IoSession;</p>
+
+<p>import org.apache.mina.core.write.WriteRequest;</p>
+
+<p>import org.slf4j.Logger;</p>
+
+<p>import org.slf4j.LoggerFactory;</p>
+
+<p>public class MyFilter2 implements IoFilter {</p>
+
+<p>private static final Logger LOGGER = LoggerFactory</p>
+
+<p>.getLogger(MyFilter2.class);</p>
+
+<p>  public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+
+<p>Object message) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;MessageReceived!&rdquo;);</p>
+
+<p>nextFilter.messageReceived(session, message);</p>
+
+<p>}</p>
+
+<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;messageSent!&rdquo;);</p>
+
+<p>nextFilter.messageSent(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;filterWrite!&rdquo;);</p>
+
+<p>nextFilter.filterWrite(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>   // some other methods must implemented.</p>
+
+<p>}</p>
+
+<p>import org.apache.mina.core.buffer.IoBuffer;</p>
+
+<p>import org.apache.mina.core.service.IoHandlerAdapter;</p>
+
+<p>import org.apache.mina.core.session.IoSession;</p>
+
+<p>import org.slf4j.Logger;</p>
+
+<p>import org.slf4j.LoggerFactory;</p>
+
+<p>public class EchoProtocolHandler extends IoHandlerAdapter {</p>
+
+<p>private static final Logger LOGGER = LoggerFactory</p>
+
+<p>.getLogger(EchoProtocolHandler.class);</p>
+
+<p>@Override</p>
+
+<p>public void exceptionCaught(IoSession session, Throwable cause) {</p>
+
+<p>session.close(true);</p>
+
+<p>}</p>
+
+<p>@Override</p>
+
+<p>public void messageReceived(IoSession session, Object message)</p>
+
+<p>throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;Received : &rdquo; + message);</p>
+
+<p>session.write(((IoBuffer) message).duplicate());</p>
+
+<p>}</p>
+
+<p>@Override</p>
+
+<p>public void messageSent(IoSession session, Object message) {</p>
+
+<p>LOGGER.info(&ldquo;messageSent &rdquo; + message);</p>
+
+<p>}</p>
+
+<p>}</p>
+
+<p>用XShell运行telnet localhost 8293，发一个字符串"hi"，运行结果如下：</p>
+
+<p>Listening on port 8293</p>
+
+<p>[INFO] [2012-03-31 14:03:38,575] [com.leechau.mina.echoServer.MyFilter1] - [MessageReceived!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,576] [com.leechau.mina.echoServer.MyFilter2] - [MessageReceived!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,577] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter2] - [filterWrite!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter1] - [filterWrite!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter1] - [messageSent!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter2] - [messageSent!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.EchoProtocolHandler] - [messageSent HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
+
+<p>可以看到messageReceived事件从Filter链顶端传播到handler；filterWrite事件发生在handler开始发送消息，但还未写入socket时，仅对Filter链有效，不作用于handler，从链尾向链首传播；messageSent事件发生在socket已被写入之后，从链顶端传播到handler；</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2012-03-31T11:33:20+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>11:33 am</span></time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2012/03/31/113320/" data-via="" data-counturl="http://leetschau.github.io/blog/2012/03/31/113320/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/03/30/174213/" title="Previous Post: Mina的JMX支持">&laquo; Mina的JMX支持</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/04/01/091245/" title="Next Post: Customize Code Template in Eclipse">Customize Code Template in Eclipse &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

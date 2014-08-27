@@ -1,0 +1,678 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="HAProxy的名字来自于 High-availability clusters &ldquo;，关于计算机集群，可以参考&rdquo; Computer cluster &ldquo;。 假设haproxy安装在10.0.2.47上，被负载均衡的两个GODU服务器分别在10.0.2.47和10. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/posts/74">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/06/175629/">HAProxy安装笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-06T17:56:29+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:56 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>HAProxy的名字来自于 High-availability clusters &ldquo;，关于计算机集群，可以参考&rdquo; Computer cluster &ldquo;。</p>
+
+<p>假设haproxy安装在10.0.2.47上，被负载均衡的两个GODU服务器分别在10.0.2.47和10.32.1.38上。安装部署的过程并不复杂：
+ 上传压缩包并解压
+ftp 10.0.2.47</p>
+
+<p>hash</p>
+
+<p>bin</p>
+
+<p>put f:\warez\Develop\HAProxy\haproxy-1.4.17.tar.gz</p>
+
+<p>tar -zxvf haproxy-1.4.17.tar.gz</p>
+
+<p> make</p>
+
+<p>make TARGET=linux26</p>
+
+<p>结果是生成一个新的可执行文件：-rwxrwxr-x 1 godu godu 1601387 09-06 10:50 haproxy
+ install
+切换成root用户：su - root，口令root</p>
+
+<p>安装：make install</p>
+
+<p>安装完成后在/usr/local目录下生成一个haproxy目录，结构为：</p>
+
+<p>drwxr-xr-x 3 root root 4096 09-07 10:04 doc
+drwxr-xr-x 2 root root 4096 09-07 10:04 sbin
+drwxr-xr-x 3 root root 4096 09-07 10:04 share
+ 配置
+在这个目录下新建一个名为haproxy.conf的文件，内容为：</p>
+
+<p> global
+  maxconn 65535
+  uid 0
+  gid 0
+defaults
+  mode tcp
+  timeout connect 5000ms
+  timeout client 30000ms
+  timeout server 30000ms
+listen test1
+  bind 0.0.0.0: 1357
+  mode tcp
+  server s1 10.0.2.47:1234
+  server s2 10.32.1.38:1234</p>
+
+<p>其中bind后面的端口是haproxy的端口，两个server是被haproxy负载均衡的GODU服务器；
+ 启动
+在/usr/local/haproxy下输入命令 sbin/haproxy -f haproxy.conf</p>
+
+<p> 使用haproxy
+将10.0.2.47 1357作为GODU群的“门面”即可， telnet 10.0.2.47 1357 （相对于不用haproxy时的telnet 10.0.2.47 1234）。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/06/095033/">绿色djvu阅读软件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-06T09:50:33+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>官方的djvu viewer都需要安装，总算找到一个绿色版的，名为STDU Viewer，可以阅读的格式包括DjVu, PDF, TIFF, XPS, FB2等，版本为1.6.2。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/05/170533/">Shell中的替换和引用</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-05T17:05:33+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:05 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Shell中的替换有4种形式，分别是：</p>
+
+<p>Filename substitution (called globbing)</p>
+
+<p>Value-based variable substitution</p>
+
+<p>Command substitution</p>
+
+<p>Arithmetic substitution</p>
+
+<p> Filename substitution指文件名的通配符，包括*,?和[]，分别表示任意长度字符串、单个字符和字符集合，例如：</p>
+
+<p> ls ch*可以列出ch01 ch23等，ls ch?可以列出ch1 chs等，ls ch[01]可以列出ch0或者ch1</p>
+
+<p>Value-based variable substitution是变量替换，基本方法是$variable_name。</p>
+
+<p>下面的例子演示了两点：一是“:-”的用法（若HOST未赋值，则表达式值为localhost，HOST保持不变，详见[1] Hour 8: Substitution），二是字符串可以直接组合。</p>
+
+<p> bash-3.00$ pp=${HOST:-localhost}&ldquo;$ &rdquo;</p>
+
+<p> bash-3.00$ echo $pp</p>
+
+<p> localhost$</p>
+
+<p> bash-3.00$ pp=${HOME:-localhost}&ldquo;$ &rdquo;</p>
+
+<p> bash-3.00$ echo $pp</p>
+
+<p> /opt/godu$</p>
+
+<p>Command substitution是将一个命令的输出进行替换，基本方法是用反引号或者$(&hellip;)括起命令，在指令替换有嵌套时用后者更方便，如</p>
+
+<p> bash-3.00$ mydate=<code>date</code></p>
+
+<p> bash-3.00$ echo $mydate</p>
+
+<p>Mon Sep 5 17:04:42 CST 2011
+ bash-3.00$ echo $(date) 2012年 05月 18日 星期五 14:34:19 CST
+ Arithmetic substitution是进行算术表达式求值，基本格式是$((&hellip;))，例如：</p>
+
+<p> foo=$(( ((5 + 3*2) - 4) / 2 ))</p>
+
+<p>单引号将内部的所有元字符（metacharactor）视为一般字符输出，双引号内$,`,\这些元字符（详见[1] Table 9.1）不被视为一般字符，例如：</p>
+
+<p> bash-3.00$ echo &lsquo;I have $23&rsquo;
+I have $23</p>
+
+<p> bash-3.00$ echo &ldquo;I have $23&rdquo;
+I have 3 bash-3.00$ echo &lsquo;I have \$23&rsquo;
+I have \$23</p>
+
+<p> bash-3.00$ echo &ldquo;I have \$23&rdquo;
+I have $23</p>
+
+<p> bash-3.00$ echo &lsquo;<code>date</code>&rsquo;
+<code>date</code> bash-3.00$ echo &ldquo;<code>date</code>&rdquo;
+2012年 05月 18日 星期五 14:55:40 CST</p>
+
+<p> bash-3.00$ echo &ldquo;$(date)&rdquo;
+2012年 05月 18日 星期五 14:57:07 CST</p>
+
+<p>[1] Sriranga Veeraraghavan, Sams Teach Yourself Shell Programming in 24 Hours, Sams Publishing, 1999</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/05/142706/">Windows7快捷键</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-05T14:27:06+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li>Win + 1, Win + 2 – 在任务栏中快速切换程序，任务栏第一位固定是Chrome，因此这个快捷键超级有用；</li>
+<li>Win + M - 最小化窗口；</li>
+<li>Win+ 上/下/左/右 – 移动当前激活窗口；其中Win +左/右 为移动窗口到屏幕两边，占半屏，Win + 上 为最大化当前窗口，下为恢复当前窗口，结合Win+M一起使用；</li>
+<li>Win + Shift + 左/右：扩展屏幕模式下，将当前窗口在两个屏幕间移动；</li>
+<li>Win + Tab - 图形化的窗口切换，WinXP中Alt+Tab的增强版；</li>
+<li>Win + Pause – 打开系统属性，即【开始->计算机->右键属性】；</li>
+<li>Ctrl + Shift + Esc – 快速打开Windows任务管理器；</li>
+<li>Ctrl + Shift + 左键 – 用管理员权限打开程序；</li>
+<li>Win + B – 移动光标到系统托盘；</li>
+<li>Win + P – 在显示器与投影间相互切换；</li>
+</ol>
+
+
+<p>其他快捷键：
+Shift+ 鼠标右键 – 增强版右键发送到 （似乎没什么用）
+Shift + 右键 –> 在当前文件夹用命令行打开 （相当于TotalCMD的Ctrl+G）
+Win + 空格 – 闪现桌面 （似乎没什么用）
+Win + Shift + 左/右 – 针对双显示器：移动当前窗口到左/右边的显示器上 （暂时用不上）</p>
+
+<p>Win + T – 显示任务栏窗口微缩图并回车切换 （不如win+tab好用）
+Shift + 左键 – 在任务栏对已打开的程序/文件夹再打开一次 （似乎没什么用）
+ Ctrl + Shift + N – 创建一个新的文件夹 （相对于TotalCMD的F7）</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/02/110415/">绿色版虚拟光驱软件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-02T11:04:15+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>11:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以前用的都是Daemon Tools，但这个软件需要破解，且不是绿色版的，现找用微软自己出的“Virtual CD-Rom Control Panel”代替它。从微软下载到的安装包是一个zip型exe文件，运行它，选好解压位置，例如f:\Software\VirtualCDControlPanel21，解压出来3个文件，然后按照readme.txt的步骤做就行了，需要说明以下几点：</p>
+
+<ol>
+<li><p>VCdRom.sys可以不拷贝到%SystemRoot%\system32\drivers下；</p></li>
+<li><p>mount文件时，文件路径名中不能有空格，否则会导致加载失败，最好也不要有中文；</p></li>
+<li><p>如果mount之前光驱里已有镜像，先Eject，再mount，mount之后可以点OK退出VCdControlTool界面，虚拟光驱继续存在；</p></li>
+<li><p>要卸载虚拟光驱，用VCdControlTool的“Remove Drive”按钮；</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/02/095537/">用notepad2代替notepad</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-02T09:55:37+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>9:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Windows自带的notepad.exe功能比较弱，notepad2是一个比较好的替代方案，但在任何系统调用notepad的时候都能用notepad2代替并不是一件容易的事，下面是一个解决方法：</p>
+
+<p> <a href="http://www.flos-freeware.ch/doc/notepad2-Replacement.html">http://www.flos-freeware.ch/doc/notepad2-Replacement.html</a></p>
+
+<p>但这种方法比较麻烦且副作用比较大，不建议使用。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/02/094446/">Autohotkey快捷键脚本快速更新方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-02T09:44:46+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>9:44 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>假设快捷键文件保存在e:\MyDoc\ahkFiles\hotkeyDefs.ahk中，由于这个文件会经常更新，每次定义了新的快捷键后都要做如下步骤：</p>
+
+<p>找到这个脚本文件并打开->修改文件->保存文件->重新载入文件（使新定义生效）；</p>
+
+<p>每次现找脚本再用鼠标重复这个动作很麻烦，实际上有比较简单的解决方法，在脚本文件里加上如下快捷键定义：</p>
+
+<p>  !+e:: Edit ; edit this file</p>
+
+<p>  !+r:: Reload ; reload this file</p>
+
+<p>这样每次需要修改时用Alt+Shift+E就可以打开这个脚本，修改完关闭后用Alt+Shift+R就可以更新快捷键定义了。</p>
+
+<p>默认用notepad打开脚本文件，如果想用其他编辑器修改，可以把第一行改为：</p>
+
+<p>  !+e:: Run, f:\Software\notepad2\Notepad2.exe e:\MyDoc\ahkFiles\hotkeyDefs.ahk</p>
+
+<p>或者参见笔记“用notepad2代替notepad”，但不推荐这个方法。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/01/172502/">安装Windows 7步骤</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-01T17:25:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>5:25 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>安装系统</h1>
+
+<ol>
+<li><p>制作装有PE系统的U盘，我用的是小马PE，制作过程是：用虚拟光驱加载小马PE，运行后按照程序指示制作U盘；</p></li>
+<li><p>用此U盘启动电脑，进入winPE环境；</p></li>
+<li><p>用虚拟光驱工具加载win7系统安装盘的ISO文件；</p></li>
+<li><p>用安装工具指向该虚拟光驱装win7；</p></li>
+<li><p>装完后关机，拔掉U盘，重启系统；</p></li>
+<li><p>从硬盘启动后进行后续的安装和配置，这样win7就装好了；</p></li>
+</ol>
+
+
+<h1>提高方便性的设置</h1>
+
+<h2>自动登录：见笔记 windows的自动登录和隐藏用户 ；</h2>
+
+<h2>使某程序可以自动启动：</h2>
+
+<p>方法一，对所有程序取消安全确认：控制面板->用户账户和家庭安全->用户账户->更改用户账户控制设置，将安全性设为最低一档，这种方法降低了系统安全性，不推荐；</p>
+
+<p>方法二，针对某一具体程序进行修改（以启动Everything为例）：任务计划程序（Task Scheduler）->创建任务（Create Task）：</p>
+
+<ol>
+<li><p>“常规”标签页下勾选“使用最高权限运行”;</p></li>
+<li><p>“操作”标签页下“新建”一个操作，“程序或者脚本”后填上Everything可执行文件的路径，如&#8221;D:\Apps\Everything\Everything-1.2.1.371.exe&#8221;，确认后返回“创建任务”窗体；</p></li>
+<li><p>“设置”标签页中确认勾选“运行按需运行任务”，“如果此任务已运行，以下规则适用”下面选“请勿启动新实例”；</p></li>
+</ol>
+
+
+<p>参考<a href="http://www.techrepublic.com/blog/window-on-windows/run-uac-restricted-programs-without-the-uac-prompt/730">Run UAC restricted programs without the UAC prompt</a>和<a href="http://www.techrepublic.com/blog/window-on-windows/make-vista-launch-uac-restricted-programs-at-startup-with-task-scheduler/616">Make Vista launch UAC restricted programs at startup with Task Scheduler</a></p>
+
+<p>方法三：使用<a href="http://www.microsoft.com/en-us/download/details.aspx?displaylang=en&amp;id=7352">Microsoft Application Compatibility Toolkit</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/23/165812/">Icescrum安装过程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-23T16:58:12+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>4:58 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>下载bundle包：icescrum_R3_11_bundle.zip</p></li>
+<li><p>解压到f:\Software\icescrum_R3_11_bundle\下；</p></li>
+<li><p>由于icescrum_R3_11需要jdk版本为1.6+，所以需要修改一下f:\Software\icescrum_R3_11_bundle\start.bat，在“@echo off”后面加上：</p></li>
+</ol>
+
+
+<p> set JAVA_HOME=f:\Software\jdk1.6.0_18</p>
+
+<p> set PATH=%JAVA_HOME%\bin</p>
+
+<ol>
+<li><p>运行start.bat，如果tomcat启动不成功，检查8080端口是否已被占用；</p></li>
+<li><p>tomcat启动成功后，打开浏览器输入： <a href="http://localhost:8080/icescrum">http://localhost:8080/icescrum</a> ，即可开始敏捷之旅 :)</p></li>
+</ol>
+
+
+<p>另：同类软件agilefant也不错，当前版本为2.0.4，但安装时需要配置数据库，所以选用了icescrum。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/22/124709/">Subclipse同步错误的修复方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-22T12:47:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>12:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>有时用subclipse（eclipse的svn插件）同步SVN库时会出现“connection refused by the server”错误，如下图：</p>
+
+<p>解决方法如下：在Window->Preferences->Team->SVN->SVN接口改为&#8221;JavaHL&#8221;，如下图：</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/posts/75">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/posts/73">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

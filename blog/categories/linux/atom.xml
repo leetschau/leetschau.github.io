@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Linux | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/linux/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-08-26T18:14:13+08:00</updated>
+  <updated>2014-08-27T13:25:34+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -30,6 +30,134 @@
 </code></pre>
 
 <p>That&rsquo;s it. Now you can logout. In login manager, you can find &ldquo;i3&rdquo;, choose it, and login i3 environment.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Serial Device Debug on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/09/140312/"/>
+    <updated>2014-08-09T14:03:12+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/09/140312</id>
+    <content type="html"><![CDATA[<p>The device name is &ldquo;Prolific Technology, Inc. PL2303 Serial Port&rdquo;, you can use <code>lsusb</code> to get its name. Then install gtkterm for communicating with it.</p>
+
+<pre><code>$ sudo apt-get install gtkterm
+</code></pre>
+
+<p>Now use syslog to get the device name of pl2303.</p>
+
+<pre><code>$ tail -f /var/log/syslog
+...
+... usb 3-2: pl2303 converter now attached to ttyUSB0
+...
+</code></pre>
+
+<p>So its device name is /dev/ttyUSB0. Now you can connect it with gtkterm:</p>
+
+<pre><code>$ sudo gtkterm -p /dev/ttyUSB0 -s 57600
+</code></pre>
+
+<p>View -> Send hexadecimal data: 41 54 2B 53 43 41 4E</p>
+
+<h1>minicom</h1>
+
+<pre><code># apt-get install minicom
+</code></pre>
+
+<p>But I don&rsquo;t know how to send command via this application.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Scala Development on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/07/092400/"/>
+    <updated>2014-08-07T09:24:00+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/07/092400</id>
+    <content type="html"><![CDATA[<h1>sbt + vim</h1>
+
+<ol>
+<li><p>Download sbt package (sbt-0.13.5.deb for Mint 17 64bit) from <a href="http://www.scala-sbt.org/">sbt website</a>;</p></li>
+<li><p>Install it, then start sbt repl with <code>sbt</code> in shell;</p></li>
+</ol>
+
+
+<p>This will install sbt and scala.</p>
+
+<p>Now you can run scala repl with <code>sbt console</code> in shell, or run <code>console</code> within sbt repl.</p>
+
+<h2>Script REPL</h2>
+
+<p>Create a file &ldquo;Hi.scala&rdquo;:</p>
+
+<pre><code>object Hi extends App {
+    println("Hi, there")
+}
+</code></pre>
+
+<p>Then run this script within sbt:</p>
+
+<pre><code>$ sbt
+...
+&gt; run
+...
+[info] Running Hi
+Hi, there
+</code></pre>
+
+<p>You can use tilde prefix to detect source change automatically, just use &ldquo;~run&rdquo; instead of &ldquo;run&rdquo; in above example.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Edit Fstab Manually to Monnt a Specific Partition]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/29/182624/"/>
+    <updated>2014-07-29T18:26:24+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/29/182624</id>
+    <content type="html"><![CDATA[<ol>
+<li><p>On the old Mint OS, create a new partition with &ldquo;Disk&rdquo; tools, copy &ldquo;apps&rdquo;, &ldquo;docs&rdquo;, etc folders to the new partition;</p></li>
+<li><p>Login Arch OS as root;</p></li>
+<li><p>Get the UUID (and label) of the &ldquo;home&rdquo; partition with command <code>blkid</code> or <code>lsblk -f</code>;</p></li>
+<li><p>Create user chad: <code>useradd -m chad</code>;</p></li>
+<li><p>Modify /etc/fstab of the Arch OS,</p>
+
+<p> $ cat /etc/fstab
+ &hellip;
+ UUID=&hellip;    /home/chad    ext4    &hellip;    0    2</p></li>
+<li><p>Reboot;</p></li>
+</ol>
+
+
+<p>You can specify <file system> section in fstab (the first column) with &ldquo;LABEL=&hellip;&rdquo; instead of &ldquo;UUID=&hellip;&rdquo;. Use <code>e2label /dev/sda1 &lt;label&gt;</code> to set partition label. But using UUID is a more reliable way.</p>
+
+<p>Ref: &ldquo;Field Definitions&rdquo; in <a href="https://wiki.archlinux.org/index.php/fstab">fstab on Arch Wiki</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Share Files Between Linux Hosts With NFS]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/25/105006/"/>
+    <updated>2014-07-25T10:50:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/25/105006</id>
+    <content type="html"><![CDATA[<h1>Server</h1>
+
+<pre><code># sudo apt-get install nfs-kernel-server nfs-common portmap
+# cat /etc/exports
+...
+/home/chad/warez 10.32.1.6 (ro,async,subtree_check)
+# service nfs-kernel-server start
+</code></pre>
+
+<h1>Client</h1>
+
+<pre><code># apt-get install nfs-common
+# cat /etc/hosts
+...
+10.32.1.154 laptop
+# mount laptop:/home/chad/warez /mnt/netshare
+</code></pre>
+
+<p>Now you can read all files under /mnt/netshare, because the flag &ldquo;ro&rdquo; specified in /etc/exports on server host.</p>
+
+<p>Unmount it with <code>umount /mnt/netshare</code>.</p>
 ]]></content>
   </entry>
   
