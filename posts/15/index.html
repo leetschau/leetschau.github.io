@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="You can use &ldquo;time&rdquo; or &ldquo;/usr/bin/time -p&rdquo; to calculate the running timespan of a command: % time vmstat 2 2
-procs &mdash;& &hellip;">
+  <meta name="description" content="The following is frequently used ant script, compile some java source codes with a libary path, then copy all non-java files to compiled folder: &lt; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,209 @@ procs &mdash;& &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/07/172525/">Compile Java Codes in Linux Shell Instead of Ant Script</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-07T17:25:25+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:25 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following is frequently used ant script, compile some java source codes with a libary path, then copy all non-java files to compiled folder:</p>
+
+<pre><code>&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${webroot.dir}/web-inf/classes" /&gt;
+&lt;path id="lib.path"&gt;
+    &lt;fileset dir="${webroot.dir}/web-inf/lib"&gt;
+        &lt;include name="**/*.jar" /&gt;
+    &lt;/fileset&gt;
+&lt;/path&gt;
+&lt;target name="compile-src" depends="init" description="compile java sources"&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="utf-8"
+            debug="true" classpathref="lib.path" failonerror="false"/&gt;
+    &lt;copy todir="${src.class.dir}"&gt;
+        &lt;fileset dir="${src.dir}"&gt;
+            &lt;exclude name="**/*.java" /&gt;
+        &lt;/fileset&gt;
+    &lt;/copy&gt;
+&lt;/target&gt;
+</code></pre>
+
+<p>The corresponding shell script is:</p>
+
+<pre><code>src_dir=/vagrant/codes/GCP6.1/src
+web_build=/vagrant/codes/web_build
+class_dir=$web_build/web_server/webapps/GCP6.1/WEB-INF/classes
+lib_dir=/vagrant/codes/GCP6.1/WebRoot/WEB-INF/lib
+find $src_dir -type f -name "*.java" -exec javac -cp "$lib_dir/*:$src_dir" -d $class_dir {} \;
+rsync -auC --exclude='*.java' $src_dir/ $class_dir/
+</code></pre>
+
+<p>Take care there&rsquo;s no folder named &ldquo;core&rdquo; in $src_dir, or it will be excluded by the &ldquo;-C&rdquo; option of rsync command.</p>
+
+<h1>A Test Case</h1>
+
+<pre><code>$ tree
+.
+├── classes
+├── lib
+│   ├── libadd.jar
+│   └── libmul.jar
+├── libadd
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── add
+│                   ├── MyAdd.class
+│                   └── MyAdd.java
+├── libmul
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── mul
+│                   ├── MyMul.class
+│                   └── MyMul.java
+└── main
+    └── com
+        └── boco
+            └── gcp
+                ├── Test.java
+                └── util
+                    └── MyUtil.java
+
+17 directories, 8 files
+
+$ find . -name '*.java' -exec cat {} \; -exec echo "--------" \;
+package com.boco.gcp.util;
+
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.mul.MyMul;
+
+public class MyUtil {
+    public int newadd(int x, int y) {
+        MyAdd add = new MyAdd();
+        MyMul mul = new MyMul();
+        return add.myadd(3,5) + mul.mymul(3,5);
+    }
+}
+--------
+package com.boco.gcp;
+
+import com.boco.gcp.mul.MyMul;
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.util.MyUtil;
+
+public class Test {
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        MyAdd add = new MyAdd();
+        System.out.println(mul.mymul(3,5));
+        System.out.println(add.myadd(3,5));
+        MyUtil util = new MyUtil();
+        System.out.println(util.newadd(3,5));
+    }
+}
+--------
+package com.boco.gcp.mul;
+
+public class MyMul {
+    public int mymul(int x, int y) {
+        return 10*x*y;
+    }
+
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        System.out.println(mul.mymul(3,5));
+    }
+}
+--------
+package com.boco.gcp.add;
+
+public class MyAdd {
+    public int myadd(int x, int y){
+        return 10*x+y;
+    }
+
+    public static void main(String[] args) {
+        MyAdd add = new MyAdd();
+        System.out.println(add.myadd(3,5));
+    }
+}
+--------
+$ find main -name '*.java' -exec javac -cp 'lib/*:main' {} -d classes \;
+$ tree classes/
+classes/
+└── com
+    └── boco
+        └── gcp
+            ├── Test.class
+            └── util
+                └── MyUtil.class
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/07/135434/">Network Tools on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-07T13:54:34+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>1:54 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>aria2c, curl, wget: Download tools;</p></li>
+<li><p>ping: ping -c 4 bing.com;</p></li>
+<li><p>tracepath bing.com;</p></li>
+<li><p>mtr bing.com: combination of ping and tracepath;</p></li>
+<li><p>host bing.com; host 204.79.197.200</p></li>
+<li><p>whois bing.com</p></li>
+<li><p>ifconfig;</p></li>
+<li><p>ifup; ifdown;</p></li>
+<li><p>ifplugstatus: sudo apt-get install ifplugd</p></li>
+<li><p>netstat -p; netstat -s;</p></li>
+<li><p>dhclient (root privilege): free IP address, and get a new one from DHCP server;</p></li>
+</ul>
+
+
+<p>Ref: <a href="http://www.geekfan.net/7192/">如何用Linux命令行管理网络：11个你必须知道的命令</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -486,125 +688,6 @@ Now every time select all text in Baidu Web IM with Ctrl-a, the text is stored i
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/26/100347/">Build VM Cluster on CentOS Host</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-26T10:03:47+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:03 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Host Machine</h1>
-
-<p>[root@bocoty49 ~]# lsb_release -a
-LSB Version:    :base-4.0-amd64:base-4.0-noarch:core-4.0-amd64:core-4.0-noarch:graphics-4.0-amd64:graphics-4.0-noarch:printing-4.0-amd64:printing-4.0-noarch
-Distributor ID: CentOS
-Description:    CentOS release 6.4 (Final)
-Release:    6.4
-Codename:   Final</p>
-
-<h1>VirtualBox</h1>
-
-<p>AMD64 version of &ldquo;Oracle Linux 6(&#8220;OL6&rdquo;)/Red Hat Enterprise Linux 6(&ldquo;RHEL6&rdquo;)/CentOS 6&#8221; on <a href="https://www.virtualbox.org/wiki/Linux_Downloads">download page of VirtualBox website</a>
-File name: VirtualBox-4.3-4.3.8_92456_el6-1.x86_64.rpm</p>
-
-<h1>Vagrant</h1>
-
-<p>CentOS/RedHat/Fedora 64-bit Vagrant Installer on <a href="http://www.vagrantup.com/downloads.html">Vagrant download page</a>
-File name: vagrant_1.4.3_x86_64.rpm</p>
-
-<h1>Usage</h1>
-
-<ol>
-<li><p>Install Virtualbox and vagrant;</p></li>
-<li><p>When &lsquo;vagrant up&rsquo;, a &ldquo;vboxdrv kernel module is not loaded&rdquo; error raise,</p></li>
-</ol>
-
-
-<p>The &ldquo;Release&rdquo; of <code>yum info kernel-headers</code> is &ldquo;431.5.1.el6&rdquo;, which mismatched the result of <code>uname -r</code>(2.6.32-358.23.2.el6.x86_64), so kernel-headers package is unavailable to the current kernel. The solution is update the kernel release to match the packages:</p>
-
-<pre><code># yum update    (this will install kernel-2.6.32-431.5.1.el6.x86_64)
-# reboot (after reboot `uname -r` returns "2.6.32-431.5.1.el6.x86_64", too)
-# yum install gcc
-# yum install kernel-devel
-# /etc/init.d/vboxdrv setup  (Recompiling VirtualBox kernel modules)
-</code></pre>
-
-<ol>
-<li><p><code>vagrant up</code> again.
-The network for the VM is &ldquo;bvtserver.vm.network :public_network&rdquo;, which is suspent when configuring the network. I change the type of network to &ldquo;host-only&rdquo;:</p>
-
-<p> production.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.5&rdquo;,
-     virtualbox__intnet: &ldquo;gcptest-network&rdquo;</p></li>
-</ol>
-
-
-<p>Now you can use ssh between each other via host-only NIC, and use apt-get to install packages via NAT NIC, so cool!</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/25/103906/">Awesome Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-25T10:39:06+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install</h1>
-
-<pre><code>$ sudo aptitude install awesome
-</code></pre>
-
-<h2>Build from source</h2>
-
-<pre><code>$ aria2c -s 5 http://awesome.naquadah.org/download/awesome-3.5.2.tar.bz2
-$ tar jxf awesome-3.5.2.tar.bz2
-$ cd awesome-3.5.2
-$ sudo aptitude install cmake
-$ make
-</code></pre>
-
-<p>Some failed information at this step.</p>
-
-<h1>Usage</h1>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/16">&larr; Older</a>
@@ -622,6 +705,14 @@ $ make
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/30/104928/">Docker Notes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/27/180124/">Spark Notes</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
       </li>
     
@@ -631,14 +722,6 @@ $ make
     
       <li class="post">
         <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
       </li>
     
   </ul>

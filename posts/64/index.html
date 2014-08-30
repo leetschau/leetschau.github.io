@@ -9,7 +9,10 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="静态语言实现回调的方法有待后续补充； Twisted Introduction from KRONDO by Dave Peticolas, Part6中使用的源代码twisted-client-3\get-poetry.py很好的阐述了python中实现回调（call back）的方法， &hellip;">
+  <meta name="description" content="下载Eclipse IDE for C/C++ Developers(CDT)和 mingw离线安装包 ；
+安装mingw，将$MINGW_DIR/bin加入到$PATH中；（实验一下）
+解压Eclipse，新建一个C project，Toolchains选择“MinGW GCC”；
+bingo &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +68,260 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/30/085537/">基于Eclipse+MinGW的C开发环境</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-30T08:55:37+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下载Eclipse IDE for C/C++ Developers(CDT)和 mingw离线安装包 ；
+安装mingw，将$MINGW_DIR/bin加入到$PATH中；（实验一下）
+解压Eclipse，新建一个C project，Toolchains选择“MinGW GCC”；
+bingo!</p>
+
+<p>参考 Eclipse+CDT+MinGW开发环境配置 ；</p>
+
+<p>另外还有一个 lcc ，界面太老土，居然不能调整界面字体大小，不用了。</p>
+
+<p>2012-12-11更新：</p>
+
+<p>运行一个C HelloWorld程序需要以下步骤：</p>
+
+<ol>
+<li><p>解压MinGW，并将$MINGW_DIR/bin加入到$PATH中；</p></li>
+<li><p>启动Eclipse CDT；</p></li>
+<li><p>新建一个C项目（Package Explorer的项目文件夹下出现&#8221;Includes&#8221;文件夹，证明MinGW被Eclipse找到了），在项目属性的&#8221;C/C++ Build -> Tool Chain Editor&#8221;里选MinGW；</p></li>
+<li><p>写源代码；</p></li>
+<li><p>项目上右键 -> Build Configuration -> build all，正确编译后Package Explorer的项目文件夹下应该有一个&#8221;Binaries&#8221;文件夹，里面有build生成的exe文件；</p></li>
+<li><p>项目上右键 -> Run as -> Local C/C++ Application；</p></li>
+</ol>
+
+
+<p>存在问题：由于MinGW中不包括gdb.exe，所以只能运行程序，不能调试程序，实用价值不大，尝试codeblocks；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/25/101848/">RMI运行实例</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-25T10:18:48+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:18 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>计算机的远程通信有很多种方法， RPC 的设计目标是让一台主机（客户端）上的程序能够引用另一台主机（服务端）上对象，并运行它的方法，也就是“跨地址空间的进程间通信”， RMI 是RPC的Java语言实现。</p>
+
+<p>本实例包含5个文件：</p>
+
+<p>// ================= Hello.java ====================</p>
+
+<p>package test.rmi;</p>
+
+<p>import java.rmi.Remote;</p>
+
+<p>import java.rmi.RemoteException;</p>
+
+<p>/**</p>
+
+<ul>
+<li><p>远程方法调用接口，定义远程调用方法</p></li>
+</ul>
+
+
+<p> */</p>
+
+<p>public interface Hello extends Remote {</p>
+
+<p> String sayHello() throws RemoteException;</p>
+
+<p>}</p>
+
+<p> //=================  HelloServer.java =============================
+ package test.rmi;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+/<strong>
+ <em><p>服务器端，实现了Hello接口中的方法，用于实现远程调用方法的具体业务逻辑</p>
+ </em>/
+public class HelloServer extends UnicastRemoteObject implements Hello {
+  private static final long serialVersionUID = 1L;
+  String name;
+  public HelloServer(String s) throws RemoteException {
+   super();
+   name = s;
+  }
+  public String sayHello() throws RemoteException {
+   return &ldquo;Hello from lc!&rdquo;;
+  }
+  public static void main(String[] args) {
+   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
+   * 并且在命令行中使用如下格式
+   * java -Djava.security.policy=java.policy test.rmi.HelloServer
+   <em>/
+   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
+   Registry registry = null;
+   try {
+    /**启动注册服务器，使用了这个语句就不再需要在命令行环境中
+    </em>启动registry服务了
+    <em>/
+    registry = LocateRegistry.getRegistry();
+    /</em> 若没有获得连接，则此句会抛出异常，后面在捕获后进行相关处理 */
+    registry.list();
+    System.out.println(&ldquo;Register the exist server!&rdquo;); //$NON-NLS-1$
+   } catch (RemoteException re) {
+    try {
+     int port = Integer.parseInt(Configur
+        .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;)); //$NON-NLS-1$
+     registry = LocateRegistry.createRegistry(port);
+     System.out.println(&ldquo;Create Registry Server!&rdquo;); //$NON-NLS-1$
+    } catch (Exception e) {
+     e.printStackTrace();
+    }
+   }
+   try {
+    HelloServer helloServer = new HelloServer(&ldquo;Hello&rdquo;);
+    registry.rebind(
+       Configur.getString(&ldquo;HelloServer.HelloServerName&rdquo;), helloServer); //$NON-NLS-1$
+    System.out.println(&ldquo;HelloServer server start!&rdquo;); //$NON-NLS-1$
+   } catch (Exception e) {
+    e.printStackTrace();
+   }
+  }
+}</p>
+
+<p>//==================  HelloClient.java ============================
+ package test.rmi;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+/<strong>
+ * <p>客户端，需要注册服务器并使用jndi</p>
+ */
+public class HelloClient {
+  public static void main(String[] args) {
+   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
+   * 并且在命令行中使用如下格式
+   * java -Djava.security.policy=java.policy test.rmi.HelloServer
+   <em>/
+   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
+   try {
+    /</em> 注册服务器 */
+    String hostName = Configur
+       .getString(&ldquo;HelloServer.RegistryServerName&rdquo;);
+    int port = Integer.parseInt(Configur
+       .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;));
+    Registry registry = LocateRegistry.getRegistry(hostName, port);
+    Hello hello = (Hello) registry.lookup(Configur
+       .getString(&ldquo;HelloServer.HelloServerName&rdquo;));
+    String message = hello.sayHello();
+    System.out.println(message);
+   } catch (Exception e) {
+    e.printStackTrace();
+   }
+  }
+}</p>
+
+<p>//================= Configur.java =============================
+ package test.rmi;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+/<em>*
+ * <p>获取系统运行所需要的配置信息，对应的配置文件名称为config.properties</p>
+ </em>/
+public class Configur {
+ private static final String BUNDLE_NAME = &ldquo;test.rmi.config&rdquo;;
+ private static final ResourceBundle RESOURCE_BUNDLE = ResourceBundle
+   .getBundle(BUNDLE_NAME);
+ private Configur() {
+ }</p>
+
+<p> /<em>*
+  * <p>通过key名称获得配置文件的相关信息</p>
+  * @param key key名称
+  * @return String 配置文件信息
+  </em>/
+ public static String getString(String key) {
+  try {
+   return RESOURCE_BUNDLE.getString(key);
+  } catch (MissingResourceException e) {
+   return &lsquo;!&rsquo; + key + &lsquo;!&rsquo;;
+  }
+ }
+}</p>
+
+<p>//================= config.properties =============================
+ HelloServer.RegistryServerPort=1111
+HelloServer.HelloServerName=HelloServer
+HelloServer.RegistryServerName=10.31.1.71</p>
+
+<p> 源代码目录是e:\MyDoc\JEx\Ex1\src，Eclipse自动生成的class文件在e:\MyDoc\JEx\Ex1\bin（以及包目录）下。 运行方法：</p>
+
+<ol>
+<li>E:\MyDoc\JEx\Ex1\bin> rmic test.rmi.HelloServer  （rmic.exe是$JAVA_HOME/bin里的文件）</li>
+</ol>
+
+
+<p> 生成e:\MyDoc\JEx\Ex1\bin\test\rmi\HelloServer_Stub.class文件（没有生成skeleton文件）</p>
+
+<ol>
+<li>E:\MyDoc\JEx\Ex1\bin> java test.rmi.HelloServer</li>
+</ol>
+
+
+<p> Create Registry Server!
+ HelloServer server start!</p>
+
+<ol>
+<li><p>关闭本机的Windows防火墙；</p></li>
+<li><p>copy HelloClient.class, HelloServer_Stub.class, Hello.class, Configur.class, config.properties到另一台机器，运行 java test.rmi.HelloClient ，返回&#8221;Hello from lc!&ldquo;。</p></li>
+</ol>
+
+
+<p>要运行Server只需要Hello.class, HelloServer.class, Configur.class, config.properties 4个文件，HelloServer_Stub.class只在客户端需要。</p>
+
+<p>可以看到客户端新建了一个Hello类型的对象，然后调用了这个对象的方法sayHello，而这个对象和方法的定义在另一台主机上。</p>
+
+<p>RMI是一种同步调用方式，也就是说代码运行到&#8221;String message = hello.sayHello()&ldquo;是会阻塞（block），直到服务端返回sayHello的结果，与此相对， JMS 是异步发送消息，客户端发送完消息后不等待结果返回，运行后面的代码。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -719,210 +976,6 @@ Writing F:\Software\Python27\Lib\site-packages\paramiko-1.7.7.1-py2.7.egg-info</
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/09/161610/">Java的管道流</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-09T16:16:10+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>java.io包里有两个关于管道传输的类，PipedInputStream和PipedOutputStream，它们可以看做是一个传输管道的两端，PipedOutputStream是发送端（入口），用write和flush方法向管道中“推”数据，PipedInputStream是接收端（出口），用read方法接收数据，构造这样一个管道的通常做法是：</p>
-
-<p> PipedOutputStream out = new PipedOutputStream();</p>
-
-<p> PipedInputStream in = new PipedInputStream(out);</p>
-
-<p>站在管道的角度看，将入口叫做&#8221;output&#8221;是一件很诡异的事，因此我估计java的开发者是站在管道使用者的角度命名，向管道里送数据是output，从管道里读数据是input吧。</p>
-
-<p>如果这个管道只传输字符，还可以用java.io里的PipedReader和PipedWriter，使用方法与上述stream类相似。</p>
-
-<p>apache sshd的ClientChannel类的setIn方法需要一个InputStream参数，而PipedInputStream是InputStream的子类，这样我们就可以用下面的方法向SshClient发送数据了：</p>
-
-<p> SshClient client = SshClient.setUpDefaultClient();</p>
-
-<p> client.start();</p>
-
-<p> ClientSession session = client.connect(&ldquo;10.0.2.47&rdquo;, 22).await().getSession();</p>
-
-<p> session.authPassword(&ldquo;user&rdquo;, &ldquo;password&rdquo;).await().isSuccess();</p>
-
-<p> ClientChannel channel = session.createChannel(ClientChannel.CHANNEL_SHELL);</p>
-
-<p> // 到这里ssh client完成了登录动作</p>
-
-<p> PipedOutputStream out = new PipedOutputStream();</p>
-
-<p> channel.setIn(new PipedInputStream(out));</p>
-
-<p> // 这两句建立了一个 pipedOut -> pipedIn -> ssh client的数据管道，下面就可以用write方法给client发数据了</p>
-
-<p> ByteArrayOutputStream output = new ByteArrayOutputStream();</p>
-
-<p> ByteArrayOutputStream err = new ByteArrayOutputStream();</p>
-
-<p> channel.setOut(output);</p>
-
-<p> channel.setErr(err);</p>
-
-<p> channel.open();</p>
-
-<p> // 到此连接通道已打开，可以接收指令了</p>
-
-<p> pipedIn.write(&ldquo;pwd\n&rdquo;.getBytes());</p>
-
-<p> pipedIn.flush();</p>
-
-<p> // 向client发送指令</p>
-
-<p> String res = output.toString(&ldquo;UTF-8&rdquo;);</p>
-
-<p> // 获取client收到的报文</p>
-
-<p> output.reset();</p>
-
-<p> // 清空接收缓存</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/05/160720/">TextLineCodecFactory笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-05T16:07:20+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:07 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Mina的TextLineCodecFactory将字符串编码为字节流，将字节流解码为字符串，下面是使用中遇到的两个问题。 TextLineCodecFactory改变了message的类型
-acceptor上挂了textCodec后handler的messageReceived方法中的session是String型（用&#8221;message.getClass().getName()&ldquo;查看），</p>
-
-<p> [INFO] [2012-04-05 16:18:54,317] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : hi(java.lang.String)]</p>
-
-<p>否则是IoBuffer：</p>
-
-<p> [INFO] [2012-04-05 15:23:36,760] [com.leechau.mina.echoServer.EchoProtocolHandler] - [message type is: org.apache.mina.core.buffer.SimpleBufferAllocator$SimpleBuffer]</p>
-
-<p>因此挂上TextLineCodecFactory后在handler的messageReceived方法中message参数可直接强转为String；</p>
-
-<p> 不能正确解码换行符问题及解决办法
-连接Echo Server后有时会出现下面的现象：</p>
-
-<p> hi{enter}</p>
-
-<p>send:</p>
-
-<p>  hi</p>
-
-<p>造成这一现象的原因是下面的配置方法使TextLineCodecFactory使用了默认的编解码行分隔符（encoder/decoder line delimeter），即用Unix LineDelimeter(/n)作为编码行分隔符，用AUTO LineDelimeter（\r或者\n，详见Mina API doc对LineDelimeter类的说明）作为解码行分隔符：</p>
-
-<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;))));</p>
-
-<p>解决这一问题的办法是指定编解码行分隔符：</p>
-
-<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,</p>
-
-<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
-
-<p>   LineDelimiter.DEFAULT.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
-
-<p>效果如下：</p>
-
-<p> hi{enter}
-send:
-hi</p>
-
-<p>如果不希望每次session.write(msg)后编码器自动加上回车符，需要将编码行分隔符指定为NUL：</p>
-
-<p> acceptor.getFilterChain().addLast(&ldquo; textCodec&rdquo;,</p>
-
-<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
-
-<p>   LineDelimiter.NUL.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
-
-<p>效果如下：</p>
-
-<p> hi{enter}
-send: hi</p>
-
-<p> 源代码
-Main.java</p>
-
-<p> package com.leechau.mina.echoServer;
-import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
-import org.apache.mina.filter.logging.LoggingFilter;
-import org.apache.mina.transport.socket.SocketAcceptor;
-import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
-public class Main {
- private static final int PORT = 8293;
- public static void main(String[] args) throws Exception {
-  SocketAcceptor acceptor = new NioSocketAcceptor();
-  acceptor.getFilterChain().addLast(&ldquo;logger&rdquo;, new LoggingFilter());
-  acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,
-   new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),
-     LineDelimiter.NUL.getValue() , LineDelimiter.DEFAULT.getValue())));
-  acceptor.setHandler(new EchoProtocolHandler());
-  acceptor.bind(new InetSocketAddress(PORT));
-  System.out.println(&ldquo;Listening on port &rdquo; + PORT);
- }
-}</p>
-
-<p>EchoProtocolHandler.java</p>
-
-<p> package com.leechau.mina.echoServer;
-import org.apache.mina.core.service.IoHandlerAdapter;
-import org.apache.mina.core.session.IoSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-public class EchoProtocolHandler extends IoHandlerAdapter {
- private static final Logger LOGGER = LoggerFactory
- .getLogger(EchoProtocolHandler.class);
- @Override
- public void messageReceived(IoSession session, Object message) throws Exception {
-  LOGGER.info(&ldquo;Received : &rdquo; + message + &ldquo;(&rdquo; + message.getClass().getName() + &ldquo;)&rdquo;);
-  session.write(&ldquo;send: &rdquo;);
-  session.write(message);
- }
-}</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/65">&larr; Older</a>
@@ -940,6 +993,14 @@ public class EchoProtocolHandler extends IoHandlerAdapter {
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/30/104928/">Docker Notes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/27/180124/">Spark Notes</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
       </li>
     
@@ -949,14 +1010,6 @@ public class EchoProtocolHandler extends IoHandlerAdapter {
     
       <li class="post">
         <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
       </li>
     
   </ul>

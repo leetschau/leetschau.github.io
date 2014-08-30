@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="安装Mercurial(Hg) 在 Mercurial官网 下载Mercurial（mercurial-1.8.0-x86.msi），装完后就可以通过命令行使用Hg了，然后下载安装图形界面（tortoisehg-2.0.0-hg-1.8-x86.msi）； 将文件编码设为中文 &hellip;">
+  <meta name="description" content="java.io包里有两个关于管道传输的类，PipedInputStream和PipedOutputStream，它们可以看做是一个传输管道的两端，PipedOutputStream是发送端（入口），用write和flush方法向管道中“推”数据，PipedInputStream是接收端（出口）， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,210 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/09/161610/">Java的管道流</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-09T16:16:10+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:16 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>java.io包里有两个关于管道传输的类，PipedInputStream和PipedOutputStream，它们可以看做是一个传输管道的两端，PipedOutputStream是发送端（入口），用write和flush方法向管道中“推”数据，PipedInputStream是接收端（出口），用read方法接收数据，构造这样一个管道的通常做法是：</p>
+
+<p> PipedOutputStream out = new PipedOutputStream();</p>
+
+<p> PipedInputStream in = new PipedInputStream(out);</p>
+
+<p>站在管道的角度看，将入口叫做&#8221;output&#8221;是一件很诡异的事，因此我估计java的开发者是站在管道使用者的角度命名，向管道里送数据是output，从管道里读数据是input吧。</p>
+
+<p>如果这个管道只传输字符，还可以用java.io里的PipedReader和PipedWriter，使用方法与上述stream类相似。</p>
+
+<p>apache sshd的ClientChannel类的setIn方法需要一个InputStream参数，而PipedInputStream是InputStream的子类，这样我们就可以用下面的方法向SshClient发送数据了：</p>
+
+<p> SshClient client = SshClient.setUpDefaultClient();</p>
+
+<p> client.start();</p>
+
+<p> ClientSession session = client.connect(&ldquo;10.0.2.47&rdquo;, 22).await().getSession();</p>
+
+<p> session.authPassword(&ldquo;user&rdquo;, &ldquo;password&rdquo;).await().isSuccess();</p>
+
+<p> ClientChannel channel = session.createChannel(ClientChannel.CHANNEL_SHELL);</p>
+
+<p> // 到这里ssh client完成了登录动作</p>
+
+<p> PipedOutputStream out = new PipedOutputStream();</p>
+
+<p> channel.setIn(new PipedInputStream(out));</p>
+
+<p> // 这两句建立了一个 pipedOut -> pipedIn -> ssh client的数据管道，下面就可以用write方法给client发数据了</p>
+
+<p> ByteArrayOutputStream output = new ByteArrayOutputStream();</p>
+
+<p> ByteArrayOutputStream err = new ByteArrayOutputStream();</p>
+
+<p> channel.setOut(output);</p>
+
+<p> channel.setErr(err);</p>
+
+<p> channel.open();</p>
+
+<p> // 到此连接通道已打开，可以接收指令了</p>
+
+<p> pipedIn.write(&ldquo;pwd\n&rdquo;.getBytes());</p>
+
+<p> pipedIn.flush();</p>
+
+<p> // 向client发送指令</p>
+
+<p> String res = output.toString(&ldquo;UTF-8&rdquo;);</p>
+
+<p> // 获取client收到的报文</p>
+
+<p> output.reset();</p>
+
+<p> // 清空接收缓存</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/05/160720/">TextLineCodecFactory笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-05T16:07:20+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:07 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Mina的TextLineCodecFactory将字符串编码为字节流，将字节流解码为字符串，下面是使用中遇到的两个问题。 TextLineCodecFactory改变了message的类型
+acceptor上挂了textCodec后handler的messageReceived方法中的session是String型（用&#8221;message.getClass().getName()&ldquo;查看），</p>
+
+<p> [INFO] [2012-04-05 16:18:54,317] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : hi(java.lang.String)]</p>
+
+<p>否则是IoBuffer：</p>
+
+<p> [INFO] [2012-04-05 15:23:36,760] [com.leechau.mina.echoServer.EchoProtocolHandler] - [message type is: org.apache.mina.core.buffer.SimpleBufferAllocator$SimpleBuffer]</p>
+
+<p>因此挂上TextLineCodecFactory后在handler的messageReceived方法中message参数可直接强转为String；</p>
+
+<p> 不能正确解码换行符问题及解决办法
+连接Echo Server后有时会出现下面的现象：</p>
+
+<p> hi{enter}</p>
+
+<p>send:</p>
+
+<p>  hi</p>
+
+<p>造成这一现象的原因是下面的配置方法使TextLineCodecFactory使用了默认的编解码行分隔符（encoder/decoder line delimeter），即用Unix LineDelimeter(/n)作为编码行分隔符，用AUTO LineDelimeter（\r或者\n，详见Mina API doc对LineDelimeter类的说明）作为解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;))));</p>
+
+<p>解决这一问题的办法是指定编解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.DEFAULT.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send:
+hi</p>
+
+<p>如果不希望每次session.write(msg)后编码器自动加上回车符，需要将编码行分隔符指定为NUL：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo; textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.NUL.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send: hi</p>
+
+<p> 源代码
+Main.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
+import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+public class Main {
+ private static final int PORT = 8293;
+ public static void main(String[] args) throws Exception {
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  acceptor.getFilterChain().addLast(&ldquo;logger&rdquo;, new LoggingFilter());
+  acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,
+   new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),
+     LineDelimiter.NUL.getValue() , LineDelimiter.DEFAULT.getValue())));
+  acceptor.setHandler(new EchoProtocolHandler());
+  acceptor.bind(new InetSocketAddress(PORT));
+  System.out.println(&ldquo;Listening on port &rdquo; + PORT);
+ }
+}</p>
+
+<p>EchoProtocolHandler.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IoSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+public class EchoProtocolHandler extends IoHandlerAdapter {
+ private static final Logger LOGGER = LoggerFactory
+ .getLogger(EchoProtocolHandler.class);
+ @Override
+ public void messageReceived(IoSession session, Object message) throws Exception {
+  LOGGER.info(&ldquo;Received : &rdquo; + message + &ldquo;(&rdquo; + message.getClass().getName() + &ldquo;)&rdquo;);
+  session.write(&ldquo;send: &rdquo;);
+  session.write(message);
+ }
+}</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -983,160 +1187,6 @@ Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), S
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/20/085110/">用autohotkey运行命令行指令</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-20T08:51:10+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:51 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>网卡识别错误导致无法上网，需要在命令行中输入ipconfig /release和ipconfig /renew两个命令，执行这个动作的ahk脚本是：</p>
-
-<p> RunWait, %comspec% /c ipconfig /release &amp;&amp; ipconfig /renew</p>
-
-<p>其中RunWait的意思是以同步方式执行本条指令，即当ipconfig执行完毕后ahk脚本才执行（RunWait）后面的脚本，Run是异步方式；</p>
-
-<p> %comspec% /c ipconfig /release &amp;&amp; ipconfig /renew 是windows的命令行语法，可以用如下方法验证：</p>
-
-<p> C:\Users\chad> echo %comspec%
-C:\Windows\system32\cmd.exe
-C:\Users\chad> %comspec% /c dir /w &amp;&amp; dir /w &amp;&amp; pause</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/19/144550/">关于ansi转义序列控制符</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-19T14:45:50+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:45 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>颜色控制符</h1>
-
-<h2>现象</h2>
-
-<p>Telnet发送ls指令收到的目录名（此目录名为2.1，用粗体标出）：</p>
-
-<p> <ESC>[00m<ESC>[01;34m 2.1 <ESC>[00m</p>
-
-<p>对应的原始字节流是（16进制）：</p>
-
-<p> 1b 5b 30 30 6d 1b 5b 30 31 3b 33 34 6d 32 2e 31 1b 5b 30 30 6d</p>
-
-<h2>解释</h2>
-
-<p>这些正文前后奇怪的字符序列是 ANSI escape sequence ，也就是为了在 字符终端 （俗语所云的“命令行窗口”）上显示控制格式、字体颜色等东西，由 ANSI 制定的，服务器发送给 终端 的字符序列定义，例如下图中为了区别文件和目录，服务器将文件名的颜色设为白色，而将目录名（Desktop）设为蓝色，</p>
-
-<p> 终端收到原始报文</p>
-
-<p> anaconda-ks.cfg<SPACE><SPACE><ESC>[00m<ESC>[01;34mDesktop<ESC>[00m<SPACE><SPACE>install.log</p>
-
-<p>后，按照ANSI标准解释其中的转义序列，再形成我们看到的不同颜色。这个标准中关于字体颜色定义部分叫做SGR( Select Graphic Rendition )，格式是：</p>
-
-<p> CSI code_num m</p>
-
-<p>其中CSI( Control Sequence Introducer ，这里是 <ESC>[ )是控制符起始标志，code_num是字体颜色代号（详见ansi escape code的 SGR parameters 一节中对代码30~37的说明），可以是单一代码，也可以是用分号分隔的多个代码，其中00表示关闭所有颜色选项（可以理解为“复位”），01表示“亮色”，34表示“蓝色”，所以上图的原始报文可以翻译为：</p>
-
-<p> anaconda-ks.cfg &lt;颜色初始化>&lt;亮色、蓝色>Desktop&lt;颜色初始化> install.log</p>
-
-<p>下面是一个&#8221;ls -l&#8221;命令的结果截图和对应的原始ASCII码，其中字体颜色有：蓝色（30+4），红色（30+1），绿色（30+2）以及绿色背景（40+2）；</p>
-
-<p> drwxr-xr-x 2 godu boco  4096 2011-04-15 <ESC>[01;34maaa111<ESC>[00m
-drwxr-xr-x 4 godu boco  4096 2011-03-03 <ESC>[01;34maatest<ESC>[00m
--rw-r&ndash;r&ndash; 1 godu boco  4899 2011-06-14 <ESC>[00mcrc32.c<ESC>[00m
--rw-r&ndash;r&ndash; 1 godu boco  579 2011-06-14 <ESC>[00mcrc32 oracle.txt<ESC>[00m
-drwxr-xr-x 4 godu boco  4096 2011-05-11 <ESC>[01;34mGoduDb_test<ESC>[00m
--rw&mdash;&mdash;- 1 godu boco 2836280 2011-05-11 <ESC>[01;31mGoduDb_test.zip<ESC>[00m
-drwxr-xr-x 7 godu boco  4096 2011-04-28 <ESC>[01;34mGODU-platform<ESC>[00m
-drwxr-xr-x 7 godu boco  4096 2010-12-20 <ESC>[01;34mGODU-platform_bak5-6<ESC>[00m
--rw-r&ndash;r&ndash; 1 godu boco 56420261 2011-05-06 <ESC>[01;31mGODU-platform-V2.1_P2_20110506.tar.gz<ESC>[00m
--rwxr-xr-x 1 godu boco  7652 2011-06-14 <ESC>[01;32mlibcrc32.so<ESC>[00m
-drwxr-xr-x 60 godu boco  4096 2011-05-06 <ESC>[01;34mterracotta<ESC>[00m
-drwxrwxrwx 13 godu boco  4096 2011-02-16 <ESC>[34;42mterracotta-2.7.2<ESC>[00m
--rw-r&ndash;r&ndash; 1 godu boco 58982400 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar<ESC>[00m
--rw-r&ndash;r&ndash; 1 godu boco 49970439 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar.gz<ESC>[00m</p>
-
-<h1>光标定位和擦除屏幕</h1>
-
-<p>屏幕绘制方面的主要有“指定光标位置”（CSI n;m H）和“擦除显示”两类，后者包括“擦除屏幕”（CSI n J）和“擦除行”（CSI n K）两小类，参数用法见 wiki对CSI Codes的说明 ，其中“擦除行”被用于用户输入退格键（Backspace）的处理，当用户（client）向server发送退格键（0x08）时，server返回的是&#8221;08 1b 5b 4b&#8221;，也就是&#8221;Backspace <ESC>[K&#8221;，其中Backspace使光标向前一个字符，&#8221;<ESC>[&ldquo;是转义字符起始标志（CSI），&#8221;CSI K&#8221;表示擦除光标到行尾的所有内容。</p>
-
-<p>下面是一个mina server的handler的sessionOpened方法，使用了CSI5;5H和CSI2J，客户端连入这个server的效果如下图：</p>
-
-<p>  @Override
- public void sessionOpened(IoSession session) {
-  byte[] aes = { 0x1b, 0x5b, 0x35, 0x3b, 0x35, 0x48, 0x1b, 0x5b, 0x32,
-   0x4a, 0x1b, 0x5b, 0x30, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x34,
-   0x3b, 0x34, 0x32, 0x6d, 0x32, 0x2e, 0x31, 0x1b, 0x5b, 0x30,
-   0x30, 0x6d };
-  String aesStr = new String(aes);
-  session.write(aesStr);
-  System.out.println(aesStr);
- }</p>
-
-<p><ESC>(B: Set to US ASCII character set(see &ldquo; VT100 ESC sequences &#8220;for detail);</p>
-
-<h1>设置窗口标题（Set Window Title）</h1>
-
-<p>用putty登录10.0.2.47的23端口，收到的原始报文如下（用Wireshark抓包）：</p>
-
-<p>\033]0;godu@goduserver:~\007[godu@goduserver ~]$</p>
-
-<p>可以看到登录成功后窗体标题变了，原因就是上面的“\033]0;&hellip;\007”造成的；</p>
-
-<p>参考：<a href="https://wiki.archlinux.org/index.php/Color_Bash_Prompt">Color Bash Prompt</a></p>
-
-<h1>切换屏幕</h1>
-
-<p>&ldquo;\033[?1049h&#8221;和&rdquo;\033[?1049l&#8221;分别是切换到新屏幕和切换回来，演示程序见笔记 演示切换屏幕控制序列的程序 。</p>
-
-<p>参考：<a href="https://groups.google.com/forum/?fromgroups=#!topic/vim_use/8NorwlYFHVQ">Alternate screen buffer in Xterm/FreeBSD </a>和<a href="http://www.digipedia.pl/usenet/thread/16656/2297/">DECSC in tmux vs xterm</a></p>
-
-<h1>光标显示/隐藏</h1>
-
-<p>&ldquo;\033[?25h&#8221;和&rdquo;\033[?25l&#8221;分别是显示和隐藏光标；</p>
-
-<h1>模式</h1>
-
-<p>Normal和Application模式的区别见<a href="http://ttssh2.sourceforge.jp/manual/en/usage/tips/appkeypad.html">Cursor key mode</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/66">&larr; Older</a>
@@ -1154,6 +1204,14 @@ drwxrwxrwx 13 godu boco  4096 2011-02-16 <ESC>[34;42mterracotta-2.7.2<ESC>[00m
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/30/104928/">Docker Notes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/27/180124/">Spark Notes</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
       </li>
     
@@ -1163,14 +1221,6 @@ drwxrwxrwx 13 godu boco  4096 2011-02-16 <ESC>[34;42mterracotta-2.7.2<ESC>[00m
     
       <li class="post">
         <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
       </li>
     
   </ul>

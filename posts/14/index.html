@@ -9,16 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="TY-HD-01-001
-TY-HD-01-002
-TY-HD-01-003
-TY-HD-01-004
-TY-HD-01-005
-TY-HD-01-006
-TY-HD-01-007
-TY-HD-01-008
-TY-HD-01-009
-TY-HD-01-010 $ head tail.txt &hellip;">
+  <meta name="description" content="Follow the instructions at 2.6. Generic installation, upgrade and downgrade method: via tarball of Phusion Passenger users guide, Apache version &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -74,6 +65,130 @@ TY-HD-01-010 $ head tail.txt &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/26/143445/">Build Web Server With Apache and Passenger</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-26T14:34:45+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:34 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Follow the instructions at <a href="http://www.modrails.com/documentation/Users%20guide%20Apache.html">2.6. Generic installation, upgrade and downgrade method: via tarball of Phusion Passenger users guide, Apache version</a></p>
+
+<p>Build web server on a precise64 Ubuntu virtual machine with vagrant. First download the tar file from this website, then create a vagrant file:</p>
+
+<pre><code>$ pwd
+/home/chad/docs/passenger
+
+$ ls
+passenger-4.0.40.tar.gz  Vagrantfile
+
+$ cat Vagrantfile
+# -*- mode: ruby -*-                                                            
+# vi: set ft=ruby :                                                             
+
+$script = &lt;&lt;EOF
+echo 'Acquire::http::Proxy "http://10.21.3.31:8087";' &gt; /etc/apt/apt.conf
+apt-get update
+apt-get install rake
+apt-get install libcurl4-openssl-dev
+apt-get install apache2-mpm-worker
+apt-get install apache2-threaded-dev
+/usr/bin/gem install rack
+apt-get install libapr1-dev
+apt-get install libaprutil1-dev
+mkdir /opt/passenger
+cd /opt/passenger
+tar zxvf /vagrant/passenger-4.0.40.tar.gz
+#cd passenger-4.0.40
+#./bin/passenger-install-apache2-module
+EOF
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "precise64"
+
+  config.vm.define "svr" do |server|
+    server.vm.hostname = "www.httpserver.com"
+    server.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+      vbox.customize ["modifyvm", :id, "--memory", 1000]
+    end
+    server.vm.network "forwarded_port", guest: 80, host: 8765
+    config.vm.provision "shell", inline: $script
+  end
+end
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/25/200006/">Secure Shell基于密钥的连接过程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-25T20:00:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>客户端&copy;连接服务端(S)时，会在自己的~/.ssh/known_hosts中记录S名称的Hash（如果希望在known_hosts文件中使用原服务端名称，在/etc/ssh/ssh_config中去掉&#8221;HashKnownHosts yes&#8221;，或者在~/.ssh/config中增加&#8221;HashKnownHosts no&#8221;）以及一个很长的特征串，当有人伪装成S骗取密码，或者S操作系统重装之后，由于后面这个特征串发生了变化，所以ssh会发出警告，只有从~/.ssh/known_hosts中删掉要连接的S那一行才能重新连接。</p>
+
+<p>使用密钥而不是密码登录S的好处是不需要每次输入密码，且能够避免“中间人攻击”，基于密钥的配置过程是：</p>
+
+<ol>
+<li><p>C创建自己的公钥和私钥(ssh-keygen命令）；</p></li>
+<li><p>C将自己的公钥保存到S（ssh-copy-id命令，实际上是加自己的公钥加入了S的~/.ssh/authorized_keys文件中）；</p></li>
+</ol>
+
+
+<p>这样就配置好了，以后当客户端需要登录服务端时，连接过程是：</p>
+
+<ol>
+<li><p>C与S首先进行Diffie–Hellman key exchange（参考<a href="http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange">http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange</a> 其中的插图对这种算法为什么是安全的解释的很清楚：密钥的混合类似于颜色的混合，反向操作几乎是不可能的，因此将混合后的密钥在网络上传输是安全的），最终生成本次会话的密钥；</p></li>
+<li><p>后续的报文基于上面生成的密钥进行对称加密传输（也就是加密和解密使用同一个密钥）。</p></li>
+</ol>
+
+
+<p>网上有写SSH登录过程使用非对称加密传输（及公钥加密、私钥解密，见<a href="http://en.wikipedia.org/wiki/Public-key_cryptography%EF%BC%89%EF%BC%8C%E8%BF%99%E6%98%AFSSH">http://en.wikipedia.org/wiki/Public-key_cryptography%EF%BC%89%EF%BC%8C%E8%BF%99%E6%98%AFSSH</a> v1的加密方式。</p>
+
+<p>详细的连接过程参考man sshd.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -571,209 +686,6 @@ Or simply stop the service with &ldquo;service iptables stop&rdquo; if security 
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/07/172525/">Compile Java Codes in Linux Shell Instead of Ant Script</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-07T17:25:25+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following is frequently used ant script, compile some java source codes with a libary path, then copy all non-java files to compiled folder:</p>
-
-<pre><code>&lt;property name="src.dir" value="${basedir}/src" /&gt;
-&lt;property name="src.class.dir" value="${webroot.dir}/web-inf/classes" /&gt;
-&lt;path id="lib.path"&gt;
-    &lt;fileset dir="${webroot.dir}/web-inf/lib"&gt;
-        &lt;include name="**/*.jar" /&gt;
-    &lt;/fileset&gt;
-&lt;/path&gt;
-&lt;target name="compile-src" depends="init" description="compile java sources"&gt;
-    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="utf-8"
-            debug="true" classpathref="lib.path" failonerror="false"/&gt;
-    &lt;copy todir="${src.class.dir}"&gt;
-        &lt;fileset dir="${src.dir}"&gt;
-            &lt;exclude name="**/*.java" /&gt;
-        &lt;/fileset&gt;
-    &lt;/copy&gt;
-&lt;/target&gt;
-</code></pre>
-
-<p>The corresponding shell script is:</p>
-
-<pre><code>src_dir=/vagrant/codes/GCP6.1/src
-web_build=/vagrant/codes/web_build
-class_dir=$web_build/web_server/webapps/GCP6.1/WEB-INF/classes
-lib_dir=/vagrant/codes/GCP6.1/WebRoot/WEB-INF/lib
-find $src_dir -type f -name "*.java" -exec javac -cp "$lib_dir/*:$src_dir" -d $class_dir {} \;
-rsync -auC --exclude='*.java' $src_dir/ $class_dir/
-</code></pre>
-
-<p>Take care there&rsquo;s no folder named &ldquo;core&rdquo; in $src_dir, or it will be excluded by the &ldquo;-C&rdquo; option of rsync command.</p>
-
-<h1>A Test Case</h1>
-
-<pre><code>$ tree
-.
-├── classes
-├── lib
-│   ├── libadd.jar
-│   └── libmul.jar
-├── libadd
-│   └── com
-│       └── boco
-│           └── gcp
-│               └── add
-│                   ├── MyAdd.class
-│                   └── MyAdd.java
-├── libmul
-│   └── com
-│       └── boco
-│           └── gcp
-│               └── mul
-│                   ├── MyMul.class
-│                   └── MyMul.java
-└── main
-    └── com
-        └── boco
-            └── gcp
-                ├── Test.java
-                └── util
-                    └── MyUtil.java
-
-17 directories, 8 files
-
-$ find . -name '*.java' -exec cat {} \; -exec echo "--------" \;
-package com.boco.gcp.util;
-
-import com.boco.gcp.add.MyAdd;
-import com.boco.gcp.mul.MyMul;
-
-public class MyUtil {
-    public int newadd(int x, int y) {
-        MyAdd add = new MyAdd();
-        MyMul mul = new MyMul();
-        return add.myadd(3,5) + mul.mymul(3,5);
-    }
-}
---------
-package com.boco.gcp;
-
-import com.boco.gcp.mul.MyMul;
-import com.boco.gcp.add.MyAdd;
-import com.boco.gcp.util.MyUtil;
-
-public class Test {
-    public static void main(String[] args) {
-        MyMul mul = new MyMul();
-        MyAdd add = new MyAdd();
-        System.out.println(mul.mymul(3,5));
-        System.out.println(add.myadd(3,5));
-        MyUtil util = new MyUtil();
-        System.out.println(util.newadd(3,5));
-    }
-}
---------
-package com.boco.gcp.mul;
-
-public class MyMul {
-    public int mymul(int x, int y) {
-        return 10*x*y;
-    }
-
-    public static void main(String[] args) {
-        MyMul mul = new MyMul();
-        System.out.println(mul.mymul(3,5));
-    }
-}
---------
-package com.boco.gcp.add;
-
-public class MyAdd {
-    public int myadd(int x, int y){
-        return 10*x+y;
-    }
-
-    public static void main(String[] args) {
-        MyAdd add = new MyAdd();
-        System.out.println(add.myadd(3,5));
-    }
-}
---------
-$ find main -name '*.java' -exec javac -cp 'lib/*:main' {} -d classes \;
-$ tree classes/
-classes/
-└── com
-    └── boco
-        └── gcp
-            ├── Test.class
-            └── util
-                └── MyUtil.class
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/07/135434/">Network Tools on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-07T13:54:34+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>1:54 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>aria2c, curl, wget: Download tools;</p></li>
-<li><p>ping: ping -c 4 bing.com;</p></li>
-<li><p>tracepath bing.com;</p></li>
-<li><p>mtr bing.com: combination of ping and tracepath;</p></li>
-<li><p>host bing.com; host 204.79.197.200</p></li>
-<li><p>whois bing.com</p></li>
-<li><p>ifconfig;</p></li>
-<li><p>ifup; ifdown;</p></li>
-<li><p>ifplugstatus: sudo apt-get install ifplugd</p></li>
-<li><p>netstat -p; netstat -s;</p></li>
-<li><p>dhclient (root privilege): free IP address, and get a new one from DHCP server;</p></li>
-</ul>
-
-
-<p>Ref: <a href="http://www.geekfan.net/7192/">如何用Linux命令行管理网络：11个你必须知道的命令</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/15">&larr; Older</a>
@@ -791,6 +703,14 @@ classes/
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/30/104928/">Docker Notes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/27/180124/">Spark Notes</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
       </li>
     
@@ -800,14 +720,6 @@ classes/
     
       <li class="post">
         <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
       </li>
     
   </ul>

@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="VirtualBox version: VirtualBox-4.2.18-88780-Linux_x86.run
-Host OS: Linux Mint 14 Xfce Setup Network Add a virtual network in host: VirtualBox -> File &hellip;">
+  <meta name="description" content="Initialize VM: chad@typcserver ~/docs/vagrant-prj $ vagrant &ndash;version Vagrant 1.4.3 chad@typcserver ~/docs/vagrant-prj $ vagrant init chad@ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,149 @@ Host OS: Linux Mint 14 Xfce Setup Network Add a virtual network in host: Virtual
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/11/091423/">Install Redmine on Virtual Machine With Vagrant</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-11T09:14:23+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:14 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Initialize VM:</p>
+
+<p> chad@typcserver ~/docs/vagrant-prj $ vagrant &ndash;version
+ Vagrant 1.4.3
+ chad@typcserver ~/docs/vagrant-prj $ vagrant init
+ chad@typcserver ~/docs/vagrant-prj $ cat Vagrantfile
+ VAGRANTFILE_API_VERSION = &ldquo;2&rdquo;
+ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+   config.vm.box = &ldquo;precise64&rdquo;
+   config.vm.box_url = &ldquo;<a href="http://files.vagrantup.com/precise64.box">http://files.vagrantup.com/precise64.box</a>&rdquo;
+ end</p></li>
+<li><p>Startup VM:</p>
+
+<p> chad@typcserver ~/docs/vagrant-prj $ vagrant up
+ chad@typcserver ~/docs/vagrant-prj $ vagrant ssh</p></li>
+<li><p>The preinstalled puppet version is 2.7:</p>
+
+<p> vagrant@precise64:~$ puppet &ndash;version
+ 2.7.19</p></li>
+<li><p>Install redmine module:</p>
+
+<p> vagrant@precise64:~$ sudo mkdir -p /etc/puppet/modules
+ vagrant@precise64:~$ sudo puppet module install johanek/redmine
+ vagrant@precise64:~$ sudo apt-get update
+ vagrant@precise64:~$ sudo puppet apply &ndash;modulepath=/etc/puppet/modules -e &ldquo;include stdlib&rdquo;
+ vagrant@precise64:~$ sudo puppet apply &ndash;modulepath=/etc/puppet/modules -e &ldquo;include mysql::server&rdquo;
+ warning: Could not retrieve fact fqdn</p></li>
+</ol>
+
+
+<p>Then it&rsquo;s stuck. I find there are network traffic with ifstat utility, which probably means puppet is installing mysql. But how can I get the current state of puppet? I can&rsquo;t stop it even with Ctrl-C.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li>Uninstall module: <code>puppet module uninstall puppetlabs-mysql</code></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/28/121803/">Vagrant Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-28T12:18:03+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:18 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Download and install VirtualBox 4.3.6 for Ubuntu 12.10 (which is the base of Linux Mint 14) i386, file name:  virtualbox-4.3_4.3.6-91406~Ubuntu~quantal_i386.deb;</p></li>
+<li><p>Download and install vagrant installer for linux: vagrant_1.4.3_i686.deb;</p></li>
+<li><p>Follow the <a href="http://docs.vagrantup.com/v2/getting-started/index.html">&ldquo;Getting Started&rdquo; guide of vagrant</a>:</p>
+
+<p> $ vagrant init precise32 <a href="http://files.vagrantup.com/precise32.box">http://files.vagrantup.com/precise32.box</a>
+ $ vagrant up</p></li>
+</ol>
+
+
+<p>The first step simply created a config file in the current folder, so it&rsquo;s very fast. The second step will download a box file from vagrantup.com and could be fairly slow. When it&rsquo;s done, use <code>vagrant ssh</code> to login to the VM, use <code>vagrant suspent</code> to save your work and shutdown the VM, use <code>vagrant up</code> agian to startup the VM again.</p>
+
+<h1>Add box locally</h1>
+
+<ol>
+<li><p>Downlaod box file from internet;</p></li>
+<li><p><code>vagrant box add &lt;box-name&gt; &lt;box-file-path&gt;</code>, where <box-name> is a logical name you specify, <box-file-path> is local filesystem path.</p></li>
+</ol>
+
+
+<p>&ldquo;package&rdquo; is a &ldquo;green&rdquo; command. It will not affect your current box list, just produce a box file.</p>
+
+<h1>Login as root</h1>
+
+<p><code>sudo su -</code></p>
+
+<h1>Package Refined VMs</h1>
+
+<p>Under the project folder (which contains &ldquo;Vagrantfile&rdquo;):</p>
+
+<ol>
+<li><p>Write some comments in README file, for example the installed components: &ldquo;This box is based on &hellip; , has installed &hellip; , has run &lsquo;apt-get update (or apt-fast update)&rdquo;.</p></li>
+<li><p>Run <code>vagrant package --output mybox.box --include README</code> (no need to shutdown VM beforehand, vagrant will shutdown it);</p></li>
+<li><p>After <code>vagrant box add mybox mybox.box</code>, go to ~/.vagrant/boxes/mybox/virtualbox/include/ to see the README file, where &ldquo;virtualbox&rdquo; is the provider name of your VM, it can be vmware or something else.</p></li>
+<li><p>Run <code>vagrant box remove mybox</code> to remove this box from your vagrant box lists.</p></li>
+</ol>
+
+
+<h1>Add command alias for type efficiency</h1>
+
+<p>Add the following into ~/.zshrc or ~/.bashrc:</p>
+
+<pre><code>alias va='vagrant'
+alias vas='vagrant status'
+alias vau='vagrant up'
+alias vah='vagrant halt'
+alias vad='vagrant destroy'
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -592,185 +734,6 @@ $ rvm install 1.9.3
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/13/101242/">Use Nose as Unit Test Framework</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-13T10:12:42+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>[chad@chadpc527:~/docs/tmp/mytest]</p>
-
-<p>% workon test</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% pip install nose
-&hellip;</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% tree
-.
-|&ndash; mytest
-| |&ndash; <strong>init</strong>.py
-| |&ndash; mytest.py
-| <code>-- test
-|  |-- __init__.py
-| </code>&ndash; test_mytest.py
-`&ndash; setup.py
-2 directories, 5 files</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% python setup.py nosetests
-running nosetests
-running egg_info
-creating mytest.egg-info
-writing mytest.egg-info/PKG-INFO
-writing top-level names to mytest.egg-info/top_level.txt
-writing dependency_links to mytest.egg-info/dependency_links.txt
-writing manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
-reading manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
-writing manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
-running build_ext</p>
-
-<h2>. </h2>
-
-<p>Ran 1 test in 0.007s
-OK</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% cat setup.py</p>
-
-<h1>import multiprocessing</h1>
-
-<p>from setuptools import setup
-setup(name=&lsquo;mytest&rsquo;,
-  version=&lsquo;0.1.0&rsquo;,
-  tests_require=[&lsquo;nose&rsquo;])</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% cat mytest/mytest.py
-def myadd(x,y):
- return 10<em>x+y
-(test)[chad@chadpc527:~/docs/tmp/mytest]
-% cat mytest/test/test_mytest.py
-from unittest import TestCase
-from mytest.mytest import myadd
-class TestMyadd(TestCase):
- def test_myadd(self):
-  actual = myadd(3,5)
-  self.assertTrue(actual==10</em>3+5)</p>
-
-<p>Or, you can use &ldquo;python setup.py test&rdquo; in this way:</p>
-
-<ol>
-<li><p>Add &ldquo;import multiprocessing&rdquo; in setup.py;</p></li>
-<li><p>Add &ldquo;test_suite=&lsquo;nose.collector&rsquo;&rdquo; as a parameter in setup() function in setup.py;</p></li>
-</ol>
-
-
-<p>If you run &ldquo;python setup.py test&rdquo; without &ldquo;import multiprocessing&rdquo;, you will get a &ldquo;Error in atexit._run_exitfuncs&rdquo; error with nose 1.3.0 and Python 2.7.3.</p>
-
-<p>Ref: <a href="https://groups.google.com/forum/#!topic/nose-users/fnJ-kAUbYHQ">https://groups.google.com/forum/#!topic/nose-users/fnJ-kAUbYHQ</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/10/102952/">Publish and Install Python Applications</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-10T10:29:52+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:29 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Publish to PyPI</h1>
-
-<p>Follow <a href="http://www.scotttorborg.com/python-packaging/index.html">How To Package Your Python Code</a>.</p>
-
-<h2>Register</h2>
-
-<p>I ran &ldquo;python setup.py register&rdquo; twice. Firstly I use option 2 to register a new account, then ran it again and use option 1 to upload the &ldquo;funniest&rdquo; package. Then I saw this package in my account on PyPI. In the management page, there is a &ldquo;remove&rdquo; button for delete this package.</p>
-
-<pre><code>$ python setup.py register
-</code></pre>
-
-<h2>Create a source distribution</h2>
-
-<pre><code>$ python setup.py sdist
-</code></pre>
-
-<p>This is create a tar.gz file under dist folder. If you like, copy that file to another host, unpacking it and install it with &ldquo;python setup.py install&rdquo;.</p>
-
-<h2>Upload source distribution</h2>
-
-<pre><code>$ python setup.py sdist upload
-</code></pre>
-
-<p>After modification of source codes and version number in setup.py (say, modify it to 0.2) run last command again to refresh distribution on PyPI. You can see it at &ldquo;<a href="https://pypi.python.org/simple/">https://pypi.python.org/simple/</a><app-name>/&rdquo;.</p>
-
-<p>On another host, use &ldquo;pip install <app-name>==0.2&rdquo; to install this app, for example: &ldquo;pip install funniestlc==0.2&rdquo;.</p>
-
-<h1>Publish in LAN</h1>
-
-<h2>On the develop host</h2>
-
-<ol>
-<li><p>Edit source code;</p></li>
-<li><p>Create new source code distribution package: <code>python setup.py install sdist</code>;</p></li>
-</ol>
-
-
-<h2>On the deploy host</h2>
-
-<ol>
-<li><p>Startup a virtual environment: <code>workon test</code>;</p></li>
-<li><p>Write a install script:</p>
-
-<p> #!/bin/bash
- scp lichao@10.21.2.7:/home/lichao/docs/python_projects/donno/dist/donno-0.1.10.tar.gz .
- tar zxvf donno-0.1.10.tar.gz
- cd donno-0.1.10
- python setup.py install
- cd ..</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/18">&larr; Older</a>
@@ -788,6 +751,14 @@ class TestMyadd(TestCase):
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/30/104928/">Docker Notes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/27/180124/">Spark Notes</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
       </li>
     
@@ -797,14 +768,6 @@ class TestMyadd(TestCase):
     
       <li class="post">
         <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Archlinux | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/archlinux/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-08-27T14:11:47+08:00</updated>
+  <updated>2014-08-30T17:38:24+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,56 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Docker Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/30/104928/"/>
+    <updated>2014-08-30T10:49:28+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/30/104928</id>
+    <content type="html"><![CDATA[<h1>Mint</h1>
+
+<pre><code># sudo aptitude update
+# sudo aptitude install docker.io aufs-tools cgroup-lite apparmor-utils
+# sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
+# sudo sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
+# docker run ubuntu:14.04 echo 'hello ubuntu'
+# docker version
+Client version: 0.9.1
+Go version (client): go1.2.1
+Git commit (client): 3600720
+Server version: 0.9.1
+Git commit (server): 3600720
+Go version (server): go1.2.1
+Last stable version: 1.2.0, please update docker
+</code></pre>
+
+<h1>ArchLinux</h1>
+
+<p>Docker is only available on X86_64 repository so far.</p>
+
+<pre><code># pacman -S docker
+# systemctl enable docker
+# systemctl start docker
+# docker run ubuntu:14.04 echo 'hello world'
+# docker run -i -t ubuntu:14.04 /bin/bash
+# lsb_release -a
+Distributor ID: Ubuntu
+Description: Ubuntu 14.04.1 LTS
+Release: 14.04
+Codename: trusty
+# exit
+# docker version
+Client version: 1.2.0
+Go version (client): go1.3.1
+OS/Arch (client): linux/amd64
+Server version: 1.2.0
+Server API version: 1.14
+Go version (server): go1.3.1
+</code></pre>
+
+<p>So you can see at least for now Docker is much newer and easy to use on Arch than on Mint (Ubuntu).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Qtile on ArchLinux]]></title>
@@ -159,7 +209,7 @@ Linux archiso 3.15.3-1-ARCH #1 SMP PREEMPT Tue Jul 1 07:34:20 CEST 2014 i686 GNU
 # ping www.baidu.com
 </code></pre>
 
-<h1>Create Partition</h1>
+<h1>Create Partition &amp; Install System</h1>
 
 <pre><code># fdisk /dev/sda
 m   // for help
@@ -197,34 +247,40 @@ w   // write to disk
 </code></pre>
 
 <p>Start system with Mint, and run <code>update-grub</code> as root. Then reboot, you get the &ldquo;Arch&rdquo; entry in Grub menu.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[RabbitVCS Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2014/07/17/103524/"/>
-    <updated>2014-07-17T10:35:24+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/07/17/103524</id>
-    <content type="html"><![CDATA[<h1>ArchLinux</h1>
 
-<ol>
-<li><p>Get dependencies: search &ldquo;rabbitvcs&rdquo; on AUR, and the &ldquo;Dependencies&rdquo; of it contains:</p>
+<h1>Make Second the First OS</h1>
 
-<p> git
- pygtk
- python2-configobj
- python2-dulwich
- python2-gobject2
- python2-gtkspellcheck
- python2-pysvn
- python2-simplejson</p></li>
-<li><p>Install rabbitvcs:</p>
+<p>Some days past, your Arch works well, and you think the first OS Mint 16 is no longer useful. So now we remove it and make Arch the only OS.</p>
 
-<p> yaourt -S git pygtk python2-configobj python2-dulwich python2-gobject2 python2-gtkspellcheck python2-pysvn python2-simplejson rabbitvcs</p></li>
-</ol>
+<pre><code># pacman -S grub
+# grub-install --target=i386-pc --recheck /dev/sda
+</code></pre>
 
+<p>After this step, you can find folder &ldquo;/boot/grub/i386-pc&rdquo; is created.
+The &ldquo;stage 2&rdquo; file /boot/grub/i386-pc/core.img, which invoked by &ldquo;stage 1&rdquo; file boot.img in MBR during system boot procedure, is created as well.
+See <a href="http://en.wikipedia.org/wiki/GNU_GRUB">GNU GRUB</a> for details.</p>
 
-<p>If any errors occurs during the installation, use yaourt to install it.</p>
+<pre><code># grub-mkconfig -o /boot/grub/grub.cfg
+</code></pre>
+
+<p>Now reboot to verify the new grub works. If it is, you can format /dev/sda1 to remove Mint OS, then regenerate grub:</p>
+
+<pre><code># mkfs.ext4 /dev/sda1
+# grub-install --target=i386-pc --recheck /dev/sda
+# grub-mkconfig -o /boot/grub/grub.cfg
+</code></pre>
+
+<p>Reboot, that&rsquo;s it.
+If you want to resize this partition, you can remove then create it again:</p>
+
+<pre><code># fdisk /dev/sda
+d
+...
+n
+...
+</code></pre>
+
+<p>If you delete /dev/sda1 without recreating it, an error will araise when regenerating grub.</p>
 ]]></content>
   </entry>
   

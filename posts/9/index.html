@@ -9,9 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Make a usb key with dd command and CentOS-6.5-i386-LiveDVD.iso;
-Install CentOS 6.5 on Dell PC;
-Run firefox and install H3C client to connect to &hellip;">
+  <meta name="description" content="Firstly a template asn file (PP.asn here) was created. Then it&rsquo;s be used to encode some text, creating a segment binary data(stored in variable &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +65,132 @@ Run firefox and install H3C client to connect to &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/12/142038/">Encode and Decode ASN.1 in Erlang</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-12T14:20:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:20 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Firstly a template asn file (PP.asn here) was created. Then it&rsquo;s be used to encode some text, creating a segment binary data(stored in variable Bin), then Bin was decoded based on PP.asn. We can also store binaries into a file, then read from it.</p>
+
+<pre><code>$ cat PP.asn
+PP DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+  TGSN ::=    INTEGER (0..14)
+  Persons ::= SEQUENCE {
+    name PrintableString,
+    location INTEGER {home(0),field(1),roving(2)},
+    age INTEGER OPTIONAL
+  }
+END
+$ erl
+Erlang/OTP 17 [erts-6.0] [source-07b8f44] [smp:2:2] [async-threads:10] [hipe] [kernel-poll:false]
+
+Eshell V6.0  (abort with ^G)
+1&gt; asn1ct:compile("PP", [ber, verbose]).
+Erlang ASN.1 compiler 3.0
+Compiling: "PP.asn"
+Options: [ber,verbose,{i,"."}]
+--{generated,"PP.asn1db"}--
+--{generated,"PP.hrl"}--
+--{generated,"PP.erl"}--
+ok
+2&gt; Rockstar = {'Persons',"Some Name",roving,50}.
+{'Persons',"Some Name",roving,50}
+3&gt; {ok,Bin} = 'PP':encode('Persons',Rockstar).    
+{ok,&lt;&lt;48,17,128,9,83,111,109,101,32,78,97,109,101,129,1,
+      2,130,1,50&gt;&gt;}
+4&gt; {ok,Persons} = 'PP':decode('Persons',Bin).  
+{ok,{'Persons',"Some Name",roving,50}}
+5&gt; file:write_file("test", Bin).
+ok
+6&gt; {ok, Bin2} = file:read_file("test").
+{ok,&lt;&lt;48,17,128,9,83,111,109,101,32,78,97,109,101,129,1,
+      2,130,1,50&gt;&gt;}
+7&gt; {ok,Persons} = 'PP':decode('Persons',Bin2).
+{ok,{'Persons',"Some Name",roving,50}}
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/10/172302/">Bitstring in Erlang</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-10T17:23:02+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:23 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>bitstring is the bit sequence literals in Erlang. It&rsquo;s powerful and convenient due to the Erlang&rsquo;s telecom background.</p>
+
+<p>Now we have a bit sequence &ldquo;0110 0101 1000 1111 1010 0010&rdquo;, whose corresponding hex literal is: &ldquo;0x65 0x8f 0xa2&rdquo;. To express it with Erlang:</p>
+
+<pre><code>1&gt; Bin = &lt;&lt;16#65, 16#8f, 16#a2&gt;&gt;.
+&lt;&lt;101,143,162&gt;&gt;
+</code></pre>
+
+<p>Every segment divided by comma is called a &ldquo;segment&rdquo;, it&rsquo;s default size is 8.</p>
+
+<p>But we want divide this sequence in this way: &ldquo;011 0010 1100 011 1110 10 0010&rdquo;, which can be expressed as &ldquo;&lt;&lt;value1:length1, value2:length2, &hellip;>>&rdquo;:</p>
+
+<pre><code>2&gt; Bin2 = &lt;&lt;3:3, 2:4, 16#c:4, 3:3, 16#e:4, 2:2, 2:4&gt;&gt;.
+&lt;&lt;101,143,162&gt;&gt;
+</code></pre>
+
+<p>So that&rsquo;s why</p>
+
+<pre><code>3&gt; &lt;&lt;3, 17, 23:16&gt;&gt;.
+&lt;&lt;3,17,0,23&gt;&gt;
+4&gt; &lt;&lt;3, 17, 3323:16&gt;&gt;.
+&lt;&lt;3,17,12,251&gt;&gt;
+</code></pre>
+
+<p>The third segment &ldquo;<num>:16&rdquo; consists of 16 bits. So it&rsquo;s 8-bit &ldquo;normal&rdquo; literals is:</p>
+
+<pre><code>0 * 256 + 23 = 23
+12 * 256 + 251 = 3323
+</code></pre>
+
+<p>That&rsquo;s it.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -483,213 +607,6 @@ $ startx
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/04/173927/">Set Static IP on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-04T17:39:27+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:39 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Ubuntu</h1>
-
-<p>You need to know the static IP, netmask and gateway IP. To test your network, set static IP temporarily:</p>
-
-<pre><code># ip addr   // get the interface name: eth0
-# ifconfig eth0 10.32.22.10 netmask 255.255.255.0
-# route add default gw 10.32.22.254 eth0
-</code></pre>
-
-<p>Then test network with &ldquo;ping&rdquo; command. If it&rsquo;s OK, set it permanently:</p>
-
-<pre><code># cat /etc/network/interfaces  // before modification: dhcp
-auto eth0
-iface eth0 inet dhcp
-# cat /etc/network/interfaces  // after modification: static IP
-auto eth0
-iface eth0 inet static
-address 10.32.22.10
-netmask 255.255.255.0
-gateway 10.32.22.254
-</code></pre>
-
-<p>Now reboot the static IP will take effect.</p>
-
-<h1>Arch Linux</h1>
-
-<pre><code># ip addr flush enp2s0
-# ip addr add 10.32.22.10/24 dev enp2s0
-# ip route add default via 10.32.22.254
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/03/105044/">Install 32bit Arch Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-03T10:50:44+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:50 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Partition Disk and Install 32bit Arch Linux</h1>
-
-<ol>
-<li><p>Create usb install key:</p>
-
-<p> $ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync</p></li>
-<li><p>Startup laptop with usb key and select &ldquo;Boot Arch Linux (i686)&rdquo;;</p></li>
-<li><p>Connect wifi:</p>
-
-<p> # wpa_supplicant -B -i wlp5s0 -c &lt;(wpa_passphrase TP-LINK_PocketAP_8344C2 py25)
- # dhcpcd wlp5s0</p></li>
-<li><p>Partition disk:</p>
-
-<p> # sgdisk &ndash;zap-all /dev/sda
- # cgdisk /dev/sda    // create 20G, 50G, 20G, 50G, 20G, 50G, 20G, 50G, 105G, totally 9 partitions
- // This is a gpt partition, where can&rsquo;t install Windows, because Windows only support MBR partition
- # parted /dev/sda print   // print the partition tables
- # mkfs.ext4 /dev/sda1
- # mkfs.ext4 /dev/sda2
- # lsblk -f                // display the current partition layout</p></li>
-<li><p>Mount partition:</p>
-
-<p> # mount /dev/sda1 /mnt
- # mkdir /mnt/home
- # mount /dev/sda2 /mnt/home</p></li>
-<li><p>Select a mirror:</p>
-
-<p> # vi /etc/pacman.d/mirrorlist</p></li>
-<li><p>Install the base system: (so cool~)</p>
-
-<p> # pacstrap -i /mnt base</p></li>
-<li><p>Create fstab and chroot:</p>
-
-<p> # genfstab -U -p /mnt >> /mnt/etc/fstab
- # arch-chroot /mnt /bin/bash</p></li>
-<li><p>Set locale:</p>
-
-<p> # vi /etc/locale.gen  // uncomment en_US.UTF-8 &amp; zh_CN.UTF-8
- # locale-gen
- # echo LANG=en_US.UTF-8 > /etc/locale.conf
- # export LANG=en_US.UTF-8
- # setfont Lat2-Terminus16 (optional)</p></li>
-<li><p>Set time zone:</p>
-
-<p> # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime    // now <code>date</code> command will give corrent time
- # hwclock &ndash;systohc &ndash;utc</p></li>
-<li><p>Set hostname:</p>
-
-<p> # echo blackpad > /etc/hostname
- # vi /etc/hosts</p></li>
-<li><p>Config wireless:</p>
-
-<p> # pacman -S iw wpa_supplicant dialog wpa_actiond
- # systemctl enable <a href="&#109;&#97;&#105;&#108;&#116;&#x6f;&#58;&#x6e;&#101;&#116;&#x63;&#x74;&#x6c;&#x2d;&#x61;&#x75;&#116;&#x6f;&#64;&#x77;&#108;&#x70;&#x35;&#x73;&#x30;&#46;&#x73;&#101;&#114;&#x76;&#x69;&#99;&#x65;">&#x6e;&#x65;&#x74;&#99;&#x74;&#108;&#x2d;&#x61;&#x75;&#116;&#x6f;&#64;&#x77;&#108;&#x70;&#53;&#115;&#48;&#46;&#115;&#x65;&#114;&#x76;&#105;&#x63;&#x65;</a></p></li>
-<li><p>Set root passwd:</p>
-
-<p> # passwd</p></li>
-<li><p>Install and configure a bootloader:</p>
-
-<p> # pacman -S gptfdisk
- # pacman -S syslinux     // install syslinux boot loader because we create gpt partition earlier. Install grub will produce an error.
- # syslinux-install_update -i -a -m
- # vi /boot/syslinux/syslinux.cfg     // modify &ldquo;APPEND root=/dev/sda1 rw&rdquo; in &ldquo;LABEL arch&rdquo; section</p></li>
-<li><p>Shutdown, unplugged usb key and restart laptop;</p></li>
-<li><p>Start wifi connection:</p>
-
-<p> # wifi-menu wlp5s0     // get interface name with <code>iw dev</code></p></li>
-</ol>
-
-
-<p>Choose a SSID, enter the key, press &ldquo;OK&rdquo;, then you can see &ldquo;Interface wlp5s0 is controlled by netctl-auto&rdquo;, use <code>ip addr</code> or <code>ping ...</code> to verify network.</p>
-
-<ol>
-<li><p>Install SSH service:</p>
-
-<p> # pacman -Syu openssh
- # systemctl start sshd
- # systemctl enable sshd.service</p></li>
-</ol>
-
-
-<h1>Install the second System</h1>
-
-<ol>
-<li><p>Start laptop with YUMI usb key;</p></li>
-<li><p>Startup a openSUSE 13.1 live dvd, install system on /dev/sda3 and /dev/sda4, reboot;</p></li>
-<li><p>startup laptop, it prints: multiple active partitions, start failed;</p></li>
-<li><p>Startup labtop with Arch USB key, delete openSUSE partitions, reboot, Arch is back;</p></li>
-<li><p>Startup a CentOS live DVD, install system on /dev/sda3 and /dev/sda4, rebuild boot loader, reboot;</p></li>
-<li><p>Startup laptop, only CentOS can start, it print &ldquo;boot error&rdquo; when choose &ldquo;Arch Linux&rdquo; to start;</p></li>
-<li><p>Startup labtop with Arch USB key, delete CentOS partitions, reboot, only a GNU Grub command line;</p></li>
-</ol>
-
-
-<p>This experiment failed.</p>
-
-<h1>Install i3</h1>
-
-<pre><code># useradd -m -s /usr/bin/bash chad
-# pacman -S xorg-server xorg-server-utils xorg-xinit
-# pacman -S dmenu i3
-# pacman -S gnome     // this big one (almost 1GB) is necessary, only gnome-shell can't work
-# pacman -S xf86-video-intel xf86-input-synaptics
-// video and touchpad driver, there will be a "could not open module intel" error without them
-// they take effect after installation without reboot
-# su - chad
-$ echo "exec i3" &gt;  ~/.xinitrc
-$ startx
-</code></pre>
-
-<h1>Install Chinese IM</h1>
-
-<pre><code># pacman -S ibus-libpinyin
-# su - chad
-$ ibus-setup
-</code></pre>
-
-<p>Then select &ldquo;Chinese - Intelligent Pinyin&rdquo; under &ldquo;Input Method&rdquo; tab, and click &ldquo;Preferences&rdquo; to customize it.
-The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
-&ldquo;ibus-pinyin&rdquo; can&rsquo;t work properly.
-&ldquo;ibus-rime&rdquo; can only input traditional Chinese.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/10">&larr; Older</a>
@@ -707,6 +624,14 @@ The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/08/30/104928/">Docker Notes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/27/180124/">Spark Notes</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
       </li>
     
@@ -716,14 +641,6 @@ The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
     
       <li class="post">
         <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/20/104236/">Closure in Different Languages</a>
       </li>
     
   </ul>
