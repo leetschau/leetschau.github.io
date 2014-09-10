@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="经验总结：首先要把cobertura.jar包含ant的classpath路径中，其次要求它包含在测试用例的classpath中； 使用cobertura做代码覆盖率测试中出现的问题：覆盖率始终为0，不论是否有可用的测试用例都如此； 解决问题的历程： 第一步：在被测工程中增加了一个很简单的方法， &hellip;">
+  <meta name="description" content="有些私有方法有很明确的功能，算法比较复杂，不测可能会出问题。测的话最简单的方法是把测试用例写在类内部，例如下面的类： package com.boco.godu.gapi; import static org.junit.Assert.assertEquals; import org.junit. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,350 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/02/23/105520/">怎样在类外部测试私有方法和设置/读取私有变量</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-02-23T10:55:20+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>10:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>有些私有方法有很明确的功能，算法比较复杂，不测可能会出问题。测的话最简单的方法是把测试用例写在类内部，例如下面的类：</p>
+
+<p> package com.boco.godu.gapi;</p>
+
+<p> import static org.junit.Assert.assertEquals;</p>
+
+<p> import org.junit.Test;</p>
+
+<p> public class ConnManager {</p>
+
+<p> private static String buildConnPoolID(int connType, String ip, int port, String loginArg1, String loginArg2) {</p>
+
+<p> return connType + ip;</p>
+
+<p> }</p>
+
+<p> @Test</p>
+
+<p> public void testPoolID() {</p>
+
+<p> assertEquals(&ldquo;23ipstr&rdquo;, buildConnPoolID(23, &ldquo;ipstr&rdquo;, 3, null, null));</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p>但这样测会有几个问题：首先是如果测试方法很多，会把源代码文件搞得很臃肿，其次发布的时候需要将测试代码删除（毕竟不是产品的一部分），以后再需要测试的时候还得重写，最后这样的测试在BVT的时候无法运行，工作量也无法体现出来（BVT的测试用例都是写在单独的测试类中）。所以理想的方法是把测试方法写在单独的测试类中。</p>
+
+<p>下面采用Java的反射机制实现这一目标。首先是被测类：</p>
+
+<p> package org.leechau.testPrivateMethod;</p>
+
+<p> public class ClassTested {</p>
+
+<p> private String buffer ;</p>
+
+<p> private String privateFoo (int a, String b) {</p>
+
+<p> return a + b;</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p>然后是测试类：</p>
+
+<p> package org.leechau.testPrivateMethod;</p>
+
+<p> import static org.junit.Assert.assertEquals;</p>
+
+<p> import java.lang.reflect.InvocationTargetException;</p>
+
+<p> import java.lang.reflect.Method;</p>
+
+<p> import org.junit.BeforeClass;</p>
+
+<p> import org.junit.Test;</p>
+
+<p> public class PrivateMethodTest {</p>
+
+<p> private static ClassTested oClassTested;</p>
+
+<p> private static Method newPrivateFoo;</p>
+
+<p> private static Field buffer;</p>
+
+<p> @BeforeClass</p>
+
+<p> public static void buildDupObj() throws NoSuchMethodException {</p>
+
+<p> // Get the class of the private method.</p>
+
+<p> oClassTested = new ClassTested();</p>
+
+<p> Class&lt;?> cNewClassTested = oClassTested. getClass ();</p>
+
+<p> // Change the property of the private method to be accessible.</p>
+
+<p> newPrivateFoo = cNewClassTested. getDeclaredMethod (&ldquo;privateFoo&rdquo;,</p>
+
+<p> int.class, String.class);</p>
+
+<p> newPrivateFoo. setAccessible (true);</p>
+
+<p> buffer =  cNewClassTested  . getDeclaredField (&ldquo;buffer&rdquo;);</p>
+
+<p> buffer. setAccessible (true);</p>
+
+<p> buffer. set ( oClassTested  , &ldquo;abcdefg&rdquo;);</p>
+
+<p> }</p>
+
+<p> @Test</p>
+
+<p> public void privateFooTest() throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {</p>
+
+<p> // Run the private method.</p>
+
+<p> Object oActual = newPrivateFoo. invoke (oClassTested, new Integer(169),  new String(&ldquo;_ABC&rdquo;));</p>
+
+<p> // Test the private method</p>
+
+<p> String sActual = oActual.toString();</p>
+
+<p> String sExpected = &ldquo;169_ABC&rdquo;;</p>
+
+<p> assertEquals(sActual, sExpected);</p>
+
+<p> Object result = buffer. get ( oClassTested );</p>
+
+<p> assertEquals(&ldquo;bcdefg&rdquo;, result);</p>
+
+<p> }</p>
+
+<p> @Test</p>
+
+<p> public void privateFooTest2() throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {</p>
+
+<p> Object oActual = newPrivateFoo. invoke (oClassTested, new Integer(169), new String(&ldquo;_DEF&rdquo;));</p>
+
+<p> String sActual = oActual.toString();</p>
+
+<p> String sExpected = &ldquo;169_DEF&rdquo;;</p>
+
+<p> assertEquals(sActual, sExpected);</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p>这里要注意的是，JUnit 4里一个测试类执行顺序为：@BeforeClass –> @Before –> @Test –> @After –> @AfterClass，其中@BeforeClass和@AfterClass标记仅在测试类的初始化和清理时运行一次且必须是static方法，而@Before/@After标记是在每个@Test方法运行前/后都运行一遍，因此每一个测试方法的调用顺序为：@Before –> @Test –> @After。在JUnit 3里没有@BeforeClass和@AfterClass标记，起初始化和清理任务的方法必须命名为SetUp()和TearDown()。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/02/21/162416/">激活托盘区程序的ahk脚本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-02-21T16:24:16+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>4:24 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的脚本实现了激活系统托盘区（system tray）Outlook程序的效果（Windows XP），第一行是不在托盘区出现一个autohotkey的图标，这样做的好处是显得比较酷，缺点是如果想中断这个脚本，就只能在任务管理器里关进程（Autohotkey.exe）了。第二行是运行脚本的快捷键（这里是Win键+“]”键），后面是脚本的具体内容，大体意思是首先用TrayIcons函数找到进程&#8221;OUTLOOK.EXE&#8221;的各种参数，然后用PostMessage方法向这个进程发指令，令其窗口显示出来，TrayIcons函数中涉及了很多Windows API，俺就不懂了，好用就行。</p>
+
+<p>使用方法：首先要安装Autohotkey_L v1.0.92.02，将下面的代码保存为一个 UTF-8格式 编码的文本文件，扩展名为ahk，双击运行之。</p>
+
+<h1>NoTrayIcon</h1>
+
+<h1>]::</h1>
+
+<p>DetectHiddenWindows, On</p>
+
+<p>Info := TrayIcons(&ldquo;OUTLOOK.EXE&rdquo;) ; 激活Outlook，这个名字是任务管理器的“进程”里程序对应的进程名称</p>
+
+<p>StringSplit, TrayInfo, Info,|</p>
+
+<p>PostMessage, TrayInfo1, TrayInfo2, 0x0203,, ahk_id %TrayInfo3% ; 这句话实现了激活托盘区程序</p>
+
+<p>return</p>
+
+<p> ; Found and abused from</p>
+
+<p> ; <a href="http://www.autohotkey.com/forum/topic17314.html">http://www.autohotkey.com/forum/topic17314.html</a></p>
+
+<p> ; thx, Sean &hellip; GREAT WORK!</p>
+
+<p>TrayIcons(sExeName = &ldquo;&rdquo;)</p>
+
+<p>{</p>
+
+<p> WinGet, pidTaskbar, PID, ahk_class Shell_TrayWnd</p>
+
+<p> hProc := DllCall(&ldquo;OpenProcess&rdquo;, &ldquo;Uint&rdquo;, 0x38, &ldquo;int&rdquo;, 0, &ldquo;Uint&rdquo;, pidTaskbar)</p>
+
+<p> pRB := DllCall(&ldquo;VirtualAllocEx&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, 0</p>
+
+<pre><code>    , "Uint", 20, "Uint", 0x1000, "Uint", 0x4)
+</code></pre>
+
+<p> VarSetCapacity(btn, 20)</p>
+
+<p> VarSetCapacity(nfo, 24)</p>
+
+<p> VarSetCapacity(sTooltip, 128)</p>
+
+<p> VarSetCapacity(wTooltip, 128 * 2)</p>
+
+<p> SendMessage, 0x418, 0, 0, ToolbarWindow321, ahk_class Shell_TrayWnd</p>
+
+<p> Loop, %ErrorLevel%</p>
+
+<p> {</p>
+
+<p> SendMessage, 0x417, A_Index - 1, pRB, ToolbarWindow321, ahk_class Shell_TrayWnd</p>
+
+<p> DllCall(&ldquo;ReadProcessMemory&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, pRB, &ldquo;Uint&rdquo;, &amp;btn, &ldquo;Uint&rdquo;, 20, &ldquo;Uint&rdquo;, 0)</p>
+
+<p> iBitmap := NumGet(btn, 0), idn := NumGet(btn, 4), Statyle := NumGet(btn, 8)</p>
+
+<p> dwData := NumGet(btn,12), iString := NumGet(btn,16)</p>
+
+<p> DllCall(&ldquo;ReadProcessMemory&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, dwData, &ldquo;Uint&rdquo;, &amp;nfo, &ldquo;Uint&rdquo;, 24, &ldquo;Uint&rdquo;, 0)</p>
+
+<p> hWnd := NumGet(nfo, 0), uID := NumGet(nfo, 4)</p>
+
+<p> nMsg := NumGet(nfo, 8)</p>
+
+<p> WinGet, pid, PID, ahk_id %hWnd%</p>
+
+<p> WinGet, sProcess, ProcessName, ahk_id %hWnd%</p>
+
+<p> WinGetClass, sClass, ahk_id %hWnd%</p>
+
+<p> If !sExeName || (sExeName = sProcess) || (sExeName = pid)</p>
+
+<p> {</p>
+
+<p>  DllCall(&ldquo;ReadProcessMemory&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, iString</p>
+
+<pre><code>     , "Uint", &amp;wTooltip, "Uint", 128 * 2, "Uint", 0)
+</code></pre>
+
+<p>  DllCall(&ldquo;WideCharToMultiByte&rdquo;, &ldquo;Uint&rdquo;, 0, &ldquo;Uint&rdquo;, 0, &ldquo;str&rdquo;, wTooltip</p>
+
+<pre><code>     , "int", -1, "str", sTooltip, "int", 128, "Uint", 0, "Uint", 0)
+</code></pre>
+
+<p>  sTrayIcons .= nMsg &ldquo;|&rdquo; uID &ldquo;|&rdquo; hWnd</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p> DllCall(&ldquo;VirtualFreeEx&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, pRB, &ldquo;Uint&rdquo;, 0, &ldquo;Uint&rdquo;, 0x8000)</p>
+
+<p> DllCall(&ldquo;CloseHandle&rdquo;, &ldquo;Uint&rdquo;, hProc)</p>
+
+<p> Return sTrayIcons</p>
+
+<p>}</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/02/18/151635/">Virtualenv使用笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-02-18T15:16:35+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:16 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以在沙箱中安装googlemaps(<a href="http://pypi.python.org/pypi/googlemaps/1.0.2">http://pypi.python.org/pypi/googlemaps/1.0.2</a>)为例说明如何用virtualenv隔离安装python第3方库
+// 离线安装virtualenv(<a href="http://pypi.python.org/pypi/virtualenv">http://pypi.python.org/pypi/virtualenv</a>)：首先下载安装包(gz文件)，解压后运行：
+F:\ghost\tempFiles\virtualenv-1.7.1.2>setup install
+（无法找到setup？参考笔记：***）
+// 生成沙箱
+E:\Docs\PythonSandbox>virtualenv gmapenv
+&hellip;
+// 进入沙箱
+E:\Docs\PythonSandbox>cd gmapenv\Script
+（linux下是cd gmapenv/bin）
+// 测试googlemaps是否已安装
+E:\Docs\PythonSandbox\gmapenv\Script>python -c &ldquo;import googlemaps&rdquo;
+（在Windows平台上用单引号会报错）
+// 激活沙盒
+E:\Docs\PythonSandbox\gmapenv\Script>activate
+（实际上是在$PATH前面加上了当前路径，以保证安装的库放在当前路径下）
+// 在线安装第3方库
+(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>pip install googlemaps
+// 验证测试googlemaps已安装
+(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>python -c &ldquo;import googlemaps&rdquo;
+// 卸载googlemaps
+(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>pip uninstall googlemaps
+// 退出沙盒：
+(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>deactivate
+注：当不能在线安装时：首先进入隔离环境activate，当安装包是zip格式文件（exe,gz,egg），用easy_install installer_file_name.ext（如aa.exe, bb.gz, cc.egg）的方法安装（参考<a href="http://stackoverflow.com/questions/3271590/can-i-install-python-windows-packages-into-virtualenvs%EF%BC%89%EF%BC%9B%E5%AF%B9%E4%BA%8Emsi%E6%A0%BC%E5%BC%8F%E7%9A%84%E5%AE%89%E8%A3%85%E6%96%87%E4%BB%B6%E8%BF%98%E6%B2%A1%E6%9C%89%E6%89%BE%E5%88%B0%E5%AE%89%E8%A3%85%E5%9C%A8%E9%9A%94%E7%A6%BB%E7%8E%AF%E5%A2%83%E4%B8%AD%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%88%E6%89%80%E4%BB%A5%E6%9C%80%E5%A5%BD%E8%BF%98%E6%98%AF%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%EF%BC%89%EF%BC%9B">http://stackoverflow.com/questions/3271590/can-i-install-python-windows-packages-into-virtualenvs%EF%BC%89%EF%BC%9B%E5%AF%B9%E4%BA%8Emsi%E6%A0%BC%E5%BC%8F%E7%9A%84%E5%AE%89%E8%A3%85%E6%96%87%E4%BB%B6%E8%BF%98%E6%B2%A1%E6%9C%89%E6%89%BE%E5%88%B0%E5%AE%89%E8%A3%85%E5%9C%A8%E9%9A%94%E7%A6%BB%E7%8E%AF%E5%A2%83%E4%B8%AD%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%88%E6%89%80%E4%BB%A5%E6%9C%80%E5%A5%BD%E8%BF%98%E6%98%AF%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%EF%BC%89%EF%BC%9B</a></p>
+
+<p>注2：activate只是将隔离环境的python.exe放在了$PATH的最前面，这样安装库时会安装在隔离环境的site-packages里；</p>
+
+<p>注3：需要卸载一个隔离环境时只要删除文件夹就OK了；</p>
+
+<p>主要参考 <a href="http://wiki.pylonshq.com/display/pylonscookbook/Using+a+Virtualenv+Sandbox">http://wiki.pylonshq.com/display/pylonscookbook/Using+a+Virtualenv+Sandbox</a> 中的windows部分。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -415,204 +759,6 @@ subject: BVT Reports
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/19/083210/">代码行汇总算法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-19T08:32:10+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:32 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>原始数据如下图，现需对每一种语言分类汇总各项指标，例如需计算3个项目中所有java语言增加的总行数（Addition列的52881、4828、14621的和）。每一个项目中语言的种类和数量是不可预知的，但针对一种语言进行的各项统计是确定的（这里共进行8项统计，其中前7项要按语言汇总，即做和，第8项RATE对某种语言是固定值，汇总时不要相加，照写即可）。</p>
-
-<p>算法分为3步：</p>
-
-<p>1、将取得的数据依次放入list中，形成一个一维list；</p>
-
-<p>2、顺序遍历该list，获得语言项的下标位置，每种语言的名字是字典的key，下标列表是对应的value；</p>
-
-<p>3、根据上面生成的字典依次对相同语言的对应条目进行做和，最后一项照写；</p>
-
-<p>下面是代码实现，其中 tested 是原始数据在第一步后形成的一维list， index_dict 是第二步后形成的下标列表字典， summary 是最终的汇总数据列表。</p>
-
-<pre><code>tested = ['java','4','5','0.41','xml','3','7','0.23','java','23','42','0.41','xml','63','82','0.23'] 
-index_dict = {} 
-for item in tested: 
-    if item.isalpha(): 
-        if not index_dict.has_key(item): index_dict[item] = [] 
-        index_dict[item].append(tested.index(item)) 
-        tested[tested.index(item)]='-' 
-print(index_dict) 
-summary=[] 
-for item in index_dict: 
-    summary.append(item) 
-    index_list = [k+1 for k in index_dict[item]] 
-    summary.append(sum(int(tested[k]) for k in index_list)) 
-    index_list = [k+2 for k in index_dict[item]] 
-    summary.append(sum(int(tested[k]) for k in index_list)) 
-    summary.append(tested[index_dict[item][0]+3]) 
-print(summary) 
-</code></pre>
-
-<p>输出是（python 2.6）：</p>
-
-<pre><code>{'xml': [4, 12], 'java': [0, 8]} 
-['xml', 66, 89, '0.23', 'java', 27, 47, '0.41']
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/18/113744/">用minidom解析xml文档</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-18T11:37:44+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:37 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>原始xml文档（下划线部分是要解析的数据）：</p>
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo;?></p>
-
-<p> &lt;!DOCTYPE coverage SYSTEM &ldquo;<a href="http://cobertura.sourceforge.net/xml/coverage-04.dtd">http://cobertura.sourceforge.net/xml/coverage-04.dtd</a>&rdquo;></p>
-
-<p> <coverage  line-rate="0.0" branch-rate="0.0" lines-covered="0" lines-valid="4358" branches-covered="0" branches-valid="1280" complexity="1.538085255066387"  version="1.9.1" timestamp="1294906695765"></p>
-
-<p> <packages /></p>
-
-<p> </coverage></p>
-
-<p>解析为list：</p>
-
-<p> test_datasets = []</p>
-
-<p> import xml.dom.minidom</p>
-
-<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
-
-<p> raw_test_res = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0]</p>
-
-<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-covered&rsquo;].value)</p>
-
-<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-valid&rsquo;].value)</p>
-
-<p> test_datasets.append(raw_test_res.attributes[&lsquo;line-rate&rsquo;].value)</p>
-
-<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-covered&rsquo;].value)</p>
-
-<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-valid&rsquo;].value)</p>
-
-<p> test_datasets.append(raw_test_res.attributes[&lsquo;branch-rate&rsquo;].value)</p>
-
-<p> test_datasets.append(raw_test_res.attributes[&lsquo;complexity&rsquo;].value)</p>
-
-<p> return test_datasets</p>
-
-<p>解析为字典：</p>
-
-<p> test_datasets = {}</p>
-
-<p> import xml.dom.minidom</p>
-
-<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
-
-<p> raw_data_set = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0].attributes</p>
-
-<p> for the_attr in raw_data_set.values():</p>
-
-<p>  test_datasets[the_attr.name] = the_attr.value</p>
-
-<p> return test_datasets</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/17/083035/">关于Python的嵌套域（nested Scope）</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-17T08:30:35+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:30 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>周五下午因为嵌套函数的问题反复折腾了几个小时，今天终于搞明白了，python2.6手册里对“nested scope”有一段定义，并结合“OReilly - Python in a Nutshell”第4.10.6.2节，总结如下： 1 python支持嵌套函数；
- 2 内层函数可以访问外层函数中定义的变量，但不能重新赋值（rebind）；
- 3 内层函数的local namespace不包含外层函数定义的变量（见下面的演示程序）；
- 4 避免出现低版本（&lt;=2.1）不支持nested scope问题的方法：在内层函数参数列表中使用默认参数：
- (copied from &ldquo;OReilly - Python in a Nutshell&rdquo; section 4.10.6.2)
- def make_adder_1(augend):    # works with any version
- def add(addend, <em>augend=augend ): return addend+</em>augend
- return add
- 演示程序：
- def outterfunc():
-  def innerfunc():
-   cc = bb+&lsquo;2&rsquo;
-   print &lsquo;inner:&rsquo;,locals()
-   # bb = 3 #这句会造成运行失败
-  bb = &lsquo;3&rsquo;
-  outer = &lsquo;out&rsquo;
-  innerfunc()
-  print &lsquo;outter:&rsquo;,locals()
- bb=31
- outterfunc()
- 输出：
- inner: {&lsquo;cc&rsquo;: &lsquo;32&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}
- outter: {&lsquo;innerfunc&rsquo;: <function innerfunc at 0x01F0C1F0>, &lsquo;outer&rsquo;: &lsquo;out&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}</p>
-
-<p> 从输出可以看到，外层函数里定义的outer变量没有出现在内层函数的local namespace里，但被引用的变量bb却出现了，这一特点值得注意。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/83">&larr; Older</a>
@@ -630,23 +776,23 @@ print(summary)
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/09/09/163500/">Package Repository Management on Ubuntu and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/150610/">Build BVT System Based on Docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/111703/">Automount USB Disk on ArchLinux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/30/104928/">Docker Notes</a>
       </li>
     
       <li class="post">
         <a href="/blog/2014/08/27/180124/">Spark Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
       </li>
     
   </ul>

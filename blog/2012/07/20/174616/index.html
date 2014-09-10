@@ -9,8 +9,22 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="下面的程序演示了一个对象被两个线程访问的方法，"monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在"MyObject"的线程里，而不是"monitor"线程里。
-BusyWaiting.java: public class &hellip;">
+  <meta name="description" content="下面的程序演示了一个对象被两个线程访问的方法，"monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在"MyObject"的线程里，而不是"monitor"线程里。 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -85,47 +99,114 @@ BusyWaiting.java: public class &hellip;">
   </header>
 
 
-<div class="entry-content"><p>下面的程序演示了一个对象被两个线程访问的方法，"monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在"MyObject"的线程里，而不是"monitor"线程里。
-BusyWaiting.java:</p>
+<div class="entry-content"><p>下面的程序演示了一个对象被两个线程访问的方法，"monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在"MyObject"的线程里，而不是"monitor"线程里。</p>
 
-<p> public class BusyWaiting {
-  public static void main(String[] args) {
-   Monitor monitor = new Monitor();
-   MyObject o = new MyObject(monitor);
-   new Thread(o, &ldquo; MyObject &rdquo;).start();
-   new Thread(monitor, &ldquo; monitor &rdquo;).start();
-   System.out.println(&ldquo;main thread exit&hellip;&rdquo;);
-  }
-}</p>
+<div class='bogus-wrapper'><notextile><figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>BusyWaiting.java:
+</span><span class='line'>
+</span><span class='line'>public class BusyWaiting { 
+</span><span class='line'>    public static void main(String[] args) {
+</span><span class='line'>        Monitor monitor = new Monitor(); 
+</span><span class='line'>        MyObject o = new MyObject(monitor); 
+</span><span class='line'>        new Thread(o, " MyObject ").start(); 
+</span><span class='line'>        new Thread(monitor, " monitor ").start(); 
+</span><span class='line'>        System.out.println("main thread exit..."); 
+</span><span class='line'>    } 
+</span><span class='line'>} 
+</span><span class='line'>
+</span><span class='line'>MyObject.java
+</span><span class='line'>
+</span><span class='line'>import java.util.concurrent.TimeUnit;
+</span><span class='line'>public class MyObject implements Runnable {
+</span><span class='line'>    private final Monitor monitor;
+</span><span class='line'>    public MyObject(Monitor monitor) {
+</span><span class='line'>        this.monitor = monitor;
+</span><span class='line'>    }
+</span><span class='line'>    public void run() {
+</span><span class='line'>        try {
+</span><span class='line'>            TimeUnit.SECONDS.sleep(3);
+</span><span class='line'>            System.out.println("i'm going.");
+</span><span class='line'>            monitor.gotMessage();
+</span><span class='line'>        } catch (InterruptedException e) {
+</span><span class='line'>            e.printStackTrace();
+</span><span class='line'>        }
+</span><span class='line'>    }
+</span><span class='line'>} 
+</span><span class='line'>
+</span><span class='line'> 
+</span><span class='line'>
+</span><span class='line'>Monitor.java
+</span><span class='line'>
+</span><span class='line'>public class Monitor implements Runnable { 
+</span><span class='line'>    private volatile boolean go = false; 
+</span><span class='line'>    public void gotMessage() throws InterruptedException { 
+</span><span class='line'>        go = true; 
+</span><span class='line'>    } 
+</span><span class='line'>    public void watching() { 
+</span><span class='line'>        while (go == false); 
+</span><span class='line'>        System.out.println("He has gone."); 
+</span><span class='line'>    } 
+</span><span class='line'>    public void run() { 
+</span><span class='line'>        watching(); 
+</span><span class='line'>    } 
+</span><span class='line'>} </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>MyObject.java</p>
-
-<p> import java.util.concurrent.TimeUnit; public class MyObject implements Runnable {  private final Monitor monitor;  public MyObject(Monitor monitor) {    this.monitor = monitor;  }  public void run() {    try {     TimeUnit.SECONDS.sleep(3);     System.out.println(&ldquo;i&rsquo;m going.&rdquo;);     monitor.gotMessage();    } catch (InterruptedException e) {     e.printStackTrace();    }  } }</p>
-
-<p>Monitor.java</p>
-
-<p> public class Monitor implements Runnable {
-  private volatile boolean go = false;
-  public void gotMessage() throws InterruptedException {
-   go = true;
-  }
-  public void watching() {
-   while (go == false)
-    ;
-   System.out.println(&ldquo;He has gone.&rdquo;);
-  }
-  public void run() {
-   watching();
-  }
-}</p>
 
 <p>另外采用</p>
 
-<p>   MyObject o = new MyObject(monitor);
-   new Thread(o, &ldquo; thread1 &rdquo;).start();
-   new Thread(o, &ldquo;thread2&rdquo;).start();</p>
+<pre><code>MyObject o = new MyObject(monitor); 
+new Thread(o, " thread1 ").start(); 
+new Thread(o, "thread2").start(); 
+</code></pre>
 
-<p> 也是一种常用的多个线程共享数据的方式，</p>
+<p>也是一种常用的多个线程共享数据的方式，</p>
 </div>
 
 
@@ -182,23 +263,23 @@ BusyWaiting.java:</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/09/09/163500/">Package Repository Management on Ubuntu and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/150610/">Build BVT System Based on Docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/111703/">Automount USB Disk on ArchLinux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/30/104928/">Docker Notes</a>
       </li>
     
       <li class="post">
         <a href="/blog/2014/08/27/180124/">Spark Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
       </li>
     
   </ul>

@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="The following class &ldquo;GetData&rdquo; can retrieve data from Sonarqube. But you have to import java.net.URL; import java.net.HttpURLConnection; &hellip;">
+  <meta name="description" content="Shell getdata.groovy url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes" addr = url. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,227 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/04/100446/">Parse Sonarqube Data via Web API in Groovy</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-04T10:04:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Shell</h1>
+
+<h2>getdata.groovy</h2>
+
+<pre><code>url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
+
+addr = url.toURL() 
+conn= addr.openConnection() 
+status = conn.getResponseCode() 
+reader = new BufferedReader(new InputStreamReader(conn.getInputStream())) 
+datastr = reader.readLine()
+
+import groovy.json.JsonSlurper
+
+slurper = new JsonSlurper()
+
+data = slurper.parseText(datastr)
+
+msr = data[0].msr.frmt_val[0]
+</code></pre>
+
+<h2>Run Shell Script</h2>
+
+<ol>
+<li><p>start shell: &ldquo;groovysh&rdquo;</p></li>
+<li><p>load script file: &ldquo;. getdata.groovy&rdquo;;</p></li>
+<li><p>all variables in script file can be used in shell; evaluate variable value by its name directly;</p></li>
+<li><p>reload file: &ldquo;purge all&rdquo; then &ldquo;. getdata.groovy&rdquo;;</p></li>
+</ol>
+
+
+<h1>Script</h1>
+
+<h2>getdata_scpt.groovy</h2>
+
+<pre><code>def url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
+def addr = url.toURL()
+def conn= addr.openConnection()
+def status = conn.getResponseCode()
+def reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))
+println reader.readLine()
+</code></pre>
+
+<h2>run script</h2>
+
+<p>groovy getdata_scpt.groovy</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/02/193731/">Run Shell Script Inside Ruby Script</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-02T19:37:31+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>7:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Backtick grammar</h1>
+
+<p>Thanks to the backtick grammar and string substitution, shell script can be embedded more easily into Ruby script than Python.</p>
+
+<p>Execute shell command in irb, the return value is the output in stdout:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.1.2 :036 &gt; `ls -l|grep play`
+</span><span class='line'> =&gt; "drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj\n" 
+</span><span class='line'> 2.1.2 :037 &gt; `aaa`
+</span><span class='line'> Errno::ENOENT: No such file or directory - aaa
+</span><span class='line'> ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Execute shell commands in Ruby scripts:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># Usage: Save the following scripts in file "cmd.rb" 
+</span><span class='line'># $ ruby cmd.rb ls -a 
+</span><span class='line'>cmd = ARGV[0] 
+</span><span class='line'>op = ARGV[1] 
+</span><span class='line'>result = `#{cmd} #{op}` 
+</span><span class='line'>puts result</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>system function</h1>
+
+<p>Kernel#system executes the given command in a subshell. Return true if the command was found and ran successfully, false otherwise.
+The output of the command will be written to stdout. So it can&rsquo;t store the command output.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.1.2 :036 &gt; `ls -l|grep play`
+</span><span class='line'>drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj
+</span><span class='line'> =&gt; truee</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/2232/calling-bash-commands-from-ruby">Calling Bash Commands From Ruby</a></p>
+
+<p><a href="http://stackoverflow.com/questions/2741260/can-ruby-access-output-from-shell-commands-as-it-appears">Can Ruby access output from shell commands as it appears?</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/02/164918/">Line Wrap in Python</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-02T16:49:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Omitting Backslash</h1>
+
+<p>You can only omitting backslash in list bracket or using parenthesis with long string.</p>
+
+<p> ke = [&lsquo;com.boco.esb.analysismgr.service.impl&rsquo;,
+   &lsquo;com.boco.esb.dataencapsulation.service.impl&rsquo;,
+   &lsquo;com.boco.esb.dataquality.service.impl&rsquo;]</p>
+
+<p> issue_url = (&lsquo;<a href="http://%s/api/issues/search?componentRoots=%s:%s">http://%s/api/issues/search?componentRoots=%s:%s</a>&rsquo;</p>
+
+<pre><code> '&amp;pageSize=5000&amp;rules=%s&amp;statuses=OPEN,REOPENED') 
+</code></pre>
+
+<h1>Mandatory Backslash</h1>
+
+<h2>Long Variable Name</h2>
+
+<p>Use backslash following &ldquo;=&rdquo; to save space.</p>
+
+<p> METHOD_RELATED_ISSUE_KEYS = \
+ [&lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.MethodLengthCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.ParameterNumberCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.coding.NestedIfDepthCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.duplicates.StrictDuplicateCodeCheck&rsquo;]</p>
+
+<h2>List Comprehension</h2>
+
+<p>Backslash before &ldquo;for&rdquo; in list(dict) comprehension cannot be omitted.</p>
+
+<p> total_issue_num = sum(get_issue_num(proj_name, pkg, issue_key) \
+   for pkg in pkgs)</p>
+
+<h2>After Operator</h2>
+
+<p>Backslash after operator cannot be omitted.</p>
+
+<p> line_cov = sum(cov_line for (cov_line,<em>) in lines_info) / \
+     sum(valid_line for (</em>,valid_line) in lines_info)</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -508,193 +729,6 @@ diff -rq gsp dst
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/26/155129/">Run Ruby Shell on Android</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-26T15:51:29+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:51 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Installation: Install Ruboto Core and IRB from Google Play;</p></li>
-<li><p>Run irb: double click &ldquo;Ruboto IRB&rdquo; icon;</p></li>
-<li><p>Verify: input &ldquo;Dir.pwd&rdquo;, my got the output: &ldquo;/storage/sdcard0/jruby&rdquo;;</p></li>
-</ol>
-
-
-<p>Verify device: HUAWEI C8813D (mobile phone), Android 4.1.1.</p>
-
-<p>bingo.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/25/144450/">Git Commands</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-25T14:44:50+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:44 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>git add <files>: add files to stage area, use git rm &ndash;cached <file> to remove it from stage area (physical file remains);</p>
-
-<p>git add -A: If you use &ldquo;mv&rdquo; instead of &ldquo;git mv&rdquo; to rename a file, you can use this command to apply this rename operation to staging area;</p>
-
-<p>git checkout <commit>: make your working directory back to state <commit>;</p>
-
-<pre><code>$ git checkout &lt;branch-name&gt;  // switch between branches
-</code></pre>
-
-<p>git checkout &ndash; <file-name>: use <file-name> in staging area replace its counterpart in working directory;</p>
-
-<p>git checkout &ndash; .: abandon all modifications in working directory. Don&rsquo;t forget the last dot. It means &ldquo;all&rdquo;.</p>
-
-<p>git clean -n: &ldquo;dry run&rdquo; mode, preview the removed files;
-git clean -f: remove all untracked files;
-git clean -f -d: remove all untracked files and directories;</p>
-
-<p>git commit: commit all files in stage area;</p>
-
-<p>git config &ndash;global alias.ci &ldquo;commit -s&rdquo;   # this is user-wide, or use &ldquo;&ndash;system&rdquo; to config system-wide (in /etc/gitconfig)
-git config &ndash;global user.name &ldquo;leetschau&rdquo;
-git config &ndash;global user.email &ldquo;<a href="&#109;&#97;&#x69;&#x6c;&#116;&#111;&#x3a;&#x6c;&#x65;&#101;&#x74;&#x73;&#99;&#104;&#97;&#x75;&#x40;&#x67;&#109;&#97;&#105;&#108;&#46;&#x63;&#111;&#109;">&#x6c;&#x65;&#x65;&#116;&#115;&#x63;&#104;&#x61;&#x75;&#64;&#x67;&#109;&#x61;&#105;&#108;&#46;&#x63;&#x6f;&#109;</a>&rdquo;</p>
-
-<p>git diff</p>
-
-<p>git init: initialize local repository;</p>
-
-<p>git log &ndash;stat: list log with file changes;</p>
-
-<p>git mv <old-file-name> <new-file-name></p>
-
-<p>git reset &ndash;hard <commit>: go back to <commit> completely, both working directory and repository, the history is lost;</p>
-
-<p>git reset: undo all &ldquo;git add&rdquo; commands, same with &ldquo;git reset HEAD&rdquo;;</p>
-
-<p>git reset &ndash; <file-name>: only remove <file-name> from staging area;</p>
-
-<p>git rm:</p>
-
-<p>git show <object>: show information of <object>, like a commit, the following command show the information of commit 389be, like &ldquo;git log &hellip;&rdquo;:</p>
-
-<pre><code>git show 389be --stat
-</code></pre>
-
-<p>  or print file contents of a specified version, the following command show the file contents of the parent of HEAD:</p>
-
-<pre><code>git show HEAD~1:donno/cloudsync.py
-</code></pre>
-
-<p>git stash: save current working directory and index and change them to the state of last commit;</p>
-
-<p>git stash apply: restore last &ldquo;stash save&rdquo;;</p>
-
-<p>git stash drop: delete last &ldquo;stash save&rdquo;;</p>
-
-<p>git stash pop: git stash apply + git stash drop</p>
-
-<p>git stash clear: clear all stash saves;</p>
-
-<p>git status</p>
-
-<h1>Git config</h1>
-
-<h2>User Config (global)</h2>
-
-<p>~/.gitconfig</p>
-
-<pre><code>[user]
-    name = leetschau
-    email = leetschau@gmail.com
-[alias]
-    ci = commit -s
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/22/172634/">Run Clojure Script Portable</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-22T17:26:34+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>5:26 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>leiningen is great, but it&rsquo;s for project-level application. How to run clojure script on a bare host, like python script?</p>
-
-<p>Yes, python is build-in for almost all Linux host. But you can build your clojure environment on a host only depends JVM:</p>
-
-<ol>
-<li><p>Download clojure distribution from <a href="http://clojure.org/">clojure official website</a>, and extract it somewhere, say, ~/apps/clojure-1.5.1;</p></li>
-<li><p>Add a alias in your ~/.bashrc:</p></li>
-</ol>
-
-
-<p> alias clj=&lsquo;java -cp ~/apps/clojure-1.5.1/clojure-1.5.1.jar clojure.main&rsquo;</p>
-
-<ol>
-<li>Validate your .bashrc: &ldquo;. ~/.bashrc&rdquo;;</li>
-</ol>
-
-
-<p>That&rsquo;s it!</p>
-
-<p>Now run clojure repl with command &ldquo;clj&rdquo;. Then write a clojure hello world file &ldquo;hw.clj&rdquo;: (println &ldquo;hello world&rdquo;), then run &ldquo;clj hw.clj&rdquo;, you can see the output is the same as you run it in clojure repl console.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/23">&larr; Older</a>
@@ -712,23 +746,23 @@ git config &ndash;global user.email &ldquo;<a href="&#109;&#97;&#x69;&#x6c;&#116
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/09/09/163500/">Package Repository Management on Ubuntu and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/150610/">Build BVT System Based on Docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/111703/">Automount USB Disk on ArchLinux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/30/104928/">Docker Notes</a>
       </li>
     
       <li class="post">
         <a href="/blog/2014/08/27/180124/">Spark Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
       </li>
     
   </ul>

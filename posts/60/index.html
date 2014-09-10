@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Java的字符串处理方法trim是如何改变字符串的？下面是一个例子： @Test public void testTrim() { String test = &ldquo;origin&rdquo;; String ori = &ldquo;origin\r\n&rdquo;; &hellip;">
+  <meta name="description" content="一般认为Stream（包括InputStream和OutputStream）不是线程安全的（如 这篇 ），但下面的程序运行多次后未观察到OutputStream.write()方法的原子性被破坏的现象：每个线程向文件输出长度为1000的字符组（从A到），20个线程并发没有出现字符组交错输出。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,236 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/08/10/094240/">Stream和BlockingQueue的线程安全问题</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-08-10T09:42:40+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:42 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>一般认为Stream（包括InputStream和OutputStream）不是线程安全的（如 这篇 ），但下面的程序运行多次后未观察到OutputStream.write()方法的原子性被破坏的现象：每个线程向文件输出长度为1000的字符组（从A到），20个线程并发没有出现字符组交错输出。</p>
+
+<p>StreamQueueTest.java
+ package streamVsQueue;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+public class StreamQueueTest {
+ public static void main(String[] args) {
+  OutputStream out = null;
+  try {
+   out = new FileOutputStream(&ldquo;concurrentout.txt&rdquo;, false);
+  } catch (FileNotFoundException e) {
+   e.printStackTrace();
+  }
+  for (int i = 0; i &lt; 20; i++) {
+   IntCounter cc = new IntCounter(i, out);
+   new Thread(cc).start();
+  }
+ }
+}</p>
+
+<p>IntCounter.java</p>
+
+<p> package streamVsQueue;
+import java.io.IOException;
+import java.io.OutputStream;
+public class IntCounter implements Runnable {
+ private final int cnt;
+ OutputStream out;
+ public IntCounter(int i, OutputStream oup) {
+  cnt = i;
+  out = oup;
+ }
+ @Override
+ public void run() {
+  int bytelen = 1000;
+  byte[] buf = new byte[bytelen];
+  for (int i = 0; i &lt; bytelen; i++) {
+   buf[i] = (byte) (65 + cnt);
+  }
+  try {
+   out.write(buf);
+  } catch (IOException e) {
+   e.printStackTrace();
+  }
+ }
+}</p>
+
+<p>至于BlockingQueue，文档明确说明是线程安全的，各个读取操作都有内部锁，所以就不测试了，安全起见，新版本的GODU就用这个数据结构吧。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/08/02/160232/">Log4j的输出格式控制</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-08-02T16:02:32+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>4:02 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>格式控制中的“-”号表示对齐空格出现在内容的右边，例如下面的“相对时间”（%r）设置为“&hellip;ConversionPattern=% -6 r %c”，效果见下面的第一列：
+ 0  PoolServer
+7429 BQServer
+7430 BQServer
+7434 Write2User
+7436 AdminServer</p>
+
+<p>若不写“-”，则表示在内容前方填充空格对齐，写为“&hellip;ConversionPattern=% 6 r %16c{1}”效果见下面的第一列：</p>
+
+<p>  0  PoolServer
+ 3792   BQServer
+ 3793   BQServer
+ 3795  Write2User</p>
+
+<p>上面类名“%c”的控制中{N}控制从右面数类名的层级，例如“%16c{1}”表示“仅显示最后一级类名，占据16个空格，不足的在类名左面填充空格对齐”，效果见上面例子的第二列，其中PoolServer的全名是com.boco.godu.trns.PoolServer，所以{1}是PoolServer，{2}是trns.PoolServer，依此类推，不写则打印完整类名。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/07/31/094650/">Hg命令行工具使用笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-07-31T09:46:50+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>9:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>tortoiseHg不能建立分支（可以建，2012-10-8），所以只好用命令行来做了，好在命令行也不复杂。</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg init   // 当前目录下建立repo</p>
+
+<p>// 新建文件test.txt</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg add test.txt // 增加对test的版本控制</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg ci -m &ldquo;first time commit&rdquo;  // 提交test，ci是check-in的简写，也可写为commit</p>
+
+<p>// 修改test.txt文件内容</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg st   // 查看变化情况，st是status的简写
+M test.txt</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg diff   // 显示working directory中的内容与tip的区别
+diff -r e83bcfd395df test.txt
+&hellip;（详细内容对比）</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg commit -m &ldquo;第二次修改&rdquo;  // 提交修改，双引号中（版本注释）可以写中文
+F:\VMFiles\tmpFiles\testHg>hg log -v    // 查看版本历史
+修改集:  1:ee6f6492bd8b
+标签:  tip
+用户:  Chad
+日期:  Tue Jul 31 09:36:18 2012 +0800
+摘要:  第二次修改
+修改集:  0:3bf09e86781b
+用户:  Chad
+日期:  Tue Jul 31 09:28:56 2012 +0800
+摘要:  first time commit</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg revert test.txt // 放弃本次修改，新修改的文件重命名为test.txt.orig</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg branch red      // 新建分支red，并切换到它上面</p>
+
+<p>marked working directory as branch red
+F:\VMFiles\tmpFiles\testHg>hg commit -m &ldquo;red上的修改&rdquo;   // 后面的修改都是基于当前分支red的</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg branch     // 查看当前所处的branch
+red</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg branches       // 显示当前所有分支
+red       3:973327a4aa5d
+default      2:ee6f6492bd8b (inactive)</p>
+
+<h3>修改test.txt文件内容</h3>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg commit -m &ldquo;red上的第二次修改&rdquo;</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg up default       // 将当前分支切换为default，up是update的简写
+1 files updated, 0 files merged, 0 files removed, 0 files unresolved</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg log -b red      // 只显示分支red上的版本
+&hellip;</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg tip -v     // 显示tip版本信息
+&hellip;</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg heads     // 显示当前各个branch上的最新版本</p>
+
+<p>F:\VMFiles\tmpFiles\testHg>hg merge -t docdiff -r 3 // 与版本3合并，这里使用了diff工具docdiff，注意将它的路径加入到$PATH中，默认是&#8221;C:\Program Files\TortoiseHg&#8221;</p>
+
+<p>F:\VMFiles\tmpFiles>hg clone <a href="http://www.selenic.com/repo/hello">http://www.selenic.com/repo/hello</a> my-hello // 从网络上下载repo到当前目录的my-hello目录下</p>
+
+<p>F:\VMFiles\tmpFiles\my-hello>hg clone . e:/aaa  // clone当前（目录所在的）repo到e:\aaa目录下</p>
+
+<p>F:\VMFiles\tmpFiles>hg clone my-hello my-hello-new // 复制当前目录下的repo（同时也是子目录）my-hello到my-hello-new下</p>
+
+<h3>修改my-hello-new/hello.c文件</h3>
+
+<p>F:\VMFiles\tmpFiles>cd my-hello</p>
+
+<p>F:\VMFiles\tmpFiles\my-hello>hg pull ../my-hello-new // 将其他repo中的改进“拉”到当前（目录所在的）repo中，类似于SVN的update</p>
+
+<p>当多个分支存在冲突时，merge会失败，比较好的策略是：主干（default）里是稳定的可用版，新加的功能放在分支里（每个新功能都建一个新分支），当功能通过验证后，再合并到主干里，这样的好处是分支的代码只会比主干多，合并时不会出现冲突。</p>
+
+<p>另：</p>
+
+<p>Hg原理的介绍： Understanding Mercurial</p>
+
+<p>一个不错的Hg教程： Hg Init</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -336,47 +566,114 @@
   </header>
 
 
-  <div class="entry-content"><p>下面的程序演示了一个对象被两个线程访问的方法，&#8221;monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在&#8221;MyObject&#8221;的线程里，而不是&#8221;monitor&#8221;线程里。
-BusyWaiting.java:</p>
+  <div class="entry-content"><p>下面的程序演示了一个对象被两个线程访问的方法，&#8221;monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在&#8221;MyObject&#8221;的线程里，而不是&#8221;monitor&#8221;线程里。</p>
 
-<p> public class BusyWaiting {
-  public static void main(String[] args) {
-   Monitor monitor = new Monitor();
-   MyObject o = new MyObject(monitor);
-   new Thread(o, &ldquo; MyObject &rdquo;).start();
-   new Thread(monitor, &ldquo; monitor &rdquo;).start();
-   System.out.println(&ldquo;main thread exit&hellip;&rdquo;);
-  }
-}</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>BusyWaiting.java:
+</span><span class='line'>
+</span><span class='line'>public class BusyWaiting { 
+</span><span class='line'>    public static void main(String[] args) {
+</span><span class='line'>        Monitor monitor = new Monitor(); 
+</span><span class='line'>        MyObject o = new MyObject(monitor); 
+</span><span class='line'>        new Thread(o, " MyObject ").start(); 
+</span><span class='line'>        new Thread(monitor, " monitor ").start(); 
+</span><span class='line'>        System.out.println("main thread exit..."); 
+</span><span class='line'>    } 
+</span><span class='line'>} 
+</span><span class='line'>
+</span><span class='line'>MyObject.java
+</span><span class='line'>
+</span><span class='line'>import java.util.concurrent.TimeUnit;
+</span><span class='line'>public class MyObject implements Runnable {
+</span><span class='line'>    private final Monitor monitor;
+</span><span class='line'>    public MyObject(Monitor monitor) {
+</span><span class='line'>        this.monitor = monitor;
+</span><span class='line'>    }
+</span><span class='line'>    public void run() {
+</span><span class='line'>        try {
+</span><span class='line'>            TimeUnit.SECONDS.sleep(3);
+</span><span class='line'>            System.out.println("i'm going.");
+</span><span class='line'>            monitor.gotMessage();
+</span><span class='line'>        } catch (InterruptedException e) {
+</span><span class='line'>            e.printStackTrace();
+</span><span class='line'>        }
+</span><span class='line'>    }
+</span><span class='line'>} 
+</span><span class='line'>
+</span><span class='line'> 
+</span><span class='line'>
+</span><span class='line'>Monitor.java
+</span><span class='line'>
+</span><span class='line'>public class Monitor implements Runnable { 
+</span><span class='line'>    private volatile boolean go = false; 
+</span><span class='line'>    public void gotMessage() throws InterruptedException { 
+</span><span class='line'>        go = true; 
+</span><span class='line'>    } 
+</span><span class='line'>    public void watching() { 
+</span><span class='line'>        while (go == false); 
+</span><span class='line'>        System.out.println("He has gone."); 
+</span><span class='line'>    } 
+</span><span class='line'>    public void run() { 
+</span><span class='line'>        watching(); 
+</span><span class='line'>    } 
+</span><span class='line'>} </span></code></pre></td></tr></table></div></figure>
 
-<p>MyObject.java</p>
-
-<p> import java.util.concurrent.TimeUnit; public class MyObject implements Runnable {  private final Monitor monitor;  public MyObject(Monitor monitor) {    this.monitor = monitor;  }  public void run() {    try {     TimeUnit.SECONDS.sleep(3);     System.out.println(&ldquo;i&rsquo;m going.&rdquo;);     monitor.gotMessage();    } catch (InterruptedException e) {     e.printStackTrace();    }  } }</p>
-
-<p>Monitor.java</p>
-
-<p> public class Monitor implements Runnable {
-  private volatile boolean go = false;
-  public void gotMessage() throws InterruptedException {
-   go = true;
-  }
-  public void watching() {
-   while (go == false)
-    ;
-   System.out.println(&ldquo;He has gone.&rdquo;);
-  }
-  public void run() {
-   watching();
-  }
-}</p>
 
 <p>另外采用</p>
 
-<p>   MyObject o = new MyObject(monitor);
-   new Thread(o, &ldquo; thread1 &rdquo;).start();
-   new Thread(o, &ldquo;thread2&rdquo;).start();</p>
+<pre><code>MyObject o = new MyObject(monitor); 
+new Thread(o, " thread1 ").start(); 
+new Thread(o, "thread2").start(); 
+</code></pre>
 
-<p> 也是一种常用的多个线程共享数据的方式，</p>
+<p>也是一种常用的多个线程共享数据的方式，</p>
 </div>
   
   
@@ -449,188 +746,6 @@ BusyWaiting.java:</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/07/12/143712/">使用Eclipse下载CRaSH源代码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-07-12T14:37:12+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:37 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Eclipse for Java Developers (Juno)本身有一个eGit组件，通过它可以直接从Git源码库中下载源代码，以下载 CRaSH 为例说明：</p>
-
-<ol>
-<li><p>从主页上的&#8221;Develop: GitHub&#8221;找到 源码页 ，得到此项目的GitHub地址是：<a href="https://github.com/vietj/crash.git%EF%BC%9B">https://github.com/vietj/crash.git%EF%BC%9B</a></p></li>
-<li><p>Eclipse -> Import -> Git -> Projects from Git -> URI -> <a href="https://github.com/vietj/crash.git">https://github.com/vietj/crash.git</a></p></li>
-</ol>
-
-
-<p>（Host和Repo path是自动解析出来的，下面的所有参数都不变）</p>
-
-<ol>
-<li>选好本地的下载位置（不要在Workspace中，因为后面还要导入），一路Next即可。</li>
-</ol>
-
-
-<p>到这一步只是将源码下载到本地，要在Eclipse里引入此项目，还需要继续下面的导入过程：</p>
-
-<p>Eclipse -> Maven -> Existing maven projects，选择刚才下载的位置，导入即可，</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/07/11/162523/">用ObjectAid生成Java代码的类图</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-07-11T16:25:23+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>ObjectAid是一款比较好用的Java逆向工程工具（类似工具的比较见 自动生成Java类图工具比较 ），以下是使用方法。
- 创建基于Java代码的类图
-1. 安装objectaid插件：将objectaid-1.0.9.zip解压到$ECLIPSE_HOME/dropins/$OBJECTAID_PLUGIN_NAME下，目录结构如下：</p>
-
-<ol>
-<li><p>启动Eclipse，File -> New -> Other -> ObjectAid UML Diagram -> Next</p></li>
-<li><p>&ldquo;Folder&#8221;后写上保存类图的位置，&#8221;Name&#8221;后面写类图的名字；</p></li>
-<li><p>下面的选项里勾选上感兴趣的项目，其中&#8221;Relationships&#8221;中各项的含义见后面的说明；</p></li>
-<li><p>&ldquo;Finish&#8221;。</p></li>
-<li><p>打开新生成的类图文件（.ucls），将感兴趣的类文件拖入ucls文件窗口中（详细使用方法见ObjectAid官网上 如何生成类图的说明 ）；
-对Relationships的说明（与标准UML中的术语不尽一致，如何对应以后再细分析，</p></li>
-<li>继承(Generalization)：实线三角，子类/接口（Shell）指向父类/接口（ConnectionListener）；</li>
-</ol>
-
-
-<p> public interface Shell extends ConnectionListener</p>
-
-<ol>
-<li>实现(Realization)：虚线三角，源类（DummyShell）实现目标接口（Shell）；</li>
-</ol>
-
-
-<p> public class DummyShell implements Shell</p>
-
-<ol>
-<li>关联(Association)：实线箭头，源类（Connection）的一个field（m_NextShell）的类型是目标类/接口（Shell）；</li>
-</ol>
-
-
-<p> public class Connection {
- &hellip;
- private Shell m_NextShell;</p>
-
-<ol>
-<li>嵌入(Nesting)：如下图，内部类（IACHandler）嵌入到外部类（TelnetIO）中；</li>
-</ol>
-
-
-<p> public class TelnetIO {
- class IACHandler {
- &hellip;</p>
-
-<ol>
-<li>依赖(Dependencies)：虚线箭头，源的方法中出现了目标类对象；</li>
-</ol>
-
-
-<p> public class ShellManager {
- public Shell getShell(String key) {
-  Shell myShell = null;
-  &hellip;</p>
-
-<p> 以上示例代码来自 Java Telnet daemon (wimpi)。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/07/10/135952/">CRaSH安装笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-07-10T13:59:52+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>1:59 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>CRaSH 可以作为JMX技术的替代品，它有3种运行模式：Web archive deployment, Standalone &amp; Attach, 第一种是作为一个web app，通过web server(tomcat, jboss)运行，第二种是直接运行$CRASH_HOME\crash\bin\crash.bat，第三种是crash.bat后面加上目标JVM进程的PID，专门用来分析特定的进程。无论哪种方式，都需要jdk版本不低于1.6，在1.5上运行会报错。</p>
-
-<p>如果以第一种方式运行，步骤如下：</p>
-
-<ol>
-<li><p>将crsh-1.0.0.tar.gz\deploy\gatein\crash.war拷贝到f:\Software\apache-tomcat-6.0.18\webapps下；</p></li>
-<li><p>确定tomcat使用的jdk版本：如果默认jdk版本是1.5，可以在$TOMCAT_HOME\bin\startup.bat中加上</p></li>
-</ol>
-
-
-<p>  set JAVA_HOME=f:\Software\jdk1.6.0_27</p>
-
-<p>  set PATH=%JAVA_HOME%\bin</p>
-
-<ol>
-<li>修改$TOMCAT_HOME\conf\tomcat-users.xml，在 &lt; tomcat-users > </ tomcat-users >之间增加：</li>
-</ol>
-
-
-<p>  &lt; role rolename =&ldquo; manager &rdquo; />
-   &lt; user username =&ldquo; tomcat &rdquo; password =&ldquo; tomcat &rdquo; roles =&ldquo; manager &rdquo; /></p>
-
-<ol>
-<li><p>启动tomcat（运行$TOMCAT_HOME\bin\startup.bat），浏览器中输入：<a href="http://localhost:8080/%EF%BC%8C%E7%82%B9%E5%87%BB">http://localhost:8080/%EF%BC%8C%E7%82%B9%E5%87%BB</a>&#8221; Tomcat Manager &ldquo;，用户名和密码都是tomcat，进入管理页面，如果Applications一节中CRaSH的Running状态是True，说明安装成功：</p></li>
-<li><p>连接CRaSH服务：telnet localhost 5000，出现CRaSH欢迎界面：</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/61">&larr; Older</a>
@@ -648,23 +763,23 @@ BusyWaiting.java:</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/09/09/163500/">Package Repository Management on Ubuntu and Mint</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/150610/">Build BVT System Based on Docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/03/111703/">Automount USB Disk on ArchLinux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/08/30/104928/">Docker Notes</a>
       </li>
     
       <li class="post">
         <a href="/blog/2014/08/27/180124/">Spark Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a>
       </li>
     
   </ul>
