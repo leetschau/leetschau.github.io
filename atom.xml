@@ -4,7 +4,7 @@
   <title><![CDATA[Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-09-10T17:28:18+08:00</updated>
+  <updated>2014-10-01T21:11:56+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,756 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Dmenu Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2014/10/01/210506/"/>
+    <updated>2014-10-01T21:05:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/10/01/210506</id>
+    <content type="html"><![CDATA[<ul>
+<li>Add eclipse to dmenu path: <code>cd /usr/local/bin; sudo ln -s $HOME/apps/eclipse-java-luna-R-x86_64/eclipse eclipse</code>;</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A Simple Ring Server]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/27/113819/"/>
+    <updated>2014-09-27T11:38:19+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/27/113819</id>
+    <content type="html"><![CDATA[<p>The simple web server is based on example 16-1 in &ldquo;Clojure Programming&rdquo; by Chas Emerick. I add it into a clojure project created by leiningen.</p>
+
+<pre><code>$ lein new app ring-server
+$ cd ring-server
+// Add "[ring "1.0.0"]" into ":dependencies" of project.clj
+$ vi src/ring-server/core.clj
+$ cat src/ring-server/core.clj
+(ns ring-server.core
+  (:gen-class))
+
+(use '[ring.adapter.jetty :only (run-jetty)])
+(defn app
+  [{:keys [uri query-string]}]
+  {:body (format "You requested %s with query %s" uri query-string)})
+(defn -main
+  "this is a ring server"
+  [port]
+  (run-jetty #'app {:port (bigdec port) :join? false}))
+
+$ lein run -m ring-server.core 8082
+</code></pre>
+
+<p>Now open <a href="http://localhost:8082/hello?at=china">http://localhost:8082/hello?at=china</a> in your browser, you can see &ldquo;You requested /hello with query at=china&rdquo;.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Xen on CentOS 6]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/24/073009/"/>
+    <updated>2014-09-24T07:30:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/24/073009</id>
+    <content type="html"><![CDATA[<p>Ref: <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart">Xen4 CentOS6 QuickStart</a> &amp; <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart/Xen4Libvirt">Xen4 Libvirt for CentOS 6</a>.</p>
+
+<h1>Build Xen Server</h1>
+
+<p>The IP address of the Xen server (a Dell PC) is 10.32.1.112.
+First install CentOS 6.4 via Minimal CD (or LiveDVD) and install Xen on the new OS;</p>
+
+<pre><code>yum update
+yum groupinstall Virtualization
+yum install centos-release-xen   // unnecessary if install OS with LiveDVD
+yum install xen bridge-utils
+/usr/bin/grub-bootxen.sh
+reboot
+yum install libvirt python-virtinst libvirt-daemon-xen
+yum install rsync wget vim-enhanced openssh-clients   // unnecessary if install OS with LiveDVD
+reboot
+uname -r  // the kernel should be 3.x
+xm info
+useradd -m chad
+groupadd remote-libvirt
+usermod -G remote-libvirt chad
+cat &gt; /etc/polkit-1/localauthority/50-local.d/50-libvirt-remote-access.pkla &lt;&lt;EOF
+[Remote libvirt SSH access]
+Identity=unix-group:remote-libvirt
+Action=org.libvirt.unix.manage
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
+EOF
+</code></pre>
+
+<h2>Config network</h2>
+
+<p>Modify dom0 host file /etc/xen/xend-config.sxp:</p>
+
+<p>Comment out &ldquo;(network-script /bin/true)&rdquo; to &ldquo;(network-script &lsquo;network-bridge bridge=virbr0 netdev=eth0&rsquo;)&rdquo;.</p>
+
+<h1>Build Xen Client</h1>
+
+<p>We usually do not work on a Xen dom0 server. So here we install xen client on a Mint OS, and control Xen server with it:</p>
+
+<h2>GUI Client</h2>
+
+<p>First install with <code>sudo aptitude install virt-manager</code>, then run it with <code>virt-manager</code>. The &ldquo;Virtual Machine Manager&rdquo; window appears.</p>
+
+<p>[Edit -> Connect Details -> Storage], Location: /var/lib/libvirt/images. So copy an OS image file (here it&rsquo;s CentOS-6.5-x86_64-minimal.iso) to this folder, and press the refresh button after &ldquo;Volumns&rdquo;, the ISO file appears.</p>
+
+<p>Click &ldquo;New&rdquo; on toolbar, Name: Cloud21, check &ldquo;Local install media&rdquo; -> Use ISO image: /var/lib/libvirt/images/CentOS-6.5-x86_64-minimal.iso, OS type: Linux, Version: Red Hat Enterprise Linux 6 -> Memory: 1024 MB, CPUs: 1 -> Create a disk image &hellip;: 8.0 GB.</p>
+
+<p>Now install CentOS with Minimal ISO file.</p>
+
+<h2>Console Client</h2>
+
+<pre><code>sudo aptitude install libvirt-bin
+virsh -c xen+ssh://chad@10.32.1.112
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Lightweight Web Browser Dwb]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/20/105816/"/>
+    <updated>2014-09-20T10:58:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/20/105816</id>
+    <content type="html"><![CDATA[<p>List all shortcuts: ga, then click &ldquo;Keys&rdquo;
+Open homepage: ga
+Open links of current page in current tab: f
+Open links of current page in new tab: F
+Open a url by input manually in current tab: o
+Open a url by input manually in a new tab: O
+Close tab: d
+Save current page to bookmark: M
+Show all Bookmarks: ga
+Save current page to quickmark: m
+Open quick mark: b
+Zoom in: +
+Zoom out: -
+Yank web page title: yt
+Yank web page url: yy
+Go to next tab: J
+Go to previous tab: K
+Go to previous page (history): H
+Go to next page: L
+Insert text: i</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Set Time Synchronization on ArchLinux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/20/103138/"/>
+    <updated>2014-09-20T10:31:38+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/20/103138</id>
+    <content type="html"><![CDATA[<p>Find out if current system time setup and services status is corrent: <code>timedatectl status</code>.
+If not, run these commands as root to set correct timezne and sync time with Internet.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># ln -s /usr/share/zoneinfo/Hongkong /etc/localtime
+</span><span class='line'># hwclock --systohc --utc
+</span><span class='line'># systemctl enable systemd-timesyncd.service
+</span><span class='line'># systemctl start systemd-timesyncd.service </span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ref: <a href="https://wiki.archlinux.org/index.php/Time">Time - ArchWiki</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Linux From Scratch Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/19/153017/"/>
+    <updated>2014-09-19T15:30:17+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/19/153017</id>
+    <content type="html"><![CDATA[<p>Linux from Scratch (LFS) version: 7.5.</p>
+
+<p>Host: Dell PC, ArchLinux.</p>
+
+<h1>Partition Scheme</h1>
+
+<p>The host is GPT, so use <code>cgdisk</code> to create 2 new partitions (after 2 existing partitions): root 10GB, and swap 4GB.
+When asked for partition type, input &ldquo;L&rdquo;, it will list all type code, where code of linux swap is 8200.
+Reboot and build as root:</p>
+
+<pre><code>mkfs.ext4 /dev/sda3
+mkswap /dev/sda4
+export LFS=/mnt/lfs
+mkdir -pv $LFS
+mount -v -t ext4 /dev/sda3 $LFS
+swapon -v /dev/sda4
+mkdir $LFS/sources
+chmod -v a+wt $LFS/sources
+mkdir -v $LFS/tools
+groupadd lfs
+useradd -s /bin/bash -g lfs -m -k /dev/null lfs
+passwd lfs
+chown -R lfs:lfs $LFS
+chown -v lfs $LFS/tools
+ln -sv $LFS/tools /
+chown -v lfs $LFS/sources
+su - lfs
+
+cat &gt; ~/.bash_profile &lt;&lt; "EOF"
+exec env -i HOME=$HOME TERM=$TERM PS1='\u:\w\$ ' /bin/bash
+EOF
+cat &gt; ~/.bashrc &lt;&lt; "EOF"
+set +h
+umask 022
+LFS=/mnt/lfs
+LC_ALL=POSIX
+LFS_TGT=$(uname -m)-lfs-linux-gnu
+PATH=/tools/bin:/bin:/usr/bin
+export LFS LC_ALL LFS_TGT PATH
+EOF
+
+wget -O wget-list http://www.linuxfromscratch.org/lfs/downloads/stable/wget-list
+wget -i wget-list -P $LFS/sources
+
+cd $LFS
+tar xf sources/binutils-2.24.tar.bz2
+cd binutils-2.24
+./configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror 
+make
+mkdir -v /tools/lib
+ln -sv lib /tools/lib64
+make install
+cd $LFS
+tar xf sources/gcc-4.8.2.tar.bz2
+tar xf sources/mpfr-3.1.2.tar.xz
+tar xf sources/gmp-5.1.3.tar.xz
+tar xf sources/mpc-1.0.2.tar.xz
+mv mpfr* mpfr
+mv gmp* gmp
+mv mpc* mpc
+mv mpfr gmp mpc gcc-4.8.2
+cd gcc-4.8.2
+cat &gt; runme.sh &lt;&lt;EOF
+for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+do
+    cp -uv $file{,.orig}
+    sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&amp;@g' \
+        -e 's@/usr@/tools@g' $file.orig &gt; $file
+    echo '
+#undef STANDARD_STARTFILE_PREFIX_1
+#undef STANDARD_STARTFILE_PREFIX_2
+#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+#define STANDARD_STARTFILE_PREFIX_2 ""' &gt;&gt; $file
+    touch $file.orig
+done
+EOF
+chmod 755 runme.sh
+./runme.sh
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Xen on ArchLinux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/17/215227/"/>
+    <updated>2014-09-17T21:52:27+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/17/215227</id>
+    <content type="html"><![CDATA[<p>Today I bought a new hard disk, and tried to install xen on it.</p>
+
+<h1>Install Base ArchLinux</h1>
+
+<ol>
+<li><p>Start computer with USB key, choose x86_64, NBD;</p></li>
+<li><p>This is not UEFI boot: an error raised when <code>efivar -l</code>;</p></li>
+<li><p>Install system:</p>
+
+<p> # rmmod tg3
+ # modprobe broadcom
+ # modprobe tg3
+ # systemctl stop dhcpcd.service
+ # dhcpcd enp2s0
+ # sgdisk &ndash;zap-all /dev/sda
+ # cgdisk /dev/sda
+ // choose GPT partitions type, /dev/sda1: 50G, /dev/sda2: 300G, 581G free
+ # mkfs.ext4 /dev/sda1
+ # mkfs.ext4 /dev/sda2
+ # mount /dev/sda1 /mnt
+ # mkdir /mnt/home
+ # mount /dev/sda2 /mnt/home
+ # vi /etc/pacman.d/mirrorlist
+ # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>   // add the ip into &ldquo;allow&rdquo; list tinyproxy.conf
+ # pacstrap -i /mnt base base-devel
+ # genfstab -U -p /mnt >> /mnt/etc/fstab
+ # vi /etc/locale.gen
+ # locale-gen
+ # echo LANG=en_US.UTF-8 > /etc/locale.conf
+ # export LANG=en_US.UTF-8
+ # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime
+ # hwclock &ndash;systohc &ndash;utc
+ # echo xenserver > /etc/hostname
+ # vi /etc/hosts
+ # systemctl enable <a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#58;&#100;&#104;&#x63;&#112;&#99;&#x64;&#x40;&#101;&#x6e;&#112;&#x32;&#115;&#x30;&#x2e;&#x73;&#x65;&#x72;&#118;&#105;&#99;&#101;">&#100;&#x68;&#x63;&#x70;&#99;&#100;&#x40;&#x65;&#110;&#x70;&#x32;&#115;&#48;&#x2e;&#x73;&#x65;&#114;&#x76;&#105;&#x63;&#101;</a>
+ # passwd
+ # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # pacman -S openssh
+ # systemctl enable sshd.service
+ # pacman -S gptfdisk            // use syslinux boot loader for GPT installed previously
+ # pacman -S syslinux
+ # syslinux-install_update -iam
+ # vi /boot/syslinux/syslinux.cfg    // modify sda3 to sda1 in &ldquo;APPEND root=/dev/sda3&rdquo;
+ # exit
+ # reboot</p></li>
+</ol>
+
+
+<h1>Customize System</h1>
+
+<p>After reboot, login as root and run:</p>
+
+<pre><code># useradd -m chad
+# passwd chad
+# passwd -l root     // disable root login, use can remove this by `sudo passwd -u root`
+# export http_proxy=http://10.32.1.154:8888
+# export https_proxy=http://10.32.1.154:8888
+# pacman -Syu
+# pacman -S xorg-server xorg-server-utils xorg-xinit i3 dmenu xf86-video-intel terminator ttf-dejavu firefox
+# su - chad
+$ echo exec i3 &gt; ~/.xinitrc
+$ startx
+</code></pre>
+
+<h1>Install Xen</h1>
+
+<p>First make sure the host can access internet, then enable multilib repository, uncomment following lines in /etc/pacman.conf:</p>
+
+<pre><code>[multilib]
+Include = /etc/pacman.d/mirrorlist
+</code></pre>
+
+<p>Install yaourt, see note &ldquo;Yaourt Notes&rdquo; for details. Then run <code>yaourt -S xen</code>. If failed, install it manually:</p>
+
+<p>Download xen.tar.gz, and run:</p>
+
+<pre><code>tar xf xen.tar.gz
+cd xen
+makepkg
+sudo pacman -U xen-4.4.1-1-x86_64.pkg.tar.xz
+</code></pre>
+
+<p>Config network:</p>
+
+<pre><code># cd /etc/netctl
+# cp examples/bridge xenbridge-dhcp
+# vi xenbridge-dhcp
+# netctl start xenbridge-dhcp
+# brctl show
+# netctl enable xenbridge-dhcp
+</code></pre>
+
+<p>Config services:</p>
+
+<pre><code>sudo systemctl enable xenstored.service
+sudo systemctl enable xenconsoled.service
+sudo systemctl enable xendomains.service
+</code></pre>
+
+<p>Config boot loader. Add following stanza to /boot/syslinux/syslinux.cfg:</p>
+
+<pre><code>LABEL xen
+    MENU LABEL Xen
+    KERNEL mboot.c32
+    APPEND ../xen-4.4.1.gz --- ../vmlinuz-linux console=tty0 root=/dev/sda1 ro --- ../initramfs-linux.img
+</code></pre>
+
+<p>And make sure there is a &ldquo;mboot.c32&rdquo; file in folder /boot/syslinux, or you have to copy it:
+<code>cp /usr/lib/syslinux/bios/mboot.c32 /boot/syslinux/</code>.</p>
+
+<p>Note: If there is file conflicting errors, use <code>sudo pacman -U --force xen-4.4.1-1-x86_64.pkg.tar.xz</code> to install it.</p>
+
+<p>Reboot, choose &ldquo;Xen&rdquo; at boot screen, then run <code>sudo xl list</code> (list all xen domains), you can see a &ldquo;Domain-0&rdquo; item.
+If you boot with ArchLinux, run <code>sudo xl list</code> will report an error.</p>
+
+<h1>Install Guest OS on Xen</h1>
+
+<p>See <a href="http://wiki.xen.org/wiki/Xen_Configuration_File_Options#Disk_Devices">Xen Configuration File Options</a> for full syntax of xen domU config files.</p>
+
+<h2>CentOS 6.5 minimal</h2>
+
+<h3>PV</h3>
+
+<p>Not succeed yet. Maybe we should use CentOS as dom0 system.</p>
+
+<pre><code>$ mkdir ~/docs/cloud60
+$ cd ~/docs/cloud60
+$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
+$ mkfs.ext4 cloud60.img
+$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
+$ cat cloud60.conf      // ???
+$ sudo xl create -c cloud60.conf
+</code></pre>
+
+<h3>HVM</h3>
+
+<pre><code>$ sudo pacman -S mesa-libgl bluez-libs tigervnc
+$ mkdir ~/docs/cloud60
+$ cd ~/docs/cloud60
+$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
+$ mkfs.ext4 cloud60.img
+$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
+$ cat cloud60.conf
+name = "hvmcentos"
+builder = "hvm"
+memory = 1024
+disk = [ "file:/home/chad/docs/cloud60/cloud60.img,xvda,w", "file:/home/chad/warez/CentOS-6.5-x86_64-minimal.iso,xvdb:cdrom,r" ]
+vif = ["bridge=xenbr0"]
+vnc = 1
+vnclisten = "0.0.0.0"
+vncdisplay = 1
+
+$ sudo xl create cloud60.conf
+$ sudo xl vncviewer hvmcentos
+</code></pre>
+
+<p>Or you can use <code>vncviewer localhost:5901</code> to connect to the guest OS, here the &ldquo;1&rdquo; in &ldquo;5901&rdquo; is determined by the value of &ldquo;vncdisplay&rdquo; in guest OS config file.
+After connecting to the guest OS, install system, then reboot and connect it with vncviewer again.
+You can use xl&rsquo;s subcommands &ldquo;list&rdquo;, &ldquo;top&rdquo; and &ldquo;info&rdquo; to probe domU systems.</p>
+
+<h1>Using Xen</h1>
+
+<p>Based on <a href="https://wiki.archlinux.org/index.php/Xen">Xen on Arch Wiki</a>.</p>
+
+<p>Use Debian as dom0: <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide#Installing_the_Xen_Project_Software">Xen Project Beginners Guide</a>;</p>
+
+<p>Use CentOS as dom0: <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart">Xen4 CentOS6 QuickStart</a>;</p>
+
+<p>Use Ubuntu as dom0: <a href="https://help.ubuntu.com/community/Xen">Xen in Ubuntu Community</a>;</p>
+
+<p>Other patterns see <a href="http://wiki.xenproject.org/wiki/Category:Guest_Install">Guest Install</a>;</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[在Linux上播放带中文字幕的电影]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/17/094859/"/>
+    <updated>2014-09-17T09:48:59+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/17/094859</id>
+    <content type="html"><![CDATA[<p>今天从<a href="https://kickass.to/">Kickass</a>上下载了黄秋生1996年主演的电影“伊波拉病毒”(Ebola Syndrome)，粤语版听不懂，于是想下载中文字幕，Windows上的射手播放器可以自动下载字幕，Linux上貌似没有这么好用的播放器，于是从<a href="http://shooter.cn/">射手网</a>上下载了字幕文件，用<code>iconv -f gbk -t utf8 ebola_chs.srt</code>将编码转为utf8，然后<code>sudo aptitude install mplayer</code>安装了MPlayer，发现无法正常播放中文字幕，按照网络上的介绍将默认编码设为UTF-8仍然是乱码，于是<code>sudo aptitude install smplayer</code>，然后<code>smplayer</code>启动，在[Preferences -> Subtitles -> Subtitles -> Encodings]中，将&#8221;Default subtitle encoding&#8221;设为为&#8221;UTF-8 (UTF-8)&ldquo;，将&#8221;Autoload -> Autoload subtitle files&#8221;设置为&#8221;All subs containing movie names&#8221;，并勾选&#8221;Select first available subtitle&#8221;，现在视频文件名是Ebola_LKRG.avi，字幕是Ebola_LKRG_chs.srt，播放视频文件时能够自动加载中文字幕，无乱码，另外[Preferences -> Subtitles -> Subtitles -> Font and colors -> Font]默认值为Arial，在MPlayer中同样设为Arial，中文字幕仍为乱码，可见造成乱码的原因很可能是程序本身不支持UTF8编码的多字节字符。</p>
+
+<p>调整字幕延时：
+如果某句对白在字幕文件中的时间标记是13s，但在影片中应该在第32s出现，则在[SMPlayer -> Subtitles -> Set delay&hellip;]中的值应设为-19000，即字幕向后推迟19秒。</p>
+
+<p>搜索字幕：
+[SMPlayer -> Subtitles -> Find subtitles on Opensubtitles.org].
+或者安装subdownloader: <code>sudo aptitude install subdownloader</code>，但这样软件连接服务器速度很慢，不是很好用。</p>
+
+<p>使用amule(<code>sudo aptitude install amule</code>)也可以搜索到这部影片，但下载速度很慢。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Spark Tasks on ArchLinux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/15/110702/"/>
+    <updated>2014-09-15T11:07:02+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/15/110702</id>
+    <content type="html"><![CDATA[<h1>Install</h1>
+
+<ol>
+<li><p>Install JDK: <code>sudo pacman -S jdk7-openjdk</code>;</p></li>
+<li><p>Download pre-build package (spark-1.1.0-bin-hadoop2.4.tgz) from <a href="http://spark.apache.org/">Apache Spark website</a>;</p></li>
+<li><p>Extract and add path: <code>tar xf spark-1.1.0-bin-hadoop2.4.tgz</code>;</p></li>
+</ol>
+
+
+<h1>Run Spark script</h1>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Two Java Building Tools]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/12/103608/"/>
+    <updated>2014-09-12T10:36:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/12/103608</id>
+    <content type="html"><![CDATA[<p>I need build a java project to compare performance of <a href="http://logging.apache.org/log4j/2.x/">apache log4j</a> and <a href="http://logback.qos.ch/">Logback</a>. The following codes are the building procedures based on [Gradle]<a href="http://www.gradle.org/">http://www.gradle.org/</a>) and <a href="http://www.scala-sbt.org/">sbt</a>.</p>
+
+<h1>sbt</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>mkdir myproject
+</span><span class='line'>cd myproject
+</span><span class='line'>cat &lt;&lt;EOF &gt; build.sbt
+</span><span class='line'>name := "MyProject"
+</span><span class='line'>
+</span><span class='line'>version := "0.1"
+</span><span class='line'>EOF
+</span><span class='line'>mkdir project
+</span><span class='line'>echo 'addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")' &gt; project/plugins.sbt
+</span><span class='line'>sbt eclipse</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that the blank line between &ldquo;name&rdquo; &amp; &ldquo;version&rdquo; in build.sbt is mandatory for Scala syntax.
+Now start eclipse, import this proect, create new packages (com.boco.logb) and Java files (LoggerOneThread.java) in &ldquo;src/main/java&rdquo; folder, and config files (log4j.properties and logback.xml) in src/resources folder.
+slf4j looks for log implementations based on jars in classpath instead of conifg files, so we add both 2 config files into resource folder.</p>
+
+<p>The LoggerOneThread.java file:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>package com.boco.logb;
+</span><span class='line'>
+</span><span class='line'>import java.util.concurrent.TimeUnit;
+</span><span class='line'>
+</span><span class='line'>import org.slf4j.Logger;
+</span><span class='line'>import org.slf4j.LoggerFactory;
+</span><span class='line'>
+</span><span class='line'>public class LoggerOneThread {
+</span><span class='line'>    public static final long TOTAL_TIMES = 4000 * 1000;
+</span><span class='line'>    private static final Logger logger = LoggerFactory
+</span><span class='line'>            .getLogger(LoggerOneThread.class);
+</span><span class='line'>
+</span><span class='line'>    public static void main(String[] args) {
+</span><span class='line'>        long start = System.nanoTime();
+</span><span class='line'>        for (int i = 1; i &lt; TOTAL_TIMES; i++) {
+</span><span class='line'>            logger.debug("This is a test message. This is another test message.");
+</span><span class='line'>        }
+</span><span class='line'>        long estimatedTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime()
+</span><span class='line'>                - start);
+</span><span class='line'>        System.out.println("Write " + TOTAL_TIMES + " logs takes time "
+</span><span class='line'>                + estimatedTime + " s.");
+</span><span class='line'>    }
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Log4j config file log4j.properties:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>log4j.rootLogger = DEBUG, FILE
+</span><span class='line'>
+</span><span class='line'>log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+</span><span class='line'>log4j.appender.FILE.File=log4j.log
+</span><span class='line'>log4j.appender.FILE.Append=true
+</span><span class='line'>log4j.appender.FILE.MaxFileSize=50MB
+</span><span class='line'>log4j.appender.FILE.MaxBackupIndex=10
+</span><span class='line'>log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+</span><span class='line'>log4j.appender.FILE.layout.ConversionPattern=%d{MM-dd HH:mm:ss.SSS} [%t] %p %c - %m%n</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Logback config file logback.xml:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+</span><span class='line'>&lt;configuration&gt;
+</span><span class='line'>
+</span><span class='line'>    &lt;appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
+</span><span class='line'>        &lt;file&gt;logback.log&lt;/file&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy"&gt;
+</span><span class='line'>            &lt;fileNamePattern&gt;logback.log.%i&lt;/fileNamePattern&gt;
+</span><span class='line'>            &lt;minIndex&gt;1&lt;/minIndex&gt;
+</span><span class='line'>            &lt;maxIndex&gt;11&lt;/maxIndex&gt;
+</span><span class='line'>        &lt;/rollingPolicy&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy"&gt;
+</span><span class='line'>            &lt;maxFileSize&gt;50MB&lt;/maxFileSize&gt;
+</span><span class='line'>        &lt;/triggeringPolicy&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;encoder&gt;
+</span><span class='line'>            &lt;pattern&gt;%date{MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n&lt;/pattern&gt;
+</span><span class='line'>        &lt;/encoder&gt;
+</span><span class='line'>    &lt;/appender&gt;
+</span><span class='line'>
+</span><span class='line'>    &lt;root level="DEBUG"&gt;
+</span><span class='line'>        &lt;appender-ref ref="FILE" /&gt;
+</span><span class='line'>    &lt;/root&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Add following dependencies into build.sbt.log4j:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
+</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
+</span><span class='line'>  "org.slf4j" % "slf4j-log4j12" % "1.7.7",
+</span><span class='line'>  "log4j" % "log4j" % "1.2.17"
+</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And the following into build.sbt.logback:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
+</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
+</span><span class='line'>  "ch.qos.logback" % "logback-classic" % "1.1.2",
+</span><span class='line'>  "ch.qos.logback" % "logback-core" % "1.1.2"
+</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now delete .classpath file under project home folder, run <code>sbt eclipse</code> again to refresh classpath.</p>
+
+<p>When coding completed, copy build.sbt.log4j (or build.sbt.logback) as build.sbt, run <code>sbt run</code> to run this project. Run <code>sbt package</code> to create jar file under target folder.</p>
+
+<p>Some other settings in build.sbt:</p>
+
+<pre><code>organization := "org.leechau"
+</code></pre>
+
+<h1>Gradle</h1>
+
+<ol>
+<li><p>Install gradle plugin for Eclipse, and create a Gradle Project &ldquo;MyProject&rdquo; in Eclipse, choose &ldquo;Java Quickstart&rdquo; as Sample project;</p></li>
+<li><p>Add following lines into auto-created build.gradle file for log4j test:</p>
+
+<pre><code> apply plugin: 'application'
+ dependencies {
+     compile 'org.slf4j:slf4j-api:1.7.7', 'log4j:log4j:1.2.17', 'org.slf4j:slf4j-log4j12:1.7.7'
+ }
+ mainClassName = "com.boco.logb.LoggerOneThread"
+</code></pre></li>
+<li><p>Refresh dependencies: [Gradle -> Refresh Dependencies] in context menu;</p></li>
+<li><p>Run log4j test:</p>
+
+<pre><code> cp build.gradle build.gradle.log4j
+ gradle clean run
+</code></pre></li>
+<li><p>For logback test, create a new file build.gradle.logback based on build.gradle.log4j, but use the following dependencies:</p></li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>compile 'org.slf4j:slf4j-api:1.7.7', 'ch.qos.logback:logback-classic:1.1.2', 'ch.qos.logback:logback-core:1.1.2'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The config files log4j.properties and logback.xml, and Java file LoggerOneThread.java are identical to that in sbt section.</p>
+
+<ol>
+<li><p>Run logback test:</p>
+
+<pre><code> cp build.gradle.logback build.gradle
+ gradle clean run
+</code></pre></li>
+</ol>
+
+
+<h1>Eclipse Interface</h1>
+
+<p>How to creat Eclipse setting files (.classpath and .project) so that we can import this project into Eclipse, editing and debuging in it.</p>
+
+<p>For gradle, add <code>apply plugin: 'eclipse'</code> into build.gradle and run <code>gradle cleanEclipse eclipse</code>;</p>
+
+<p>For sbt, add <code>addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")</code> (for sbt 0.13) into $PROJECT_HOME/project/plugins.sbt, and run <code>sbt eclipse</code>;</p>
+
+<h1>Run Program</h1>
+
+<h2>gradle</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
+</span><span class='line'>cp build.gradle.log4j build.gradle
+</span><span class='line'>gradle clean run
+</span><span class='line'>// run logback test
+</span><span class='line'>cp build.gradle.logback build.gradle
+</span><span class='line'>gradle clean run</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>sbt</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
+</span><span class='line'>cp build.sbt.log4j build.sbt
+</span><span class='line'>sbt clean run
+</span><span class='line'>// run logback test
+</span><span class='line'>cp build.sbt.logback build.sbt
+</span><span class='line'>sbt clean run</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you have multiple main entry in source files, you can use &lsquo;runMain com.boco.logb.LoggerOneThread&rsquo; instead of &ldquo;run&rdquo; to run a specific program.</p>
+
+<h1>Conclusion</h1>
+
+<p>Gradle is mainly for building of Groovy and Java project, while sbt is mainly for building of Scala and Java project. So far Gradle has better support for building Java project.
+For example, it&rsquo;s very convenient to build production zip or tar files with Gradle&rsquo;s application plugin (via the &ldquo;distZip&rdquo; task), while there&rsquo;s no corresponding plugin in sbt.
+It&rsquo;s convenient to add or remove dependencies within Eclipse with the Gradle plugin of Eclipse (not the eclipse plugin of Gradle), while there&rsquo;s no sbt plugin of Eclipse (sbteclipse of typesafehub is a eclipse plugin of sbt). So we have to refresh build path of dependencies manually when developing a project in Eclipse created by sbt.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Package Repository Management on Ubuntu and Mint]]></title>
@@ -201,10 +951,9 @@ If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relo
     <link href="http://leetschau.github.io/blog/2014/08/27/180124/"/>
     <updated>2014-08-27T18:01:24+08:00</updated>
     <id>http://leetschau.github.io/blog/2014/08/27/180124</id>
-    <content type="html"><![CDATA[<ul>
-<li>Shutdown info log in spark-shell:</li>
-</ul>
+    <content type="html"><![CDATA[<h1>Spark Shell</h1>
 
+<h2>Shutdown info log in spark-shell:</h2>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -215,6 +964,12 @@ If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relo
 
 
 <p>The sed command here replace &ldquo;INFO&rdquo; with &ldquo;WARN&rdquo; in the second line of log4j.properties.</p>
+
+<h2>Customize shell parameters</h2>
+
+<h3>master and memory</h3>
+
+<p>spark-shell &ndash;master spark://cloud60:7077 &ndash;driver-memory 2g &ndash;executor-memory 2g -i wfp-spark.script</p>
 ]]></content>
   </entry>
   
@@ -264,6 +1019,19 @@ If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relo
 
 
 <p>That&rsquo;s it. Now you can logout. In login manager, you can find &ldquo;i3&rdquo;, choose it, and login i3 environment.</p>
+
+<h2>Power Management in i3</h2>
+
+<p>Check if &ldquo;pm-utils&rdquo; has been installed via <code>dpkg -l|grep pm-utils</code>. If not, install it with <code>sudo aptitude install pm-utils</code>;</p>
+
+<ul>
+<li><p>suspend: <code>sudo pm-suspend-hybrid</code>, it will suspend your system. When out of power, it will hibernate. See <code>man pm-actions</code> for details;</p></li>
+<li><p>hibernate: <code>sudo pm-hibernate</code>, it will save current state into disk;</p></li>
+<li><p>poweroff: <code>sudo poweroff</code>;</p></li>
+<li><p>restart: <code>sudo restart</code>;</p></li>
+<li><p>exit i3: <code>i3-msg exit</code> or Mod+Shift+E;</p></li>
+</ul>
+
 ]]></content>
   </entry>
   
@@ -673,588 +1441,6 @@ If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relo
 </span><span class='line'>n=4
 </span><span class='line'>Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973</span></code></pre></td></tr></table></div></figure>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Ruby Build Tools]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/18/111841/"/>
-    <updated>2014-08-18T11:18:41+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/18/111841</id>
-    <content type="html"><![CDATA[<p>&ldquo;gem&rdquo; (as a command) is a tool to download and install gems from <a href="https://rubygems.org/">RubyGems</a>. It&rsquo;s Python counterpart should be pip. It install some global gems (files), such as rake, bundler, etc.</p>
-
-<p>&ldquo;gem&rdquo; (as a file on disk), such as &ldquo;bundler-1.6.1.gem&rdquo; is a package which has the same standard structure. It&rsquo;s Java counterpart should be &ldquo;jar&rdquo; file.</p>
-
-<p><a href="http://bundler.io/">bundler</a> is used to manage project-level gems, whose versions for example. It works based on a spec file named &ldquo;Gemfile&rdquo; at project&rsquo;s root directory. It&rsquo;s Java counterpart should be Ivy.</p>
-
-<p><a href="https://rubygems.org/gems/rake">rake</a> is a build tool of Ruby. You can define many tasks and their dependencies in file &ldquo;Rakefile&rdquo;. It&rsquo;s Java counterpart should be Ant, and makefor Linux.</p>
-
-<p>Functions of Maven or Gradle for Java covers bundler and rake.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Install ArchLinux on Old ASUS A3000 Laptop]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/17/115200/"/>
-    <updated>2014-08-17T11:52:00+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/17/115200</id>
-    <content type="html"><![CDATA[<p>My old ASUS A3 laptop is bought at 2004. It CPU is Intel Celeron 1.33GHz, 490MB memory.</p>
-
-<ol>
-<li><p>Download install media: archlinux-2014.04.01-dual.iso;</p></li>
-<li><p>Write this ISO to USB stick with <a href="http://www.pendrivelinux.com/yumi-multiboot-usb-creator/">YUMI</a>;</p></li>
-<li><p>Plugin a usb-netcard (because the netcard of A3000 doesn&rsquo;t work) and startup A3000 with this USB key;</p></li>
-<li><p>When &ldquo;Boot> &rdquo; appeared, press <TAB>, then input &ldquo;pxe&rdquo;, then press <TAB> again, input &ldquo;nohave64&rdquo;;</p></li>
-<li><p>After ArchLinux i686 startup, setup ADSL connection with <code>pppoe-setup</code> (I install ArchLinux at home via ADSL):</p>
-
-<p> NIC: enp0s29f7u2
- Username: 100002172688
- Password: k4&hellip;
- DNS: server</p></li>
-</ol>
-
-
-<p>and use default values for other items.</p>
-
-<ol>
-<li><p>Install arch system. After setup hostname:</p>
-
-<p> pacman -S rp-pppoe openssh grub
- grub-install &ndash;target=i386-pc &ndash;recheck /dev/sda</p></li>
-<li><p>Shutdown system, unpluged USB key, restart system. A &ldquo;GRUB load failed&hellip; no such partition&hellip;&rdquo; error raise</p></li>
-<li><p>Install arch system. After setup hostname:</p>
-
-<p> pacman -S rp-pppoe openssh grub
- grub-install &ndash;target=i386-pc &ndash;recheck /dev/sda</p></li>
-<li><p>Using USB wireless card to replace USB wired netcard: <code>pacman -S iw gnome-keyring</code>. The USB wireless card is TP-LINK TL_WN725N, bought at jd.com 2013.2.18.</p></li>
-<li><p>Install video driver: the video card is Intel checked by <code>lspci|grep VGA</code>, so <code>pacman -S xf86-video-intel</code>;</p></li>
-<li><p>Config SSH servive: <code>systemctl enable sshd</code>;</p></li>
-<li><p>Shutdown system, unplug USB key, restart system. A &ldquo;GRUB load failed&hellip; no such partition&hellip;&rdquo; error raise.</p></li>
-<li><p>List partition UUID with <code>blkid</code>, compare them with that in /boot/grub/grub.cfg. They dismatch.</p></li>
-<li><p>Startup system with USB key. After <code>arch-chroot</code>, run <code>grub-mkconfig -o /boot/grub/grub.cfg</code> to rebuild grub file;</p></li>
-<li><p>Restart laptop. Arch load successfully.</p></li>
-</ol>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Run MapReduce Jobs on Spark]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/15/175039/"/>
-    <updated>2014-08-15T17:50:39+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/15/175039</id>
-    <content type="html"><![CDATA[<h1>Interactive Mode</h1>
-
-<p>Follow <a href="http://spark.apache.org/docs/latest/quick-start.html">Quick Start of Spark 1.0.2 on Apache Spark website</a>.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># hadoop fs -put alarm_data_for_explore-0501-0505.txt alarm_data_for_explore-0501-0505.txt 
-</span><span class='line'>
-</span><span class='line'># hadoop fs -ls
-</span><span class='line'>...
-</span><span class='line'>-rw-r--r--   3 root root  260780698 2014-08-15 16:45 alarm_data_for_explore-0501-0505.txt
-</span><span class='line'>
-</span><span class='line'># wc -l alarm_data_for_explore-0501-0505.txt
-</span><span class='line'>1362005
-</span><span class='line'>
-</span><span class='line'># head -1 alarm_data_for_explore-0501-0505.txt 
-</span><span class='line'>-2117657102|102|1000012276|License...|3|4|102|
-</span><span class='line'>
-</span><span class='line'># grep 007-002-00-000592 alarm_data_for_explore-0501-0505.txt | wc -l
-</span><span class='line'>12
-</span><span class='line'>
-</span><span class='line'># mv alarm_data_for_explore-0501-0505.txt aaa.txt       // this local file is unnecessary any more
-</span><span class='line'>
-</span><span class='line'># spark-shell
-</span><span class='line'>
-</span><span class='line'>scala&gt; val textFile = sc.textFile("alarm_data_for_explore-0501-0505.txt")
-</span><span class='line'>textFile: org.apache.spark.rdd.RDD[String] = MappedRDD[1] at textFile at &lt;console&gt;:12
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.count()
-</span><span class='line'>...
-</span><span class='line'>res5: Long = 1362005
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.first()
-</span><span class='line'>...
-</span><span class='line'>res8: String = -2117657102|102|1000012276|License...|3|4|102|
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.filter(line =&gt; line.contains("007-002-00-000592")).count()
-</span><span class='line'>...
-</span><span class='line'>res12: Long = 12
-</span><span class='line'>
-</span><span class='line'>scala&gt; import java.lang.Math
-</span><span class='line'>import java.lang.Math
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.map(line =&gt; line.split("|").size).reduce((a, b) =&gt; Math.max(a, b))
-</span><span class='line'>...
-</span><span class='line'>res13: Int = 372</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Run Spark Script</h2>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ cat wfp-spark
-</span><span class='line'>val MIN_SUP = 0.0003
-</span><span class='line'>val MIN_CONF = 0
-</span><span class='line'>val MAX_RELATION_ORDER = 3
-</span><span class='line'>val DATA_FILE = "input"
-</span><span class='line'>
-</span><span class='line'>val textFile = sc.textFile(DATA_FILE)
-</span><span class='line'>val weight = textFile.map(x =&gt; x -&gt; x.split(",")(5).toFloat).cache
-</span><span class='line'>val data = textFile.groupBy(x =&gt; x.split(",")(0))
-</span><span class='line'>
-</span><span class='line'>$ spark-shell -i wfp-spark
-</span><span class='line'>...</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now you are in a spark shell, all variables such as MIN_SUP, MIN_CONF are accessible.</p>
-
-<h1>Batch Mode</h1>
-
-<p>Follow <a href="http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH5/latest/CDH5-Installation-Guide/cdh5ig_running_spark_apps.html">Running Spark Applications in CDH 5 Installation Guide</a>.</p>
-
-<pre><code># locate spark-defaults.conf       // find out where is $SPARK_HOME
-/etc/spark/conf.cloudera.spark/spark-defaults.conf
-...
-
-# ll /etc/spark/conf.cloudera.spark
-...
--rw-r--r-- 1 root root 883 Aug 14 10:12 spark-env.sh
-
-# cat /etc/spark/conf.cloudera.spark/spark-env.sh
-...
-export SPARK_HOME=/opt/cloudera/parcels/CDH-5.1.0-1.cdh5.1.0.p0.53/lib/spark
-...
-
-# source /etc/spark/conf.cloudera.spark/spark-env.sh     // load $SPARK_HOME, etc
-
-# spark-submit --class org.apache.spark.examples.SparkPi --deploy-mode client --master yarn $SPARK_HOME/examples/lib/spark-examples_2.10-1.0.0-cdh5.1.0.jar 10
-</code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Build Gradle Project in Netbeans]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/13/102446/"/>
-    <updated>2014-08-13T10:24:46+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/13/102446</id>
-    <content type="html"><![CDATA[<ul>
-<li><p>Rename project: edit project name in settings.gradle, then right click project, choose &ldquo;Reload Project&rdquo;;</p></li>
-<li><p>Modify dependencies: edit build.gradle, then right click project, choose [Tasks -> buildDependents];</p></li>
-</ul>
-
-
-<p>The jVi plugin is not support Netbeans 8, so its editing is not very convenient like in Eclipse.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Underscore in Scala]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/13/102312/"/>
-    <updated>2014-08-13T10:23:12+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/13/102312</id>
-    <content type="html"><![CDATA[<p>val name = &ldquo;abc&rdquo;
-println(name.exists(_.isUpper))</p>
-
-<p>Here &ldquo;_.isUpper&rdquo; is an anoymous function, which equals to &ldquo;x => x.isUpper&rdquo;.</p>
-
-<p>Ref:
-<a href="http://stackoverflow.com/questions/8260367/scala-placeholder-syntax">Scala placeholder syntax</a>
-<a href="http://docs.scala-lang.org/tutorials/tour/anonymous-function-syntax.html">Anonymous Function Syntax</a>
-<a href="http://ananthakumaran.in/2010/03/29/scala-underscore-magic.html">Scala underscore magic</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Solve Integral Equation Set With Python]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/13/090432/"/>
-    <updated>2014-08-13T09:04:32+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/13/090432</id>
-    <content type="html"><![CDATA[<p>The equation set is provided by 鲍珂 at 2014-8-12.</p>
-
-<p>Host: Windows 7
-VM: CentOS 6.5 minimal, python 2.6.6</p>
-
-<p>Start VM, make sure its ssh service start with <code>service sshd status</code>;</p>
-
-<p>Then connect it with Putty or Kitty;</p>
-
-<h1>Install</h1>
-
-<p>yum install wget
-wget <a href="http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm">http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm</a>
-rpm -ivh epel-release-6-8.noarch.rpm
-yum update</p>
-
-<p>// optional desktop environment, start with <code>startxfce4</code>
-yum groupinstall Xfce
-yum groupinstall Fonts
-yum install xorg-x11-fonts-Type1 xorg-x11-fonts-misc</p>
-
-<p>yum install python-pip
-yum install vim-enhanced
-yum install python-ipython.noarch
-pip install argparse
-pip install sympy
-pip install mpmath
-pip install scipy</p>
-
-<h1>Symbolic Method</h1>
-
-<p>from sympy import *
-var(&lsquo;x y s&rsquo;)
-integrate(gamma(x+y)/(gamma(x)+gamma(y))<em>s**(x-1)</em>(1-s)<strong>(y-1), (s, 0, 0.6))
-integrate(gamma(x+y)/(gamma(x)+gamma(y))*s</strong>(x-1)*(1-s)**(y-1), (s, 0.9, 1))</p>
-
-<p>Ref:
-<a href="http://docs.sympy.org/0.7.0/tutorial.html">http://docs.sympy.org/0.7.0/tutorial.html</a>
-<a href="http://scipy-lectures.github.io/advanced/sympy.html#integration">http://scipy-lectures.github.io/advanced/sympy.html#integration</a>
-<a href="http://docs.sympy.org/dev/modules/integrals/integrals.html">http://docs.sympy.org/dev/modules/integrals/integrals.html</a>
-<a href="http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html">http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html</a></p>
-
-<h1>Numeric Method</h1>
-
-<p>from <strong>future</strong> import division
-from scipy.optimize import fsolve
-from scipy.special import gamma
-from scipy.integrate import fixed_quad</p>
-
-<p>def myfunc(x, y, theta):
-gmp = gamma(x+y) / (gamma(x)+gamma(y))
-return gmp * theta<strong>(x-1) * (1-theta)</strong>(y-1)</p>
-
-<p>def equations(p):
-x, y = p
-intg1 = fixed_quad(myfunc, 0, 0.6, args=(x, y))
-intg2 = fixed_quad(myfunc, 0.9, 1, args=(x, y))
-return (intg1[0] - 0.05, intg2[0] - 0.05)</p>
-
-<p>xr, yr = fsolve(equations, (1, 1))
-print equations((xr, yr))</p>
-
-<p>Ref:
-<a href="http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python">http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python</a>
-<a href="http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad">http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad</a>
-<a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve">http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Build Java Project With Eclipse, Gradle and Git]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/11/144152/"/>
-    <updated>2014-08-11T14:41:52+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/11/144152</id>
-    <content type="html"><![CDATA[<h1>Install and Usage</h1>
-
-<p>The order should be:</p>
-
-<ol>
-<li><p>Install Oracle JDK on system: downlaod, extract, define $JAVA_HOME and add $JAVA_HOME/bin folder to $PATH in ~/.zshrc;</p></li>
-<li><p>Install Gradle on System: downlaod, extract, define $GRADLE_HOME and add $GRADLE_HOME/bin folder to $PATH in ~/.zshrc;</p></li>
-<li><p>Install Eclipse: download, extract;</p></li>
-<li><p>Install Gradle plugin for eclipse via &ldquo;Market Place&rdquo; in Eclipse, because it&rsquo;s inconvenient to run gradle tasks in console while edit files in Eclipse;</p></li>
-<li><p>Configure Gradle plugin: set its working JDK;</p></li>
-<li><p>Build a new Gradle project in Eclipse, add git version control;</p></li>
-<li><p>Run Gradle tasks: right click &ldquo;build.gradle&rdquo; file, then select &ldquo;Gradle -> Tasks Quick Launcher&rdquo; (or Shift + Alt + Ctrl +R) to bring Gradle launcher, then input tasks name.</p></li>
-</ol>
-
-
-<p>That&rsquo;s it.</p>
-
-<h2>Frequently Used Tasks</h2>
-
-<p>Some need adding &ldquo;apply plugin: &lsquo;application&rsquo;&rdquo; and &ldquo;mainClassName = &lsquo;com.boco.gdep.Probe&rsquo;&rdquo; into build.gradle.
-Read <a href="http://www.gradle.org/docs/current/userguide/application_plugin.html">Gradle Application Plugin</a> for details.</p>
-
-<ul>
-<li><p>clean</p></li>
-<li><p>check</p></li>
-<li><p>test</p></li>
-<li><p>compileJava</p></li>
-<li><p>run</p></li>
-<li><p>startScripts: create start scripts for your application;</p></li>
-<li><p>distZip: build final deploy package, find zip file under build/distributions folder;</p></li>
-<li><p>installApp: install package created in &ldquo;distZip&rdquo; into build/install folder;</p></li>
-</ul>
-
-
-<p>Note that in development stage, testing codes with JUnit (using F11 to launch last dubug) is better than using Gradle&rsquo;s test task (using Shift + Ctrl + Alt + R, then input &ldquo;test&rdquo; and <Enter>).</p>
-
-<p>All these tasks can be executed within Eclipse and in console. So it works good both in development stage and BVT stage. A sample project using these tools is my <a href="https://github.com/leetschau/GDEP">GDEP</a> project.</p>
-
-<h1>Debug Gradle with println</h1>
-
-<p>Add the following scripts into build.gradle, then run &ldquo;check&rdquo; task.</p>
-
-<pre><code>println "--------"
-println project.name
-println "--------"
-</code></pre>
-
-<h2>Customize project name</h2>
-
-<p>Add a new file &ldquo;settings.gradle&rdquo; at the root of the project, add a string &ldquo;rootProject.name = &lsquo;myProj&rsquo;&rdquo; into the file. Now project name, jar file name, start script name will all be changed to myProject.jar/sh/zip, etc.</p>
-
-<hr />
-
-<p>First install gradle, then run the following commands:</p>
-
-<pre><code>$ mkdir myproj
-$ cd myproj
-$ gradle init --type java-library
-$ mkdir src/main/resources
-$ mkdir src/test/resources
-</code></pre>
-
-<p>Now the project layout is ready. If you want to develop this project in Eclipse, add &ldquo;apply plugin: &lsquo;eclipse&rsquo;&rdquo; into build.gradle, then run:</p>
-
-<pre><code>$ gradle eclipse
-</code></pre>
-
-<p>Then open this project with Eclipse.</p>
-
-<p>The default project layout (file structure) of &ldquo;java&rdquo; plugin is described in &ldquo;Project layout&rdquo; section of <a href="http://www.gradle.org/docs/current/userguide/userguide.html">Gradle User Guide</a>:</p>
-
-<p>src/main/java:           Production Java source
-src/main/resources:      Production resources
-src/test/java:           Test Java source
-src/test/resources:      Test resources
-src/sourceSet/java:      Java source for the given source set
-src/sourceSet/resources: Resources for the given source set</p>
-
-<p>Add git version control with:</p>
-
-<pre><code>$ cd myproj
-$ git init
-</code></pre>
-
-<p>In Eclipse Luna, the git plugin is build-in, so you can manage versions in command line or in eclipse.</p>
-
-<p>Gradle will create many help files and folders, which is not the contents of the project. So we need exclude them using .gitignore:</p>
-
-<pre><code>$ cat .gitignore
-build
-.gradle
-gradle
-...
-</code></pre>
-
-<p>Three Eclipse component &ldquo;.settings&rdquo;, &ldquo;.project&rdquo; and &ldquo;.classpath&rdquo; should be added to git repository.</p>
-
-<h1>Merge Github Project and Eclipse Gradle Project</h1>
-
-<ol>
-<li><p>git clone <a href="https://github.com/leetschau/GDEP.git">https://github.com/leetschau/GDEP.git</a> gdep2</p></li>
-<li><p>In Eclipse, build a new Gradle project &ldquo;GDEP-0811&rdquo; with &ldquo;Quick start&rdquo; template;</p></li>
-<li><p>Move all files and folders in gdep2 to GDEP-0811;</p></li>
-<li><p>Refresh project in Eclipse;</p></li>
-<li><p>Build project with [right click on project -> Gradle -> Tasks Quick Launcher], enter &ldquo;build&rdquo;, and press <Enter>. If you encounter a &ldquo;Cannot find System Java Compiler&rdquo; error, set Gradle&rsquo;s Java compiler in [Window -> Preferences -> Gradle -> Arguments -> Java Home], select &ldquo;Workspace JRE&rdquo;: jdk1.6.0_45 (which is the JDK of you system, you have to install it yourself).</p></li>
-</ol>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Serial Device Debug on Linux]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/09/140312/"/>
-    <updated>2014-08-09T14:03:12+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/09/140312</id>
-    <content type="html"><![CDATA[<p>The device name is &ldquo;Prolific Technology, Inc. PL2303 Serial Port&rdquo;, you can use <code>lsusb</code> to get its name. Then install gtkterm for communicating with it.</p>
-
-<pre><code>$ sudo apt-get install gtkterm
-</code></pre>
-
-<p>Now use syslog to get the device name of pl2303.</p>
-
-<pre><code>$ tail -f /var/log/syslog
-...
-... usb 3-2: pl2303 converter now attached to ttyUSB0
-...
-</code></pre>
-
-<p>So its device name is /dev/ttyUSB0. Now you can connect it with gtkterm:</p>
-
-<pre><code>$ sudo gtkterm -p /dev/ttyUSB0 -s 57600
-</code></pre>
-
-<p>View -> Send hexadecimal data: 41 54 2B 53 43 41 4E</p>
-
-<h1>minicom</h1>
-
-<pre><code># apt-get install minicom
-</code></pre>
-
-<p>But I don&rsquo;t know how to send command via this application.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Java Development Environment on Eclipse]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/08/155030/"/>
-    <updated>2014-08-08T15:50:30+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/08/155030</id>
-    <content type="html"><![CDATA[<h1>Eclipse</h1>
-
-<p>Luna for Java Developer, file name: eclipse-java-luna-R-linux-gtk-x86_64.tar.gz</p>
-
-<h1>Gradle plugin</h1>
-
-<ol>
-<li><p>Download gradle-2.0-all.zip, extract it to ~/apps;</p></li>
-<li><p>Add following lines into ~/.zshrc and run <code>source ~/.zshrc</code>:</p>
-
-<p> export GRADLE_HOME=/home/chad/apps/gradle-2.0
- export PATH=$PATH:$GRADLE_HOME/bin</p></li>
-<li><p>Install &ldquo;Gradle IDE 3.6.0&rdquo;: searching &ldquo;gradle&rdquo; in Eclipse Marketplace and install it;</p></li>
-</ol>
-
-
-<h1>Vim mode plugin</h1>
-
-<ol>
-<li><p>Download vrapper_0.44.0_20140601.zip from <a href="http://sourceforge.net/projects/vrapper/">its website</a>;</p></li>
-<li><p>Extract it under $ECLIPSE_HOME/dropins;</p></li>
-<li><p>Start Eclipse;</p></li>
-</ol>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Run Python MapReduce on Hadoop Cluster]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/07/112649/"/>
-    <updated>2014-08-07T11:26:49+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/07/112649</id>
-    <content type="html"><![CDATA[<p>Based on <a href="http://www.michael-noll.com/tutorials/writing-an-hadoop-mapreduce-program-in-python/">Writing an Hadoop MapReduce Program in Python</a>.</p>
-
-<ol>
-<li>Create mapper and reducer script and make them executable with <code>chmod 755 *.py</code>:</li>
-</ol>
-
-
-<p>mapper.py:</p>
-
-<pre><code>#!/usr/bin/env python
-import sys
-# input comes from STDIN (standard input)
-for line in sys.stdin:
-    # remove leading and trailing whitespace
-    line = line.strip()
-    # split the line into words
-    words = line.split()
-    # increase counters
-    for word in words:
-        # write the results to STDOUT (standard output); what we output here will be the input for the Reduce step, i.e. the input for reducer.py tab-delimited; the trivial word count is 1
-        print '%s\t%s' % (word, 1)
-</code></pre>
-
-<p>reducer.py:</p>
-
-<pre><code>#!/usr/bin/env python
-
-from operator import itemgetter
-import sys
-
-current_word = None
-current_count = 0
-word = None
-
-# input comes from STDIN
-for line in sys.stdin:
-    # remove leading and trailing whitespace
-    line = line.strip()
-
-    # parse the input we got from mapper.py
-    word, count = line.split('\t', 1)
-
-    # convert count (currently a string) to int
-    try:
-        count = int(count)
-    except ValueError:
-        # count was not a number, so silently ignore/discard this line
-        continue
-
-    # this IF-switch only works because Hadoop sorts map output by key (here: word) before it is passed to the reducer
-    if current_word == word:
-        current_count += count
-    else:
-        if current_word:
-            # write result to STDOUT
-            print '%s\t%s' % (current_word, current_count)
-        current_count = count
-        current_word = word
-
-# do not forget to output the last word if needed!
-if current_word == word:
-    print '%s\t%s' % (current_word, current_count)
-</code></pre>
-
-<ol>
-<li><p>Get input text file and put them into hdfs: download the text version of <a href="http://www.gutenberg.org/etext/20417">The Outline of Science, Vol. 1 (of 4) by J. Arthur Thomson</a>, <a href="http://www.gutenberg.org/etext/5000">The Notebooks of Leonardo Da Vinci</a> and <a href="http://www.gutenberg.org/etext/4300">Ulysses by James Joyce</a>. Then upload them to hdfs:</p>
-
-<p> $ hadoop fs -mkdir gutenberg
- $ hadoop fs -put pg<em>.txt gutenberg/
- $ hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-</em>streaming<em>.jar -file /home/hduser/mapper.py -mapper /home/hduser/mapper.py -file /home/hduser/reducer.py -reducer /home/hduser/reducer.py -input /user/hduser/gutenberg/</em> -output /user/hduser/gutenberg-output</p></li>
-</ol>
-
-
-<p>You have to make sure the &ldquo;gutenberg-output&rdquo; folder has not existed. When finished, you can see the result with:</p>
-
-<pre><code>$ hadoop fs -ls gutenberg-output
-$ hadoop fs -cat gutenberg-output/part-00000
-</code></pre>
-
-<p>Verified on CDH 4.3, built on 8 CentOS 6.3 64bit host, Python 2.6.6, 2014-8-7.</p>
 ]]></content>
   </entry>
   

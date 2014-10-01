@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Centos | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/centos/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-09-10T17:28:18+08:00</updated>
+  <updated>2014-10-01T21:14:19+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,70 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Xen on CentOS 6]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/24/073009/"/>
+    <updated>2014-09-24T07:30:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/24/073009</id>
+    <content type="html"><![CDATA[<p>Ref: <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart">Xen4 CentOS6 QuickStart</a> &amp; <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart/Xen4Libvirt">Xen4 Libvirt for CentOS 6</a>.</p>
+
+<h1>Build Xen Server</h1>
+
+<p>The IP address of the Xen server (a Dell PC) is 10.32.1.112.
+First install CentOS 6.4 via Minimal CD (or LiveDVD) and install Xen on the new OS;</p>
+
+<pre><code>yum update
+yum groupinstall Virtualization
+yum install centos-release-xen   // unnecessary if install OS with LiveDVD
+yum install xen bridge-utils
+/usr/bin/grub-bootxen.sh
+reboot
+yum install libvirt python-virtinst libvirt-daemon-xen
+yum install rsync wget vim-enhanced openssh-clients   // unnecessary if install OS with LiveDVD
+reboot
+uname -r  // the kernel should be 3.x
+xm info
+useradd -m chad
+groupadd remote-libvirt
+usermod -G remote-libvirt chad
+cat &gt; /etc/polkit-1/localauthority/50-local.d/50-libvirt-remote-access.pkla &lt;&lt;EOF
+[Remote libvirt SSH access]
+Identity=unix-group:remote-libvirt
+Action=org.libvirt.unix.manage
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
+EOF
+</code></pre>
+
+<h2>Config network</h2>
+
+<p>Modify dom0 host file /etc/xen/xend-config.sxp:</p>
+
+<p>Comment out &ldquo;(network-script /bin/true)&rdquo; to &ldquo;(network-script &lsquo;network-bridge bridge=virbr0 netdev=eth0&rsquo;)&rdquo;.</p>
+
+<h1>Build Xen Client</h1>
+
+<p>We usually do not work on a Xen dom0 server. So here we install xen client on a Mint OS, and control Xen server with it:</p>
+
+<h2>GUI Client</h2>
+
+<p>First install with <code>sudo aptitude install virt-manager</code>, then run it with <code>virt-manager</code>. The &ldquo;Virtual Machine Manager&rdquo; window appears.</p>
+
+<p>[Edit -> Connect Details -> Storage], Location: /var/lib/libvirt/images. So copy an OS image file (here it&rsquo;s CentOS-6.5-x86_64-minimal.iso) to this folder, and press the refresh button after &ldquo;Volumns&rdquo;, the ISO file appears.</p>
+
+<p>Click &ldquo;New&rdquo; on toolbar, Name: Cloud21, check &ldquo;Local install media&rdquo; -> Use ISO image: /var/lib/libvirt/images/CentOS-6.5-x86_64-minimal.iso, OS type: Linux, Version: Red Hat Enterprise Linux 6 -> Memory: 1024 MB, CPUs: 1 -> Create a disk image &hellip;: 8.0 GB.</p>
+
+<p>Now install CentOS with Minimal ISO file.</p>
+
+<h2>Console Client</h2>
+
+<pre><code>sudo aptitude install libvirt-bin
+virsh -c xen+ssh://chad@10.32.1.112
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Build Redis on CentOS 6]]></title>
@@ -132,56 +196,10 @@ gpgcheck = 0
 <li><p>reboot</p></li>
 </ol>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Build Working Environment on CentOS Minimal]]></title>
-    <link href="http://leetschau.github.io/blog/2014/07/18/142036/"/>
-    <updated>2014-07-18T14:20:36+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/07/18/142036</id>
-    <content type="html"><![CDATA[<h1>System</h1>
 
-<ol>
-<li><p>Install CentOS with CentOS-6.5-i386-minimal.iso;</p></li>
-<li><p>Choose &ldquo;Install system with basic video driver&rdquo;;</p></li>
-</ol>
+<h1>Update 2014-9-19</h1>
 
-
-<h1>Network</h1>
-
-<ol>
-<li><p>After Installation, login as root, modify &ldquo;NM_CONTROLLED&rdquo; to &ldquo;no&rdquo; and &ldquo;ONBOOT&rdquo; to &ldquo;yes&rdquo;, and &ldquo;BOOTPROTO&rdquo; to &ldquo;dhcp&rdquo; in file /etc/sysconfig/network-scripts/ifcfg-eth0;</p></li>
-<li><p>run <code>service network restart</code>, verify network with <code>ip addr</code> and <code>ping www.baidu.com</code>;</p></li>
-</ol>
-
-
-<h1>Desktop Environment</h1>
-
-<p>Install epel repository: on x84_64 host:</p>
-
-<pre><code># rpm -Uvh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-</code></pre>
-
-<p>Instead &ldquo;x86_64&rdquo; above with &ldquo;i386&rdquo; on x86 (32bit) host.</p>
-
-<pre><code># yum update
-# yum groupinstall Xfce Fonts
-# useradd -m chad
-</code></pre>
-
-<p>Reboot and login as chad, run <code>startxfce4</code> and the Desktop Environment start (you can&rsquo;t run this command when you switch from another user via &ldquo;su&rdquo;).</p>
-
-<h1>Other</h1>
-
-<pre><code># yum install git zsh tmux
-# yum install rabbitvcs-thunar rabbitvcs-cli  // a tortoise-svn like subversion &amp; git client, start repo browser with `rabbitvcs browser` or right-click in a thunar window
-</code></pre>
-
-<h1>Define Shortcuts</h1>
-
-<p>Alt-F2 -> xfce4-appfinder -> keyboard -> Application Shortcuts -> Add:
-    Command: xfce4-appfinder; ShortCut: Alt-[</p>
+<p>The MAC address is determined by <code>ifconfig -a</code>, so copy IP address after &ldquo;HWaddr&rdquo; in command output, and modify &ldquo;HWADDR&rdquo; in /etc/&hellip;/ifcfg-eth0, then <code>sudo service network restart</code>.</p>
 ]]></content>
   </entry>
   

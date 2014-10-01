@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Cobertura | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/cobertura/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-09-10T17:28:18+08:00</updated>
+  <updated>2014-10-01T21:14:19+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -30,17 +30,20 @@
 
 <p>Now we need instrument class files under &ldquo;class&rdquo; folder to &ldquo;instru&rdquo; folder:</p>
 
-<p> java -cp &ldquo;/home/lichao/apps/coberturaLib/*&rdquo; net.sourceforge.cobertura.instrument.Main &ndash;destination instru class</p>
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.instrument.Main --destination instru class
+</code></pre>
 
 <p>Note the double quotes of &ldquo;/home&hellip;/coberturaLib/*&rdquo; is necessary.</p>
 
 <p>If you use cobertura-2.0.3, add project dependencies ($PROJ_HOME/lib), too:</p>
 
-<p> java -cp &ldquo;/home/lichao/apps/coberturaLib/<em>:../lib/</em>&rdquo; net.sourceforge.cobertura.instrument.Main &ndash;destination CalcServer &ndash;datafile CalcServer/cobertura.ser CalcServer.jar</p>
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*:../lib/*" net.sourceforge.cobertura.instrument.Main --destination CalcServer --datafile CalcServer/cobertura.ser CalcServer.jar 
+</code></pre>
 
 <p>Synopsis:</p>
 
-<p> java -cp <Cobertura_lib> net.sourceforge.cobertura.instrument.Main &ndash;destination <dest_folder> &ndash;datafile <datafile_path> <target></p>
+<pre><code>java -cp &lt;Cobertura_lib&gt; net.sourceforge.cobertura.instrument.Main --destination &lt;dest_folder&gt; --datafile &lt;datafile_path&gt; &lt;target&gt;
+</code></pre>
 
 <p>If <target> is a folder containing class files, instrumented class files will be created under <dest_folder>. If <target> is a jar file, instrumented jar file will be created under <dest_folder>. If &ldquo;&ndash;destination <dest_folder> is not specified, the instrumented one will overwrite the origin.</p>
 
@@ -48,30 +51,26 @@
 
 <p>This step equals to &ldquo;unit test&rdquo; in junit-cobertura scenario. The start.sh is:</p>
 
-<p> #!/bin/sh
- CoberturaJar=&ldquo;/home/lichao/apps/coberturaLib/cobertura-2.0.3.jar&rdquo;
- JARS=&ldquo;$CoberturaJar:conf:./<em>:lib/</em>&rdquo;
- java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deploy.Main</p>
+<pre><code>#!/bin/sh 
+CoberturaJar="/home/lichao/apps/coberturaLib/cobertura-2.0.3.jar" 
+JARS="$CoberturaJar:conf:./*:lib/*" 
+java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deploy.Main 
+</code></pre>
 
 <p>Note: The instrumented jar must be add <strong>before</strong> uninstrumented jar in classpath.</p>
 
-<p>Synopsis:</p>
+<p>Synopsis: <code>java -cp &lt;cobertura.jar_path&gt;:&lt;other_dependencies&gt; -Dnet.sourceforge.cobertura.datafile=&lt;datafile_path&gt; Server.Main.Class.Name</code></p>
 
-<p> java -cp &lt;cobertura.jar_path>:<other_dependencies> -Dnet.sourceforge.cobertura.datafile=<datafile_path> Server.Main.Class.Name</p>
+<p>Merge Datafile: <code>java -cp "coberturaLib-2.0.3/*" net.sourceforge.cobertura.merge.Main --datafile GcpCollector/cmd/cobertura.ser GcpServerCore/cmd/cobertura.ser cobertura.ser</code></p>
 
-<h1>Merge Datafile</h1>
-
-<p> java -cp &ldquo;coberturaLib-2.0.3/*&rdquo; net.sourceforge.cobertura.merge.Main &ndash;datafile GcpCollector/cmd/cobertura.ser GcpServerCore/cmd/cobertura.ser cobertura.ser</p>
-
-<h1>Get Report</h1>
-
-<p> java -cp &ldquo;/home/lichao/apps/coberturaLib/*&rdquo; net.sourceforge.cobertura.reporting.Main &ndash;datafile cobertura.ser &ndash;destination ../report ../../src</p>
+<p>Get Report: <code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.reporting.Main --datafile cobertura.ser --destination ../report ../../src</code></p>
 
 <p>The report data will not be written to report files until the server process is down.</p>
 
 <p>Synopsis:</p>
 
-<p> java -cp <cobertura_lib> net.sourceforge.cobertura.reporting.Main &ndash;datafile <datafile_path> &ndash;destination <report_path> <source_folder></p>
+<pre><code>java -cp &lt;cobertura_lib&gt; net.sourceforge.cobertura.reporting.Main --datafile &lt;datafile_path&gt; --destination &lt;report_path&gt; &lt;source_folder&gt;
+</code></pre>
 ]]></content>
   </entry>
   
@@ -106,89 +105,89 @@ I find there are 2 cobertura.jar in classpath. That jar in /usr/share/ant/lib is
 
 <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
-&lt;property name="build.dir" value="${basedir}/build" /&gt;
-&lt;target name="init"&gt;
-    &lt;delete dir="${build.dir}"/&gt;
-    &lt;mkdir dir="${build.dir}"/&gt;
-&lt;/target&gt;
+    &lt;property name="build.dir" value="${basedir}/build" /&gt;
+    &lt;target name="init"&gt;
+        &lt;delete dir="${build.dir}"/&gt;
+        &lt;mkdir dir="${build.dir}"/&gt;
+    &lt;/target&gt;
 
-&lt;property name="src.dir" value="${basedir}/src" /&gt;
-&lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
-&lt;target name="compile-src" depends="init"&gt;
-    &lt;mkdir dir="${src.class.dir}"/&gt;
-    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
-&lt;/target&gt;
-&lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
-&lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
-&lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+    &lt;property name="src.dir" value="${basedir}/src" /&gt;
+    &lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+    &lt;target name="compile-src" depends="init"&gt;
+        &lt;mkdir dir="${src.class.dir}"/&gt;
+        &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+    &lt;/target&gt;
+    &lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+    &lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+    &lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
 
-&lt;target name="instrument" depends="compile-src"&gt;
-    &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
-    &lt;fileset dir="${src.class.dir}"&gt;
-        &lt;include name="**/*.class" /&gt;
-    &lt;/fileset&gt;
-    &lt;/cobertura-instrument&gt;
-&lt;/target&gt;
+    &lt;target name="instrument" depends="compile-src"&gt;
+        &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+        &lt;fileset dir="${src.class.dir}"&gt;
+            &lt;include name="**/*.class" /&gt;
+        &lt;/fileset&gt;
+        &lt;/cobertura-instrument&gt;
+    &lt;/target&gt;
 
-&lt;property name="test.dir" value="${basedir}/test" /&gt;
-&lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
-&lt;target name="compile-test" depends="instrument"&gt;
-    &lt;mkdir dir="${test.class.dir}"/&gt;
-    &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
-        &lt;classpath&gt;
-            &lt;pathelement location="${instrumented.class.dir}"/&gt;
-            &lt;pathelement location="${src.class.dir}"/&gt;
-        &lt;/classpath&gt;
-    &lt;/javac&gt;
-&lt;/target&gt;
+    &lt;property name="test.dir" value="${basedir}/test" /&gt;
+    &lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+    &lt;target name="compile-test" depends="instrument"&gt;
+        &lt;mkdir dir="${test.class.dir}"/&gt;
+        &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+            &lt;classpath&gt;
+                &lt;pathelement location="${instrumented.class.dir}"/&gt;
+                &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;/classpath&gt;
+        &lt;/javac&gt;
+    &lt;/target&gt;
 
-&lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
-&lt;property name="lib.dir" value="${basedir}/lib" /&gt;
-&lt;target name="unittest" depends="compile-test"&gt;
-    &lt;mkdir dir="${unittest.report.dir}"/&gt;
-    &lt;junit printsummary="yes" fork="yes"&gt;
-        &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
-        &lt;classpath&gt;
-            &lt;pathelement location="${instrumented.class.dir}"/&gt;
-            &lt;pathelement location="${src.class.dir}"/&gt;
-            &lt;pathelement location="${test.class.dir}"/&gt;
-            &lt;pathelement location="${src.dir}"/&gt;
-            &lt;path refid="lib.path"/&gt;
-        &lt;/classpath&gt;
-        &lt;formatter type="xml"/&gt;
-        &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
-            &lt;fileset dir="${test.dir}"&gt;
-                &lt;include name="**/*.java" /&gt;
-            &lt;/fileset&gt;
-        &lt;/batchtest&gt;
-    &lt;/junit&gt;
-&lt;/target&gt;
+    &lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+    &lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+    &lt;target name="unittest" depends="compile-test"&gt;
+        &lt;mkdir dir="${unittest.report.dir}"/&gt;
+        &lt;junit printsummary="yes" fork="yes"&gt;
+            &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+            &lt;classpath&gt;
+                &lt;pathelement location="${instrumented.class.dir}"/&gt;
+                &lt;pathelement location="${src.class.dir}"/&gt;
+                &lt;pathelement location="${test.class.dir}"/&gt;
+                &lt;pathelement location="${src.dir}"/&gt;
+                &lt;path refid="lib.path"/&gt;
+            &lt;/classpath&gt;
+            &lt;formatter type="xml"/&gt;
+            &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+                &lt;fileset dir="${test.dir}"&gt;
+                    &lt;include name="**/*.java" /&gt;
+                &lt;/fileset&gt;
+            &lt;/batchtest&gt;
+        &lt;/junit&gt;
+    &lt;/target&gt;
 
-&lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
-&lt;target name="coverage-report" depends="unittest"&gt;
-    &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
-&lt;/target&gt;
+    &lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+    &lt;target name="coverage-report" depends="unittest"&gt;
+        &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+    &lt;/target&gt;
 
-&lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
-&lt;property name="sonar.jdbc.username" value="sonar" /&gt;
-&lt;property name="sonar.jdbc.password" value="sonar" /&gt;
-&lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
-&lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
-&lt;property name="sonar.projectVersion" value="2.1" /&gt;
-&lt;property name="sonar.language" value="java" /&gt;
-&lt;property name="sonar.sources" value="src" /&gt;
-&lt;property name="sonar.tests" value="test" /&gt;
-&lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
-&lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
-&lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
-&lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
-&lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
-&lt;target name="sonar" depends="coverage-report"&gt;
-    &lt;taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"&gt;
-        &lt;classpath path="/usr/share/ant/lib/sonar-ant-task-2.1.jar" /&gt;
-    &lt;/taskdef&gt;
-    &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
-&lt;/target&gt;
+    &lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+    &lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+    &lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+    &lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+    &lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+    &lt;property name="sonar.projectVersion" value="2.1" /&gt;
+    &lt;property name="sonar.language" value="java" /&gt;
+    &lt;property name="sonar.sources" value="src" /&gt;
+    &lt;property name="sonar.tests" value="test" /&gt;
+    &lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+    &lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+    &lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+    &lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+    &lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+    &lt;target name="sonar" depends="coverage-report"&gt;
+        &lt;taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"&gt;
+            &lt;classpath path="/usr/share/ant/lib/sonar-ant-task-2.1.jar" /&gt;
+        &lt;/taskdef&gt;
+        &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+    &lt;/target&gt;
 &lt;/project&gt;
 </code></pre>
 
@@ -206,7 +205,7 @@ I find there are 2 cobertura.jar in classpath. That jar in /usr/share/ant/lib is
 
 <p>Note2: take care of the spelling: &ldquo;sonar.surefire.report<strong>s</strong>Path&rdquo; while &ldquo;sonar.cobertura.reportPath&rdquo;;</p>
 
-<p>Note3: the &ldquo;xmlns:sonar=&#8221;antlib:org.sonar.ant&rdquo; in &ldquo;sonar:sonar&rdquo; is necessary or the prefix &ldquo;sonar&rdquo; would be unbound;</p>
+<p>Note3: the &ldquo;xmlns:sonar="antlib:org.sonar.ant&rdquo; in &ldquo;sonar:sonar&rdquo; is necessary or the prefix &ldquo;sonar&rdquo; would be unbound;</p>
 
 <p>Note4: if unit test results can&rsquo;t be collected by Sonar, try to specify &ldquo;sonar.binaries&rdquo; carefully as above shows;</p>
 
