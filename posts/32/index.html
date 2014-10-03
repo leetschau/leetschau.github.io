@@ -9,8 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Configuration Slicing Plugin Today I used it adding &ldquo;Discard Old Builds&rdquo; for all jobs in my Jenkins server. Very convenient.
-">
+  <meta name="description" content="Basic Installation add &ldquo;proxy=http://10.21.3.31:8087&rdquo; to /etc/yum.conf;
+run command &ldquo;yum install -y vsftpd&rdquo; with root;
+run & &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +67,93 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/09/113239/">Install FTP Service for CentOS Host Behind a Proxy</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-09T11:32:39+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:32 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Basic Installation</h1>
+
+<ol>
+<li><p>add &ldquo;proxy=<a href="http://10.21.3.31:8087">http://10.21.3.31:8087</a>&rdquo; to /etc/yum.conf;</p></li>
+<li><p>run command &ldquo;yum install -y vsftpd&rdquo; with root;</p></li>
+<li><p>run &ldquo;service vsftpd start&rdquo; with root. Now you can use ftp with a common user;</p></li>
+</ol>
+
+
+<h1>Enable upload and create directory</h1>
+
+<p>Run following command with root accout (or there will raise 553 and 550 errors when you upload and create dir):</p>
+
+<pre><code>setsebool allow_ftpd_full_access on
+setsebool ftp_home_dir on
+/sbin/service vsftpd restart
+</code></pre>
+
+<p>Verify:</p>
+
+<pre><code>$ nc -zv 10.0.2.49 21
+</code></pre>
+
+<p>or</p>
+
+<pre><code>$ ftp 10.0.2.49
+</code></pre>
+
+<p>then enter username and password. Any existing user account can be used.</p>
+
+<p>If you get following errors, it&rsquo;s probably due to the fiirwall. See the next section for solutions.</p>
+
+<pre><code>nc: connect to 10.0.2.49 port 21 (tcp) failed: No route to host
+</code></pre>
+
+<p>Ref:</p>
+
+<p>google &ldquo;vsftpd 553 centos&rdquo;;
+<a href="https://www.centos.org/docs/5/html/Deployment_Guide-en-US/s1-ftp-vsftpd-start.html">Starting and Stopping vsftpd</a></p>
+
+<h1>Config Firewall</h1>
+
+<p>First you should test if the connection failure is caused by iptables:</p>
+
+<pre><code># service iptables stop
+</code></pre>
+
+<p>and connect the ftp again. If you can logged in, then you should config iptables rules.</p>
+
+<p>Add a rule in iptables to open access for port 21:</p>
+
+<p>Open file /etc/sysconfig/iptables:</p>
+
+<p>Add &ldquo;-A INPUT -i eth0 -p tcp &ndash;dport 21 -j ACCEPT&rdquo; after the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo;. Then restart service:</p>
+
+<pre><code># service iptables restart
+</code></pre>
+
+<p>Verify again.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -538,77 +626,6 @@ java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deplo
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/29/210003/">Auto Deploy Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-29T21:00:03+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li>Write a property file: /home/bvt/docs/jenkinsEnv.properties:</li>
-</ol>
-
-
-<p> gcp.job.type=deliver
- gcp.deliver.ip=10.0.7.142
- gcp.deliver.user=gcp
- gcp.deliver.home=/home/gcp
- gcp.deliver.deployFolder=deploy
- gcp.deliver.prompt=gcp@cloud142</p>
-
-<p>Note: Do <strong>not</strong> leave blanks between &ldquo;=&rdquo; and values in property file.</p>
-
-<p> gcp.deliver.home = /home/gcp</p>
-
-<p>will produce wrong value when gotten by expect script.</p>
-
-<ol>
-<li><p>Add this file to &ldquo;Build Environment -> Inject environment variables to the build process&rdquo; in Jenkins Job Configure panel with Environment Injector plugin.</p></li>
-<li><p>Create a deploy script (deploy.exp) in project base folder:</p></li>
-</ol>
-
-
-<p> #!/usr/bin/expect
- set artifact [lindex $argv 0]
- spawn scp $artifact $env(gcp.deliver.user)@$env(gcp.deliver.ip):$env(gcp.del
- expect eof</p>
-
-<ol>
-<li>Create a &ldquo;Conditional step(single)&rdquo; with conditional-buildstep plugin.</li>
-</ol>
-
-
-<p> Run? Strings match</p>
-
-<p>  String 1: ${ENV,var=&ldquo;gcp.job.type&rdquo;}</p>
-
-<p>  String 2: deliver</p>
-
-<p> Builder: Execute Shell</p>
-
-<p>  Command: ./deploy.exp build/*.zip</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/33">&larr; Older</a>
@@ -626,6 +643,10 @@ java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deplo
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
       </li>
     
@@ -639,10 +660,6 @@ java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deplo
     
       <li class="post">
         <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/20/103138/">Set Time Synchronization on ArchLinux</a>
       </li>
     
   </ul>

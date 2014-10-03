@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="
-从messageReceived的参数上可以看出： netty是在channel上传递event，mina是在iosession中传递message（默认是iobuffer类型）； ">
+  <meta name="description" content="Buffer用于从channel中读（或者向channel写）数据，它有3个标记，分别是capacity, limit &amp; position，其中capacity是此buffer的容量（固定值），buffer初始化时（使用allocate方法）设定；limit是有效数据的边界，即0~ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,112 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/30/155535/">Java的Buffer读取操作</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-30T15:55:35+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>3:55 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Buffer用于从channel中读（或者向channel写）数据，它有3个标记，分别是capacity, limit &amp; position，其中capacity是此buffer的容量（固定值），buffer初始化时（使用allocate方法）设定；limit是有效数据的边界，即0~limit之间是可读/写的数据，position是下一个应该被读/写的位置。</p>
+
+<p>Buffer有两种模式：写模式和读模式，写模式是向buffer中写数据（例如socketChannel.read(buffer)），读模式是从buffer中读出数据。</p>
+
+<p>写模式下limit总等于capacity，读模式下limit是最近一次写入的数据位置。</p>
+
+<p>使用buffer读写数据的基本过程是一个4步循环：</p>
+
+<ol>
+<li><p>向buffer写入数据；</p></li>
+<li><p>buffer.flip(); // 把buffer从写模式切换到读模式</p></li>
+<li><p>从buffer中读出数据；</p></li>
+<li><p>if (buffer.hasRemaining()) {buffer.compact();} else {buffer.clear();} // compact和clear方法将buffer切换回写模式，下面有解释</p></li>
+</ol>
+
+
+<p>以上解释来自于<a href="http://tutorials.jenkov.com/java-nio/buffers.html">Java NIO Buffer</a>。</p>
+
+<h1>compact和clear方法</h1>
+
+<p>compact方法将未读完的数据（position与limit之间的数据）平移到buffer头部，然后将position设到这段数据的尾部，这样后面的写操作将在这段数据后追加（见SocketChannel.read()方法的javadoc），而不会覆盖这段数据，然后将limit设为capacity；clear方法令position=0; limit=capacity;从而为读数据做好准备，详见二者的javadoc。</p>
+
+<h1>wrap方法</h1>
+
+<p> ByteBuffer buffer = ByteBuffer.allocate(10);
+ byte[] content = { 27, 91, 75, 116, 117 };
+ buffer = ByteBuffer.wrap(content);
+ assertEquals(0, buffer.position());
+ assertEquals(5, buffer.limit());
+ assertEquals(5, buffer.capacity());</p>
+
+<p>以上表明wrap方法会改变ByteBuffer对象的容量（capacity），并将其置为读模式；</p>
+
+<h1>实例演示</h1>
+
+<p>下面以ByteBuffer为例说明Java的buffer读写操作，以及对相关的几个参数的影响；</p>
+
+<p> import java.nio.ByteBuffer;
+ public class GetPutByteBuffer {
+  public static void main(String[] args) {
+   ByteBuffer byteBuffer = ByteBuffer.allocate(10);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit() + &ldquo; capacity=&rdquo; + byteBuffer.capacity());
+   // pos=0 limit=10 capacity=10
+   byteBuffer.put((byte) 20);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=10
+   byteBuffer.put((byte) 33);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=2 limit=10
+   byteBuffer.put((byte) 55);
+   byteBuffer.flip();
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=0 limit=3
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   byteBuffer.rewind();
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   System.out.println(&ldquo;the remaining is: &rdquo; + byteBuffer.remaining());
+   // the remaining is: 2
+   while (byteBuffer.hasRemaining()) {
+    System.out.println(byteBuffer.get());
+    System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   }
+   /<em>
+   * 33
+   * pos=2 limit=3
+   * 55
+   * pos=3 limit=3
+   </em>/
+  }
+ }</p>
+
+<p>可以看到buffer的capacity是一个固定值，初始化时设定，pos初始为0，limit初始等于capacity，一次读（get）或写（put）都使pos加一，limit不变，flip使limit=pos，pos=0，接收完数据开始读取时这个动作是必须的，rewind使pos=0，相当于重新开始读数据。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -788,37 +893,6 @@ alter table <table_name> add &lt;字段名> &lt;数据类型> default <default_v
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/11/091522/">用autohotkey帮助触摸板实现鼠标中键单击</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-11T09:15:22+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:15 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>笔记本的触摸板没有中键，但在Chrome里用中键单击实现“新标签页里打开链接”是一个很常用的动作，偏偏我又不愿意每次用笔记本的时候接鼠标，只好请出无所不能的Autohotkey大仙了，下面的脚本运行后，先将鼠标移动到链接上，然后Alt+Space就实现了中键单击的效果。</p>
-
-<p> !Space:: SendInput, {MButton}</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/68">&larr; Older</a>
@@ -836,6 +910,10 @@ alter table <table_name> add &lt;字段名> &lt;数据类型> default <default_v
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
       </li>
     
@@ -849,10 +927,6 @@ alter table <table_name> add &lt;字段名> &lt;数据类型> default <default_v
     
       <li class="post">
         <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/20/103138/">Set Time Synchronization on ArchLinux</a>
       </li>
     
   </ul>

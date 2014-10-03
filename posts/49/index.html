@@ -9,7 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="现在需要从主机113和747上同时向服务器47发送指令&#8221;cat bigMsg&#8221;，以观察47对并发请求的处理能力以及网络传输带宽，可以在pc上分别登录到113和747上，然后分别输入该指令，但手工顺序输入毕竟时间间隔比较大，如果bigMsg不够大， &hellip;">
+  <meta name="description" content="以下脚本连接上我的Gmail帐号，将收件箱中2013年1月份的新语丝邮件的附件保存在当前目录的xys文件夹中。 import imaplib
+import email
+import os
+dir_name = 'archive'
+if not os.path.exists(dir_name): &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +69,91 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/04/171058/">使用脚本下载Gmail邮件附件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-04T17:10:58+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:10 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以下脚本连接上我的Gmail帐号，将收件箱中2013年1月份的新语丝邮件的附件保存在当前目录的xys文件夹中。</p>
+
+<pre><code>import imaplib
+import email
+import os
+dir_name = 'archive'
+if not os.path.exists(dir_name):
+    os.mkdir(dir_name)
+save_path = os.path.join(os.getcwd(),dir_name)
+M = imaplib.IMAP4_SSL('imap.gmail.com')
+M.login('leetschau@gmail.com', 'vim72python251')
+M.select() # default value is inbox
+search_criteria = '(From "Shi-min Fang" UNSEEN)'
+# '(From "Shi-min Fang" SINCE "01-Jan-2013" BEFORE "01-FEB-2013")'
+res, search_result = M.search(None, search_criteria)
+for num in search_result[0].split():
+    typ, data = M.fetch(num, '(RFC822)')
+    # print 'Message %s\n%s\n' % (num, data[0][1])
+    email_body = data[0][1]
+    mail = email.message_from_string(email_body)
+    sender = mail['From']
+    subject = mail['Subject']
+    print "["+mail["From"]+"]: " + mail["Subject"]
+    for part in mail.walk():
+        if part.get_content_maintype() == 'multipart':
+            continue
+        if part.get('Content-Disposition') is None:
+            continue
+        filename = subject+'.txt'
+        att_path = os.path.join(save_path, filename)
+        if not os.path.isfile(att_path) :
+            fp = open(att_path, 'wb')
+            fp.write(part.get_payload(decode=True))
+            fp.close()
+M.close()
+M.logout()
+</code></pre>
+
+<p>说明：</p>
+
+<ol>
+<li><p>附件保存的名字和扩展名是写死的，有兴趣的话可以研究一下怎样获得附件本身的文件名；</p></li>
+<li><p>这个脚本的强大之处在于它不需要任何第三方库，只用python内置的imaplib，只用是支持imap的邮箱都可以用这个方法处理邮件；</p></li>
+<li><p>这里面最有用的是邮件搜索规则（search_criteria），格式是(key1 value1 key2 value2 &hellip;)，每个value上加引号，整个表达式是一个字符串，因此也要加引号。</p></li>
+</ol>
+
+
+<p>key除了这里的收件人、起始/终止日期，还有ALL（全部邮件），UNSEEN（未读邮件），DELETED（已删除邮件）等，key-value对之间可以随意组合；</p>
+
+<ol>
+<li>M的select方法默认值是收件箱，可以指定其他信箱，完整格式是：IMAP4.select([mailbox[, readonly]])；</li>
+</ol>
+
+
+<p>参考1：<a href="http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib">http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib</a></p>
+
+<p>参考2：Python 2.7.3 chapter 20.10 imaplib -> 20.10.2: IMAP4 Example</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -746,45 +835,6 @@ iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/21/165131/">用vim制作大报文传输测试文件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-21T16:51:31+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>4:51 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>这个测试文件用来测试我们开发的应用在传输大报文时的稳定性，是否丢包等，所以这个文件首先要比较大，2MB左右，其次要容易定位，如果传输中间断开，能够容易的知道已经传输了多少报文，根据这些要求，需要制作一个7万多行的文本文件，每行的格式如下：</p>
-
-<p> 73727  abcdefghijklmnopqrstuvwxyz</p>
-
-<p>制作过程分两步，第一步生成不变的部分，也就是abc&hellip;xyz，先手写一行，然后用yy和p命令很容易搞定，第二步要在每行前面生成行号，执行下面这个指令：</p>
-
-<p> :%!cat -n</p>
-
-<p>由于Windows不支持cat指令，这个方法仅能在linux上实现。</p>
-
-<p>参考：<a href="http://stackoverflow.com/questions/252766/add-line-numbers-in-vim">http://stackoverflow.com/questions/252766/add-line-numbers-in-vim</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/50">&larr; Older</a>
@@ -802,6 +852,10 @@ iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
       </li>
     
@@ -815,10 +869,6 @@ iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
     
       <li class="post">
         <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/20/103138/">Set Time Synchronization on ArchLinux</a>
       </li>
     
   </ul>

@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="In Python 2.x, the default string is byte string, which means every byte is convert to a character. If you write a Unicode string, you have to write &hellip;">
+  <meta name="description" content="Create the following puppet manifest and start VM with vagrant, you get a base production environment. $ pwd
+/home/chad/docs/vagrant-prj/gcpserver $ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,106 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/18/165937/">Create Virtual Machines With Vagrant and Puppet</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-18T16:59:37+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Create the following puppet manifest and start VM with vagrant, you get a base production environment.</p>
+
+<pre><code>$ pwd
+/home/chad/docs/vagrant-prj/gcpserver
+
+$ cat Vagrantfile|grep -v '^\s*#'
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "precise64"
+  config.vm.network :public_network
+  config.vm.provision "puppet"
+end
+
+$ cat manifests/default.pp
+package { 'vsftpd':
+  ensure =&gt; installed,
+}
+service { 'vsftpd':
+  ensure =&gt; running,
+  require =&gt; Package['vsftpd'],
+}
+user { "gcp":
+  ensure     =&gt; "present",
+  password   =&gt; 'gcp',
+  managehome =&gt; true,
+}
+
+$ vagrant init
+$ vagrant up
+</code></pre>
+
+<p>But the password doesn&rsquo;t work, see <a href="http://www.puppetcookbook.com/posts/managing-user-password-fails.html">User Password Management Fails in Puppet</a> for reason.
+You have to modify password for user &lsquo;gcp&rsquo; manually.</p>
+
+<p>The type of network is written as &ldquo;bridged&rdquo; in api version 1 style.</p>
+
+<h1>Create multiple VMs</h1>
+
+<p>To specify hostname, memory size and some other parameters of each VM, modify Vagrantfile like this:</p>
+
+<pre><code>$ cat Vagrantfile|grep -v '^\s*#'
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "precise64"
+
+  config.vm.define "bvtserver" do |bvtserver|
+    bvtserver.vm.hostname = "bvt-server"
+    bvtserver.vm.network :public_network
+    bvtserver.vm.provision :shell, path: "bvtprov.sh"
+  end
+
+  config.vm.define "production" do |production|
+    production.vm.hostname = "gcp-server"
+    production.vm.network :public_network
+    production.vm.provision :puppet
+    production.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--name", "ProductEnv", "--memory", 1024]
+    end
+  end
+end
+</code></pre>
+
+<p>And add a shell script for provisioning of bvt server:</p>
+
+<pre><code>$ cat bvtprov.sh
+echo "You can do some provisioning here"
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/16740397/vagrant-network-type-bridged-is-invalid-please-use-a-valid-network-type">http://stackoverflow.com/questions/16740397/vagrant-network-type-bridged-is-invalid-please-use-a-valid-network-type</a>
+<a href="http://stackoverflow.com/questions/18700060/seting-up-vm-hostname-undefined-method-hostname">http://stackoverflow.com/questions/18700060/seting-up-vm-hostname-undefined-method-hostname</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -572,98 +673,6 @@ Host OS: Linux Mint 14 Xfce</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/24/095359/">Setup Lightweight Python FTP Server for Test</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-24T09:53:59+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:53 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Based on <a href="http://code.google.com/p/pyftpdlib/">Python FTP server library (pyftpdlib)</a></p>
-
-<h1>Install</h1>
-
-<ol>
-<li><p>Start a virtual environment;</p></li>
-<li><p>$ easy_install pyftpdlib (the version number is 1.3.0)</p></li>
-</ol>
-
-
-<p>or download pyftpdlib-1.3.0.tar.gz manually and &ldquo;python setup.py install&rdquo;.</p>
-
-<h1>Usage</h1>
-
-<p>Run the following script to startup server:</p>
-
-<pre><code>from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import FTPHandler
-from pyftpdlib.servers import FTPServer
-authorizer = DummyAuthorizer()
-authorizer.add_user("user", "12345", "/home/chad/tmp", perm="elradfmw")
-authorizer.add_anonymous("/home/chad/tmp2")
-# you have a named and an anonymous user to login
-handler = FTPHandler
-handler.authorizer = authorizer
-server = FTPServer(("0.0.0.0", 2121), handler)
-server.serve_forever()
-</code></pre>
-
-<p>If you set the port to &ldquo;21&rdquo;, a &ldquo;permission denied&rdquo; error raises. So I changed it to 2121.
-If you only accept local connection, modify server ip as &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.</p>
-
-<p>Use this server in command line:</p>
-
-<pre><code>ftp 10.21.2.7 2121
-// user name and password
-pwd
-ls
-get file1.txt
-put file2.txt
-</code></pre>
-
-<p>And a groovy ftp client:</p>
-
-<pre><code>import org.apache.commons.net.ftp.FTPClient
-println("About to connect....");
-new FTPClient().with {
-    connect "localhost", 2121
-    login "user", "123"
-    def names = listNames("/")
-    print names
-    logout()
-    disconnect()
-}
-println("Done.");
-</code></pre>
-
-<p>Run this client:</p>
-
-<pre><code>groovy -cp .../commons-net-3.1.jar ftpclient.groovy
-</code></pre>
-
-<p>On my machine this path is:
-~/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/19">&larr; Older</a>
@@ -681,6 +690,10 @@ println("Done.");
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
       </li>
     
@@ -694,10 +707,6 @@ println("Done.");
     
       <li class="post">
         <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/20/103138/">Set Time Synchronization on ArchLinux</a>
       </li>
     
   </ul>

@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="assert后面的表达式为假时会抛出AssertionError类对象，此类继承自Throwable类，可以用try..catch(AssertionError e)&hellip;语句捕获并处理，如果不处理，将会向其他Exception一样向上层调用抛出，导致线程运行中断。 &hellip;">
+  <meta name="description" content="原始文本： 2011年7月18日：修改密码的核心功能开发完毕；
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程； 目标格式文本： 2011-7-18：修改密码的核心功能开发完毕；
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程； vim实现 :%s/\(\d\{4 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +67,95 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/07/19/164331/">日期格式转换的正则表达式实现</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-07-19T16:43:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:43 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>原始文本：</p>
+
+<blockquote><p>2011年7月18日：修改密码的核心功能开发完毕；
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<p>目标格式文本：</p>
+
+<blockquote><p>2011-7-18：修改密码的核心功能开发完毕；
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<h1>vim实现</h1>
+
+<pre><code>:%s/\(\d\{4}\).\(\d\{1,2}\).\(\d\{1,2}\)./\1-\2-\3/g 
+</code></pre>
+
+<p>说明： 采用 :%s/old/new/g 命令进行替换，其中%表示对所有行进行替换操作，最后的g参数表明对一行中所有的new均替换为old。\d代表任意数字，old pattern中每个括号（即(&hellip;)）中的内容构成一个group member，new pattern中对group member的引用用\1、\2、\3&hellip;代表，即&#8221;BRE&#8221;, back references.</p>
+
+<h1>Groovy实现</h1>
+
+<pre><code>oriStr = '''2011年7月18日：修改密码的核心功能开发完毕； 
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；'''; 
+pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+matcher = oriStr =~ pattern; 
+matcher.each { all,y,m,d-&gt; 
+    println 'Patten is: '+all; 
+    println 'Replaced by: '+y+'-'+m+'-'+d; 
+}; 
+println '*****'; 
+println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;}; 
+</code></pre>
+
+<p>运行结果：</p>
+
+<pre><code>Patten is: 2011年7月18日 
+Replaced by: 2011-7-18 
+Patten is: 2011年7月19日 
+Replaced by: 2011-7-19 
+***** 
+2011-7-18：修改密码的核心功能开发完毕； 
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<p>说明： 跨行字符串用三引号括起来；匹配模式用“ /&hellip;/” 括起来；用模式匹配字符串时，每一次成功匹配构成了matcher的一个元素（代码中用matcher.each得到），如果模式当中包含group（可以matcher.hasGroup()判断），则这个元素本身也是一个List，其中第一个元素是符合模式的substring（代码中的all），各个group member可以用下标引用，也可以分别起名字（代码中分别为y、m、d）。这部分内容可参见《Groovy in Action》（2007版）第3.5节“Working with regular expressions”。Groovy的String.replaceAll方法包括两个参数，第一个是要被代替的pattern，第二个是用来代替pattern的closure，该closure的返回结果是最后一行代码的值。</p>
+
+<p>例如：<code>println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;return 'Date'};</code> 的输出是：</p>
+
+<pre><code>Date：修改密码的核心功能开发完毕； 
+Date：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<h1>基于文件读写的Groovy实现</h1>
+
+<pre><code>pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+convStr = ''; 
+new File('f:/Edit3.txt').eachLine{ 
+    convStr += (it.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d})+'\n' 
+} 
+new File('f:/conv.txt').write convStr; 
+</code></pre>
+
+<p>说明： 第4行的it表示此行文本（字符串）。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -800,137 +891,6 @@ Operating System: WindowsNT2KXP
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/15/155932/">Java和Groovy脚本互相调用实例</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-15T15:59:32+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:59 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>本实例是GODU动态脚本的一个技术简化版，演示了java调groovy，groovy又调java的运行过程。 测试用例：  package  com.boco.godu.integration;</p>
-
-<p> import  java.util.HashMap;
- import  java.util.Map;
- import  org.apache.log4j.Logger;
- import  org.junit.After;
- import  org.junit.AfterClass;
- import  org.junit.Before;
- import  org.junit.BeforeClass;
- import  org.junit.Test;
- import  com.boco.godu.gapi.ConnManager;
- import  com.boco.godu.gapi.Constants;
- import  com.boco.godu.gapi.IConnection;
- import  com.boco.godu.gapi.IResult;</p>
-
-<p> public  class  SimpleExpScriptTest {
-    private  static  final  Logger  logger  = Logger
-     . getLogger (SimpleExpScriptTest.  class  );
-    private  IConnection  conn ;</p>
-
-<p>   @Before
-    public  void  setUp()  throws  Exception {
-     conn  = ConnManager. getDataConn ( &ldquo;10.0.2.47&rdquo; , 1234,
-       &ldquo;&lt; aa ><7001><administrator><autocmd>&rdquo; ,  &ldquo;goduapp&rdquo; ,
-      Constants.  TYPE_DATA_CMD_SYNC  , 5);
-  }</p>
-
-<p>   @After
-    public  void  tearDown()  throws  Exception {
-     conn .close();
-  }</p>
-
-<p>   @Test
-    public  void  testImport()  throws  Exception {
-    Map&lt;String, String> params =  new  HashMap&lt;String, String>();
-    params.put(  &ldquo;cmd1&rdquo; ,  &ldquo;ls&rdquo; );
-    params.put(  &ldquo;id&rdquo; , 3);</p>
-
-<pre><code>IResult result =  conn .execScript( "ImportEx" , params); 
-</code></pre>
-
-<p>  }
- }</p>
-
-<p> Java代码：
-IConnection.java
- package  com.boco.godu.gapi;
-  public  interface  IConnection {
-   &hellip;&hellip;// other method definition
-     public  IResult execScript (String name, Map&lt;String, Object> params)<br/>
-       throws  Exception;
-  }</p>
-
-<p>GoduDataConnection.java
-  package  com.boco.godu.gapi.conn;
-  public  class  GoduDataConnection  extends  AbstractConnection {
-  &hellip;&hellip;// Other IConnection Methods
-     public  IResult execScript(String name, Map&lt;String, Object> params)<br/>
-       throws  Exception {
-    String[] roots =  new  String[] {  &ldquo;e:/MyDoc/Project/GoduScript&rdquo;  };
-    GroovyScriptEngine gse =  new  GroovyScriptEngine(roots);
-    Binding binding =  new  Binding();
-     for  (Entry&lt;String, Object> item : params.entrySet()) {
-     binding.setVariable(item.getKey(), item.getValue());
-    }
-    GapiIosessionUtils giu =  new  GapiIosessionUtils();
-    binding.setVariable(  &ldquo;giu&rdquo; , giu );
-    gse.run(name, binding);
-    System.  out  .println(binding.getVariable(  &ldquo;result&rdquo; )); // 运行结果是这里输出“11”，即3*2+5。
-     return  null  ;
-   }</p>
-
-<p>  }</p>
-
-<p>GapiIosessionUtils.java</p>
-
-<p> package  com.boco.godu.gapi.util;
-  public  class  GapiIosessionUtils {
-  &hellip;&hellip;// other method
-    public  int  testM(  int  x,  int  y) {
-     return  x * 2 + y;
-   }
- }</p>
-
-<p> groovy代码：</p>
-
-<p>e:\MyDoc\Project\GoduScript\ImportEx</p>
-
-<p> def send(cmd){</p>
-
-<p> def result = giu.testM(cmd,5);</p>
-
-<p> return result;</p>
-
-<p> }</p>
-
-<p> result = send(id)</p>
-
-<p> 运行过程
-测试用例 ->GoduDataConnection.java -> groovy代码 -> GapiIosessionUtils.java；</p>
-
-<p> 总结
-binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiIosessionUtils对象，id是int型数据）在groovy脚本里直接使用，可以出现在脚本的任何地方，且无需声明类型，无需使用import导入定义该变量的类（例如对于giu来说，如果在java代码中，需要import com.boco.godu.gapi.util.GapiIosessionUtils）。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/79">&larr; Older</a>
@@ -948,6 +908,10 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
       </li>
     
@@ -961,10 +925,6 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
     
       <li class="post">
         <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/20/103138/">Set Time Synchronization on ArchLinux</a>
       </li>
     
   </ul>
