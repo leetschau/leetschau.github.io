@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="例如[1,2]与[11,25]的对位相加得到[12,27]，对位相减得[-10, -23]，对位相乘得[11,50]等。 最简单的例子： aa = [3,50] bb = [16,7] aa = map(lambda x,y: x+y, aa,bb) print aa #output: [19, &hellip;">
+  <meta name="description" content="本实例是GODU动态脚本的一个技术简化版，演示了java调groovy，groovy又调java的运行过程。 测试用例： package com.boco.godu.integration; import java.util.HashMap; import java.util.Map; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/19/165249/">用map实现两个list的元素对位运算</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/15/155932/">Java和Groovy脚本互相调用实例</a></h1>
     
     
       <p class="meta">
@@ -80,52 +80,116 @@
 
 
 
-<time class='entry-date' datetime='2011-04-19T16:52:49+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:52 pm</span></time>
+<time class='entry-date' datetime='2011-06-15T15:59:32+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:59 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>例如[1,2]与[11,25]的对位相加得到[12,27]，对位相减得[-10, -23]，对位相乘得[11,50]等。</p>
+  <div class="entry-content"><p>本实例是GODU动态脚本的一个技术简化版，演示了java调groovy，groovy又调java的运行过程。 测试用例：  package  com.boco.godu.integration;</p>
 
-<p>最简单的例子：</p>
+<p> import  java.util.HashMap;
+ import  java.util.Map;
+ import  org.apache.log4j.Logger;
+ import  org.junit.After;
+ import  org.junit.AfterClass;
+ import  org.junit.Before;
+ import  org.junit.BeforeClass;
+ import  org.junit.Test;
+ import  com.boco.godu.gapi.ConnManager;
+ import  com.boco.godu.gapi.Constants;
+ import  com.boco.godu.gapi.IConnection;
+ import  com.boco.godu.gapi.IResult;</p>
 
-<p> aa = [3,50]</p>
+<p> public  class  SimpleExpScriptTest {
+    private  static  final  Logger  logger  = Logger
+     . getLogger (SimpleExpScriptTest.  class  );
+    private  IConnection  conn ;</p>
 
-<p> bb = [16,7]</p>
+<p>   @Before
+    public  void  setUp()  throws  Exception {
+     conn  = ConnManager. getDataConn ( &ldquo;10.0.2.47&rdquo; , 1234,
+       &ldquo;&lt; aa ><7001><administrator><autocmd>&rdquo; ,  &ldquo;goduapp&rdquo; ,
+      Constants.  TYPE_DATA_CMD_SYNC  , 5);
+  }</p>
 
-<p> aa = map(lambda x,y: x+y, aa,bb)</p>
+<p>   @After
+    public  void  tearDown()  throws  Exception {
+     conn .close();
+  }</p>
 
-<p> print aa</p>
+<p>   @Test
+    public  void  testImport()  throws  Exception {
+    Map&lt;String, String> params =  new  HashMap&lt;String, String>();
+    params.put(  &ldquo;cmd1&rdquo; ,  &ldquo;ls&rdquo; );
+    params.put(  &ldquo;id&rdquo; , 3);</p>
 
-<p> #output: [19, 57]</p>
+<pre><code>IResult result =  conn .execScript( "ImportEx" , params); 
+</code></pre>
 
-<p>累积运算的例子：</p>
+<p>  }
+ }</p>
 
-<p> acc = [0,0,0,0]</p>
+<p> Java代码：
+IConnection.java
+ package  com.boco.godu.gapi;
+  public  interface  IConnection {
+   &hellip;&hellip;// other method definition
+     public  IResult execScript (String name, Map&lt;String, Object> params)<br/>
+       throws  Exception;
+  }</p>
 
-<p> for i in range(3):</p>
+<p>GoduDataConnection.java
+  package  com.boco.godu.gapi.conn;
+  public  class  GoduDataConnection  extends  AbstractConnection {
+  &hellip;&hellip;// Other IConnection Methods
+     public  IResult execScript(String name, Map&lt;String, Object> params)<br/>
+       throws  Exception {
+    String[] roots =  new  String[] {  &ldquo;e:/MyDoc/Project/GoduScript&rdquo;  };
+    GroovyScriptEngine gse =  new  GroovyScriptEngine(roots);
+    Binding binding =  new  Binding();
+     for  (Entry&lt;String, Object> item : params.entrySet()) {
+     binding.setVariable(item.getKey(), item.getValue());
+    }
+    GapiIosessionUtils giu =  new  GapiIosessionUtils();
+    binding.setVariable(  &ldquo;giu&rdquo; , giu );
+    gse.run(name, binding);
+    System.  out  .println(binding.getVariable(  &ldquo;result&rdquo; )); // 运行结果是这里输出“11”，即3*2+5。
+     return  null  ;
+   }</p>
 
-<p>  inc = [i<em>3,i+5]</em>2</p>
+<p>  }</p>
 
-<p>  acc = map(lambda x,y: x + y, acc, inc)</p>
+<p>GapiIosessionUtils.java</p>
 
-<p> print acc</p>
+<p> package  com.boco.godu.gapi.util;
+  public  class  GapiIosessionUtils {
+  &hellip;&hellip;// other method
+    public  int  testM(  int  x,  int  y) {
+     return  x * 2 + y;
+   }
+ }</p>
 
-<p> #output: [9, 18, 9, 18]</p>
+<p> groovy代码：</p>
 
-<p> acc = [0,0,0,0]</p>
+<p>e:\MyDoc\Project\GoduScript\ImportEx</p>
 
-<p> for i in range(3):</p>
+<p> def send(cmd){</p>
 
-<p>  inc = [i<em>3,i+5]</em>2</p>
+<p> def result = giu.testM(cmd,5);</p>
 
-<p>  acc = map(lambda x,y: x - y, acc, inc)</p>
+<p> return result;</p>
 
-<p> print acc</p>
+<p> }</p>
 
-<p> #output: [-9, -18, -9, -18]</p>
+<p> result = send(id)</p>
+
+<p> 运行过程
+测试用例 ->GoduDataConnection.java -> groovy代码 -> GapiIosessionUtils.java；</p>
+
+<p> 总结
+binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiIosessionUtils对象，id是int型数据）在groovy脚本里直接使用，可以出现在脚本的任何地方，且无需声明类型，无需使用import导入定义该变量的类（例如对于giu来说，如果在java代码中，需要import com.boco.godu.gapi.util.GapiIosessionUtils）。</p>
 </div>
   
   
@@ -138,7 +202,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/18/091333/">Emule使用笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/15/083504/">Srt文件的时间轴平移处理</a></h1>
     
     
       <p class="meta">
@@ -147,20 +211,18 @@
 
 
 
-<time class='entry-date' datetime='2011-04-18T09:13:33+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:13 am</span></time>
+<time class='entry-date' datetime='2011-06-15T08:35:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:35 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在Emule界面上点“帮助”进入emule的帮助网页，下面是几个常用功能的说明所在的位置。</p>
+  <div class="entry-content"><p>有时srt字幕文件与视频文件的时间不完全吻合，有一个时间差，这就需要对srt文件的时间轴进行平移，具备这个功能的软件很多，比如：Subtitle Tool, subresync, sabbu, Sub Station Alpha等；但最方便的还是在线处理，下面这两个网站都是专门做字幕文件的时间轴处理的：</p>
 
-<p>文件搜索：特色功能->搜索文件</p>
+<p><a href="http://subshifter.bitsnbites.eu/">http://subshifter.bitsnbites.eu/</a></p>
 
-<p>避免封emule协议：特色功能->乱序协议加密</p>
-
-<p>更新服务器列表：指南与问答->下载并维护可信的服务器列表以及IPfilter</p>
+<p><a href="http://subtitle.ss-birthdayreminder.com/">http://subtitle.ss-birthdayreminder.com/</a></p>
 </div>
   
   
@@ -173,7 +235,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/14/101008/">Python函数调用中的值传递和引用传递问题</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/14/175307/">Terracotta启动命令说明</a></h1>
     
     
       <p class="meta">
@@ -182,53 +244,31 @@
 
 
 
-<time class='entry-date' datetime='2011-04-14T10:10:08+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:10 am</span></time>
+<time class='entry-date' datetime='2011-06-14T17:53:07+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:53 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>这一问题O&#8217; Reilly出版的&#8221;Learning Python&#8221; 2nd Edition的 13.4 节有专门论述，对于不可变(immutabe)对象，函数参数（这里是x和y）只是函数（这里是change）名字空间里对象（这里是0和[3,4]）的一个新名字，当x=1时，x指向了一个新对象，外层的X与0之间的引用关系不受影响，类似于Pascal的 “值传递”，对于可变(mutable)对象，由于不存在重新赋值，因此函数内部对y一部分的改变使外层的k也发生了变化，类似于Pascal的“引用传递”了。如果希望对可变对象使用“值传递”，就得在调用过程中创造一个“副本”，这样函数内部对副本的修改就不会影响原件了。
- 用一个例子说明， 首先是引用传递版本 ：</p>
+  <div class="entry-content"><p>terracotta的启动命令是：
+ nohup  $TC_INSTALL_DIR/bin/start-  tc  -server.sh 1>/  dev  /null 2>/  dev  /null &amp;</p>
 
-<p> def change(x,y):</p>
+<p>nohup是后台运行程序（即使终端退出也继续运行程序）；</p>
 
-<p>  x = 1</p>
+<p>$TC_INSTALL_DIR/bin/start-tc-server.sh 是要运行的程序；</p>
 
-<p>  y[0] = &lsquo;aa&rsquo;</p>
+<p>Unix的标准输入（STDIN）、标准输出（STDOUT）、标准错误（STDERR）分别用数字0、1和2表示，&#8221;>&ldquo;是重定向符，&rdquo;/dev/null&#8221;类似于windows的回收站，只不过进去的信息就出不来了（被称为字节黑洞），所以连起来就是：</p>
 
-<p> X = 0</p>
+<p>在后台运行terracotta程序，屏蔽标准输出和标准错误，即使用户退出也继续运行。</p>
 
-<p> k = [3,4]</p>
+<p>参考：</p>
 
-<p> change(X,k)</p>
+<p> nohup的含义</p>
 
-<p> print X,k</p>
+<p> What does “> /dev/null 2>&amp;1″ mean?</p>
 
-<p> #output: 0 [&lsquo;aa&rsquo;, 4]</p>
-
-<p>然后是“值传递”版本：</p>
-
-<p> def change(x,y):</p>
-
-<p>  x = 1</p>
-
-<p>  y[0] = &lsquo;aa&rsquo;</p>
-
-<p> X = 0</p>
-
-<p> k = [3,4]</p>
-
-<p> change(X,k [:] )</p>
-
-<p> print X</p>
-
-<p> print k</p>
-
-<p> #output: 0 [3, 4]</p>
-
-<p>为什么k[:]是k的副本呢？&#8221;Learning Python&#8221;的 7.5 节解释说“Slice expressions with empty limits copy sequences”，就是说k[:]是首先取出k所有元素组成一个sequence，然后将这个sequence转换成一个新的list，所以k[:]和k是不相关的。</p>
+<p> 1>/dev/null 2>/dev/null 跟在命令行后面，什么目的？</p>
 </div>
   
   
@@ -241,7 +281,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/12/150222/">Python代码规范</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/13/111815/">Javadoc动作中排除某些类</a></h1>
     
     
       <p class="meta">
@@ -250,22 +290,41 @@
 
 
 
-<time class='entry-date' datetime='2011-04-12T15:02:22+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:02 pm</span></time>
+<time class='entry-date' datetime='2011-06-13T11:18:15+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:18 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>见 PEP 8 - Style Guide for Python Code 。
- 命名约定
- Prescriptive: Naming Conventions 中指明：package, module, function, method命名采用lower_case_with_underscores风格，其中包名尽量不要用下划线（因此package和module最好只有一个单词），class采用CapWords风格，内部类和非public方法以下划线开头；常量采用ALL_CAPITAL_WITH_UNDERSCORES风格；</p>
+  <div class="entry-content"><p>设计产品的类结构时，有些类的作用是与产品的其他部分交互，因此必须是public类型的，但又不希望暴露给用户，因此打产品包的javadoc时，这些类是不生成javadoc的。假设某个包里共有10个接口，其中有一个是不生成javadoc的，写出另外9个接口名显然是很dirty的方法，比较好的方法是定义一个exclude，例如：</p>
 
-<p> 参考： lower_case_with_underscores,CapWords（以及其他）风格 的说明；
- 类继承约定
-类成员分为public（供用户使用）、protected（供本类和子类使用，python术语叫&#8221;subclass API&#8221;）和private（仅供本类使用）三类，public采用lower_case风格，protected采用_lower_case风格（以下划线开头），private采用__lower_case风格（双下划线开头）。
- 空行
-类之间以双空行分隔；类内方法间以单空行分隔；函数内部逻辑块间以单空行风格；</p>
+<p><target name="javadoc" depends="compile"></p>
+
+<pre><code>&lt;javadoc sourcepath="${src.dir}" destdir="${build.javadoc.dir}"
+
+    encoding = "GBK" docencoding = "GBK"
+
+    packagenames ="com.boco.godu.gapi.exception" &gt;
+
+    &lt; sourcefiles &gt;
+
+       &lt; fileset dir="${src.dir}/com/boco/godu/gapi"&gt;
+
+           &lt;include name="*.java"/&gt;
+
+           &lt; exclude name="IConnPool.java"/&gt;
+
+       &lt;/fileset&gt;
+
+    &lt;/ sourcefiles &gt;
+
+&lt;/javadoc&gt;
+</code></pre>
+
+<p></target></p>
+
+<p>上面的例子表明，对于整个包（package）统一生成javadoc的，采用的内嵌的packagenames定义（可以用逗号隔开多个包名），对于需要exclude的包，用<sourcefiels>+<fileset>定义，可以非常方便的使用exclude功能。</p>
 </div>
   
   
@@ -278,7 +337,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/08/120014/">Thunderbird发送纯文本邮件</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/10/164558/">Job Control of Unix</a></h1>
     
     
       <p class="meta">
@@ -287,22 +346,28 @@
 
 
 
-<time class='entry-date' datetime='2011-04-08T12:00:14+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>12:00 pm</span></time>
+<time class='entry-date' datetime='2011-06-10T16:45:58+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:45 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>向邮件列表中发邮件时，要求邮件格式必须是纯文本格式的，在thunderbird中，邮件格式（plain text或者html格式）在【工具->账户设置->[账户名称]->通讯录】下的“以HTML格式编写消息”中设置，英文版此开关的位置是【Tools -> Account Settings -> [Account Name]-> Composition &amp; Addressing -> Compose messages in HTML format】。</p>
+  <div class="entry-content"><p>主要参考书籍：Unix For Dummies: Chapter 13: Job Control.</p>
 
-<p>当用纯文本格式发送邮件时取消勾选此项即可，判断正在撰写的邮件是否为纯文本格式很简单，看【主题】下面是否有HTML格式工具栏即可：</p>
+<p>一个Job有前台（foreground）和后台（background）两种运行方式；</p>
 
-<p>纯文本邮件：</p>
+<p>前后程序的转换：</p>
 
-<p>HTML格式邮件：</p>
+<p> 直接（启动时）作为后台程序运行：当一个命令后面加上&#8221; &amp;&ldquo;时（&amp;前有一个空格），就进入了后台运行模式；</p>
 
-<p>另：Thunderbird的撰写邮件的正文窗口中右键->【粘贴为引文】功能在回复邮件时很有用！</p>
+<p> 中途前台=>后台：一个正在前台运行的命令用快捷键 Ctrl+Z 将其挂起（不消耗CPU时间），然后用 bg 命令使其进入后台运行状态；</p>
+
+<p> 后台=>前台：所有后台运行的job可以用 jobs 命令列出，其中带+号的是当前job，其余是非当前job。用 fg %n 的方法将一个后台job转换到前台，其中n是jobs命令中给出的序号；</p>
+
+<p>如果需要终止某个job，先用 jobs 列出，然后用 kill %n 的方法停止；</p>
+
+<p>后台程序需要用户输入时，将进入停止状态；当用户使用 stty tostop 命令打开免输出打扰时，后台程序的要输出时将进入停止状态；</p>
 </div>
   
   
@@ -315,7 +380,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/07/112524/">事件和任务的区别</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/02/173819/">如何获得Java文件的当前目录</a></h1>
     
     
       <p class="meta">
@@ -324,14 +389,41 @@
 
 
 
-<time class='entry-date' datetime='2011-04-07T11:25:24+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:25 am</span></time>
+<time class='entry-date' datetime='2011-06-02T17:38:19+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>5:38 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>事件（event）和任务（task）的区别在于，任务有是否完成的概念，而事件的一个特征是“时间不等人，过了就过了”。比如，生日、纪念日、节假日等为全天事件；几点钟开始的会议一般为事件。对于某些安排，可以根据您自己的情况，建立为事件和任务都可以。比如，“缴纳电话费”，您可以建立为事件，到时间提醒你一下就行了；但是如果你想跟踪缴纳电话费这件事情是否完成了，则可以建立为任务，当缴纳完电话费后，再把该任务标记为“已完成”就行了。</p>
+  <div class="entry-content"><p>测试用例所在工程目录为： D:/workspace/EasyMockDemo，若想获得当前类所在路径：
+ package org.leechau.groovyEmbedded;</p>
+
+<p> import org.junit.Test;</p>
+
+<p> public class HelloWorld {</p>
+
+<p>  @Test</p>
+
+<p>  public void HelloTest() throws Exception {</p>
+
+<p>   String path = this.getClass(). getResource(&ldquo;&rdquo;) .getPath();</p>
+
+<p>   System.out.println(path);</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p>输出：
+ /D:/workspace/EasyMockDemo/bin/org/leechau/groovyEmbedded/
+ 如果将 getResource(&ldquo;&rdquo;)改为getResource(&ldquo;/&rdquo;)，则输出为：
+  /D:/workspace/EasyMockDemo/bin/</p>
+
+<p> 如果希望获得项目目录，则用：
+ System.out.println(System.getProperty(&ldquo;user.dir&rdquo;));
+ 输出为：
+ D:\workspace\EasyMockDemo</p>
 </div>
   
   
@@ -344,7 +436,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/07/103351/">Outlook与Thunderbird</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/05/31/172859/">Groovy文件与类的关系</a></h1>
     
     
       <p class="meta">
@@ -353,50 +445,25 @@
 
 
 
-<time class='entry-date' datetime='2011-04-07T10:33:51+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:33 am</span></time>
+<time class='entry-date' datetime='2011-05-31T17:28:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>5:28 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Thunderbird(TB)的优势：跨平台，多标签浏览，缺点是不具备任务管理功能，需安装插件，但新版本往往不兼容老版本的插件，Outlook的优势是任务管理功能完善，下面是相同的功能在OL和TB中的实现方法。</p>
+  <div class="entry-content"><p>Python中，文件是一个模块，可以包含多个类、函数或者普通语句，但Groovy采用了与Java一样的机制，即一个文件对应一个类，</p>
 
-<h1>备份与恢复</h1>
+<p>具体的实现机制如下：（主要参考了 Groovy in Action : page:190）</p>
 
-<p>TB: 在Linux下只要备份~/.thunderbird文件夹就好，需要把账户和邮件完整转移到另一台机器上，也是只要把~/.thunderbird文件夹拷贝过去就OK了；</p>
+<p>在Groovy中类和文件的对应关系并不像Java中那么固定(Java中一个文件只能有一个声明为public的类和其他一些非公共的类和内嵌类) 。在同一个groovy文件中可以包含多个public的类定义。具体规则如下：</p>
 
-<h1>设置邮件账户</h1>
+<ol>
+<li><p>纯脚本：如果在一个groovy文件中没有任何类定义，它将被当做script来处理，也就意味着这个文件将被透明的转换为一个Script类型的类，这个类的类名是脚本的文件名（不含扩展名和包名，在default包中）。groovy文件的内容被打包进run方法，另外在新产生的类中被加入一个main方法使外部代码可以执行该脚本；</p></li>
+<li><p>纯类（类名是文件名）：如果在groovy文件正好有一个类的定义，并且该类的名字与文件名称相同，那么这就和java中的类与文件的一一对应关系相同。在一个groovy文件中可以包含多个不同可见性的类定义，并且没有强制性的要求其中有一个类的类名与文件名相同。groovyc编译器会很乐于把该文件中定义的所有的类都编译成*.class文件。如果你希望能够直接调用这个groovy script，比如说在使用groovy命令行或者在某个IDE中执行，那么你应该在该文件中的第一个类中定义一个main方法；</p></li>
+<li><p>脚本/类混合：在一个groovy文件中可以混合类的定义和脚本定义。在这种情况下，那些脚本代码将会放入默认存在的主类（文件名类）的run方法，所以在这种情况下你不应该再定义一个和文件同名的类，否则会出现“类重复定义”错误。反过来说，如果显式地定义了主类，则主类之外，除了定义其他类，不能有任何其他脚本代码（包括语句和函数）；</p></li>
+</ol>
 
-<p>TB和OL都建立邮件账户时支持IMAP协议，比POP3协议好，因为IMAP协议不会将邮件下载到本地，节约了硬盘空间；</p>
-
-<h2>TB中公司邮局的设置：</h2>
-
-<p>[My Account] -> Settings -></p>
-
-<ul>
-<li><p>接收邮件: Server Settings -> Server Name: boco.com.cn; Port: 110; Username: li*@boco.com.cn; Connection Security: None; Authentication method: Password, transmitted insecurely;</p></li>
-<li><p>发送邮件: Outgoing Server(SMTP): Server Name: boco.com.cn; Port: 25; &ldquo;Connection Security&rdquo; &amp; &ldquo;Authentication method&rdquo; are same with receiving settings above;</p></li>
-</ul>
-
-
-<h2>邮件签名</h2>
-
-<p>OL：【工具->选项->邮件格式->签名】可设置多个签名，写邮件时任选一个；</p>
-
-<p>TB：【工具->账户设置->[某一账户]->签名文字】，一个账户固定一个签名，灵活性稍差；</p>
-
-<h1>任务列表</h1>
-
-<p>OL有专门的【日历】或者【任务】，可将邮件设置为任务；TB通过安装Lightning插件实现，支持将邮件设为任务（邮件上右键->【转换到&hellip;】）；</p>
-
-<h1>最小化到托盘区以及激活</h1>
-
-<p>OL使用在托盘区图标上右键设置的方法；TB通过安装一个名为MinimizeToTray的插件实现，二者都不能实现从托盘区激活，都需要用autohotkey脚本实现激活；</p>
-
-<p>2011-09-08：从TB转回Outlook，主要是当前的TB6已经不能用Lightning做任务管理了。</p>
-
-<p>2013-9-4：TB的新邮件通知功能比较弱，显示一个提示窗口，几秒钟之后就消失了，待解决；</p>
 </div>
   
   
@@ -409,7 +476,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/04/07/090814/">Thunderbird采用IMAP协议连接GMail时的ssl_error_rx_record_too_long问题</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/05/31/172555/">如何进行Groovy的单元测试</a></h1>
     
     
       <p class="meta">
@@ -418,14 +485,96 @@
 
 
 
-<time class='entry-date' datetime='2011-04-07T09:08:14+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:08 am</span></time>
+<time class='entry-date' datetime='2011-05-31T17:25:55+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>5:25 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>用Thunderbird（版本：3.1.9）连接GMail时，总是报ssl_error_rx_record_too_long错误，解决办法是：在【工具->账户设置->[Gmail账号名]->服务器->连接安全】的值由【SSL/TLS】改为【STARTTLS】。</p>
+  <div class="entry-content"><p>Groovy的单元测试可以通过两种方法进行，一是用JUnit框架，二是用Groovy自己的TestSuite测试。JUnit测试代码是Java代码，GroovyTestSuite的测试代码是groovy代码，且只能一次运行测试类中所有的TestCase，灵活性较JUnit方法稍差。下面是一个实例：</p>
+
+<p>被测试类（Song.groovy文件内容）：
+ package  org.leechau.ut;</p>
+
+<p> class  Song {
+    def  name
+    def  artist
+    def  genre
+  String toString(){
+     &ldquo;${ name }, ${  artist }, ${ genre  }&rdquo;
+  }
+    def  getGenre(){
+     genre ?. toUpperCase ()
+  }
+ }</p>
+
+<p> class  Song2 {
+    def  name2
+    def  ex(){
+     println  name2
+  }</p>
+
+<h2> } </h2>
+
+<p> JUnit测试文件（SongTest.java）：
+  package  org.leechau.ut;</p>
+
+<p> import  org.junit.Assert;
+ import  org.junit.Test;</p>
+
+<p> public  class  SongTest {</p>
+
+<p>   @Test
+    public  void  testToString() {
+    Song sng =  new  Song();
+    sng.setArtist(  &ldquo;Lee&rdquo; );
+    Assert. assertEquals ( &ldquo;Lee&rdquo; , sng.getArtist());
+  }
+ }</p>
+
+<hr />
+
+<p> Groovy测试文件（TestSong2.groovy）：
+  package  org.leechau.ut2;</p>
+
+<p> import  groovy.util.GroovyTestCase</p>
+
+<p> import  org.leechau.ut.Song
+ import  org.leechau.ut.Song2</p>
+
+<p> class  SongTest2  extends  GroovyTestCase{</p>
+
+<pre><code>void  testGetGenre() { 
+ def  sng =  new  Song() 
+sng.setGenre  "Pop" 
+ assertEquals (sng.getGenre(),  "POP" ) 
+</code></pre>
+
+<p>  }</p>
+
+<pre><code>void  testSong2(){ 
+ def  sng2 =  new  Song2() 
+sng2.setName2  "Song2" 
+ assertEquals (sng2.getName2(),  "Song2" ) 
+</code></pre>
+
+<p>  }
+ }</p>
+
+<hr />
+
+<p> 且需要进行运行设置：
+ 1. 在Java Application中新建一个run configuration；</p>
+
+<ol>
+<li><p>Main标签下的Main Class写：groovy.util.GroovyTestSuite，且勾选“Include System Libraries when searching for a main class”；</p></li>
+<li><p>Arguments标签下program arguments下写上测试脚本的相对路径，如：src\org\leechau\ut2\SongTest2.groovy；</p></li>
+<li><p>运行该配置；</p></li>
+</ol>
+
+
+<p> 结果如下：</p>
 </div>
   
   
@@ -438,7 +587,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/03/31/180829/">Mingle安装步骤</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/05/26/092619/">在48服务器上安装并使用PyScripter编辑的方法</a></h1>
     
     
       <p class="meta">
@@ -447,40 +596,36 @@
 
 
 
-<time class='entry-date' datetime='2011-03-31T18:08:29+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>6:08 pm</span></time>
+<time class='entry-date' datetime='2011-05-26T09:26:19+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:26 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>安装postgresql（postgresql-9.0.3-1-windows.exe）</p>
+  <div class="entry-content"><p>类似于BVT这样的脚本一般都运行在服务器上，在本机调试好再移动到服务器上比较麻烦，理想方法是在服务器上直接调试python源代码，这就需要有IDE支持，下面说明了在48服务器上使用绿色版PyScripter的完整过程。</p>
 
-<p>数据库superuser密码设为111，见左下图；</p>
+<ol>
+<li><p>以用户名 ser2 登录48服务器（地址：10.0.2.48）；</p></li>
+<li><p>将PyScripter_confs_on48.zip解压到C:\Documents and Settings\ serv2 \Application Data下，即PyScripter.ini的绝对路径为：</p></li>
+</ol>
 
-<p>locale选C；（<a href="http://www.daniel-journey.com/archives/574%EF%BC%89%EF%BC%8C%E8%A7%81%E5%8F%B3%E4%B8%8B%E5%9B%BE%EF%BC%9B">http://www.daniel-journey.com/archives/574%EF%BC%89%EF%BC%8C%E8%A7%81%E5%8F%B3%E4%B8%8B%E5%9B%BE%EF%BC%9B</a></p>
 
-<p>安装完后不要勾选“Launch Stack Builder”；</p>
+<p> C:\Documents and Settings\serv2\Application Data\PyScripter\PyScripter.ini</p>
 
-<p>修改postgresql配置</p>
+<ol>
+<li><p>解压PyScripter-v2.4.1.zip到任意位置，运行其中的PyScripter.exe启动PyScripter；</p></li>
+<li><p>从SVN上下载源代码；</p></li>
+</ol>
 
-<p>${PostgreSQL_install}\9.0\data\pg_hba.conf文件中，将“host all all 127.0.0.1/32 md5”中md5改为trust；</p>
 
-<p>（<a href="https://www.zipsupport.com/support/index.php?_m=knowledgebase&amp;_a=viewarticle&amp;kbarticleid=492%EF%BC%89">https://www.zipsupport.com/support/index.php?_m=knowledgebase&amp;_a=viewarticle&amp;kbarticleid=492%EF%BC%89</a></p>
+<hr />
 
-<p>建立Postgresql数据库</p>
+<p>注1：第2步的目的是将PyScripter常用的设置（如字号大小，背景颜色，快捷键等）一次性设置好，这些设置都保存在前述的</p>
 
-<p>启动pgAdmin；</p>
+<p>&ldquo; C:\Documents and Settings\serv2\Application Data\PyScripter\PyScripter.ini &#8220;文件中。</p>
 
-<p>【服务器->postgres->属性】，保证属性设置如右图：</p>
-
-<p> 【服务器->postgres->连接】，输入superuser密码111；</p>
-
-<p>右键【数据库->新建数据库】：创建一个名为mingle的数据库，创建后效果如右图；</p>
-
-<p>右键【登录角色->新建登录角色】，创建一个名为mingle的登录角色：</p>
-
-<p>安装mingle（mingle_windows_3_3_22836_b160044f673a.exe）这里没什么要说明的，按照说明完成安装即可；</p>
+<p>注2：第1步中的登录用户名要与第2步中的路径名一致（这里都是serv2），否则当前用户没有其他用户目录的写权限，不可能解压文件；</p>
 </div>
   
   
@@ -493,7 +638,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/03/31/093544/">TortoiseSVN日志字体和字号调整</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/05/25/123121/">Ivy可以在ant中直接使用的变量</a></h1>
     
     
       <p class="meta">
@@ -502,16 +647,34 @@
 
 
 
-<time class='entry-date' datetime='2011-03-31T09:35:44+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>9:35 am</span></time>
+<time class='entry-date' datetime='2011-05-25T12:31:21+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>12:31 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>TortoiseSVN提供的“show log”功能很有用，但默认的显示文件log历史的字体太小看不清，这个字体的设置在【TortoiseSVN ->Settings->General->Dialogs 1->Font for log messages】中设置，默认是8，修改为10或者12即可。 修改前后对比如下（基于Version 1.6.2）：</p>
+  <div class="entry-content"><p>在 ant 文件中使用&lt;ivy:resolve/>进行解析后，可以使用如下变量：</p>
 
-<p>修改前： 修改后：</p>
+<p>ivy.organisation</p>
+
+<p>ivy.module</p>
+
+<p>ivy.revision</p>
+
+<p>ivy.resolved.configurations</p>
+
+<p>例如如下代码：
+   <target  name= "UT_junit"  depends=  "cleanForZip" >
+   <mkdir dir="${junit.test.result}"/>
+     <javac  srcdir= "${test.src.dir}"  destdir= "${test.class.dir}"  encoding= "GBK" >
+      <classpath>
+       <pathelement  location= "${build.dist.dir}/${ ivy.module }-${ ivy.revision }.jar" />
+       <path  refid= "lib.path" />
+       <path  refid= "test.lib.path" />
+      </classpath>
+     </javac>
+ 需要注意的是由于这些变量仅在 &lt;ivy:resolve/>后才生成，因此不要用<property name="..." value="${ivy.module}" />将它们的赋给一个变量，因为所有的变量赋值都是在任务（target）之前进行的（不论赋值的位置是否在包含&lt;ivy:resolve/>的target之后），因此变量肯定是得不到上述变量的值的。</p>
 </div>
   
   
@@ -536,23 +699,23 @@
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
+        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/27/113819/">A Simple Ring Server</a>
+        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/24/073009/">Xen on CentOS 6</a>
+        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
+        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
       </li>
     
   </ul>

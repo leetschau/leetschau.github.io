@@ -9,11 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="以下脚本连接上我的Gmail帐号，将收件箱中2013年1月份的新语丝邮件的附件保存在当前目录的xys文件夹中。 import imaplib
-import email
-import os
-dir_name = 'archive'
-if not os.path.exists(dir_name): &hellip;">
+  <meta name="description" content="Evernote笔记要自动分享到博客还真不那么容易，借鉴Using Evernote to Post to WordPress，申请了一个Wordpress帐号，点击dashboard左边的“控制板” -> My Blogs -> Post by Email下面的&#8221;Enable&# &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -75,7 +71,7 @@ if not os.path.exists(dir_name): &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/03/04/171058/">使用脚本下载Gmail邮件附件</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/04/06/000709/">自动将Evernote笔记发布到博客上</a></h1>
     
     
       <p class="meta">
@@ -84,378 +80,179 @@ if not os.path.exists(dir_name): &hellip;">
 
 
 
-<time class='entry-date' datetime='2013-03-04T17:10:58+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:10 pm</span></time>
+<time class='entry-date' datetime='2013-04-06T00:07:09+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:07 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>以下脚本连接上我的Gmail帐号，将收件箱中2013年1月份的新语丝邮件的附件保存在当前目录的xys文件夹中。</p>
+  <div class="entry-content"><p>Evernote笔记要自动分享到博客还真不那么容易，借鉴<a href="https://arjw.wordpress.com/2011/08/25/of-the-note/#">Using Evernote to Post to WordPress</a>，申请了一个Wordpress帐号，点击dashboard左边的“控制板” -> My Blogs -> Post by Email下面的&#8221;Enable&#8221;按钮，会出现一个email地址，向这个地址发送邮件就可以发布博客了，可以先将写好的笔记保存在一个文件里，然后通过python的email模块向这个地址发邮件的方法实现自动发布博客，然后用evernote的local api将这个文件变成一个新笔记保存在数据库中。</p>
 
-<pre><code>import imaplib
-import email
-import os
-dir_name = 'archive'
-if not os.path.exists(dir_name):
-    os.mkdir(dir_name)
-save_path = os.path.join(os.getcwd(),dir_name)
-M = imaplib.IMAP4_SSL('imap.gmail.com')
-M.login('leetschau@gmail.com', 'vim72python251')
-M.select() # default value is inbox
-search_criteria = '(From "Shi-min Fang" UNSEEN)'
-# '(From "Shi-min Fang" SINCE "01-Jan-2013" BEFORE "01-FEB-2013")'
-res, search_result = M.search(None, search_criteria)
-for num in search_result[0].split():
-    typ, data = M.fetch(num, '(RFC822)')
-    # print 'Message %s\n%s\n' % (num, data[0][1])
-    email_body = data[0][1]
-    mail = email.message_from_string(email_body)
-    sender = mail['From']
-    subject = mail['Subject']
-    print "["+mail["From"]+"]: " + mail["Subject"]
-    for part in mail.walk():
-        if part.get_content_maintype() == 'multipart':
-            continue
-        if part.get('Content-Disposition') is None:
-            continue
-        filename = subject+'.txt'
-        att_path = os.path.join(save_path, filename)
-        if not os.path.isfile(att_path) :
-            fp = open(att_path, 'wb')
-            fp.write(part.get_payload(decode=True))
-            fp.close()
-M.close()
-M.logout()
+<p>对于现有的笔记，只能在菜单“笔记->分享->通过电子邮件发送”，填上Email地址的方法，刚才试验成功，但如果修改这个笔记重新发送一次，wordpress上不会覆盖原来的笔记，而是发一条新博文，还有一个问题是wordpress官网的<a href="http://wordpress.com">免费博客</a>虽然很好，但被GFW屏蔽了。</p>
+
+<p><a href="http://aaditya.info/blog/2012/08/clipboard-to-email-python-code/">Clipboard to Email – Python Code</a>演示了如果将剪贴板里的内容通过email发送出去，也是一种解决问题的方法。</p>
+
+<p>python 2.7.3 doc: <a href="http://docs.python.org/2/library/email-examples.html">18.1.11. email: Examples</a>有发送html文档的完整例子；</p>
+
+<p>126和163也支持邮件发博客，用自己的邮箱发送到blogmail@188.com，可以用python的smtplib，通过smtp.163.com发送；</p>
+
+<p>下面这个发送text邮件的实例在163博客上成功发布（sendmail方法如果返回一个空字典，说明发送成功）：</p>
+
+<p> import smtplib
+ # Import the email modules we&rsquo;ll need
+ from email.mime.text import MIMEText
+ # Create a text/plain message
+ msg = MIMEText(&lsquo;this is a test blog from email&rsquo;)
+ me = &lsquo;<a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#58;&#x6c;&#x65;&#x65;&#95;&#99;&#x68;&#97;&#117;&#64;&#49;&#54;&#x33;&#46;&#99;&#111;&#x6d;">&#108;&#x65;&#x65;&#x5f;&#x63;&#x68;&#97;&#117;&#64;&#x31;&#x36;&#x33;&#46;&#x63;&#x6f;&#x6d;</a>&rsquo;
+ you = &lsquo;<a href="&#109;&#x61;&#x69;&#x6c;&#116;&#111;&#x3a;&#98;&#108;&#111;&#x67;&#109;&#97;&#x69;&#108;&#64;&#x31;&#x38;&#x38;&#46;&#99;&#x6f;&#x6d;">&#98;&#108;&#111;&#x67;&#109;&#x61;&#x69;&#108;&#x40;&#49;&#x38;&#56;&#46;&#x63;&#111;&#109;</a>&rsquo;
+ msg[&lsquo;Subject&rsquo;] = &lsquo;A Test Blog from Email&rsquo;
+ msg[&lsquo;From&rsquo;] = me
+ msg[&lsquo;To&rsquo;] = you
+ # Send the message via our own SMTP server, but don&rsquo;t include the
+ # envelope header.
+ s = smtplib.SMTP(&lsquo;smtp.163.com&rsquo;)
+ s.login(&lsquo;lee_chau&rsquo;, &lsquo;abaqus67&rsquo;)
+ s.sendmail(me, [you], msg.as_string())
+ s.quit()</p>
+
+<hr />
+
+<p>2013-04-13更新：</p>
+
+<p>参考<a href="http://fun.blog.ustc.edu.cn/?p=148">从Evernote自动发博客到WordPress</a>，可以用<a href="https://eatags.com/">eatags.com</a>将笔记发布到wordpress.com上，设置好共享之后，要发布的笔记只要加上标签“ eat.wordpress.post ”（参考<a href="https://eatags.com/features%EF%BC%89%E5%B0%B1%E4%BC%9A%E8%A2%AB%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E5%88%B0wordpress.com%E4%B8%8A%EF%BC%8C%E4%BB%8A%E5%A4%A9%E6%B5%8B%E8%AF%95%E7%9A%84%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BB%A5%E6%98%BE%E7%A4%BA%E5%9B%BE%E7%89%87%EF%BC%8C%E6%98%AF%E7%9B%AE%E5%89%8D%E6%89%80%E7%9F%A5%E6%9C%80%E5%A5%BD%E7%9A%84%E5%90%8C%E6%AD%A5%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%88%96%E8%80%85%E7%94%A8">https://eatags.com/features%EF%BC%89%E5%B0%B1%E4%BC%9A%E8%A2%AB%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E5%88%B0wordpress.com%E4%B8%8A%EF%BC%8C%E4%BB%8A%E5%A4%A9%E6%B5%8B%E8%AF%95%E7%9A%84%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BB%A5%E6%98%BE%E7%A4%BA%E5%9B%BE%E7%89%87%EF%BC%8C%E6%98%AF%E7%9B%AE%E5%89%8D%E6%89%80%E7%9F%A5%E6%9C%80%E5%A5%BD%E7%9A%84%E5%90%8C%E6%AD%A5%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%88%96%E8%80%85%E7%94%A8</a><a href="http://www.evreblog.us">everblog.us</a>也能将evernote笔记发布到everblog.us网站上，但不能显示图片，everblog选中一个笔记本后会将该笔记本下所有的笔记都发布到everblog网站上，适合批量发布；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/01/150952/">NoClassDefFoundError与ClassNotFoundException的区别</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-01T15:09:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>3:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>NoClassDefFoundError是一个Error，严重级别高，它导致JVM加载失败，通常是由于class loader在classpath中找不到被引用的class文件引起；</p>
+
+<p>ClassNotFoundException是一个异常，严重级别低（相比于Error），通常在利用反射机制加载类时找不到指定的类引起，由于是异常，是可以被catch语句扑捉然后在代码中进行处理的。</p>
+
+<p>参考：<a href="http://stackoverflow.com/questions/1457863/what-is-the-difference-between-noclassdeffounderror-and-classnotfoundexception">http://stackoverflow.com/questions/1457863/what-is-the-difference-between-noclassdeffounderror-and-classnotfoundexception</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/31/231152/">能够进行多段文本匹配的NFA改良算法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-31T23:11:52+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>11:11 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的代码基于NFA算法实现了在多段字符串中匹配正则表达式，对比NFA算法可以看到它将pc由局部变量提升为类成员，以保存中间匹配状态，另外在匹配成功后将pc恢复到null状态。实际使用中，此类还应该增加一个&#8221;reset&#8221;方法，将pc值置为null，以便用户可以显式要求重新开始匹配。</p>
+
+<p> public class MultiSegmentNFA {
+  private final Digraph G; // digraph of epsilon transitions
+  private final String regexp; // regular expression
+  private final int M; // number of characters in regular expression
+  private Bag<Integer> pc = null;
+  public MultiSegmentNFA(String regexp) {
+   &hellip; // same as NFA
+  }
+  public boolean recognizes(String target) {
+   if (pc == null) {
+    DirectedDFS dfs = new DirectedDFS(G, 0);
+    pc = new Bag<Integer>();
+    for (int v = 0; v &lt; G.V(); v++)
+     if (dfs.marked(v))
+      pc.add(v);
+   }
+   for (int i = 0; i &lt; target.length(); i++) {
+    Bag<Integer> match = new Bag<Integer>();
+    for (int v : pc) {
+     if (v == M)
+      continue;
+     if ((regexp.charAt(v) == target.charAt(i))
+       || regexp.charAt(v) == &lsquo;.&rsquo;)
+      match.add(v + 1);
+    }
+    DirectedDFS dfs = new DirectedDFS(G, match);
+    pc = new Bag<Integer>();
+    for (int v = 0; v &lt; G.V(); v++)
+     if (dfs.marked(v))
+      pc.add(v);
+    if (pc.size() == 0)
+     return false;
+   }
+   for (int v : pc)
+    if (v == M) {</p>
+
+<pre><code> pc = null; 
+ return true;
+
+} 
 </code></pre>
 
-<p>说明：</p>
+<p>   return false;
+  }</p>
 
-<ol>
-<li><p>附件保存的名字和扩展名是写死的，有兴趣的话可以研究一下怎样获得附件本身的文件名；</p></li>
-<li><p>这个脚本的强大之处在于它不需要任何第三方库，只用python内置的imaplib，只用是支持imap的邮箱都可以用这个方法处理邮件；</p></li>
-<li><p>这里面最有用的是邮件搜索规则（search_criteria），格式是(key1 value1 key2 value2 &hellip;)，每个value上加引号，整个表达式是一个字符串，因此也要加引号。</p></li>
-</ol>
-
-
-<p>key除了这里的收件人、起始/终止日期，还有ALL（全部邮件），UNSEEN（未读邮件），DELETED（已删除邮件）等，key-value对之间可以随意组合；</p>
-
-<ol>
-<li>M的select方法默认值是收件箱，可以指定其他信箱，完整格式是：IMAP4.select([mailbox[, readonly]])；</li>
-</ol>
-
-
-<p>参考1：<a href="http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib">http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib</a></p>
-
-<p>参考2：Python 2.7.3 chapter 20.10 imaplib -> 20.10.2: IMAP4 Example</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/02/105214/">用Autohotkey模拟两台客户机的并发访问事件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-02T10:52:14+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:52 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>现在需要从主机113和747上同时向服务器47发送指令&#8221;cat bigMsg&#8221;，以观察47对并发请求的处理能力以及网络传输带宽，可以在pc上分别登录到113和747上，然后分别输入该指令，但手工顺序输入毕竟时间间隔比较大，如果bigMsg不够大，手工操作在47上就变成顺序执行了，如果对开始时间点的要求不那么严格，可以用Autohotkey脚本实现模拟的并发访问，下面演示了用ahk脚本实现的在两台主机上同时运行top指令，8秒后分别发送q退出top界面，以证明ahk脚本确实能够起到“非阻塞发送两条指令”的效果。</p>
-
-<ol>
-<li><p>类似于手工操作，用Kitty登录113和747，假设两个窗口的标题分别为&#8221;lichao@pwm&#8221;和&#8221;godu@goduserver&#8221;；</p></li>
-<li><p>建立ahk脚本（分别在两个主机上运行）：</p></li>
-</ol>
-
-
-<p> SetTitleMatchMode, 2
- WinActivate, godu
- SendInput, top{enter}
- WinActivate, lichao
- SendInput, top{enter}
- Sleep, 8000
- WinActivate, godu
- SendInput, q
- WinActivate, lichao
- SendInput, q
-1. 在vim窗口里运行&#8221;:silent !%&ldquo;执行这个脚本，与直接运行&rdquo;!%&ldquo;相比，silent指令不会出现一个dos窗口，然后要求用户看回车返回vim窗口（参考<a href="http://vim.wikia.com/wiki/Avoiding_the_%22Hit_ENTER_to_continue%22_prompts%EF%BC%89%E3%80%82">http://vim.wikia.com/wiki/Avoiding_the_%22Hit_ENTER_to_continue%22_prompts%EF%BC%89%E3%80%82</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/28/210122/">基于字节比对的KMP字符串搜索算法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-28T21:01:22+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>package kmpclient;
-import java.io.UnsupportedEncodingException;
-import java.util.LinkedList;
-public class ByteKMP {
- private static final int R = 255;
- private static final String DEFAULT_CHARSET = &ldquo;UTF-8&rdquo;;
- private final int[][] dfa;
- private final int patLen;
- private int curMatchPos = 0;
- public ByteKMP(byte[] pat) throws UnsupportedEncodingException {
-  patLen = pat.length;
-  // build DFA from pattern
-  int M = pat.length;
-  dfa = new int[R][M];
-  dfa[pat[0] &amp; 0xff][0] = 1;
-  for (int X = 0, j = 1; j &lt; M; j++) {
-   for (int c = 0; c &lt; R; c++)
-    dfa[c][j] = dfa[c][X]; // Copy mismatch cases.
-   dfa[pat[j] &amp; 0xff][j] = j + 1; // Set match case.
-   X = dfa[pat[j] &amp; 0xff][X]; // Update restart state.
-  }
- }
- public int search(byte[] msg) {
-  int M = patLen;
-  int N = msg.length;
-  int i, j;
-  for (i = 0, j = curMatchPos; i &lt; N &amp;&amp; j &lt; M; i++) {
-   j = dfa[msg[i] &amp; 0xff][j];
-  }
-  if (j == M) {
-   curMatchPos = 0;
-   return i - M; // found
-  }
-  curMatchPos = j;
-  return N; // not found
- }
- public static void main(String[] args) throws UnsupportedEncodingException {
-  int a = -27 % 255;
-  testEnglishStr();
-  testChineseStr();
- }
- private static void testChineseStr() throws UnsupportedEncodingException {
-  LinkedList&lt;byte[]> msgs = new LinkedList&lt;byte[]>();
-  msgs.offer(&ldquo;今天是个好日子&rdquo;.getBytes(DEFAULT_CHARSET));
-  msgs.offer(&ldquo;厉害不?子= KM= KMP = 真厉害！&rdquo;.getBytes(DEFAULT_CHARSET));
-  // msgs.offer(&ldquo;= KMP = 真厉害！&rdquo;.getBytes(DEFAULT_CHARSET));
-  String pat = &ldquo;子= KM&rdquo;;
-  // e5, ad, 90, &hellip; [-27, -83, -112, 61, 32, 75, 77]
-  ByteKMP bkmp = new ByteKMP(pat.getBytes(DEFAULT_CHARSET));
-  int pos = 9999;
-  byte[] target = msgs.poll();
-  while (target != null) {
-   pos = bkmp.search(target);
-   if (pos &lt; target.length) {
-    break;
+<p>  public static void main(String[] args) {
+   LinkedList<String> msgs = new LinkedList<String>();
+   msgs.offer(&ldquo;welcome lonely logoout&rdquo;);
+   msgs.offer(&ldquo;to flog&rdquo;);
+   msgs.offer(&ldquo;into a fog&rdquo;);
+   String token = &ldquo;outto&rdquo;;  // 这个目标由第1和第2个字符串拼接而成
+   String pat = &ldquo;(.<em>&rdquo; + token + &ldquo;.</em>)&rdquo;;
+   MultiSegmentNFA mnfa = new MultiSegmentNFA(pat);
+   String target = msgs.poll();
+   while (target != null) {
+    if (mnfa.recognizes(target)) {
+     break;
+    }
+    target = msgs.poll();
    }
-   target = msgs.poll();
-  }
-  if (target == null) {
-   System.out.println(&ldquo;cannot find &rdquo; + pat + &ldquo; in msgs.&rdquo;);
-  } else {
-   System.out.println(&ldquo;find pat at &rdquo; + pos + &ldquo; in &lt;&rdquo;
-    + new String(target) + &ldquo;>&rdquo;);
-  }
- }
- private static void testEnglishStr() throws UnsupportedEncodingException {
-  LinkedList&lt;byte[]> msgs = new LinkedList&lt;byte[]>();
-  msgs.offer(&ldquo;welcome lonely logoout&rdquo;.getBytes(DEFAULT_CHARSET));
-  msgs.offer(&ldquo;to flog&rdquo;.getBytes(DEFAULT_CHARSET));
-  msgs.offer(&ldquo;into a fog&rdquo;.getBytes(DEFAULT_CHARSET));
-  String pat = &ldquo;a f&rdquo;;
-  ByteKMP bkmp = new ByteKMP(pat.getBytes(DEFAULT_CHARSET));
-  int pos = 9999;
-  byte[] target = msgs.poll();
-  while (target != null) {
-   pos = bkmp.search(target);
-   if (pos &lt; target.length) {
-    break;
+   if (target == null) {
+    System.out.println(&ldquo;cannot find &rdquo; + token + &ldquo; in msgs.&rdquo;);
+   } else {
+    System.out.println(&ldquo;find pat in &lt;&rdquo; + target + &ldquo;>&rdquo;);
    }
-   target = msgs.poll();
   }
-  if (target == null) {
-   System.out.println(&ldquo;cannot find &rdquo; + pat + &ldquo; in msgs.&rdquo;);
-  } else {
-   System.out.println(&ldquo;find pat at &rdquo; + pos + &ldquo; in &lt;&rdquo;
-    + new String(target) + &ldquo;>&rdquo;);
-  }
- }
-}</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/28/200614/">使用Wireshark为无线网卡抓包</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-28T20:06:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在Wireshark的网卡列表里，无线网卡的名字不是Windows无线网络连接当中的设备名，需要用下面的方法确定列表中哪个是无线网卡：</p>
-
-<p>方法1： Wireshark -> Capture -> Interface：</p>
-
-<p>可以看到上图中第3个（一般都被命名为Microsoft）有明显的数据传输，是无线网卡的可能性最大；</p>
-
-<p>方法2： Wireshark -> Capture -> Options，列表中有各个网卡的IP地址，很明显第3个网卡就是无线网卡，双击它在&#8221;Capture Filter&#8221;里写上过滤规则就可以抓包了。</p>
-
-<p>以上基于Wireshark 1.8.5版本。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/28/170942/">关于DNS域名解析</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-28T17:09:42+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Ubuntu的DNS服务器保存在/etc/resolv.conf文件中，root用户修改这个文件后重启网络服务：</p>
-
-<p> /etc/init.d/networking restart</p>
-
-<p>RedHat上重启网络服务：</p>
-
-<p> service network restart</p>
-
-<p>如果不想使用这个DNS，取消的方法是注释掉（在行首加&#8221;#&ldquo;）。</p>
-
-<p>测试DNS服务是否有效：</p>
-
-<p>用nslookup指令查询域名的IP地址，如果能返回正确结果说明DNS设置有效，例如：</p>
-
-<p>nslookup www.google.com，与另一台能正常上网的机器的解析结果进行比较可知是否正确。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/28/090201/">Java调用外部程序并计算运行时间</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-28T09:02:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:02 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的代码演示了启动外部程序&#8221;d:/apps/Kitty/kitty.exe -load cat47&#8221;，获取其输出，计算整个运行时间的方法。注意创建ProcessBuilder对象时第一个参数的写法，路径必须是绝对路径（除非该程序在系统的$PATH中），即使后面设置了工作目录。</p>
-
-<p> public static void main(String[] args) throws IOException, InterruptedException {</p>
-
-<p>  long start = System.currentTimeMillis();
-  // 定义外部程序：kitty.exe -load cat47，</p>
-
-<p>  ProcessBuilder pb = new ProcessBuilder(&ldquo;d:/apps/Kitty/kitty.exe&rdquo;, &ldquo;-load&rdquo;, &ldquo;cat47&rdquo;);</p>
-
-<p>  // Map&lt;String, String> env = pb.environment(); 这里可以设置环境变量
-  // env.put(&ldquo;VAR1&rdquo;, &ldquo;myValue&rdquo;);
-  // env.remove(&ldquo;OTHERVAR&rdquo;);
-  // env.put(&ldquo;VAR2&rdquo;, env.get(&ldquo;VAR1&rdquo;) + &ldquo;suffix&rdquo;);
-  // pb.directory(new File(&ldquo;c:/tmp&rdquo;)); 这里可以设置程序的工作目录
-  Process p = pb.start(); // 启动外部进程
-  // OutputStream out = p.getOutputStream(); 可以用out向进程写数据（输入）
-  InputStream in = p.getInputStream();
-  int recvNum;
-  byte[] buf = new byte[256];
-  while ((recvNum = in.read(buf)) != -1) {
-   String res = new String(buf, 0, recvNum, &ldquo;UTF-8&rdquo;);
-   System.out.print(res);
-  }
-  p.waitFor(); // 一直阻塞到p运行完毕
-  long end = System.currentTimeMillis();
-  System.out.println(&ldquo;duration: &rdquo; + (end - start) + &ldquo; ms.&rdquo;);
  }</p>
 
-<p>任务cat47连接47的telnet端口，cat一个大文件（2.4MB，内容见笔记“ 用vim制作大报文传输测试文件 ”）并退出，以验证服务器和客户端之间网络传输的效率，cat47所使用的自动登录脚本如下：</p>
-
-<p> assword:
- goduty
- $
- cat big*
- $
- exit</p>
+<p>Note: Java的Pattern类使用的就是基于NFA的搜索算法，见JDK 6文档java.util.regex.Pattern的&#8221;Comparison to Perl 5&#8221;一节。</p>
 </div>
   
   
@@ -468,7 +265,7 @@ public class ByteKMP {
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/02/25/135621/">Erlang Telnet & Ssh Client</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/03/31/215259/">NFA算法笔记</a></h1>
     
     
       <p class="meta">
@@ -477,36 +274,35 @@ public class ByteKMP {
 
 
 
-<time class='entry-date' datetime='2013-02-25T13:56:21+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>1:56 pm</span></time>
+<time class='entry-date' datetime='2013-03-31T21:52:59+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>9:52 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Telnet</h1>
+  <div class="entry-content"><p>NFA(Nondeterministic finite-state automata)是一种在字符串中寻找正则表达式匹配的算法，优点是查找文本的指针不回退，适用于在网络传输的报文中寻找正则表达式描述的目标（因为网络传输中报文是被分段接收的，且分段的方式不确定），在Robert的&#8221;Algorithms&#8221;第5.4节&#8221;Regular Expressions&#8221;中有详细介绍。</p>
 
-<ul>
-<li><p><a href="http://erlang.2086793.n4.nabble.com/ct-telnet-example-td2309531.html">http://erlang.2086793.n4.nabble.com/ct-telnet-example-td2309531.html</a></p></li>
-<li><p>ct_telnet</p></li>
-</ul>
+<p>NFA算法可以分为定义和执行两部分，定义阶段和执行阶段。</p>
 
+<p>定义阶段是将要查找的正则表达式（String类型）转换为一个有向图（Digraph类型），该图中的边是所有可以进行的空转换（见p795倒数第2行），定义阶段在书中&#8221;Building an NFA corresponding to an RE&#8221;一节，图示见p803，代码见p802），在代码表现为以一个正则表达式字符串为参数的NFA构造函数；</p>
 
-<p> <a href="http://www.erlang.org/doc/apps/common_test/basics_chapter.html">http://www.erlang.org/doc/apps/common_test/basics_chapter.html</a></p>
+<p>执行阶段就是判断待处理的文本中是否含有目标正则表达式（见&#8221;Simulating an NFA&#8221;一节，图示见p798），整个过程是一个循环过程，每次循环待处理文本指针前进一个字符，这次循环由两步组成，首先根据当前正则表达式指针所处位置（最初位置都是0）算出所有空转换可达位置（借助深度优先算法DirectedDFS，可达位置保存在变量pc中），然后将所有可达位置上的字符与待处理文本指针处的字符比较，如果一样则把正则表达式指针的后一位保存在变量match中。然后以match为初始位置重新构造DirectedDFS对象，进而得到可达位置集合pc，然后从中筛选匹配上的位置，如此循环，直到待处理文本指针到达文本尾部，如果pc中有正则表达式长度的那个元素（代表匹配成功的位置，书中代码用类成员M表示），说明匹配正则表达式成功，否则失败。</p>
 
-<p> <a href="http://www.erlang.org/doc/apps/common_test/write_test_chapter.html#intro">http://www.erlang.org/doc/apps/common_test/write_test_chapter.html#intro</a></p>
+<p>需要说明的是，从所有可达状态pc中筛选匹配上位置并放入match中之前，需要先将值为M的元素去掉，以用&#8221;(A<em>B|AC)D&#8221;匹配&#8221;AABDC&#8221;为例，当目标文本指针等于4时，即指向&#8221;AABDC&#8221;的最后一个字符C时，pc中已经包含了最终状态11（正则串&#8221;((A</em>B|AC)D)&ldquo;的长度），因为AABD符合&rdquo;(A<em>B|AC)D&#8221;，但最后的C导致整个文本不匹配&#8221;(A</em>B|AC)D&#8221;，所以结果仍然是匹配失败。</p>
 
-<p> <a href="http://www.erlang.org/doc/apps/common_test/config_file_chapter.html#id2270029">http://www.erlang.org/doc/apps/common_test/config_file_chapter.html#id2270029</a></p>
+<p>测试代码如下：</p>
 
-<p>getty.erl at <a href="http://ftp.sunet.se/pub/lang/erlang/examples/small_examples/index.html">Small example programs</a> in &ldquo;Open Source Erlang&rdquo;.</p>
-
-<h1>SSH</h1>
-
-<ul>
-<li><p><a href="http://www.erlang.org/doc/apps/ssh/using_ssh.html">SSH User&rsquo;s Guide</a></p></li>
-<li><p>ct_ssh</p></li>
-</ul>
-
+<p> String token = &ldquo;(A<em>B|AC)D&rdquo;;
+ String regexp = &ldquo;(&rdquo; + token + &ldquo;)&rdquo;;
+ // when test if target string &ldquo;contains&rdquo; regex, regexp = &ldquo;(.</em>&rdquo; + token + &ldquo;.*)&rdquo;
+ NFA nfa = new NFA(regexp);
+ String target = &ldquo;AABDC&rdquo;;
+ if (nfa.recognizes(target)) {
+  System.out.println(&ldquo;match: &rdquo; + target);
+ } else {
+  System.out.println(&ldquo;not match: &rdquo; + target);
+ }</p>
 </div>
   
   
@@ -519,7 +315,7 @@ public class ByteKMP {
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/02/23/225118/">Erlang and OTP in Action 第7章示例</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/03/31/141131/">Wine笔记</a></h1>
     
     
       <p class="meta">
@@ -528,306 +324,379 @@ public class ByteKMP {
 
 
 
-<time class='entry-date' datetime='2013-02-23T22:51:18+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:51 pm</span></time>
+<time class='entry-date' datetime='2013-03-31T14:11:31+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:11 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>运行过程</h1>
+  <div class="entry-content"><p>在虚拟机（virtualbox）的Ubuntu 11.10上安装wine，使用图形界面的Softwre Center安装失败，提示网络连接异常，但在命令行下用apt-get install wine安装成功，版本是1.4。</p>
 
-<p> $ erlc.exe -o ebin src/*.erl</p>
+<p>安装wine后exe文件双击就可以执行了。</p>
 
-<p> $ erl -boot start_sasl -pa ebin</p>
-
-<p> Erlang R16A (erts-5.10) [smp:4:4] [async-threads:10]
- =PROGRESS REPORT==== 23-Feb-2013::22:36:39 ===
- &hellip;
- Eshell V5.10 (abort with ^G)
- 1> appmon:start().
- =PROGRESS REPORT==== 23-Feb-2013::22:37:14 ===
-    supervisor: {local,kernel_safe_sup}
-     started: [{pid,&lt;0.46.0>},
-       {name,timer_server},
-       {mfargs,{timer,start_link,[]}},
-       {restart_type,permanent},
-       {shutdown,1000},
-       {child_type,worker}]
- {ok,&lt;0.43.0>}
- 2> application:start(simple_cache).
- =PROGRESS REPORT==== 23-Feb-2013::22:37:37 ===
-    supervisor: {local,sc_sup}
-     started: [{pid,&lt;0.57.0>},
-       {name,sc_element_sup},
-       {mfargs,{sc_element_sup,start_link,[]}},
-       {restart_type,permanent},
-       {shutdown,2000},
-       {child_type,supervisor}]
- =PROGRESS REPORT==== 23-Feb-2013::22:37:37 ===
-    supervisor: {local,sc_sup}
-     started: [{pid,&lt;0.58.0>},
-       {name,sc_event},
-       {mfargs,{sc_event,start_link,[]}},
-       {restart_type,permanent},
-       {shutdown,2000},
-       {child_type,worker}]
- =PROGRESS REPORT==== 23-Feb-2013::22:37:37 ===
-    application: simple_cache
-    started_at: nonode@nohost
- ok
- 3> simple_cache:insert(&ldquo;www.google.com&rdquo;,gurl).
- =INFO REPORT==== 23-Feb-2013::22:39:20 ===
- create([119,119,119,46,103,111,111,103,108,101,46,99,111,109], gurl)
- ok
- 4> simple_cache:lookup(&ldquo;www.google.com&rdquo;).<br/>
- =INFO REPORT==== 23-Feb-2013::22:39:45 ===
- lookup([119,119,119,46,103,111,111,103,108,101,46,99,111,109])
- {ok,gurl}
- 5> sc_event_logger:delete_handler().
- ok
- 6> simple_cache:lookup(&ldquo;www.google.com&rdquo;).
- {ok,gurl}
- 7> sc_event_logger:add_handler().
- ok
- 8> simple_cache:lookup(&ldquo;www.google.com&rdquo;).
- =INFO REPORT==== 23-Feb-2013::22:48:36 ===
- lookup([119,119,119,46,103,111,111,103,108,101,46,99,111,109])
- {ok,gurl}
- 9></p>
-
-<h1>运行过程</h1>
-
-<h2>启动过程</h2>
-
-<p> application:start(simple_cache).
--> simple_cache.app(见p104表4-2中对mod参数的说明)
--> sc_app.start/2（见p105对代码清单4-2的说明）
--> sc_store:init/0
-  -> ets:new/2
- sc_sup:start_link
-  -> sc_sup:init/0（通过supervisor:start_link/0方法回调）
-  -> sc_element_sup:start_link/0
-    -> sc_element:start_link/0
-    -> gen_server:start_link
-   sc_event:start_link
-    -> gen_event:start_link
- sc_event_logger:add_handler/0（将自己注册到gen_event容器中）
-  -> sc_event:add_handler/2
-  -> gen_event:add_handler/3</p>
-
-<h2>插入新记录</h2>
-
-<p> simple_cache:insert/2</p>
-
-<p>-> sc_event:create/2</p>
-
-<p>-> gen_event:notify/2（利用初始化时定义的回调）</p>
-
-<p>-> sc_event_logger:handle_event(create,&hellip;)</p>
-
-<p>-> error_logger:info_msg(&ldquo;create(~w, ~w)~n&rdquo;, [Key, Value])（完成实际的打印日志动作）</p>
-
-<h2>删除处理器</h2>
-
-<p> sc_event_logger:delete_handler/0</p>
-
-<p>-> sc_event:delete_handler/2</p>
-
-<p>-> gen_event:delete_handler（取消自己在gen_evnet容器中的注册）</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/22/162847/">Tshark笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-22T16:28:47+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:28 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>root@guserver:/home/lichao# tshark -f &ldquo;host 10.0.2.47&rdquo; -i eth0 -c 20 -T fields -e ip.src -e ip.dst</p>
-
-<p>选项：</p>
-
-<p> -f: filter设置</p>
-
-<p> -i: 网卡（interface）选择，可以用&#8221;tshark -D&#8221;网卡查看列表，-i后面可以跟序号，例如&#8221;-i 1&#8221;表示使用-D列出的序号为1的网卡</p>
-
-<p> -a: 设置自动退出的规则，例如-a duration:60表示tshark启动60秒后退出</p>
-
-<p> -T: 只显示结果的某些部分</p>
-
-<p> -e: -T field存在时指定要显示的项目</p>
-
-<p> -c: 收到多少个包后退出，例如-c 20表示收到20个包后退出tshark</p>
-
-<p> -w: 将监听结果以pcap格式保存在文件里，例如-w myfile，注意root用户只能将文件保存在$HOME（/root）中</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/21/175453/">网络流量监控工具</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-21T17:54:53+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>5:54 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>2014-7-14更新：</p>
-
-<ul>
-<li><p>nethogs: 按进程查看流量占用</p></li>
-<li><p>iptraf: 按连接/端口查看流量</p></li>
-<li><p>ifstat: 按设备查看流量</p></li>
-<li><p>ethtool: 诊断工具</p></li>
-<li><p>tcpdump: 抓包工具</p></li>
-</ul>
-
+<p>Windows绿色文件可以运行，但速度非常慢（虚拟机配置比较低造成的还是wine本身就很慢？），基本不可用，只能验证这个程序在Wine上能不能运行。</p>
 
 <hr />
 
-<p>2014-8-25更新：</p>
+<p>2014.6.3更新：</p>
 
-<p>iptraf-ng用于监测网络流量很好用，在ArchLinux和Mint中可以直接安装。
-其中的&#8221;Ip traffic monitor&#8221;可以监测网卡的实时接收/发送 (RX/TX) 数据，可以显示对端IP地址和端口，本方接收IP地址和端口，但不能显示实时传输速率，
-&ldquo;General interface statistics&rdquo; 可以显示所有网卡实时发送/接收数据的速率，但不能显示对端IP和端口，二者互为补充。
-今天测试在同一网段中的两台机器之间用scp传送大文件，速率稳定在99MB/s，比较靠谱的一个结果，间接说明scp传大文件可以用来检测网络的最大传输速率。</p>
-
-<p>Ref: <a href="http://www.tecmint.com/command-line-tools-to-monitor-linux-performance/">20 Command Line Tools to Monitor Linux Performance</a></p>
-
-<hr />
-
-<p>参考：<a href="http://www.dynacont.net/documentation/linux/network_monitoring/">Bandwidth Monitoring Tools For Linux</a></p>
-
-<h1>实时流量监控：pv</h1>
-
-<p>OS: Ubuntu Server 12.04.</p>
-
-<h2>netcat &amp; pv</h2>
-
-<p>apt-get install pv</p>
-
-<p>监控端口5555上的实时网络流量：</p>
-
-<pre><code>nc -l 5555 | pv &gt; /dev/null
-</code></pre>
-
-<p>向服务器113上发送数据：</p>
-
-<pre><code>nc 10.31.1.113 5555
-</code></pre>
-
-<h1>ifstat</h1>
-
-<p>Homepage: <a href="http://gael.roualland.free.fr/ifstat/">http://gael.roualland.free.fr/ifstat/</a></p>
-
-<h2>使用</h2>
-
-<pre><code>ifstat -i eth0 1 5 // 监测网口eth0的流量，每一秒测试一次，共测试5次
-</code></pre>
-
-<p>该工具不需要root权限</p>
-
-<h2>安装</h2>
-
-<p>Ubuntu可以用apt-get直接装，官网上的ifstat-1.1.tar.gz包是源码包，在RedHat上安装需要编译，过程很简单，根据INSTALL文档的说明：</p>
-
-<pre><code>./configure
-make
-make install
-</code></pre>
-
-<h2>atsar</h2>
-
-<p>atsar（Unix的sar指令的Linux移植版，可以用apt-get安装）也有几个选项是用来监控网络情况的，例如每隔2秒显示一次系统当前TCP流量：</p>
-
-<pre><code>atsar -t 2 5
-</code></pre>
-
-<h2>iftop</h2>
-
-<p>Ubuntu: apt-get install iftop.</p>
-
-<p>监控与47的交互：</p>
-
-<pre><code>iftop -n -i eth0 -f "host 10.0.2.47" // 监测47与113的双向传输数据
-iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
-</code></pre>
-
-<p>目前看来iftop显示的信息最全，但需要好好看手册，每个值都是什么意思；使用它需要root权限；</p>
-
-<p>参考：<a href="https://sickbits.net/iftop-finding-traffic-hogs/">https://sickbits.net/iftop-finding-traffic-hogs/</a></p>
-
-<h2>trafshow</h2>
-
-<p>Ubuntu: apt-get install trafshow</p>
-
-<p>监控与47的交互：<code>trafshow -n -i eth0 host 10.0.2.47</code>;</p>
-
-<h1>网络带宽测试：iperf</h1>
-
-<p>又叫bandwidth或者throughput测试，用来测试Server和Client间的最大传输速率。</p>
-
-<p>iperf是命令行工具，还有一个基于Java的图形界面<a href="https://code.google.com/p/xjperf/">jperf</a>可运行在Windows和linux上；</p>
-
-<p>安装：Ubuntu用apt-get install iperf安装，Redhat需要在&#8221;<a href="http://pkgs.repoforge.org/iperf/">http://pkgs.repoforge.org/iperf/</a>&ldquo;上根据操作系统的版本和架构选择一个rpm下载（47服务器系统为Redhat 5.4, x86_64，下载的是iperf-2.0.4-1.el5.rf.x86_64.rpm），然后用rpm -ivh <file_name>安装；</p>
-
-<h2>用法</h2>
-
-<ol>
-<li><p>启动服务端：iperf -s；</p></li>
-<li><p>启动客户端：iperf -c 10.0.2.47 -i 1 -f M（-c后面跟服务器IP地址，-i表示发送的时间间隔，-f M表示返回结果以MByte为单位）；</p></li>
-</ol>
+<p>可以先用<code>apt-cache search wine</code>搜索可用的wine安装包的具体名称；</p>
+</div>
+  
+  
 
 
-<p>或者启动图像客户端jperf，点击&#8221;Run IPerf&#8221;按钮就可以测网络带宽了。给出的结果是笔记本电脑与113服务器之间单向单流（1 stream）带宽为1.8MB/s左右；</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/29/111823/">Windows 7 启动Wireshark找不到网卡的解决办法</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>iperf作为客户端还有两个比较有用的选项分别是-d和-d -r，前者表示测试同时双向传输的速率，后者表示先进行client to server的单向传输测试，完毕后互换角色，反过来进行server to client的单向传输测试，过程如下：</p>
 
-<p>server: iperf -s</p>
 
-<p>client: iperf -c 10.0.2.47 -i 1 -f M -d（或者iperf -c 10.0.2.47 -i 1 -f M -d -r）</p>
 
-<p>参考：</p>
+<time class='entry-date' datetime='2013-03-29T11:18:23+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:18 am</span></time>
+        
+      </p>
+    
+  </header>
 
-<p><a href="http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf">http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf</a></p>
 
-<p><a href="http://openmaniak.com/iperf.php">http://openmaniak.com/iperf.php</a></p>
+  <div class="entry-content"><p>今天启动Wireshark时报“npf isn&rsquo;t running”，找不到网卡，google一番后发现是一个叫npf的系统服务没有启动所致，首先以管理员身份开启命令行，然后进入如下操作：</p>
+
+<p>C:\Windows\system32>sc qc npf
+[SC] QueryServiceConfig 成功
+SERVICE_NAME: npf
+  TYPE    : 1 KERNEL_DRIVER
+  START_TYPE   : 3 DEMAND_START
+  ERROR_CONTROL  : 1 NORMAL
+  BINARY_PATH_NAME : system32\drivers\npf.sys
+  LOAD_ORDER_GROUP :
+  TAG    : 0
+  DISPLAY_NAME  : NetGroup Packet Filter Driver
+  DEPENDENCIES  :
+  SERVICE_START_NAME :
+C:\Windows\system32>sc start npf
+SERVICE_NAME: npf
+  TYPE    : 1 KERNEL_DRIVER
+  STATE    : 4 RUNNING
+        (STOPPABLE, NOT_PAUSABLE, IGNORES_SHUTDOWN)
+  WIN32_EXIT_CODE : 0 (0x0)
+  SERVICE_EXIT_CODE : 0 (0x0)
+  CHECKPOINT   : 0x0
+  WAIT_HINT   : 0x0
+  PID    : 0
+  FLAGS    :</p>
+
+<p>C:\Windows\system32>sc config npf start= auto
+[SC] ChangeServiceConfig 成功</p>
+
+<p>注意第一个条指令是查询npf服务的状态，可以看到是DEMAND_START，不是自动启动，所以第二条指令手工启动了服务，第3条指令将npf启动方式改为自动启动，注意它的格式比较特别，等号后面要加一个空格（等号前面不能写空格）。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/24/111834/">Notes About Robert Algorithms Chapter 4</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-24T11:18:34+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:18 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>p534: &ldquo;These two&rdquo; in the last paragraph refers to &ldquo;Connectivity&rdquo; &amp; &ldquo;Single-source paths&rdquo; in this page.</p></li>
+<li></li>
+</ul>
+
+
+<h1>Chapter Structure</h1>
+
+<p>4.1 Undirected Graph 518
+ Glossary 519
+ Undircted graph data type 522
+  Representation alternatives 524
+  Adjacency-lists data structure 525
+  Design pattern for graph processing 528
+ Depth-first search 530
+  Searching in a maze 530
+  Warmup 531
+  One-way passages 532
+  Detailed trace of depth-first search 533
+ Finding paths 535
+  Implementation 535
+  Detailed trace 537
+ Breadth-first search 538
+  Implementation 538
+ Connected components 543
+  Implementation 543
+  Union-find 546
+ Symbol graphs 548
+  Implementation 551
+  Degree of seperation 553
+ Summary 556</p>
+
+<p>4.2 Directed Graphs 566
+ Digraph data type 568
+ Reachability in digraphs 570
+ Cycles and DAGs 574
+ Strong connectivity in digraphs 584
+ Summary 594</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/22/184919/">关于单例模式</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-22T18:49:19+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>6:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>参考：<a href="http://www.cnblogs.com/coffee/archive/2011/12/05/inside-java-singleton.html">【深入】java 单例模式</a></p>
+
+<p>其中的第三种方法比较好，简单、稳定，唯一的缺点是在初始化时加载，没有实现lazy load，但在资源不紧张的场景下，没必要lazy load。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/21/231615/">Hsql笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-21T23:16:15+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>11:16 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="http://hsqldb.org/">hsql</a>是一款开源的基于Java的数据库。</p>
+
+<h1>数据库服务</h1>
+
+<h2>使用默认配置直接启动</h2>
+
+<p>运行$HSQL_HOME/bin/runServer.bat；</p>
+
+<h2>配置服务参数</h2>
+
+<p>如数据库文件名和服务监听端口等。</p>
+
+<ul>
+<li>通过命令行参数：（详见User guide -> Chapter 1 -> Server mode）通过runServer.bat文件可知它只是运行了&#8221;java -classpath ../lib/hsqldb.jar org.hsqldb.server.Server&#8221;，实际上可以加命令行参数指定服务特性。例如：</li>
+</ul>
+
+
+<p> java -cp ../lib/hsqldb.jar org.hsqldb.Server -database.0 file:mydb -dbname.0 xdb</p>
+
+<ul>
+<li>通过配置文件：（详见User guide -> Chapter 13: HyperSQL Network Listeners -> Server and Web Server Properties）在hsql服务启动目录（运行&#8221;java &hellip;Server&#8221;的目录）下创建一个server.properties文件，例如：</li>
+</ul>
+
+
+<p> server.database.0=godudb</p>
+
+<p> server.port=3001</p>
+
+<ul>
+<li>通过程序代码：（详见User guide -> Chapter 13: HyperSQL Network Listeners -> Starting a Server from your Application）例如：</li>
+</ul>
+
+
+<p> HsqlProperties p = new HsqlProperties();</p>
+
+<p> p.setProperty(&ldquo;server.database.0&rdquo;,&ldquo;file:/opt/db/accounts&rdquo;);</p>
+
+<p> p.setProperty(&ldquo;server.dbname.0&rdquo;,&ldquo;an_alias&rdquo;);</p>
+
+<p> // set up the rest of properties</p>
+
+<p> // alternative to the above is</p>
+
+<p> Server server = new Server();</p>
+
+<p> server.setProperties(p);</p>
+
+<p> server.setLogWriter(null); // can use custom writer</p>
+
+<p> server.setErrWriter(null); // can use custom writer</p>
+
+<p> server.start();</p>
+
+<h1>客户端</h1>
+
+<h2>图形界面操作</h2>
+
+<p>这里用<a href="http://squirrel-sql.sourceforge.net/">squirrel-sql</a>作为客户端，运行$SQUIRREL_HOME/squirrel-sql.bat启动程序；</p>
+
+<h3>安装hsql驱动</h3>
+
+<p>将$HSQL_HOME/lib/hsqldb.jar拷贝到$SQUIRREL_HOME/lib下；</p>
+
+<h3>配置数据库别名</h3>
+
+<p>jdbc url: jdbc:hsqldb:hsql://localhost；</p>
+
+<p>username: sa</p>
+
+<p>password: 留空</p>
+
+<p>然后连接就可以打开数据库了。</p>
+
+<h3>数据库操作</h3>
+
+<h4>建表</h4>
+
+<p>在SQL面板里输入：</p>
+
+<p> CREATE TABLE Person ( LastName varchar(10), FirstName varchar(10), Address varchar(10), Age int )</p>
+
+<p>运行后在database/PUBLIC/TABLE下会生成一个名为Person的表；</p>
+
+<h4>插入数据</h4>
+
+<p>insert into person values(&lsquo;chad&rsquo;,&lsquo;lee&rsquo;,&lsquo;guangzhou&rsquo;,33)</p>
+
+<h4>删除表</h4>
+
+<p>drop table person</p>
+
+<h3>持久化验证</h3>
+
+<p>重启数据库服务后再用客户端连接服务，可以看到原来的表以及表中的数据都在，这样就实现了数据的持久化。</p>
+
+<h2>程序代码操作</h2>
+
+<p>下面的代码演示了初始化数据驱动，连接数据库，读取数据及其关闭数据库服务的完整过程，与上面的代码启动服务配合，可以实现对数据库的自动化测试。</p>
+
+<p> try {
+  Class.forName(&ldquo;org.hsqldb.jdbcDriver&rdquo;);
+ } catch (Exception e) {
+  System.err.println(&ldquo;ERROR: failed to load HSQLDB JDBC driver.&rdquo;);
+  e.printStackTrace();
+  return;
+ }
+ try {
+  Connection conn = DriverManager.getConnection(&ldquo;jdbc:hsqldb:hsql://localhost:3001&rdquo;, &ldquo;SA&rdquo;, &ldquo;&rdquo;);
+  String sql = &ldquo;select * from person&rdquo;;
+  PreparedStatement content = conn.prepareStatement(sql);
+  ResultSet res = content.executeQuery();
+  // int rowcount = -1;
+  // if (res.last()) { // ResultSet.last() is unsupported by hsql
+  // rowcount = res.getRow();
+  // }
+  while (res.next()) {
+   System.out.println(res.getString(1));
+   System.out.println(res.getString(2));
+   System.out.println(res.getString(3));
+  }
+  Statement st = conn.createStatement();
+  st.execute(&ldquo;SHUTDOWN&rdquo;);
+  conn.close();
+ } catch (SQLException e) {
+  // TODO Auto-generated catch block
+  e.printStackTrace();
+ }</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/21/143532/">用enchanter实现自动执行ssh任务</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-21T14:35:32+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:35 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://code.google.com/p/enchanter/">enchanter</a>可以自动执行ssh脚本：</p>
+
+<p> F:>java -jar enchanter-python-0.5.1.jar aaa.py</p>
+
+<p>其中task.py的内容如下：</p>
+
+<p> ssh.connect(&lsquo;192.168.1.127&rsquo;, 22, &lsquo;leechau&rsquo;,&lsquo;000&rsquo;);
+ print &lsquo;recv: &rsquo;+ssh.getLine();
+ ssh.waitFor(&lsquo;~$&rsquo;);
+ ssh.sendLine(&lsquo;ls -l&rsquo;);
+ print &lsquo;recv: &rsquo;+ssh.getLine();
+ ssh.waitFor(&lsquo;~$&rsquo;);
+ ssh.sendLine(&lsquo;exit&rsquo;);
+ print &lsquo;recv: &rsquo;+ssh.getLine();
+ ssh.disconnect();</p>
+
+<p>没找到执行telnet任务的方法，但expect4j的官网上说enchanter是可以运行telnet任务的。</p>
 </div>
   
   
@@ -852,23 +721,23 @@ iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
+        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/27/113819/">A Simple Ring Server</a>
+        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/24/073009/">Xen on CentOS 6</a>
+        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
+        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
       </li>
     
   </ul>

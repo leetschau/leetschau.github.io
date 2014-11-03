@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Usb | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/usb/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-10-03T10:36:40+08:00</updated>
+  <updated>2014-11-03T17:15:36+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Automount USB Disk on ArchLinux]]></title>
+    <title type="html"><![CDATA[Automount USB Disk on Linux]]></title>
     <link href="http://leetschau.github.io/blog/2014/09/03/111703/"/>
     <updated>2014-09-03T11:17:03+08:00</updated>
     <id>http://leetschau.github.io/blog/2014/09/03/111703</id>
@@ -26,7 +26,62 @@
 
 <p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
 
-<p>Use <code>udiskie-umount -a</code> to unmount it.</p>
+<h2>Unmount USB disk</h2>
+
+<p>Create an executable script in /usr/local/bin:</p>
+
+<pre><code>$ cat /usr/local/bin/unmount
+#!/bin/sh
+
+# Global variables
+TITLE="Unmount Utility"
+COLUMNS=3 # TARGET,SOURCE,FSTYPE
+#IFS=$'\n'
+
+# Populate list of unmountable devices
+deviceList=($(findmnt -Do TARGET,SOURCE,FSTYPE | grep -e "sd[b-z]"))
+deviceCount=$((${#deviceList[@]} / $COLUMNS))
+
+# Start of program output
+echo $TITLE
+
+# Display list of devices that can be unmounted
+for ((device=0; device&lt;${#deviceList[@]}; device+=COLUMNS))
+do
+  printf "%4s)   %-25s%-13s%-10s\n"\
+    "$(($device / $COLUMNS))"\
+    "${deviceList[$device]}"\
+    "${deviceList[$(($device + 1))]}"\
+    "${deviceList[$(($device + 2))]}"
+done
+
+printf "%4s)   Exit\n" "x"
+
+# Get input from user
+read -p "Choose a menu option: " input
+
+# Input validation
+if [ "$input" = "X" ] || [ "$input" = "x" ]
+then
+  echo "Exiting"
+  exit 0
+fi
+
+if (( $input&gt;=0 )) &amp;&amp; (( $input&lt;$deviceCount ))
+then
+  echo "Unmounting: ${deviceList[$(($input * $deviceCount))]}"
+  sudo umount "${deviceList[$(($input * $deviceCount))]}"
+  exit 0
+else
+  echo "Invalid menu choice"
+  exit 1
+fi
+$ chmod 755 /usr/local/bin/unmount
+</code></pre>
+
+<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
+See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a> for details.
+Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
 
 <p>See <code>man udiskie</code> for more information.</p>
 
@@ -165,7 +220,7 @@ XBoot不支持Windows启动ISO，放弃。</p>
 
 <ol>
 <li><p>用Universal-USB-Installer-1.9.1.2.exe制作一个ubuntu server 12.04的安装盘；</p></li>
-<li><p>安装类型选"Ubuntu Server 12.04 Installer"；</p></li>
+<li><p>安装类型选&#8221;Ubuntu Server 12.04 Installer&#8221;；</p></li>
 <li><p>用制作好的U盘启动计算机，按照屏幕提示安装即可。</p></li>
 </ol>
 
@@ -173,15 +228,15 @@ XBoot不支持Windows启动ISO，放弃。</p>
 <h1>注意事项</h1>
 
 <ul>
-<li><p>安装过程中需要拔掉网线（刚才未拔网线情况下安装grub这一步报"The &lsquo;grub-pc&rsquo; package failed to install into /target/ &hellip;&ldquo;错误，安装过程停止，拔掉网线，返回安装"base system"这一步重新安装一遍，grub安装成功。）</p></li>
-<li><p>安装完毕后启动系统时需要插上网线，否则启动过程会停在"config network"这一步；</p></li>
+<li><p>安装过程中需要拔掉网线（刚才未拔网线情况下安装grub这一步报&#8221;The &lsquo;grub-pc&rsquo; package failed to install into /target/ &hellip;&ldquo;错误，安装过程停止，拔掉网线，返回安装&#8221;base system&#8221;这一步重新安装一遍，grub安装成功。）</p></li>
+<li><p>安装完毕后启动系统时需要插上网线，否则启动过程会停在&#8221;config network&#8221;这一步；</p></li>
 </ul>
 
 
 <h1>验证</h1>
 
 <ul>
-<li><p>可以用"ssh <a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#x63;&#104;&#97;&#x64;&#64;&#49;&#48;&#46;&#51;&#49;&#46;&#x31;&#x2e;&#51;&#x34;">&#x63;&#x68;&#x61;&#100;&#x40;&#x31;&#x30;&#x2e;&#x33;&#x31;&#x2e;&#49;&#46;&#x33;&#52;</a>"连接Ubuntu Server；</p></li>
+<li><p>可以用&#8221;ssh <a href="&#x6d;&#97;&#x69;&#108;&#x74;&#x6f;&#58;&#99;&#x68;&#97;&#100;&#x40;&#49;&#x30;&#x2e;&#51;&#x31;&#x2e;&#49;&#x2e;&#x33;&#52;">&#x63;&#x68;&#x61;&#x64;&#64;&#x31;&#x30;&#x2e;&#51;&#49;&#46;&#x31;&#46;&#x33;&#52;</a>&#8220;连接Ubuntu Server；</p></li>
 <li><p>用sudo passwd创建root用户密码，这次设置的密码是root；</p></li>
 <li><p>安装组件时选择OpenSSH和Tomcat Server，安装完后可看到Java版本是1.6.22，Python版本是2.7.3；</p></li>
 </ul>
@@ -193,7 +248,7 @@ XBoot不支持Windows启动ISO，放弃。</p>
 
 <h1>其他</h1>
 
-<p>刚才安装时硬盘上已有3个NTFS分区，在"Partition Policy"中选"Use Entire Partition"，可以保留NTFS分区，如果选"Entire Disk"，则整个磁盘会被格式化。</p>
+<p>刚才安装时硬盘上已有3个NTFS分区，在&#8221;Partition Policy&#8221;中选&#8221;Use Entire Partition&#8221;，可以保留NTFS分区，如果选&#8221;Entire Disk&#8221;，则整个磁盘会被格式化。</p>
 ]]></content>
   </entry>
   

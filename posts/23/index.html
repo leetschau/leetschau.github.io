@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="build project: lein new sonar-parser
-add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; in :dependencies in project.clj &hellip;">
+  <meta name="description" content="Authentication $POSTGRESQL_HOME/data/pg_hba.conf Modify &ldquo;local all all peer&rdquo; to &ldquo;local all all trust&rdquo; to enable &ldquo;sonar& &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +71,7 @@ add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; 
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/04/114616/">Parse Sonarqube Data via Web API in Clojure</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/23/113751/">SonarQube and Postgresql on Linux</a></h1>
     
     
       <p class="meta">
@@ -81,32 +80,26 @@ add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; 
 
 
 
-<time class='entry-date' datetime='2013-12-04T11:46:16+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:46 am</span></time>
+<time class='entry-date' datetime='2013-12-23T11:37:51+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:37 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ol>
-<li><p>build project: lein new sonar-parser</p></li>
-<li><p>add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; in :dependencies in project.clj;</p></li>
-<li><p>update (download) dependency jars (into ~/.m2/repository folder): lein deps</p></li>
-<li><p>start repl: lein repl</p></li>
-<li><p>test in repl:</p></li>
-</ol>
+  <div class="entry-content"><h1>Authentication</h1>
 
+<p>$POSTGRESQL_HOME/data/pg_hba.conf</p>
 
-<p> (require &lsquo;[clojure.data.json :as json])</p>
+<ul>
+<li><p>Modify &ldquo;local all all peer&rdquo; to &ldquo;local all all trust&rdquo; to enable &ldquo;sonar&rdquo; login in with &ldquo;psql -U sonar&rdquo;.</p></li>
+<li><p>Modify &ldquo;host all all 127.0.0.1/32 ident&rdquo; to &ldquo;host all all 127.0.0.1/32 trust&rdquo; to enable SonarQube communicate with Postgresql database; or define a access rule in &ldquo;pg_ident.conf&rdquo;.</p></li>
+<li><p>If you can connect to SonarQube server only on localhost, try shutdown firewall: &ldquo;service iptables stop&rdquo; or open the port following Configure Firewalls on Linux .</p></li>
+<li><p>List all projects in Postgresql database:</p>
 
-<p> (def data (json/read-str (slurp &ldquo;<a href="http://...">http://&#8230;</a>&rdquo;)))</p>
-
-<p> ((first ((first data) &ldquo;msr&rdquo;)) &ldquo;val&rdquo;) ; => 5.0</p>
-
-<ol>
-<li><p>add script into src/sonar-parser/core.clj;</p></li>
-<li><p>pack project: lein uberjar</p></li>
-</ol>
+<p>  $ psql -U sonar
+  select * from projects;</p></li>
+</ul>
 
 </div>
   
@@ -120,7 +113,7 @@ add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; 
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/04/100446/">Parse Sonarqube Data via Web API in Groovy</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/19/172359/">Play Postgresql 9.3 on Linux</a></h1>
     
     
       <p class="meta">
@@ -129,59 +122,77 @@ add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; 
 
 
 
-<time class='entry-date' datetime='2013-12-04T10:04:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:04 am</span></time>
+<time class='entry-date' datetime='2013-12-19T17:23:59+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:23 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Shell</h1>
+  <div class="entry-content"><h1>Installation</h1>
 
-<h2>getdata.groovy</h2>
-
-<pre><code>url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
-
-addr = url.toURL() 
-conn= addr.openConnection() 
-status = conn.getResponseCode() 
-reader = new BufferedReader(new InputStreamReader(conn.getInputStream())) 
-datastr = reader.readLine()
-
-import groovy.json.JsonSlurper
-
-slurper = new JsonSlurper()
-
-data = slurper.parseText(datastr)
-
-msr = data[0].msr.frmt_val[0]
-</code></pre>
-
-<h2>Run Shell Script</h2>
+<h2>on CentOS 6.4</h2>
 
 <ol>
-<li><p>start shell: &ldquo;groovysh&rdquo;</p></li>
-<li><p>load script file: &ldquo;. getdata.groovy&rdquo;;</p></li>
-<li><p>all variables in script file can be used in shell; evaluate variable value by its name directly;</p></li>
-<li><p>reload file: &ldquo;purge all&rdquo; then &ldquo;. getdata.groovy&rdquo;;</p></li>
+<li><p>Download PGDG RPM file &ldquo;pgdg-centos93-9.3-1.noarch.rpm&rdquo;, copy to 47, and install with rpm -ivh;</p></li>
+<li><p>On server 47: $ yum list postgres*</p></li>
+<li><p>$ yum install postgresql93-server_x86_64</p></li>
+<li><p>$ service postgresql-9.3 initdb</p></li>
+<li><p>$ chkconfig postgresql-9.3 on</p></li>
+<li><p>$ service postgresql-9.3 start (restart, stop, reload)</p></li>
+<li><p>$ su - postgres</p></li>
+<li><p>verify: $ psql</p></li>
+<li><p>list users: \du</p></li>
 </ol>
 
 
-<h1>Script</h1>
+<p><a href="http://wiki.postgresql.org/wiki/YUM_Installation">http://wiki.postgresql.org/wiki/YUM_Installation</a></p>
 
-<h2>getdata_scpt.groovy</h2>
+<h2>on XUbuntu 13.10</h2>
 
-<pre><code>def url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
-def addr = url.toURL()
-def conn= addr.openConnection()
-def status = conn.getResponseCode()
-def reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))
-println reader.readLine()
-</code></pre>
+<p>It said there is no saucy (ubuntu 13.10) package in postgresql repository. So I modified &ldquo;saucy&rdquo; to &ldquo;precise&rdquo;:</p>
 
-<h2>run script</h2>
+<p>$ echo &ldquo;deb <a href="http://apt.postgresql.org/pub/repos/apt/">http://apt.postgresql.org/pub/repos/apt/</a> precise-pgdg main&rdquo; > /etc/apt/sources.list.d/pgdg.list</p>
 
-<p>groovy getdata_scpt.groovy</p>
+<p>$ wget &ndash;quiet -O - <a href="https://www.postgresql.org/media/keys/ACCC4CF8.asc">https://www.postgresql.org/media/keys/ACCC4CF8.asc</a> | sudo apt-key add -</p>
+
+<p>$ sudo apt-get update</p>
+
+<p>$ sudo apt-get install postgresql-9.3 pgadmin3</p>
+
+<p>$ /etc/init.d/postgresql start</p>
+
+<p>Ref: <a href="http://wiki.postgresql.org/wiki/Apt">http://wiki.postgresql.org/wiki/Apt</a></p>
+
+<h1>Get Started</h1>
+
+<ol>
+<li><p>user postgres: $ psql</p></li>
+<li><p>CREATE ROLE bvt LOGIN PASSWORD &lsquo;&lt;&hellip;>&rsquo;; // Note that the semicolon is <strong>mandatory</strong>;</p></li>
+<li><p>create database mydb owner bvt;</p></li>
+<li><p>user bvt: $ psql mydb</p></li>
+</ol>
+
+
+<h1>psql usage</h1>
+
+<p>start psql console: psql <database_name> (if <database_name> omitted, it&rsquo;s the same as the user name);</p>
+
+<p>get help: \?;</p>
+
+<p>list all tables: \d;</p>
+
+<p>print table contents: select * from <table_name>;</p>
+
+<p>list roles: \du;</p>
+
+<p>list databases: \l;</p>
+
+<p>user &ldquo;postgres&rdquo; create database for a common user: create database bvt owner bvt;</p>
+
+<p>delete database: drop database <db_name>; (same as &ldquo;dropdb <database_name>&rdquo; in terminal);</p>
+
+<p><a href="http://www.postgresql.org/docs/9.3/static/index.html">http://www.postgresql.org/docs/9.3/static/index.html</a></p>
 </div>
   
   
@@ -194,7 +205,7 @@ println reader.readLine()
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/02/193731/">Run Shell Script Inside Ruby Script</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/19/160121/">Communicate System Clipboard With Vim in Linux</a></h1>
     
     
       <p class="meta">
@@ -203,65 +214,52 @@ println reader.readLine()
 
 
 
-<time class='entry-date' datetime='2013-12-02T19:37:31+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>7:37 pm</span></time>
+<time class='entry-date' datetime='2013-12-19T16:01:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:01 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Backtick grammar</h1>
+  <div class="entry-content"><h1>Linux Mint Xfce</h1>
 
-<p>Thanks to the backtick grammar and string substitution, shell script can be embedded more easily into Ruby script than Python.</p>
+<p>By default, Ubuntu (so as to Linux Mint) installs the vim-tiny package, which is a ultra-light version of the console &ldquo;vim&rdquo; only.</p>
 
-<p>Execute shell command in irb, the return value is the output in stdout:</p>
+<p>To check the clipboard support of the installed vim, run <code>vim --version|grep clipboard</code>.
+If you get &ldquo;-clipboard&rdquo; and &ldquo;-xterm_clipboard&rdquo;, your vim can&rsquo;t support system clipboard.
+You have to remove current vim, and install a &ldquo;full&rdquo; version vim like this:</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>2.1.2 :036 &gt; `ls -l|grep play`
-</span><span class='line'> =&gt; "drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj\n" 
-</span><span class='line'> 2.1.2 :037 &gt; `aaa`
-</span><span class='line'> Errno::ENOENT: No such file or directory - aaa
-</span><span class='line'> ...</span></code></pre></td></tr></table></div></figure>
+<pre><code>$ sudo apt-get purge vim 
+$ sudo apt-get autoremove # remove related packages of vim 
+$ sudo apt-get install vim-gtk # gtk suited for Xfce environments
+</code></pre>
 
+<p>Now let&rsquo;s check:</p>
 
-<p>Execute shell commands in Ruby scripts:</p>
+<pre><code>$ vim --version | grep clipboard 
+</code></pre>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># Usage: Save the following scripts in file "cmd.rb" 
-</span><span class='line'># $ ruby cmd.rb ls -a 
-</span><span class='line'>cmd = ARGV[0] 
-</span><span class='line'>op = ARGV[1] 
-</span><span class='line'>result = `#{cmd} #{op}` 
-</span><span class='line'>puts result</span></code></pre></td></tr></table></div></figure>
+<p>You should get something like &ldquo;+clipboard&rdquo; and &ldquo;+xterm_clipboard&rdquo;.</p>
 
+<p>Now connect vim clipboard with that of system with adding &ldquo;set clipboard=unnamedplus&rdquo; into you ~/.vimrc. And check it:</p>
 
-<h1>system function</h1>
-
-<p>Kernel#system executes the given command in a subshell. Return true if the command was found and ran successfully, false otherwise.
-The output of the command will be written to stdout. So it can&rsquo;t store the command output.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>2.1.2 :036 &gt; `ls -l|grep play`
-</span><span class='line'>drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj
-</span><span class='line'> =&gt; truee</span></code></pre></td></tr></table></div></figure>
+<ol>
+<li><p>Copy texts in web browser with Ctrl-c, and use &ldquo;p&rdquo; to paste them in vim;</p></li>
+<li><p>copy a line in vim with &ldquo;yy&rdquo;, then paste them into some GUI program (say, gedit) with Ctrl-v.</p></li>
+</ol>
 
 
 <p>Ref:</p>
 
-<p><a href="http://stackoverflow.com/questions/2232/calling-bash-commands-from-ruby">Calling Bash Commands From Ruby</a></p>
+<p><a href="http://ubuntuforums.org/showthread.php?t=1686955">how to copy from vim and paste it on system clip board</a></p>
 
-<p><a href="http://stackoverflow.com/questions/2741260/can-ruby-access-output-from-shell-commands-as-it-appears">Can Ruby access output from shell commands as it appears?</a></p>
+<p><a href="http://comments.gmane.org/gmane.linux.ubuntu.xubuntu.user/4374">vim-gtk or vim-gnome?</a></p>
+
+<h1>ArchLinux</h1>
+
+<p>Install gvim with <code>sudo pacman -S gvim</code>.</p>
+
+<p>Note: On CentOS, use <code>yum search vim</code> to get the exact vim package name. On CentOS 6.4 it&rsquo;s &ldquo;vim-X11&rdquo;.</p>
 </div>
   
   
@@ -274,7 +272,7 @@ The output of the command will be written to stdout. So it can&rsquo;t store the
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/02/164918/">Line Wrap in Python</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/19/083804/">Switch User Command in Linux</a></h1>
     
     
       <p class="meta">
@@ -283,52 +281,30 @@ The output of the command will be written to stdout. So it can&rsquo;t store the
 
 
 
-<time class='entry-date' datetime='2013-12-02T16:49:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:49 pm</span></time>
+<time class='entry-date' datetime='2013-12-19T08:38:04+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:38 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Omitting Backslash</h1>
+  <div class="entry-content"><p>Switch user command (su) has the following forms:</p>
 
-<p>You can only omitting backslash in list bracket or using parenthesis with long string.</p>
+<h1>su <username></h1>
 
-<p> ke = [&lsquo;com.boco.esb.analysismgr.service.impl&rsquo;,
-   &lsquo;com.boco.esb.dataencapsulation.service.impl&rsquo;,
-   &lsquo;com.boco.esb.dataquality.service.impl&rsquo;]</p>
+<p>Switch to <username>, without loading environment variables. If <username> is omitted (only &ldquo;su&rdquo;), it equals to &ldquo;su root&rdquo;;</p>
 
-<p> issue_url = (&lsquo;<a href="http://%s/api/issues/search?componentRoots=%s:%s">http://%s/api/issues/search?componentRoots=%s:%s</a>&rsquo;</p>
+<h1>su - <username></h1>
 
-<pre><code> '&amp;pageSize=5000&amp;rules=%s&amp;statuses=OPEN,REOPENED') 
-</code></pre>
+<p>Switch to <username>, and loading environment variables. &ldquo;-&rdquo; is the abbreviation of &ldquo;-l&rdquo;, which means this is a &ldquo;login&rdquo; shell, so all .profile will be sourced (man su for details). If <username> is omitted (only &ldquo;su -&rdquo;), it equals to &ldquo;su - root&rdquo;;</p>
 
-<h1>Mandatory Backslash</h1>
+<h1>su -c &ldquo;<command>&rdquo; <username></h1>
 
-<h2>Long Variable Name</h2>
+<p>Run command with the identity of another user. It is mostly used in one-off command with root privileges:</p>
 
-<p>Use backslash following &ldquo;=&rdquo; to save space.</p>
+<p> su -c &ldquo;<command>&rdquo; root</p>
 
-<p> METHOD_RELATED_ISSUE_KEYS = \
- [&lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.MethodLengthCheck&rsquo;,
-  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.ParameterNumberCheck&rsquo;,
-  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck&rsquo;,
-  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.coding.NestedIfDepthCheck&rsquo;,
-  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.duplicates.StrictDuplicateCodeCheck&rsquo;]</p>
-
-<h2>List Comprehension</h2>
-
-<p>Backslash before &ldquo;for&rdquo; in list(dict) comprehension cannot be omitted.</p>
-
-<p> total_issue_num = sum(get_issue_num(proj_name, pkg, issue_key) \
-   for pkg in pkgs)</p>
-
-<h2>After Operator</h2>
-
-<p>Backslash after operator cannot be omitted.</p>
-
-<p> line_cov = sum(cov_line for (cov_line,<em>) in lines_info) / \
-     sum(valid_line for (</em>,valid_line) in lines_info)</p>
+<p>The double quotes around <command> can&rsquo;t be omitted.</p>
 </div>
   
   
@@ -341,7 +317,7 @@ The output of the command will be written to stdout. So it can&rsquo;t store the
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/02/152923/">Retrieve Sonarqube Data With Java</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/18/145606/">Search String in Files in Vim</a></h1>
     
     
       <p class="meta">
@@ -350,60 +326,42 @@ The output of the command will be written to stdout. So it can&rsquo;t store the
 
 
 
-<time class='entry-date' datetime='2013-12-02T15:29:23+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>3:29 pm</span></time>
+<time class='entry-date' datetime='2013-12-18T14:56:06+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:56 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>The following class &ldquo;GetData&rdquo; can retrieve data from Sonarqube. But you have to</p>
+  <div class="entry-content"><p>Question: Working in vim, I want to search a string, say &ldquo;ord&rdquo;, in some files (say *.hs), in current folder (and all its subfolders), while I don&rsquo;t want to leave vim.</p>
 
-<p> import java.net.URL;
- import java.net.HttpURLConnection;
- import java.net.MalformedURLException;
- import java.io.IOException;
- import java.io.BufferedReader;
- import java.io.InputStreamReader;
- public class GetData {
-  private static String url = &ldquo;<a href="http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes">http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes</a>&rdquo;;
-  public static void main(String[] args) {
-   HttpURLConnection myURLConnection = null;
-   int status = -1;
-   String cont = null;
-   try {
-    URL myURL = new URL(url);
-    myURLConnection = (HttpURLConnection)myURL.openConnection();
-    myURLConnection.connect();
-    status = myURLConnection.getResponseCode();
-    switch (status) {
-     case 200:
-     case 201:
-      BufferedReader br = new BufferedReader(new InputStreamReader(myURLConnection.getInputStream()));
-      StringBuilder sb = new StringBuilder();
-      String line;
-      while ((line = br.readLine()) != null) {
-       sb.append(line+&ldquo;\n&rdquo;);
-      }
-      br.close();
-      cont = sb.toString();
-    }
-   }
-   catch (MalformedURLException e) {
-    System.out.println(&ldquo;url error&rdquo;);
-   }
-   catch (IOException e) {
-    System.out.println(&ldquo;other io error&rdquo;);
-   }
-   System.out.println(&ldquo;my conn ret code: &rdquo; + status);
-   System.out.println(&ldquo;my conn: &rdquo; + cont);
-  }
- }</p>
+<p>Answer:</p>
 
-<p>$ java GetData</p>
+<h1>Search List Version</h1>
 
-<p>my conn ret code: 200
-my conn: [{&ldquo;id&rdquo;:8251,&ldquo;key&rdquo;:&ldquo;ESB:com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;name&rdquo;:&ldquo;com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;scope&rdquo;:&ldquo;DIR&rdquo;,&ldquo;qualifier&rdquo;:&ldquo;PAC&rdquo;,&ldquo;date&rdquo;:&ldquo;2013-11-29T17:02:10+0800&rdquo;,&ldquo;lname&rdquo;:&ldquo;com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;lang&rdquo;:&ldquo;java&rdquo;,&ldquo;msr&rdquo;:[{&ldquo;key&rdquo;:&ldquo;classes&rdquo;,&ldquo;val&rdquo;:5.0,&ldquo;frmt_val&rdquo;:&ldquo;5&rdquo;}]}]</p>
+<p>:vim /ord/ *.hs</p>
+
+<p>You will auto jump to the first matched file. If you don&rsquo;t want this auto-jump, use &ldquo;:vim /ord/j *.hs&rdquo;. Now you can use &ldquo;:cn&rdquo; or &ldquo;:cp&rdquo; to traverse between all matched files, or use &ldquo;:cw&rdquo; to open search result window (use &ldquo;:clo&rdquo; to hide this window).</p>
+
+<h1>No Search List Version</h1>
+
+<p>:lv ord *.hs</p>
+
+<p>There is no search result window (quickfix window) for this &ldquo;lv&rdquo; command. And you can&rsquo;t use &ldquo;:cn&rdquo; and &ldquo;:cp&rdquo; also.</p>
+
+<h1>Fast Search Version</h1>
+
+<p>:grep ord *.hs</p>
+
+<p>You will see a grep result in console. After pressing <Enter>, you come back to vim, &ldquo;:cn&rdquo;, &ldquo;:cp&rdquo; and &ldquo;:cw&rdquo;, etc. are the same with above. This version use system &ldquo;grep&rdquo; command, so it&rsquo;s faster than &ldquo;:vim&rdquo;.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://vim.wikia.com/wiki/Find_in_files_within_Vim">http://vim.wikia.com/wiki/Find_in_files_within_Vim</a></p>
+
+<p>google &ldquo;vim quickfix&rdquo;</p>
+
+<p>:h :vim, :h :grep, :h lv</p>
 </div>
   
   
@@ -416,7 +374,7 @@ my conn: [{&ldquo;id&rdquo;:8251,&ldquo;key&rdquo;:&ldquo;ESB:com.boco.esb.analy
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/02/111254/">FP vs OOP</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/17/160802/">Function of Getting Factors in Different Languages</a></h1>
     
     
       <p class="meta">
@@ -425,39 +383,59 @@ my conn: [{&ldquo;id&rdquo;:8251,&ldquo;key&rdquo;:&ldquo;ESB:com.boco.esb.analy
 
 
 
-<time class='entry-date' datetime='2013-12-02T11:12:54+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 am</span></time>
+<time class='entry-date' datetime='2013-12-17T16:08:02+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:08 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Four Paradigms of Decomposing Problems</h1>
+  <div class="entry-content"><h1>Haskell</h1>
 
-<ul>
-<li><p>Procedural: C, Pascal, Unix shells;</p></li>
-<li><p>Declarative: SQL;</p></li>
-<li><p>Object-oriented: Smalltalk, Java;</p></li>
-<li><p>Functional: Haskell;</p></li>
-</ul>
+<blockquote><p>factors n = [x | x &lt;- [1..n], n <code>mod</code> x == 0]</p>
 
+<p>factors 4800
+ &hellip;</p>
 
-<h1>Relations of FP and OOP</h1>
+<p>length $ factors 4800</p></blockquote>
 
-<p>&ldquo;Functional programming can be considered the opposite of object-oriented programming. Objects are little capsules containing some internal state along with a collection of method calls that let you modify this state, and programs consist of making the right set of state changes. Functional programming wants to avoid state changes as much as possible and works with data flowing between functions.&rdquo; &ndash;From <a href="http://docs.python.org/2/howto/functional.html">Functional Programming HOWTO</a></p>
+<p> 42</p>
 
-<p>&ldquo;I think the lack of reusability comes in object-oriented languages, not in functional languages. Because the problem with object-oriented languages is they’ve got all this implicit environment that they carry around with them. You wanted a banana but what you got was a gorilla holding the banana and the entire jungle.&rdquo; &ndash;Joe Armstrong (the creator of Erlang) discussed in &ldquo;Coders At work&rdquo; about the reusability of Object-Oriented Programming.
-To be fair, in my opinion it&rsquo;s not an intrinsic problems of OOP. You can write OOP code which is also functional, but certainly:
-* Typical OOP tends to emphasize change of state in objects.
-* Typical OOP tends to impose tight coupling between layers (which hinders modularization).
-* Typical OOP mixes the concepts of identity and state.
-* Mixture of data and code raises both conceptual and practical problems.
-&ndash; <a href="http://code.google.com/p/tokland/wiki/RubyFunctionalProgramming">Ruby Functional Programming</a>
-Rich Hickey, the creator of Clojure (a functional Lisp-dialect for the JVM), discusses state, values and identity in this <a href="http://www.infoq.com/presentations/Value-Identity-State-Rich-Hickey">excellent talk</a>.</p>
+<p>Add &ldquo;let&rdquo; before function definition when running in GHCi.</p>
 
-<h1>If we can do functional programming with Python, do we need a specific functional programming language?</h1>
+<h1>Python</h1>
 
-<p><a href="http://programmers.stackexchange.com/questions/42986/if-we-can-do-functional-programming-with-python-do-we-need-a-specific-functiona">http://programmers.stackexchange.com/questions/42986/if-we-can-do-functional-programming-with-python-do-we-need-a-specific-functiona</a></p>
+<blockquote><blockquote><blockquote><p>factors = lambda n: [x for x in range(1,n+1) if n % x == 0]</p>
+
+<p>factors(4800)</p></blockquote></blockquote></blockquote>
+
+<p> &hellip;</p>
+
+<blockquote><blockquote><blockquote><p>len(factors(4800))</p></blockquote></blockquote></blockquote>
+
+<p> 42</p>
+
+<h1>Clojure</h1>
+
+<p> user=> (defn factors [n] (filter #(= (mod n %) 0) (vec (range 1 (+ 1 n)))))</p>
+
+<p> user=> (factors 4800)
+ &hellip;
+ user=> (count (factors 4800))</p>
+
+<p> 42</p>
+
+<h1>Ruby</h1>
+
+<blockquote><p>factors = lambda {|n| (1..n).to_a.collect {|x| x if n % x == 0}.compact}
+factors.call(4800)
+ => &hellip;</p>
+
+<p>factors.call(4800).size</p></blockquote>
+
+<p> => 42</p>
+
+<p>Compare Ruby version with that of Python, Python&rsquo;s style is more &ldquo;functional&rdquo;, while Ruby&rsquo;s style is pure object-oriented &ldquo;object.message&rdquo; format.</p>
 </div>
   
   
@@ -470,7 +448,7 @@ Rich Hickey, the creator of Clojure (a functional Lisp-dialect for the JVM), dis
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/11/29/172706/">Manipulate Sonarqube Database in PostgreSQL With JDBC</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/16/174627/">Note About `Programming in Haskell`</a></h1>
     
     
       <p class="meta">
@@ -479,161 +457,182 @@ Rich Hickey, the creator of Clojure (a functional Lisp-dialect for the JVM), dis
 
 
 
-<time class='entry-date' datetime='2013-11-29T17:27:06+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:27 pm</span></time>
+<time class='entry-date' datetime='2013-12-16T17:46:27+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Use the following Java class to manipulate Sonarqube database in postgresql.</p>
-
-<h1>ManipulateSonarPost.java</h1>
-
-<p> import java.sql.Connection;
- import java.sql.DatabaseMetaData;
- import java.sql.DriverManager;
- import java.sql.ResultSet;
- import java.sql.SQLException;
- import java.sql.Statement;
- public class TestPost {
-  private static Connection connection = null;
-  public static void main(String[] args) throws SQLException, java.lang.ClassNotFoundException {
-   String url = &ldquo;jdbc:postgresql://localhost/sonar&rdquo;;
-   String user = &ldquo;sonar&rdquo;;
-   String password = &ldquo;sonar&rdquo;;
-   String driver = &ldquo;org.postgresql.Driver&rdquo;;</p>
-
-<p>   Class.forName(driver);
-   connection = DriverManager.getConnection(url+&ldquo;?user=&rdquo;+user+&ldquo;&amp;password=&rdquo;+password);
-   if ((connection == null) || (connection.isClosed())) return;
-   System.out.println(&ldquo;Connection is: &rdquo;+connection);</p>
-
-<p>   listTables();
-   String table = &ldquo;projects&rdquo;;
-   printTable(table);
-   connection.close();</p>
-
-<p>  }</p>
-
-<p>  private static void listTables() throws SQLException {
-   DatabaseMetaData md = connection.getMetaData();
-   ResultSet rs = md.getTables(null, null, &ldquo;%&rdquo;, null);
-   while (rs.next()) {
-    System.out.println(rs.getString(3));
-   }
-   rs.close();</p>
-
-<p>  }</p>
-
-<p>  private static void printTable(String tableName) throws SQLException {
-   Statement st = connection.createStatement();
-   ResultSet rs = st.executeQuery(&ldquo;SELECT * FROM &rdquo; + tableName);
-   while (rs.next()) {
-     System.out.println(&ldquo;Column 1: &rdquo; + rs.getString(1));
-     System.out.println(&ldquo;Column 2: &rdquo; + rs.getString(2));
-     System.out.println(&ldquo;Column 3: &rdquo; + rs.getString(3));
-   }
-   rs.close();
-   st.close();
-  }
- }</p>
-
-<h1>Compile and Run</h1>
-
-<p>$ javac -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar ManipulateSonarPost.java</p>
-
-<p>$ java -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar:. ManipulateSonarPost</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/29/100558/">Backup and Restore Postgresql Database</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-29T10:05:58+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:05 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Backup</h1>
-
-<p>(On CentOS 6.4)</p>
-
-<p>Enable backup as user &ldquo;sonar&rdquo;: modify authentication file pg_hba.conf following SonarQube and Postgresql on Linux ;</p>
-
-<p>Then you can backup a database: $ pg_dump -U sonar -F c -v -f sonar.bak sonar</p>
-
-<p>Synopsis: pg_dump [options] <db_name>. &ldquo;-F c&rdquo; means using &ldquo;custom&rdquo; file format. -f specifies the output file name.</p>
-
-<p>Or backup all: $ pg_dumpall -U postgres -f totalbackup.sql -v -c</p>
-
-<p>The &ldquo;-c&rdquo; will print drop commands to remove existing databases or roles. So you can restore them without cleaning existing databases in your backup server first.</p>
-
-<h1>Restore</h1>
-
-<p>Install and start postgresql server. Then you can restore a full backup:</p>
-
-<p> $ psql -U postgres -f totalbackup.sql</p>
-
-<p>Or restore a specific database:</p>
+  <div class="entry-content"><h1>1.7 Exercises</h1>
 
 <ol>
-<li><p>$ psql -U postgres (modify pg_hba.conf for authenticaiton);</p></li>
-<li><p>create role &ldquo;sonar&rdquo; and database &ldquo;sonar&rdquo;:</p></li>
+<li>How should the definition of the function qsort be modified so that it produces a reverse sorted version of a list?</li>
 </ol>
 
 
-<p> create role sonar login password &lsquo;sonar&rsquo;;</p>
+<p> qsort :: Ord a => [a] -> [a]
+ qsort [] = []
+ qsort (x:xs) = qsort bigger ++ [x] ++ qsort smaller where
+     smaller = filter (&lt;=x) xs
+     bigger = filter (>x) xs</p>
 
-<p> create database sonar owner sonar;</p>
+<h1>Type and Class</h1>
+
+<p>Recall that a type is a collection of related values. Building upon this notion, a class is a collection of types that support certain overloaded operations called methods. &ndash; Section 3.9: Basic Classes</p>
+
+<h1>Patterns Matching</h1>
+
+<p>Section 4.4, excellent explanation about tuple pattern, list pattern and integer pattern.</p>
+
+<p>Note that cons patterns must be parenthesised, because function application has higher priority than all other operators. (p34)</p>
+
+<h1>4.8 Exercises</h1>
 
 <ol>
-<li>$ pg_restore -U sonar -d sonar -j 4 -v sonar.bak</li>
+<li>Splits an even-lengthed list into two halves:</li>
 </ol>
 
 
-<h1>Verify</h1>
+<p> halve :: [a] -> ([a], [a])</p>
+
+<p> halve x = splitAt (div (length x) 2) x</p>
+
+<ol>
+<li>safetail</li>
+</ol>
+
+
+<p> safetail :: [a] -> [a]</p>
+
+<p> &ndash; conditional expression</p>
+
+<p> safetail xs = if null xs then []</p>
+
+<pre><code>    else tail xs
+</code></pre>
+
+<p> &ndash; guarded equation</p>
+
+<p> safetail xs | null xs = []</p>
+
+<pre><code>| otherwise = tail xs
+</code></pre>
+
+<p> &ndash; pattern matching</p>
+
+<p> safetail [] = []</p>
+
+<p> safetail xs = tail xs</p>
+
+<h1>5.7 Exercies</h1>
+
+<ol>
+<li><p>sum [x**2|x&lt;-[1..100]]</p></li>
+<li><p>replicate n x = [x | t &lt;- [1..n]]</p></li>
+</ol>
+
+
+<p> (answer of textbook: replicate n x = [x|_&lt;-[1..n]]</p>
+
+<ol>
+<li>Find pythagorean triples:</li>
+</ol>
+
+
+<p> pyths n = [(x,y,z)|x&lt;-[1..n], y&lt;-[1..n], z&lt;-[1..n], x<strong>2+y</strong>2==z**2]</p>
+
+<ol>
+<li>Find perfects number:</li>
+</ol>
+
+
+<p> factors n = [x | x &lt;- [1..n-1], n <code>mod</code> x == 0]</p>
+
+<p> perfects n = [x|x&lt;-[1..n], x == sum (factors x)]</p>
+
+<h1>sat function in Chapter 8</h1>
+
+<p>The codes in section 8.1~8.3 and 8.6 doesn&rsquo;t work. The author explained it in chapter remarks(section 8.9) and the errata (Pages 74 to 78&hellip;). He also gave a monad version of &ldquo;Parser&rdquo; in his website: <a href="http://www.cs.nott.ac.uk/~gmh/Parsing.lhs">Code -> Parsing</a>. So I am afraid we have to learn some monads then come back to this interesting Haskell parser.</p>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/2607498/programming-in-haskell-error-in-sat-function">http://stackoverflow.com/questions/2607498/programming-in-haskell-error-in-sat-function</a></p>
+
+<h1>Chapter 9</h1>
+
+<h2>Clear Screen</h2>
+
+<p>MyClr.hs:</p>
+
+<p> module Main where
+ cls :: IO ()
+ cls = putStr &ldquo;\ESC[2J&rdquo;
+ bingo :: IO ()
+ bingo = putStr &ldquo;bingo!\n&rdquo;
+ main = do cls
+    bingo</p>
+
+<p>$ ghc MyClr.hs</p>
+
+<p>$ ./MyClr</p>
+
+<p>You have to remove the type declaration sentences.</p>
+
+<h2>StrLen</h2>
+
+<p> strLen :: IO ()
+ strLen = do putStr &ldquo;Enter a string: &rdquo;
+    xs &lt;- getLine
+    putStr &ldquo;The string has &rdquo;
+    putStr (show (length xs))
+    putStrLn &ldquo; characters.&rdquo;</p>
+
+<p>Then load in ghci and run &ldquo;strLen&rdquo;.</p>
+
+<h2>goto (in ghci)</h2>
+
+<p> let goto (x,y) = putStr (&ldquo;\ESC[&rdquo; ++ show y ++ &ldquo;;&rdquo; ++ show x ++ &ldquo;H&rdquo;)</p>
+
+<p> goto (20,20)</p>
+
+<h1>Chapter 10</h1>
+
+<h2>Normal Functions and Constructor Function</h2>
+
+<p> data Shape = Circle Float | Rect Float Float</p>
+
+<p>The constructors Circle and Rect are actually constructor functions, which produce results of type Shape from arguments of type Float . The difference between normal functions and constructor functions is that the latter have no defining equations, and exist solely for the purpose of building pieces of data. The expression Circle 1.0 is just a piece of data, in the same way that 1.0 itself is just data.</p>
+
+<h2>Diferent Kinds of tree</h2>
+
+<p>The parameter type &ldquo;a&rdquo; represents the stored data.</p>
 
 <ul>
-<li>Print database size of &ldquo;sonar&rdquo;:</li>
+<li><p>Store data only in leaves: data Tree a = Leaf a | Node (Tree a) (Tree a)</p></li>
+<li><p>Store data only in nodes:</p></li>
 </ul>
 
 
-<p> $ psql -U sonar -c &ldquo;\l+&rdquo; sonar|grep sonar</p>
+<p> data Tree a = Leaf | Node (Tree a) a (Tree a)</p>
+
+<p>and:</p>
+
+<p> data Tree a = Node a [Tree a ]</p>
 
 <ul>
-<li>Print all tables and sizes in database &ldquo;sonar&rdquo;:</li>
+<li>Store data both in leaves (data type is &ldquo;a&rdquo;) and nodes (data type is &ldquo;b&rdquo;):</li>
 </ul>
 
 
-<p> $ psql -U sonar -c &ldquo;\d+&rdquo; sonar</p>
+<p> data Tree a b = Leaf a | Node (Tree a b) b (Tree a b)</p>
 
-<p>Or run a psql console ($ psql -U sonar), and use the following commands to verify:</p>
+<h1>Chapter 11</h1>
 
-<ul>
-<li><p>\d // list all tables</p></li>
-<li><p>select * from projects; // print contents of table &ldquo;projects&rdquo;</p></li>
-<li><p>select pg_size_pretty(pg_database_size(&lsquo;sonar&rsquo;)); // print the human_readable size of database &ldquo;sonar&rdquo;</p></li>
-<li><p>select pg_database_size(&lsquo;sonar&rsquo;); // give the exact size of database &ldquo;sonar&rdquo;</p></li>
-</ul>
+<p> results ns = [res| (ls,rs) &lt;- split ns,
+      lx &lt;- results ls,
+      ry &lt;- results rs,
+      res &lt;- combine&#8217; lx ry]</p>
 
+<p>Above is a imperative-style calculation in list comprehension. The cost is you have to put your result in a list, while empty list means failure of calculation.</p>
 </div>
   
   
@@ -646,7 +645,7 @@ Rich Hickey, the creator of Clojure (a functional Lisp-dialect for the JVM), dis
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/11/28/143902/">Rsync Omit `core` Folder</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/16/113414/">Haskell Interactive Development in Emacs</a></h1>
     
     
       <p class="meta">
@@ -655,40 +654,47 @@ Rich Hickey, the creator of Clojure (a functional Lisp-dialect for the JVM), dis
 
 
 
-<time class='entry-date' datetime='2013-11-28T14:39:02+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:39 pm</span></time>
+<time class='entry-date' datetime='2013-12-16T11:34:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:34 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Problem Description</h1>
+  <div class="entry-content"><h1>Installation</h1>
 
-<p>Test script:</p>
+<p>Following <a href="https://github.com/haskell/haskell-mode">haskell-mode</a>.</p>
 
-<pre><code>mkdir {gsp,dst,dst2,dst3} 
-svn co http://10.0.2.59:8118/svn/gsp/Development-Area/3-SCL/Trunk/TaskServer_Gsp gsp
-rsync -auC gsp/* dst/
-rsync -au gsp/* dst2/
-rsync -auC --include=core gsp/ dst3/
-rsync -au gsp/ dst4/
-diff -rq gsp dst
-</code></pre>
+<ol>
+<li>Use MELPA repository: add the following into ~/.emacs</li>
+</ol>
 
-<p>Output:</p>
 
-<p>Only in gsp/com.boco.gdpp.taskserver.core/src/com/boco/gdpp/taskserver: core</p>
+<p> (require &lsquo;package)
+ (add-to-list &#8216;package-archives
+    &rsquo;(&ldquo;melpa&rdquo; . &ldquo;<a href="http://melpa.milkbox.net/packages/">http://melpa.milkbox.net/packages/</a>&rdquo;) t)
+ (package-initialize)</p>
 
-<h1>Cause and Solution</h1>
+<ol>
+<li><p>M-x package-refresh-contents</p></li>
+<li><p>M-x package-install [RET] haskell-mode</p></li>
+</ol>
 
-<p>The -C option looks &ldquo;core&rdquo; as a <em>source version control</em> folder, and exclude it. See man page for details.</p>
 
-<p>The size of the &ldquo;.svn&rdquo; folder is similar to the host folder. So &ldquo;-C&rdquo; option is necessary. Becase &ldquo;.svn&rdquo; is not &ldquo;<em>&rdquo;, so there is no &ldquo;.svn&rdquo; in dst2. But it will also exclude other &ldquo;.</em>&rdquo; folder in gsp. So the right answer is:</p>
+<h1>Usage</h1>
 
-<pre><code>rsync -auC --include=core gsp/ dst3/
-</code></pre>
+<ol>
+<li><p>Open a haskell file in emacs;</p></li>
+<li><p>Use &ldquo;C-c C-z&rdquo; to open ghci (but there isn&rsquo;t a jump-back shortcut, you can use C-x o);</p></li>
+<li><p>Use &ldquo;C-c C-l&rdquo; to load file (same as &ldquo;:l <file_name>&rdquo;);</p></li>
+</ol>
 
-<p>The dst4 is a completely copy.</p>
+
+<p>However, there isn&rsquo;t tab-completion in the ghci invoked by &ldquo;C-c C-z&rdquo;, so you can start a console to run ghci;</p>
+
+<h1>User Manual</h1>
+
+<p>M-x info-display-manual [RET] haskell-mode</p>
 </div>
   
   
@@ -701,7 +707,7 @@ diff -rq gsp dst
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/11/26/175603/">Note About `What Does Functional Programming Mean`</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/15/212740/">Note About `Yet Another Haskell Tutorial`</a></h1>
     
     
       <p class="meta">
@@ -710,16 +716,144 @@ diff -rq gsp dst
 
 
 
-<time class='entry-date' datetime='2013-11-26T17:56:03+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:56 pm</span></time>
+<time class='entry-date' datetime='2013-12-15T21:27:40+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:27 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Tony Morris: What Does Functional Programming Mean?</p>
+  <div class="entry-content"><h1>Exercises Solutions</h1>
 
-<p>From: <a href="http://stackoverflow.com/questions/159797/is-ruby-a-functional-language">http://stackoverflow.com/questions/159797/is-ruby-a-functional-language</a></p>
+<p><a href="http://en.wikibooks.org/wiki/Haskell/YAHT">http://en.wikibooks.org/wiki/Haskell/YAHT</a></p>
+
+<h1>Exercise 3.10</h1>
+
+<p>Save the following scripts in SumInputs.hs:</p>
+
+<p> module Main where
+ main = do
+  inputNumbers &lt;- getNumber
+  putStrLn (&ldquo;The sum is &rdquo; ++ show (sum inputNumbers))
+  putStrLn (&ldquo;The product is &rdquo; ++ show (foldr (*) 1 inputNumbers))
+  printFactorials inputNumbers
+ getNumber = do
+  putStrLn &ldquo;Give me a number (or 0 to stop): &rdquo;
+  number &lt;- getLine
+  let num = read number
+  if num == 0
+   then return []
+   else do
+    rest &lt;- getNumber
+    return (num : rest)
+ printFactorials [] = putStrLn &ldquo;&rdquo;
+ printFactorials (x:xs) = do
+  putStrLn (show x ++ &ldquo; factorial is: &rdquo; ++ show (factorial x))
+  printFactorials xs
+ factorial 1 = 1
+ factorial n = n * factorial (n-1)</p>
+
+<ul>
+<li><p>Run it in ghci: main</p></li>
+<li><p>Compile and run in console:</p></li>
+</ul>
+
+
+<p> ghc &ndash;make SumInputs.hs -o myfac</p>
+
+<p> ./myfac</p>
+
+<h1>Exercise 4.4 &amp; 4.5</h1>
+
+<p> data Pair a b = Pair a b
+ pairFst (Pair x y) = x
+ pairSnd (Pair x y) = y
+ data Triple a b c = Triple a b c
+ tripleFst :: Triple a b c -> a
+ tripleFst (Triple a b c) = a
+ tripleSnd (Triple a b c) = b
+ tripleThr (Triple a b c) = c
+ data Quadruple a b = Quadruple a a b b deriving (Show)
+ firstTwo :: Quadruple a b -> [a]
+ &ndash; you can&rsquo;t write it as: &hellip; -> [a, a]. This is not a valid type expression?
+ firstTwo (Quadruple w x y z) = [w, x]</p>
+
+<p> lastTwo :: Quadruple a b -> [b]
+ lastTwo (Quadruple w x y z) = [y, z]</p>
+
+<h1>Exercise 4.6</h1>
+
+<p> data Tuple a b c d = Tuple1 a
+      | Tuple2 a b
+      | Tuple3 a b c
+      | Tuple4 a b c d
+      deriving (Show)
+ tuple1 :: Tuple a b c d -> a
+ tuple1 (Tuple1 x) = x
+ tuple1 (Tuple2 x y) = x
+ tuple1 (Tuple3 x y z) = x
+ tuple1 (Tuple4 x y z t) = x
+ tuple2 :: Tuple a b c d -> Maybe b
+ tuple2 (Tuple1 x) = Nothing
+ tuple2 (Tuple2 x y) = Just y
+ tuple2 (Tuple3 x y z) = Just y
+ tuple2 (Tuple4 x y z t) = Just y
+ tuple3 :: Tuple a b c d -> Maybe c
+ tuple3 (Tuple1 x) = Nothing
+ tuple3 (Tuple2 x y) = Nothing
+ tuple3 (Tuple3 x y z) = Just z
+ tuple3 (Tuple4 x y z t) = Just z
+ tuple4 :: Tuple a b c d -> Maybe d
+ tuple4 (Tuple1 x) = Nothing
+ tuple4 (Tuple2 x y) = Nothing
+ tuple4 (Tuple3 x y z) = Nothing
+ tuple4 (Tuple4 x y z t) = Just t</p>
+
+<p>Pattern matching plays a big role in tuple-like data structure.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/15/122240/">Haskell Command-line Application Building</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-15T12:22:40+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:22 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Haskeline Package</h1>
+
+<p><a href="http://hackage.haskell.org/package/haskeline">Haskeline</a> provides a user interface for line input in command-line programs. This library is similar in purpose to readline, but since it is written in Haskell it is (hopefully) more easily used in other Haskell programs.</p>
+
+<p>A tab-completion solution based on haskeline: <a href="http://stackoverflow.com/questions/6147201/haskell-haskeline-word-completion">Haskell (haskeline) word completion</a></p>
+
+<h1>Command Suite Parse</h1>
+
+<p><a href="http://hackage.haskell.org/package/console-program">console-program</a> provides an infrastructure to build command line programs. It provides the following features:</p>
+
+<ul>
+<li><p>Declare any number of &ldquo;commands&rdquo; (modes of operation) of the program;</p></li>
+<li><p>Declare options of these commands;</p></li>
+<li><p>Collect options from a configuration file and the command line, and execute the proper command;</p></li>
+</ul>
+
 </div>
   
   
@@ -744,23 +878,23 @@ diff -rq gsp dst
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
+        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/27/113819/">A Simple Ring Server</a>
+        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/24/073009/">Xen on CentOS 6</a>
+        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
+        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
       </li>
     
   </ul>

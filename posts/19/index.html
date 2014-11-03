@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Based on Python FTP server library (pyftpdlib) Install Start a virtual environment;
-$ easy_install pyftpdlib (the version number is 1.3.0) or &hellip;">
+  <meta name="description" content="有时使用svn检出时遇到这样的错误： svn: Can&rsquo;t convert string from &lsquo;UTF-8&rsquo; to native encoding: &hellip; 这是可能是由于svn所在主机的当前字符集不支持Unicode造成的，确认方法是：运行&# &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +71,7 @@ $ easy_install pyftpdlib (the version number is 1.3.0) or &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/01/24/095359/">Setup Lightweight Python FTP Server for Test</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/02/27/163511/">Svn检出文件名中含中文文件失败问题解决方法</a></h1>
     
     
       <p class="meta">
@@ -81,77 +80,68 @@ $ easy_install pyftpdlib (the version number is 1.3.0) or &hellip;">
 
 
 
-<time class='entry-date' datetime='2014-01-24T09:53:59+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:53 am</span></time>
+<time class='entry-date' datetime='2014-02-27T16:35:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:35 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Based on <a href="http://code.google.com/p/pyftpdlib/">Python FTP server library (pyftpdlib)</a></p>
+  <div class="entry-content"><p>有时使用svn检出时遇到这样的错误：</p>
 
-<h1>Install</h1>
+<p>svn: Can&rsquo;t convert string from &lsquo;UTF-8&rsquo; to native encoding: &hellip;</p>
 
-<ol>
-<li><p>Start a virtual environment;</p></li>
-<li><p>$ easy_install pyftpdlib (the version number is 1.3.0)</p></li>
-</ol>
+<p>这是可能是由于svn所在主机的当前字符集不支持Unicode造成的，确认方法是：运行&#8221;locale&#8221;指令，输出为：</p>
 
-
-<p>or download pyftpdlib-1.3.0.tar.gz manually and &ldquo;python setup.py install&rdquo;.</p>
-
-<h1>Usage</h1>
-
-<p>Run the following script to startup server:</p>
-
-<pre><code>from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import FTPHandler
-from pyftpdlib.servers import FTPServer
-authorizer = DummyAuthorizer()
-authorizer.add_user("user", "12345", "/home/chad/tmp", perm="elradfmw")
-authorizer.add_anonymous("/home/chad/tmp2")
-# you have a named and an anonymous user to login
-handler = FTPHandler
-handler.authorizer = authorizer
-server = FTPServer(("0.0.0.0", 2121), handler)
-server.serve_forever()
+<pre><code>LANG=en_US.UTF-8
+LANGUAGE=
+LC_CTYPE="en_US"
+LC_NUMERIC="en_US"
+LC_TIME="en_US"
+LC_COLLATE="en_US"
+LC_MONETARY="en_US"
+LC_MESSAGES="en_US"
+LC_PAPER="en_US"
+LC_NAME="en_US"
+LC_ADDRESS="en_US"
+LC_TELEPHONE="en_US"
+LC_MEASUREMENT="en_US"
+LC_IDENTIFICATION="en_US"
+LC_ALL=en_US
 </code></pre>
 
-<p>If you set the port to &ldquo;21&rdquo;, a &ldquo;permission denied&rdquo; error raises. So I changed it to 2121.
-If you only accept local connection, modify server ip as &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.</p>
+<p>&ldquo;en_US&#8221;后面没有&rdquo;.UTF-8&#8221;，/etc/default/locale文件的内容是：</p>
 
-<p>Use this server in command line:</p>
-
-<pre><code>ftp 10.21.2.7 2121
-// user name and password
-pwd
-ls
-get file1.txt
-put file2.txt
+<pre><code>LC_ALL="en_US"
 </code></pre>
 
-<p>And a groovy ftp client:</p>
+<p>也没有&#8221;.UTF-8&#8221;，解决方法很简单，在后面加上&#8221;.UTF-8&#8221;，变为</p>
 
-<pre><code>import org.apache.commons.net.ftp.FTPClient
-println("About to connect....");
-new FTPClient().with {
-    connect "localhost", 2121
-    login "user", "123"
-    def names = listNames("/")
-    print names
-    logout()
-    disconnect()
-}
-println("Done.");
+<pre><code>LC_ALL="en_US.UTF-8"
 </code></pre>
 
-<p>Run this client:</p>
+<p>这时再运行locale命令，结果如下：</p>
 
-<pre><code>groovy -cp .../commons-net-3.1.jar ftpclient.groovy
+<pre><code>LANG=en_US.UTF-8
+LANGUAGE=
+LC_CTYPE="en_US.UTF-8"
+LC_NUMERIC="en_US.UTF-8"
+LC_TIME="en_US.UTF-8"
+LC_COLLATE="en_US.UTF-8"
+LC_MONETARY="en_US.UTF-8"
+LC_MESSAGES="en_US.UTF-8"
+LC_PAPER="en_US.UTF-8"
+LC_NAME="en_US.UTF-8"
+LC_ADDRESS="en_US.UTF-8"
+LC_TELEPHONE="en_US.UTF-8"
+LC_MEASUREMENT="en_US.UTF-8"
+LC_IDENTIFICATION="en_US.UTF-8"
+LC_ALL=en_US.UTF-8
 </code></pre>
 
-<p>On my machine this path is:
-~/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar</p>
+<p>这时再检出中文文件名文件就不报错了。</p>
+
+<p>在CentOS上，对应的locale文件是/etc/sysconfig/i18n。</p>
 </div>
   
   
@@ -164,7 +154,7 @@ println("Done.");
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/01/23/094631/">Manage Sshd Service on CentOS</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/02/27/142307/">Change IP Address of NAT NIC in Vagrant VM</a></h1>
     
     
       <p class="meta">
@@ -173,7 +163,355 @@ println("Done.");
 
 
 
-<time class='entry-date' datetime='2014-01-23T09:46:31+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>9:46 am</span></time>
+<time class='entry-date' datetime='2014-02-27T14:23:07+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:23 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The default IP address of Vagrant VM is 10.0.2.15. So you can&rsquo;t connect to a host with IP in range &ldquo;10.0.2.*&rdquo;. If you do want, you must change the IP address of NAT NIC (network interface card) via the modifyvm command of VBoxManage:</p>
+
+<pre><code>VBoxManage modifyvm &lt;vm-name&gt; --natnet1 "10.3/16"
+</code></pre>
+
+<p>The <vm-name> here can be listed by command &ldquo;VBoxManage list vms&rdquo;.</p>
+
+<p>In vagrant we can achieve this by adding &ldquo;config.customize [&#8220;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, <ip-range>]&ldquo; into your vm config of Vagrantfile, for example, the following config will change the IP address of NAT NIC to &#8220;10.3.0.15&rdquo;:</p>
+
+<pre><code>config.vm.define "bs" do |bvtserver|
+  bvtserver.vm.hostname = "bvt-server"
+  bvtserver.vm.network "private_network", ip: "192.168.50.3",
+      virtualbox__intnet: "gcptest-network"
+  bvtserver.vm.provider :virtualbox do |vbox|
+    vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+  end
+end
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/26/162411/">IBus Chinese Pinyin IM on Linux Mint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-26T16:24:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:24 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Following <a href="http://code.google.com/p/ibus/wiki/PinYinUserGuideCN">this</a>:</p>
+
+<ol>
+<li><p>Install ibus-pinyin:</p>
+
+<p> $ sudo apt-get install ibus ibus-clutter ibus-gtk ibus-gtk3 ibus-qt4
+ $ sudo apt-get install ibus-pinyin
+ $ im-switch -s ibus</p></li>
+<li><p>Restart machine;</p></li>
+<li><p>Right-click the ibus-pinyin icon in system tray, select &ldquo;Preference&rdquo;, then &ldquo;IBus Preferences&rdquo; panel open;</p></li>
+<li><p>On this panel, under tag &ldquo;Input Method&rdquo;, check &ldquo;Customize active input methods&rdquo;, select &ldquo;Pinyin&rdquo;, then click &ldquo;Add&rdquo; button;</p></li>
+</ol>
+
+
+<p>Now use Ctrl-Space to swtich between IBus-Pinyin and english input method.</p>
+
+<p>The pro of ibus-pinyin is no need to modify system-wide configurations.</p>
+
+<hr />
+
+<p>2014-7-22:</p>
+
+<ol>
+<li><p><code>sudo apt-get install ibus-pinyin ibus-gtk</code>;</p></li>
+<li><p><code>ibus-setup</code>, add &ldquo;PinYin&rdquo; to the System;</p></li>
+<li><p>Logout and login;</p></li>
+</ol>
+
+
+<p>Bingo.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/26/102908/">Build Chinese Writing Environment Without Local IME on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-26T10:29:08+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:29 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Writing</h1>
+
+<p>Writing Chinese on <a href="http://shurufa.baidu.com/online.html">Baidu IME online</a>.</p>
+
+<h2>Auto-save</h2>
+
+<p>Install parcellite and enable its &ldquo;copy on selection&rdquo; feature.
+Now every time select all text in Baidu Web IM with Ctrl-a, the text is stored in system clipboard.</p>
+
+<p>Save text in <a href="http://notepad.im">notepad.im</a> for temperary storage.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/26/100347/">Build VM Cluster on CentOS Host</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-26T10:03:47+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Host Machine</h1>
+
+<p>[root@bocoty49 ~]# lsb_release -a
+LSB Version:    :base-4.0-amd64:base-4.0-noarch:core-4.0-amd64:core-4.0-noarch:graphics-4.0-amd64:graphics-4.0-noarch:printing-4.0-amd64:printing-4.0-noarch
+Distributor ID: CentOS
+Description:    CentOS release 6.4 (Final)
+Release:    6.4
+Codename:   Final</p>
+
+<h1>VirtualBox</h1>
+
+<p>AMD64 version of &ldquo;Oracle Linux 6(&#8220;OL6&rdquo;)/Red Hat Enterprise Linux 6(&ldquo;RHEL6&rdquo;)/CentOS 6&#8221; on <a href="https://www.virtualbox.org/wiki/Linux_Downloads">download page of VirtualBox website</a>
+File name: VirtualBox-4.3-4.3.8_92456_el6-1.x86_64.rpm</p>
+
+<h1>Vagrant</h1>
+
+<p>CentOS/RedHat/Fedora 64-bit Vagrant Installer on <a href="http://www.vagrantup.com/downloads.html">Vagrant download page</a>
+File name: vagrant_1.4.3_x86_64.rpm</p>
+
+<h1>Usage</h1>
+
+<ol>
+<li><p>Install Virtualbox and vagrant;</p></li>
+<li><p>When &lsquo;vagrant up&rsquo;, a &ldquo;vboxdrv kernel module is not loaded&rdquo; error raise,</p></li>
+</ol>
+
+
+<p>The &ldquo;Release&rdquo; of <code>yum info kernel-headers</code> is &ldquo;431.5.1.el6&rdquo;, which mismatched the result of <code>uname -r</code>(2.6.32-358.23.2.el6.x86_64), so kernel-headers package is unavailable to the current kernel. The solution is update the kernel release to match the packages:</p>
+
+<pre><code># yum update    (this will install kernel-2.6.32-431.5.1.el6.x86_64)
+# reboot (after reboot `uname -r` returns "2.6.32-431.5.1.el6.x86_64", too)
+# yum install gcc
+# yum install kernel-devel
+# /etc/init.d/vboxdrv setup  (Recompiling VirtualBox kernel modules)
+</code></pre>
+
+<ol>
+<li><p><code>vagrant up</code> again.
+The network for the VM is &ldquo;bvtserver.vm.network :public_network&rdquo;, which is suspent when configuring the network. I change the type of network to &ldquo;host-only&rdquo;:</p>
+
+<p> production.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.5&rdquo;,
+     virtualbox__intnet: &ldquo;gcptest-network&rdquo;</p></li>
+</ol>
+
+
+<p>Now you can use ssh between each other via host-only NIC, and use apt-get to install packages via NAT NIC, so cool!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/25/103906/">Awesome Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-25T10:39:06+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<pre><code>$ sudo aptitude install awesome
+</code></pre>
+
+<h2>Build from source</h2>
+
+<pre><code>$ aria2c -s 5 http://awesome.naquadah.org/download/awesome-3.5.2.tar.bz2
+$ tar jxf awesome-3.5.2.tar.bz2
+$ cd awesome-3.5.2
+$ sudo aptitude install cmake
+$ make
+</code></pre>
+
+<p>Some failed information at this step.</p>
+
+<h1>Usage</h1>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/24/115822/">Change CWD in Python</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-24T11:58:22+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following script demonstrate that in Python, &ldquo;os.chdir()&rdquo; will change CWD globally, while run shell &ldquo;cd&rdquo; command with subprocess module is a &ldquo;local&rdquo; action. If you run &ldquo;cd dst;touch aaa&rdquo;, the file &ldquo;aaa&rdquo; will be created under folder dst, but after this sentence, the CWD won&rsquo;t remian in aaa.</p>
+
+<pre><code>$ cat chdirtest.py
+import subprocess, os
+
+def runsh(cmd):
+    return subprocess.check_output(cmd, shell=True)
+
+def svn_checkout(src, dst, keepfolder=True):
+    print('in svn_checkout before: ' + os.getcwd())
+    print('in svn_checkout shell before: ' + runsh('pwd'))
+    os.makedirs(dst)
+    #os.chdir(dst)
+    print('run cd and pwd: ' + runsh('cd ' + dst + ';pwd'))
+    print('in svn_checkout after: ' + os.getcwd())
+    print('in svn_checkout shell after: ' + runsh('pwd'))
+
+def download():
+    print('in download before: ' + os.getcwd())
+    print('in download shell before: ' + runsh('pwd'))
+    src = '7-Tools/deployment'
+    svn_checkout(src, CODE_FOLDER)
+    print('in download after: ' + os.getcwd())
+    print('in download shell after: ' + runsh('pwd'))
+
+if __name__ == '__main__':
+    FOLDER_NAME = 'test'
+    if not os.path.exists(FOLDER_NAME):
+        os.makedirs(FOLDER_NAME)
+    print('in main before: ' + os.getcwd())
+    print('in main shell before: ' + runsh('pwd'))
+    os.chdir(FOLDER_NAME)
+    print('in main after: ' + os.getcwd())
+    print('in main shell after: ' + runsh('pwd'))
+    PKG_FOLDER = 'packages'
+    CODE_FOLDER = 'codes'
+    download()
+
+$ python chdirtest.py
+in main before: /home/chad/docs/gcp-deploy
+in main shell before: /home/chad/docs/gcp-deploy
+
+in main after: /home/chad/docs/gcp-deploy/test
+in main shell after: /home/chad/docs/gcp-deploy/test
+
+in download before: /home/chad/docs/gcp-deploy/test
+in download shell before: /home/chad/docs/gcp-deploy/test
+
+in svn_checkout before: /home/chad/docs/gcp-deploy/test
+in svn_checkout shell before: /home/chad/docs/gcp-deploy/test
+
+run cd and pwd: /home/chad/docs/gcp-deploy/test/codes
+
+in svn_checkout after: /home/chad/docs/gcp-deploy/test
+in svn_checkout shell after: /home/chad/docs/gcp-deploy/test
+
+in download after: /home/chad/docs/gcp-deploy/test
+in download shell after: /home/chad/docs/gcp-deploy/test
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/21/163736/">Redmine Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-21T16:37:36+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>4:37 pm</span></time>
         
       </p>
     
@@ -181,36 +519,77 @@ println("Done.");
 
 
   <div class="entry-content"><ul>
-<li><p>Check the current sshd status:</p>
+<li><p>Mandatory authenticaion: login as Administrator, Settings -> Authentication -> Check &ldquo;Authentication required&rdquo;, set &ldquo;Autologin&rdquo; as &ldquo;disabled&rdquo;;</p></li>
+<li><p>Hide Bitnami landing page: modify the <body> of file $REDMINE_HOME/apache2/htdocs/index.html as:</p>
 
-<p>  # service sshd status</p></li>
-<li><p>Start sshd service:</p>
+<p>  &lt;!DOCTYPE  &hellip;>
+  <html>
+      <body onLoad = "parent.location = 'http://123.124.236.183/redmine/'">
+          Redirection &hellip;
+      </body>
+  </html></p>
 
-<p>  # service sshd start</p></li>
-<li><p>Set sshd autostart on system startup</p>
+<p>Modify &ldquo;parent.location&rdquo; as your redmine location.</p></li>
+<li><p>Modify Web UI font size: /opt/redmine-2.4.3-0/apps/redmine/htdocs/public/stylesheets/application.css, the 2nd line:</p>
 
-<p>  # chkconfig sshd on</p></li>
-<li><p>List the current autostart status</p>
-
-<p>  # chkconfig &ndash;list |grep sshd</p></li>
+<p>  body { &hellip; font-size: &hellip; }</p></li>
 </ul>
 
 
-<p>Or use a simple interface:</p>
+<h1>Add Email Notification</h1>
 
-<pre><code># ntsysv
+<p>Edit file: /opt/redmine-2.4.3-0/apps/redmine/htdocs/config/configuration.yml</p>
+
+<pre><code># default configuration options for all environments
+default:
+  # Outgoing emails configuration (see examples above)
+  email_delivery:
+   delivery_method: :smtp
+   smtp_settings:
+
+     address: 123.124.236.199
+     port: 25
+     domain: boco.com.cn
+     authentication: :login
+     user_name: lichao1@boco.com.cn
+     password: abaqus67
 </code></pre>
 
-<p>Verified on CentOS 6.4 x86_64.</p>
+<p>then restart services: /opt/redmine-2.4.3-0/ctlscript.sh restart</p>
 
-<hr />
+<p>Change host path as Administrator: [Administration -> Settings -> General -> Host name and path: 123&hellip;/redmine]
+Note there is no &ldquo;<a href="http://">http://</a>&rdquo; before the string and no &ldquo;/&rdquo; after it, too.</p>
+</div>
+  
+  
 
-<p>2014-7-16:
-On CentOS 6.5 32bit:</p>
 
-<pre><code># chkconfig NetworkManager off
-# chkconfig network on
-# chkconfig sshd on
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/21/081656/">Speed Up Downloading Files on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-21T08:16:56+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>8:16 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Compared aria2c, axel and wget, aria2c is the best. It support multi-thread download (with &ldquo;-s <num>&rdquo;) and resume partially downloaded files automatically (you have to use &ldquo;-c&rdquo; in wget for this function). Synopsis:</p>
+
+<pre><code>$ aria2c -s 10 &lt;URL&gt;
 </code></pre>
 </div>
   
@@ -224,7 +603,7 @@ On CentOS 6.5 32bit:</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/01/22/094622/">Use Module and Function Instead of Class in Python</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/02/19/154730/">Access Java API in Groovy Script</a></h1>
     
     
       <p class="meta">
@@ -233,659 +612,46 @@ On CentOS 6.5 32bit:</p>
 
 
 
-<time class='entry-date' datetime='2014-01-22T09:46:22+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>9:46 am</span></time>
+<time class='entry-date' datetime='2014-02-19T15:47:30+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:47 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>The following scripts run in ipython demonstrate the differences between instance method and static method.
-Generally OOP make things complicated for imperative style applications.
-So when developing this style application (such as command-line application) use functions inside modules, instead of &ldquo;module - class - method&rdquo;.
-The Python standard library is a good example that all utility functions are all common functions not wrapped in classes.</p>
+  <div class="entry-content"><p>$ cat Hello.java
+package test;
+public class Hello {
+  public int myadd(int x, int y) {
+      return 10 * x + y;
+  }
+}</p>
 
-<pre><code>In [1]: cat utils.py
-class FileUtils:
-    def __init__(self):
-        print 'initialize', self
+<p>$ cat myapp.groovy
+import test.Hello
+def hello = new Hello()
+println hello.myadd(13, 5)</p>
 
-    @staticmethod
-    def static_copy(src, dst):
-        print 'class copy from', src, 'to', dst
-
-    def instance_copy(self, src, dst):
-        print self, 'copy from', src, 'to', dst
-
-In [2]: import utils
-
-In [3]: myutil = utils.FileUtils()
-initialize &lt;utils.FileUtils instance at 0x8ab250c&gt;
-
-In [4]: myutil.instance_copy('aa', 'bb')
-&lt;utils.FileUtils instance at 0x8ab250c&gt; copy from aa to bb
-
-In [5]: utils.FileUtils().instance_copy('aa', 'bb')
-initialize &lt;utils.FileUtils instance at 0x8ab24ec&gt;
-&lt;utils.FileUtils instance at 0x8ab24ec&gt; copy from aa to bb
-
-In [6]: utils.FileUtils.static_copy('aa', 'bb')
-class copy from aa to bb
-
-In [7]: utils.FileUtils.instance_copy('aa', 'bb')
----------------------------------------------------------------------------
-TypeError                                 Traceback (most recent call last)
-&lt;ipython-input-7-cce9f79fc45b&gt; in &lt;module&gt;()
-----&gt; 1 utils.FileUtils.instance_copy('aa', 'bb')
-
-TypeError: unbound method instance_copy() must be called with FileUtils instance as first argument (got str instance instead)
-
-In [8]: myutil.static_copy('aa', 'bb')
-class copy from aa to bb
-</code></pre>
-
-<p>Notice the subtle difference between [5] and [6], parenthesis followed the class name is a &ldquo;instance&rdquo;, while only class name without the following parenthesis is a &ldquo;class&rdquo;.</p>
-
-<p>Ref: <a href="http://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods">The definitive guide on how to use static, class or abstract methods in Python</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/16/093905/">RVM Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-16T09:39:05+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:39 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<pre><code>$ curl -sSL https://git.rvm.io | bash -s stable
-$ rvm list known
-$ rvm install 1.9.3
-</code></pre>
-
-<p>No root privilege needed.</p>
-
-<p>If you install it as root, it will be saved in /usr/local/rvm, and after installation all users can use rvm.</p>
-
-<h2>Install on Linux Mint 14 32bit</h2>
-
-<p>There&rsquo;s no compiled ruby package for Mint 14 32bit. So <code>rvm install 1.9.3</code> failed. This is a workaround:</p>
-
-<ol>
-<li><p>Download <a href="https://rvm.io/binaries/ubuntu/12.04/i386/ruby-2.1.0.tar.bz2">ruby-2.1.0.tar.bz2</a> for ubuntu 12.04;</p></li>
-<li><p>$ rvm mount -r /path/to/ruby-2.1.0.tar.bz2</p></li>
-<li><p>$ rvm alias create default ruby-2.1.0</p></li>
-<li><p>$ rvm use default</p></li>
-</ol>
-
-
-<h2>Enable Ruby</h2>
-
-<p>Add rvm environments definition into ~/.zshrc or ~/.bashrc:</p>
-
-<pre><code>echo 'source ~/.rvm/scripts/rvm' &gt;&gt; ~/.zshrc
-</code></pre>
-
-<h1>Usage</h1>
-
-<p>Run &ldquo;irb&rdquo; or &ldquo;ruby <script-name>&rdquo; in console directly.</p>
-
-<p>List installed ruby: <code>rvm list</code></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/13/101242/">Use Nose as Unit Test Framework</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-13T10:12:42+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>[chad@chadpc527:~/docs/tmp/mytest]</p>
-
-<p>% workon test</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% pip install nose
-&hellip;</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% tree
+<p>$ javac Hello.java
+$ mkdir test;mv Hello.class test
+$ tree
 .
-|&ndash; mytest
-| |&ndash; <strong>init</strong>.py
-| |&ndash; mytest.py
-| <code>-- test
-|  |-- __init__.py
-| </code>&ndash; test_mytest.py
-`&ndash; setup.py
-2 directories, 5 files</p>
+├── groovy-all-2.2.1.jar
+├── Hello.java
+├── myapp.groovy
+└── test
+    └── Hello.class</p>
 
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% python setup.py nosetests
-running nosetests
-running egg_info
-creating mytest.egg-info
-writing mytest.egg-info/PKG-INFO
-writing top-level names to mytest.egg-info/top_level.txt
-writing dependency_links to mytest.egg-info/dependency_links.txt
-writing manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
-reading manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
-writing manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
-running build_ext</p>
+<p>$ java -cp .:groovy-all-2.2.1.jar groovy.ui.GroovyMain myapp.groovy
+135</p>
 
-<h2>. </h2>
-
-<p>Ran 1 test in 0.007s
-OK</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% cat setup.py</p>
-
-<h1>import multiprocessing</h1>
-
-<p>from setuptools import setup
-setup(name=&lsquo;mytest&rsquo;,
-  version=&lsquo;0.1.0&rsquo;,
-  tests_require=[&lsquo;nose&rsquo;])</p>
-
-<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
-% cat mytest/mytest.py
-def myadd(x,y):
- return 10<em>x+y
-(test)[chad@chadpc527:~/docs/tmp/mytest]
-% cat mytest/test/test_mytest.py
-from unittest import TestCase
-from mytest.mytest import myadd
-class TestMyadd(TestCase):
- def test_myadd(self):
-  actual = myadd(3,5)
-  self.assertTrue(actual==10</em>3+5)</p>
-
-<p>Or, you can use &ldquo;python setup.py test&rdquo; in this way:</p>
+<p>Note:</p>
 
 <ol>
-<li><p>Add &ldquo;import multiprocessing&rdquo; in setup.py;</p></li>
-<li><p>Add &ldquo;test_suite=&lsquo;nose.collector&rsquo;&rdquo; as a parameter in setup() function in setup.py;</p></li>
+<li><p>You can&rsquo;t use groovy-2.2.1.jar here, or you will get a NoClassDefFoundError;</p></li>
+<li><p>If your groovy script don&rsquo;t access other Java class, you can simply run &ldquo;java -jar groovy-all-2.2.1.jar myapp.groovy&rdquo;.</p></li>
 </ol>
 
-
-<p>If you run &ldquo;python setup.py test&rdquo; without &ldquo;import multiprocessing&rdquo;, you will get a &ldquo;Error in atexit._run_exitfuncs&rdquo; error with nose 1.3.0 and Python 2.7.3.</p>
-
-<p>Ref: <a href="https://groups.google.com/forum/#!topic/nose-users/fnJ-kAUbYHQ">https://groups.google.com/forum/#!topic/nose-users/fnJ-kAUbYHQ</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/10/102952/">Publish and Install Python Applications</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-10T10:29:52+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:29 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Publish to PyPI</h1>
-
-<p>Follow <a href="http://www.scotttorborg.com/python-packaging/index.html">How To Package Your Python Code</a>.</p>
-
-<h2>Register</h2>
-
-<p>I ran &ldquo;python setup.py register&rdquo; twice. Firstly I use option 2 to register a new account, then ran it again and use option 1 to upload the &ldquo;funniest&rdquo; package. Then I saw this package in my account on PyPI. In the management page, there is a &ldquo;remove&rdquo; button for delete this package.</p>
-
-<pre><code>$ python setup.py register
-</code></pre>
-
-<h2>Create a source distribution</h2>
-
-<pre><code>$ python setup.py sdist
-</code></pre>
-
-<p>This is create a tar.gz file under dist folder. If you like, copy that file to another host, unpacking it and install it with &ldquo;python setup.py install&rdquo;.</p>
-
-<h2>Upload source distribution</h2>
-
-<pre><code>$ python setup.py sdist upload
-</code></pre>
-
-<p>After modification of source codes and version number in setup.py (say, modify it to 0.2) run last command again to refresh distribution on PyPI. You can see it at &ldquo;<a href="https://pypi.python.org/simple/">https://pypi.python.org/simple/</a><app-name>/&rdquo;.</p>
-
-<p>On another host, use &ldquo;pip install <app-name>==0.2&rdquo; to install this app, for example: &ldquo;pip install funniestlc==0.2&rdquo;.</p>
-
-<h1>Publish in LAN</h1>
-
-<h2>On the develop host</h2>
-
-<ol>
-<li><p>Edit source code;</p></li>
-<li><p>Create new source code distribution package: <code>python setup.py install sdist</code>;</p></li>
-</ol>
-
-
-<h2>On the deploy host</h2>
-
-<ol>
-<li><p>Startup a virtual environment: <code>workon test</code>;</p></li>
-<li><p>Write a install script:</p>
-
-<p> #!/bin/bash
- scp lichao@10.21.2.7:/home/lichao/docs/python_projects/donno/dist/donno-0.1.10.tar.gz .
- tar zxvf donno-0.1.10.tar.gz
- cd donno-0.1.10
- python setup.py install
- cd ..</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/09/183148/">Note About Virturalenvwrapper</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-09T18:31:48+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<pre><code>$ sudo pip install virtualenvwrapper
-</code></pre>
-
-<p>Add following lines into ~/.zshrc:</p>
-
-<pre><code>source /usr/local/bin/virtualenvwrapper.sh
-
-export WORKON_HOME=~/apps/virenv_home
-
-export PROJECT_HOME=~/docs/python_projects
-</code></pre>
-
-<h1>Usage</h1>
-
-<p>There are two concepts in virturalenvwrapper. One is &ldquo;virtual environment&rdquo;, which has its own python executables. The other is &ldquo;project&rdquo;, where your source codes resides. They are n-to-n relationship.</p>
-
-<p>&ldquo;mkvirtualenv env1&rdquo; will create a new &ldquo;virtual environment&rdquo; in $WORKON_HOME, regardless your CWD.</p>
-
-<p>&ldquo;mkproject proj1&rdquo; will create both a &ldquo;virtual environment&rdquo; named &ldquo;proj1&rdquo; in $WORKON_HOME and a &ldquo;proj1&rdquo; folder in $PROJECT_HOME. Then go to $PROJECT_HOME/proj1, then activate the virtual environment proj1. So &ldquo;mkproject proj1&rdquo; equals to:</p>
-
-<pre><code>$ mkvirtualenv proj1
-
-$ mkdir $PROJECT_HOME/proj1
-
-$ cd $PROJECT_HOME/proj1
-
-$ workon proj1
-</code></pre>
-
-<p>Associate an existing virtualenv and an existing project with command</p>
-
-<pre><code>$ setvirtualenvproject virtualenv_path project_path
-</code></pre>
-
-<p>Under the hood, virturalenvwrapper create a &ldquo;.project&rdquo; file under the root of the virtualenv, in which is the project path.</p>
-
-<p>List site packages:</p>
-
-<pre><code>$ lssitepackages
-</code></pre>
-
-<p>Run a command in all virtualenvs under WORKON_HOME:</p>
-
-<pre><code>$ allvirtualenv command with arguments
-</code></pre>
-
-<p>Change the current working directory to the site-packages of current virtualenv($VIRTUAL_ENV):</p>
-
-<pre><code>$ cdsitepackages
-</code></pre>
-
-<p>Remove virtualenv:</p>
-
-<pre><code>$ rmvirtualenv &lt;env_name&gt;
-</code></pre>
-
-<h1>Verification</h1>
-
-<p>In a virtualenv, all python executables are in $WORKON_HOME.</p>
-
-<pre><code>[lichao@lichao480:~] 
-% workon 
-env1 
-env2 
-proj1 
-[lichao@lichao480:~] 
-% which python 
-/usr/bin/python 
-[lichao@lichao480:~] 
-% workon env1 
-(env1)[lichao@lichao480:~] 
-% which python 
-/home/lichao/apps/virenv_home/env1/bin/python 
-(env1)[lichao@lichao480:~] 
-% workon env2 
-(env2)[lichao@lichao480:~PROJECT_HOME/proj2] 
-% which python 
-/home/lichao/apps/virenv_home/env2/bin/python
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/09/164727/">Write Groovy Codes Instead of Java</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-09T16:47:27+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:47 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Writing Java codes in terminal is a pain for tons of boilerplate. But sometimes you have to. So we can write groovy instead.</p>
-
-<p>Origin Java codes (Convert.java):</p>
-
-<pre><code>import java.io.BufferedReader; 
-import java.io.FileReader; 
-import java.io.IOException; 
-import org.apache.commons.lang3.StringEscapeUtils; 
-public class Convert { 
-    public static void main(String[] args) throws IOException { 
-        BufferedReader reader = new BufferedReader(new FileReader("target")); 
-        String line = reader.readLine(); 
-        System.out.println("file content: "+line); 
-        String out = StringEscapeUtils.unescapeJava(line); 
-        System.out.println("from string to char: " + out); 
-        String out2 = StringEscapeUtils.escapeJava(out); 
-        System.out.println("from char to string : " + out2); 
-    } 
-} 
-</code></pre>
-
-<p>$ javac -cp commons-lang3-3.2.1.jar:. Convert.java</p>
-
-<p>$ java -cp commons-lang3-3.2.1.jar:. Convert</p>
-
-<p>Corresponding Groovy codes (convert.groovy):</p>
-
-<pre><code>import org.apache.commons.lang3.StringEscapeUtils 
-def reader = new BufferedReader(new FileReader("target")) 
-def line = reader.readLine() 
-println "file content: $line" 
-def out = StringEscapeUtils.unescapeJava(line) 
-println "from string to char: $out" 
-def out2 = StringEscapeUtils.escapeJava(out) 
-println "from char to string: $out2" 
-</code></pre>
-
-<p>Run it: groovy -cp commons-lang3-3.2.1.jar convert.groovy</p>
-
-<p>Key points to writing groovy codes:</p>
-
-<ol>
-<li><p>Dynamic type but with &ldquo;def&rdquo; (see &ldquo;<a href="http://stackoverflow.com/questions/184002/groovy-whats-the-purpose-of-def-in-def-x-0">http://stackoverflow.com/questions/184002/groovy-whats-the-purpose-of-def-in-def-x-0</a>&rdquo; for its reason);</p></li>
-<li><p>No need to import Java built-in library;</p></li>
-<li><p>No need to take care of the exceptions;</p></li>
-<li><p>semi-colon at the end of line is optional;</p></li>
-<li><p>Use &ldquo;println&rdquo; instead of &ldquo;System.out.println&hellip;&rdquo;;</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/764416/why-would-one-use-groovy-over-java">http://stackoverflow.com/questions/764416/why-would-one-use-groovy-over-java</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/09/105408/">Python Development Workflow of Jeff</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-09T10:54:08+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:54 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Based on <a href="http://www.jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/">http://www.jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/</a></p>
-
-<h1>Workflow</h1>
-
-<p>The first release(v0.1): see Publish and Install Applications via PyPI for how to commit to PyPI;</p>
-
-<p>After uploading your first release to PyPI, the basic workflow is:</p>
-
-<ol>
-<li><p>Do some work on your package (i.e. fix bugs, add features, etc);</p></li>
-<li><p>Make sure the tests pass;</p></li>
-<li><p>&ldquo;Freeze&rdquo; your code by creating a release branch in git-flow;</p></li>
-<li><p>Update the <strong>version</strong> number in your package&rsquo;s <strong>init</strong>.py file;</p></li>
-<li><p>Run &ldquo;python setup.py sdist upload&rdquo; to upload the new version of your package to PyPI;</p></li>
-</ol>
-
-
-<h1>git-flow</h1>
-
-<h2>Installation git-flow-completion for zsh (Optional)</h2>
-
-<p>Follow <a href="https://github.com/bobthecow/git-flow-completion;">https://github.com/bobthecow/git-flow-completion;</a></p>
-
-<ol>
-<li><p>Download <a href="http://sourceforge.net/p/zsh/code/ci/master/tree/Completion/Unix/Command/_git?format=raw">_git</a> and replace /usr/share/zsh/functions/Completion/Unix/_git;</p></li>
-<li><p>Download <a href="https://raw2.github.com/bobthecow/git-flow-completion/master/git-flow-completion.zsh">git-flow-completion.zsh</a>, save it as ~/.git-flow-completion.zsh;</p></li>
-<li><p>Add &ldquo;source ~/.git-flow-completion.zsh&rdquo; into ~/.zshrc;</p></li>
-</ol>
-
-
-<h2>Install git-flow and gitk on Mint 14</h2>
-
-<pre><code>$ sudo apt-get install git-flow
-
-$ sudo apt-get install gitk
-</code></pre>
-
-<h2>Usage</h2>
-
-<p>The following paragraphs is from [Why aren&rsquo;t you using git-flow?}(<a href="http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/">http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/</a>).</p>
-
-<p>Branch &ldquo;master&rdquo; is always &ldquo;production ready&rdquo; code. Commits are never made directly to master. Rather, code on master only gets there after a production release branch is created and &ldquo;finished&rdquo; (more on that in a sec). Thus the code on master is always able to be released to production. Also, master is always in a predictable state, so you never need to worry if master (and thus production) has changes one of your other branches doesn&rsquo;t.</p>
-
-<p>&ldquo;develop&rdquo; is the branch you&rsquo;ll be doing most of your work off of; it&rsquo;s also the branch that represents the code to be deployed in the next release. feature branches represent non-trivial features and fixes that have not yet been deployed (a completed feature branch is merged back into develop). Updating master is done through the creation of a release.</p>
-
-<p>Most of your work is done on the develop branch. This branch contains all of the completed features and bug fixes yet to be released; nightly builds or continuous integration servers should target develop, as it represents the code that will be included in the next release. For one-off commits, feel free to commit to develop directly.</p>
-
-<pre><code>$ git flow init  // Convert an existing git repo to git-flow style:
-
-$ git flow feature start &lt;feature-name&gt;
-
-$ git commit -m "now finish this feature"
-
-// if you want cancel this feature:
-$ git checkout develop  // switch to "develop" branch
-$ git branch  // list current branches
-$ git branch -d feature/&lt;feature-name&gt;   // "feature/" is the default prefix of all feature branches
-$ git branch  // verify the feature is deleted
-
-$ git flow feature finish &lt;feature-name&gt;  // do not add "feature/" prefix before feature name
-// This command merge feature branch back into develop branch, so the feature branch disappear from now on.
-// If you don't want save your feature branch into remote repo, push to remote AFTER you finish your feature with this "finish" command.
-
-$ git flow release start v0.1.0
-
-$ git flow release finish v0.1.0
-</code></pre>
-
-<p><a href="http://danielkummer.github.io/git-flow-cheatsheet/">git-flow cheatsheet</a> is a excellent visual illustration of basic usage of git-flow.</p>
-
-<h1>virtualenv and virtualenvwrapper</h1>
-
-<p>See Note about virturalenvwrapper.</p>
-
-<h1>Publish a Python Application</h1>
-
-<p>Add a &ldquo;command_line.py&rdquo; in <project-name> module, and &ldquo;entry_points&rdquo; in setup.py. See the 4th step &ldquo;Command Line Scripts&rdquo; in <a href="http://www.scotttorborg.com/python-packaging/index.html">How To Package Your Python Code</a> for details.</p>
-
-<h2>Necessary Files</h2>
-
-<h3>setup.py</h3>
-
-<p>Some necessary parameters:</p>
-
-<ul>
-<li><p>entry_points: for defind executables;</p></li>
-<li><p>install_requires: for defining dependencies, get this from &ldquo;pip freeze&rdquo; command (exculde the application itself);</p></li>
-</ul>
-
-
-<h3>MANIFEST.in</h3>
-
-<p>  Add &ldquo;inculde README.md&rdquo; (and other necessary files for installation) in this file, or README.md will note be packaged into installer, and in installation a &ldquo;README.md not found&rdquo; error raises because you read this file in setup.py.
-  (see <a href="https://wiki.python.org/moin/Distutils/Tutorial">https://wiki.python.org/moin/Distutils/Tutorial</a> for explanation)</p>
-
-<h2>All available classifiers</h2>
-
-<pre><code>https://pypi.python.org/pypi?%3Aaction=list_classifiers
-</code></pre>
-
-<h2>Create requirements automatically</h2>
-
-<pre><code>$ pip freeze &gt; requirements.txt
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/08/152300/">Create Executable Links in Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-08T15:23:00+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:23 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>For example, as a common user we want to use application &ldquo;pandoc&rdquo; installed by root. We can achieve this by copy a soft link to /usr/bin.</p>
-
-<pre><code># cd /usr/bin
-# ln -s ~/.cabal/bin/pandoc
-</code></pre>
-
-<p>Now we can use &ldquo;pandoc&rdquo;. If it complains &ldquo;Permission Denied&rdquo;, use it with &ldquo;sudo&rdquo;.</p>
 </div>
   
   
@@ -910,23 +676,23 @@ $ git flow release finish v0.1.0
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
+        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/27/113819/">A Simple Ring Server</a>
+        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/24/073009/">Xen on CentOS 6</a>
+        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
+        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
       </li>
     
   </ul>

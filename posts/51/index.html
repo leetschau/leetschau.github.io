@@ -9,7 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="根据LinkedBlockingQueue实现的接口BlockingQueue的文档，BlockingQueue及其所有实现类都是线程安全的，且可用于多个Producer/Consumer的场景，它的主要用途是Producer-Consumer模型，它提供了4种出/入队列的方法，分别是抛异常、 &hellip;">
+  <meta name="description" content="以下脚本连接上我的Gmail帐号，将收件箱中2013年1月份的新语丝邮件的附件保存在当前目录的xys文件夹中。 import imaplib
+import email
+import os
+dir_name = 'archive'
+if not os.path.exists(dir_name): &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +75,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/02/04/151243/">ConcurrentLinkedQueue vs LinkedBlockingQueue</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/03/04/171058/">使用脚本下载Gmail邮件附件</a></h1>
     
     
       <p class="meta">
@@ -80,790 +84,750 @@
 
 
 
-<time class='entry-date' datetime='2013-02-04T15:12:43+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:12 pm</span></time>
+<time class='entry-date' datetime='2013-03-04T17:10:58+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:10 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>根据LinkedBlockingQueue实现的接口BlockingQueue的文档，BlockingQueue及其所有实现类都是线程安全的，且可用于多个Producer/Consumer的场景，它的主要用途是Producer-Consumer模型，它提供了4种出/入队列的方法，分别是抛异常、特殊值、阻塞和超时。</p>
+  <div class="entry-content"><p>以下脚本连接上我的Gmail帐号，将收件箱中2013年1月份的新语丝邮件的附件保存在当前目录的xys文件夹中。</p>
 
-<p>LinkedBlockingQueue初始化时可以设置容量，所以BlockingQueue具备一种“流量平衡”能力，即当消费过快以至于队列空时，出队列（消费）操作将阻塞；生产过快以至于队列满时，入队列（生产）操作将阻塞。</p>
+<pre><code>import imaplib
+import email
+import os
+dir_name = 'archive'
+if not os.path.exists(dir_name):
+    os.mkdir(dir_name)
+save_path = os.path.join(os.getcwd(),dir_name)
+M = imaplib.IMAP4_SSL('imap.gmail.com')
+M.login('leetschau@gmail.com', 'vim72python251')
+M.select() # default value is inbox
+search_criteria = '(From "Shi-min Fang" UNSEEN)'
+# '(From "Shi-min Fang" SINCE "01-Jan-2013" BEFORE "01-FEB-2013")'
+res, search_result = M.search(None, search_criteria)
+for num in search_result[0].split():
+    typ, data = M.fetch(num, '(RFC822)')
+    # print 'Message %s\n%s\n' % (num, data[0][1])
+    email_body = data[0][1]
+    mail = email.message_from_string(email_body)
+    sender = mail['From']
+    subject = mail['Subject']
+    print "["+mail["From"]+"]: " + mail["Subject"]
+    for part in mail.walk():
+        if part.get_content_maintype() == 'multipart':
+            continue
+        if part.get('Content-Disposition') is None:
+            continue
+        filename = subject+'.txt'
+        att_path = os.path.join(save_path, filename)
+        if not os.path.isfile(att_path) :
+            fp = open(att_path, 'wb')
+            fp.write(part.get_payload(decode=True))
+            fp.close()
+M.close()
+M.logout()
+</code></pre>
 
-<p>BlockingQueue的take()方法在阻塞状态下是不消耗CPU的。</p>
+<p>说明：</p>
 
-<p>ConcurrentLinkedQueue是一个&#8221;wait-free&#8221; algorithm（见文档），它的使用场景目前还不清楚。</p>
+<ol>
+<li><p>附件保存的名字和扩展名是写死的，有兴趣的话可以研究一下怎样获得附件本身的文件名；</p></li>
+<li><p>这个脚本的强大之处在于它不需要任何第三方库，只用python内置的imaplib，只用是支持imap的邮箱都可以用这个方法处理邮件；</p></li>
+<li><p>这里面最有用的是邮件搜索规则（search_criteria），格式是(key1 value1 key2 value2 &hellip;)，每个value上加引号，整个表达式是一个字符串，因此也要加引号。</p></li>
+</ol>
+
+
+<p>key除了这里的收件人、起始/终止日期，还有ALL（全部邮件），UNSEEN（未读邮件），DELETED（已删除邮件）等，key-value对之间可以随意组合；</p>
+
+<ol>
+<li>M的select方法默认值是收件箱，可以指定其他信箱，完整格式是：IMAP4.select([mailbox[, readonly]])；</li>
+</ol>
+
+
+<p>参考1：<a href="http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib">http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib</a></p>
+
+<p>参考2：Python 2.7.3 chapter 20.10 imaplib -> 20.10.2: IMAP4 Example</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/02/105214/">用Autohotkey模拟两台客户机的并发访问事件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-02T10:52:14+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>现在需要从主机113和747上同时向服务器47发送指令&#8221;cat bigMsg&#8221;，以观察47对并发请求的处理能力以及网络传输带宽，可以在pc上分别登录到113和747上，然后分别输入该指令，但手工顺序输入毕竟时间间隔比较大，如果bigMsg不够大，手工操作在47上就变成顺序执行了，如果对开始时间点的要求不那么严格，可以用Autohotkey脚本实现模拟的并发访问，下面演示了用ahk脚本实现的在两台主机上同时运行top指令，8秒后分别发送q退出top界面，以证明ahk脚本确实能够起到“非阻塞发送两条指令”的效果。</p>
+
+<ol>
+<li><p>类似于手工操作，用Kitty登录113和747，假设两个窗口的标题分别为&#8221;lichao@pwm&#8221;和&#8221;godu@goduserver&#8221;；</p></li>
+<li><p>建立ahk脚本（分别在两个主机上运行）：</p></li>
+</ol>
+
+
+<p> SetTitleMatchMode, 2
+ WinActivate, godu
+ SendInput, top{enter}
+ WinActivate, lichao
+ SendInput, top{enter}
+ Sleep, 8000
+ WinActivate, godu
+ SendInput, q
+ WinActivate, lichao
+ SendInput, q
+1. 在vim窗口里运行&#8221;:silent !%&ldquo;执行这个脚本，与直接运行&rdquo;!%&ldquo;相比，silent指令不会出现一个dos窗口，然后要求用户看回车返回vim窗口（参考<a href="http://vim.wikia.com/wiki/Avoiding_the_%22Hit_ENTER_to_continue%22_prompts%EF%BC%89%E3%80%82">http://vim.wikia.com/wiki/Avoiding_the_%22Hit_ENTER_to_continue%22_prompts%EF%BC%89%E3%80%82</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/28/210122/">基于字节比对的KMP字符串搜索算法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-28T21:01:22+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>package kmpclient;
+import java.io.UnsupportedEncodingException;
+import java.util.LinkedList;
+public class ByteKMP {
+ private static final int R = 255;
+ private static final String DEFAULT_CHARSET = &ldquo;UTF-8&rdquo;;
+ private final int[][] dfa;
+ private final int patLen;
+ private int curMatchPos = 0;
+ public ByteKMP(byte[] pat) throws UnsupportedEncodingException {
+  patLen = pat.length;
+  // build DFA from pattern
+  int M = pat.length;
+  dfa = new int[R][M];
+  dfa[pat[0] &amp; 0xff][0] = 1;
+  for (int X = 0, j = 1; j &lt; M; j++) {
+   for (int c = 0; c &lt; R; c++)
+    dfa[c][j] = dfa[c][X]; // Copy mismatch cases.
+   dfa[pat[j] &amp; 0xff][j] = j + 1; // Set match case.
+   X = dfa[pat[j] &amp; 0xff][X]; // Update restart state.
+  }
+ }
+ public int search(byte[] msg) {
+  int M = patLen;
+  int N = msg.length;
+  int i, j;
+  for (i = 0, j = curMatchPos; i &lt; N &amp;&amp; j &lt; M; i++) {
+   j = dfa[msg[i] &amp; 0xff][j];
+  }
+  if (j == M) {
+   curMatchPos = 0;
+   return i - M; // found
+  }
+  curMatchPos = j;
+  return N; // not found
+ }
+ public static void main(String[] args) throws UnsupportedEncodingException {
+  int a = -27 % 255;
+  testEnglishStr();
+  testChineseStr();
+ }
+ private static void testChineseStr() throws UnsupportedEncodingException {
+  LinkedList&lt;byte[]> msgs = new LinkedList&lt;byte[]>();
+  msgs.offer(&ldquo;今天是个好日子&rdquo;.getBytes(DEFAULT_CHARSET));
+  msgs.offer(&ldquo;厉害不?子= KM= KMP = 真厉害！&rdquo;.getBytes(DEFAULT_CHARSET));
+  // msgs.offer(&ldquo;= KMP = 真厉害！&rdquo;.getBytes(DEFAULT_CHARSET));
+  String pat = &ldquo;子= KM&rdquo;;
+  // e5, ad, 90, &hellip; [-27, -83, -112, 61, 32, 75, 77]
+  ByteKMP bkmp = new ByteKMP(pat.getBytes(DEFAULT_CHARSET));
+  int pos = 9999;
+  byte[] target = msgs.poll();
+  while (target != null) {
+   pos = bkmp.search(target);
+   if (pos &lt; target.length) {
+    break;
+   }
+   target = msgs.poll();
+  }
+  if (target == null) {
+   System.out.println(&ldquo;cannot find &rdquo; + pat + &ldquo; in msgs.&rdquo;);
+  } else {
+   System.out.println(&ldquo;find pat at &rdquo; + pos + &ldquo; in &lt;&rdquo;
+    + new String(target) + &ldquo;>&rdquo;);
+  }
+ }
+ private static void testEnglishStr() throws UnsupportedEncodingException {
+  LinkedList&lt;byte[]> msgs = new LinkedList&lt;byte[]>();
+  msgs.offer(&ldquo;welcome lonely logoout&rdquo;.getBytes(DEFAULT_CHARSET));
+  msgs.offer(&ldquo;to flog&rdquo;.getBytes(DEFAULT_CHARSET));
+  msgs.offer(&ldquo;into a fog&rdquo;.getBytes(DEFAULT_CHARSET));
+  String pat = &ldquo;a f&rdquo;;
+  ByteKMP bkmp = new ByteKMP(pat.getBytes(DEFAULT_CHARSET));
+  int pos = 9999;
+  byte[] target = msgs.poll();
+  while (target != null) {
+   pos = bkmp.search(target);
+   if (pos &lt; target.length) {
+    break;
+   }
+   target = msgs.poll();
+  }
+  if (target == null) {
+   System.out.println(&ldquo;cannot find &rdquo; + pat + &ldquo; in msgs.&rdquo;);
+  } else {
+   System.out.println(&ldquo;find pat at &rdquo; + pos + &ldquo; in &lt;&rdquo;
+    + new String(target) + &ldquo;>&rdquo;);
+  }
+ }
+}</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/28/200614/">使用Wireshark为无线网卡抓包</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-28T20:06:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:06 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在Wireshark的网卡列表里，无线网卡的名字不是Windows无线网络连接当中的设备名，需要用下面的方法确定列表中哪个是无线网卡：</p>
+
+<p>方法1： Wireshark -> Capture -> Interface：</p>
+
+<p>可以看到上图中第3个（一般都被命名为Microsoft）有明显的数据传输，是无线网卡的可能性最大；</p>
+
+<p>方法2： Wireshark -> Capture -> Options，列表中有各个网卡的IP地址，很明显第3个网卡就是无线网卡，双击它在&#8221;Capture Filter&#8221;里写上过滤规则就可以抓包了。</p>
+
+<p>以上基于Wireshark 1.8.5版本。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/28/170942/">关于DNS域名解析</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-28T17:09:42+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ubuntu的DNS服务器保存在/etc/resolv.conf文件中，root用户修改这个文件后重启网络服务：</p>
+
+<p> /etc/init.d/networking restart</p>
+
+<p>RedHat上重启网络服务：</p>
+
+<p> service network restart</p>
+
+<p>如果不想使用这个DNS，取消的方法是注释掉（在行首加&#8221;#&ldquo;）。</p>
+
+<p>测试DNS服务是否有效：</p>
+
+<p>用nslookup指令查询域名的IP地址，如果能返回正确结果说明DNS设置有效，例如：</p>
+
+<p>nslookup www.google.com，与另一台能正常上网的机器的解析结果进行比较可知是否正确。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/28/090201/">Java调用外部程序并计算运行时间</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-28T09:02:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:02 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的代码演示了启动外部程序&#8221;d:/apps/Kitty/kitty.exe -load cat47&#8221;，获取其输出，计算整个运行时间的方法。注意创建ProcessBuilder对象时第一个参数的写法，路径必须是绝对路径（除非该程序在系统的$PATH中），即使后面设置了工作目录。</p>
+
+<p> public static void main(String[] args) throws IOException, InterruptedException {</p>
+
+<p>  long start = System.currentTimeMillis();
+  // 定义外部程序：kitty.exe -load cat47，</p>
+
+<p>  ProcessBuilder pb = new ProcessBuilder(&ldquo;d:/apps/Kitty/kitty.exe&rdquo;, &ldquo;-load&rdquo;, &ldquo;cat47&rdquo;);</p>
+
+<p>  // Map&lt;String, String> env = pb.environment(); 这里可以设置环境变量
+  // env.put(&ldquo;VAR1&rdquo;, &ldquo;myValue&rdquo;);
+  // env.remove(&ldquo;OTHERVAR&rdquo;);
+  // env.put(&ldquo;VAR2&rdquo;, env.get(&ldquo;VAR1&rdquo;) + &ldquo;suffix&rdquo;);
+  // pb.directory(new File(&ldquo;c:/tmp&rdquo;)); 这里可以设置程序的工作目录
+  Process p = pb.start(); // 启动外部进程
+  // OutputStream out = p.getOutputStream(); 可以用out向进程写数据（输入）
+  InputStream in = p.getInputStream();
+  int recvNum;
+  byte[] buf = new byte[256];
+  while ((recvNum = in.read(buf)) != -1) {
+   String res = new String(buf, 0, recvNum, &ldquo;UTF-8&rdquo;);
+   System.out.print(res);
+  }
+  p.waitFor(); // 一直阻塞到p运行完毕
+  long end = System.currentTimeMillis();
+  System.out.println(&ldquo;duration: &rdquo; + (end - start) + &ldquo; ms.&rdquo;);
+ }</p>
+
+<p>任务cat47连接47的telnet端口，cat一个大文件（2.4MB，内容见笔记“ 用vim制作大报文传输测试文件 ”）并退出，以验证服务器和客户端之间网络传输的效率，cat47所使用的自动登录脚本如下：</p>
+
+<p> assword:
+ goduty
+ $
+ cat big*
+ $
+ exit</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/25/135621/">Erlang Telnet & Ssh Client</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-25T13:56:21+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>1:56 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Telnet</h1>
+
+<ul>
+<li><p><a href="http://erlang.2086793.n4.nabble.com/ct-telnet-example-td2309531.html">http://erlang.2086793.n4.nabble.com/ct-telnet-example-td2309531.html</a></p></li>
+<li><p>ct_telnet</p></li>
+</ul>
+
+
+<p> <a href="http://www.erlang.org/doc/apps/common_test/basics_chapter.html">http://www.erlang.org/doc/apps/common_test/basics_chapter.html</a></p>
+
+<p> <a href="http://www.erlang.org/doc/apps/common_test/write_test_chapter.html#intro">http://www.erlang.org/doc/apps/common_test/write_test_chapter.html#intro</a></p>
+
+<p> <a href="http://www.erlang.org/doc/apps/common_test/config_file_chapter.html#id2270029">http://www.erlang.org/doc/apps/common_test/config_file_chapter.html#id2270029</a></p>
+
+<p>getty.erl at <a href="http://ftp.sunet.se/pub/lang/erlang/examples/small_examples/index.html">Small example programs</a> in &ldquo;Open Source Erlang&rdquo;.</p>
+
+<h1>SSH</h1>
+
+<ul>
+<li><p><a href="http://www.erlang.org/doc/apps/ssh/using_ssh.html">SSH User&rsquo;s Guide</a></p></li>
+<li><p>ct_ssh</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/23/225118/">Erlang and OTP in Action 第7章示例</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-23T22:51:18+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:51 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>运行过程</h1>
+
+<p> $ erlc.exe -o ebin src/*.erl</p>
+
+<p> $ erl -boot start_sasl -pa ebin</p>
+
+<p> Erlang R16A (erts-5.10) [smp:4:4] [async-threads:10]
+ =PROGRESS REPORT==== 23-Feb-2013::22:36:39 ===
+ &hellip;
+ Eshell V5.10 (abort with ^G)
+ 1> appmon:start().
+ =PROGRESS REPORT==== 23-Feb-2013::22:37:14 ===
+    supervisor: {local,kernel_safe_sup}
+     started: [{pid,&lt;0.46.0>},
+       {name,timer_server},
+       {mfargs,{timer,start_link,[]}},
+       {restart_type,permanent},
+       {shutdown,1000},
+       {child_type,worker}]
+ {ok,&lt;0.43.0>}
+ 2> application:start(simple_cache).
+ =PROGRESS REPORT==== 23-Feb-2013::22:37:37 ===
+    supervisor: {local,sc_sup}
+     started: [{pid,&lt;0.57.0>},
+       {name,sc_element_sup},
+       {mfargs,{sc_element_sup,start_link,[]}},
+       {restart_type,permanent},
+       {shutdown,2000},
+       {child_type,supervisor}]
+ =PROGRESS REPORT==== 23-Feb-2013::22:37:37 ===
+    supervisor: {local,sc_sup}
+     started: [{pid,&lt;0.58.0>},
+       {name,sc_event},
+       {mfargs,{sc_event,start_link,[]}},
+       {restart_type,permanent},
+       {shutdown,2000},
+       {child_type,worker}]
+ =PROGRESS REPORT==== 23-Feb-2013::22:37:37 ===
+    application: simple_cache
+    started_at: nonode@nohost
+ ok
+ 3> simple_cache:insert(&ldquo;www.google.com&rdquo;,gurl).
+ =INFO REPORT==== 23-Feb-2013::22:39:20 ===
+ create([119,119,119,46,103,111,111,103,108,101,46,99,111,109], gurl)
+ ok
+ 4> simple_cache:lookup(&ldquo;www.google.com&rdquo;).<br/>
+ =INFO REPORT==== 23-Feb-2013::22:39:45 ===
+ lookup([119,119,119,46,103,111,111,103,108,101,46,99,111,109])
+ {ok,gurl}
+ 5> sc_event_logger:delete_handler().
+ ok
+ 6> simple_cache:lookup(&ldquo;www.google.com&rdquo;).
+ {ok,gurl}
+ 7> sc_event_logger:add_handler().
+ ok
+ 8> simple_cache:lookup(&ldquo;www.google.com&rdquo;).
+ =INFO REPORT==== 23-Feb-2013::22:48:36 ===
+ lookup([119,119,119,46,103,111,111,103,108,101,46,99,111,109])
+ {ok,gurl}
+ 9></p>
+
+<h1>运行过程</h1>
+
+<h2>启动过程</h2>
+
+<p> application:start(simple_cache).
+-> simple_cache.app(见p104表4-2中对mod参数的说明)
+-> sc_app.start/2（见p105对代码清单4-2的说明）
+-> sc_store:init/0
+  -> ets:new/2
+ sc_sup:start_link
+  -> sc_sup:init/0（通过supervisor:start_link/0方法回调）
+  -> sc_element_sup:start_link/0
+    -> sc_element:start_link/0
+    -> gen_server:start_link
+   sc_event:start_link
+    -> gen_event:start_link
+ sc_event_logger:add_handler/0（将自己注册到gen_event容器中）
+  -> sc_event:add_handler/2
+  -> gen_event:add_handler/3</p>
+
+<h2>插入新记录</h2>
+
+<p> simple_cache:insert/2</p>
+
+<p>-> sc_event:create/2</p>
+
+<p>-> gen_event:notify/2（利用初始化时定义的回调）</p>
+
+<p>-> sc_event_logger:handle_event(create,&hellip;)</p>
+
+<p>-> error_logger:info_msg(&ldquo;create(~w, ~w)~n&rdquo;, [Key, Value])（完成实际的打印日志动作）</p>
+
+<h2>删除处理器</h2>
+
+<p> sc_event_logger:delete_handler/0</p>
+
+<p>-> sc_event:delete_handler/2</p>
+
+<p>-> gen_event:delete_handler（取消自己在gen_evnet容器中的注册）</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/22/162847/">Tshark笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-22T16:28:47+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:28 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>root@guserver:/home/lichao# tshark -f &ldquo;host 10.0.2.47&rdquo; -i eth0 -c 20 -T fields -e ip.src -e ip.dst</p>
+
+<p>选项：</p>
+
+<p> -f: filter设置</p>
+
+<p> -i: 网卡（interface）选择，可以用&#8221;tshark -D&#8221;网卡查看列表，-i后面可以跟序号，例如&#8221;-i 1&#8221;表示使用-D列出的序号为1的网卡</p>
+
+<p> -a: 设置自动退出的规则，例如-a duration:60表示tshark启动60秒后退出</p>
+
+<p> -T: 只显示结果的某些部分</p>
+
+<p> -e: -T field存在时指定要显示的项目</p>
+
+<p> -c: 收到多少个包后退出，例如-c 20表示收到20个包后退出tshark</p>
+
+<p> -w: 将监听结果以pcap格式保存在文件里，例如-w myfile，注意root用户只能将文件保存在$HOME（/root）中</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/21/175453/">网络流量监控工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-21T17:54:53+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>5:54 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>2014-7-14更新：</p>
+
+<ul>
+<li><p>nethogs: 按进程查看流量占用</p></li>
+<li><p>iptraf: 按连接/端口查看流量</p></li>
+<li><p>ifstat: 按设备查看流量</p></li>
+<li><p>ethtool: 诊断工具</p></li>
+<li><p>tcpdump: 抓包工具</p></li>
+</ul>
+
+
+<hr />
+
+<p>2014-8-25更新：</p>
+
+<p>iptraf-ng用于监测网络流量很好用，在ArchLinux和Mint中可以直接安装。
+其中的&#8221;Ip traffic monitor&#8221;可以监测网卡的实时接收/发送 (RX/TX) 数据，可以显示对端IP地址和端口，本方接收IP地址和端口，但不能显示实时传输速率，
+&ldquo;General interface statistics&rdquo; 可以显示所有网卡实时发送/接收数据的速率，但不能显示对端IP和端口，二者互为补充。
+今天测试在同一网段中的两台机器之间用scp传送大文件，速率稳定在99MB/s，比较靠谱的一个结果，间接说明scp传大文件可以用来检测网络的最大传输速率。</p>
+
+<p>Ref: <a href="http://www.tecmint.com/command-line-tools-to-monitor-linux-performance/">20 Command Line Tools to Monitor Linux Performance</a></p>
+
+<hr />
+
+<p>参考：<a href="http://www.dynacont.net/documentation/linux/network_monitoring/">Bandwidth Monitoring Tools For Linux</a></p>
+
+<h1>实时流量监控：pv</h1>
+
+<p>OS: Ubuntu Server 12.04.</p>
+
+<h2>netcat &amp; pv</h2>
+
+<p>apt-get install pv</p>
+
+<p>监控端口5555上的实时网络流量：</p>
+
+<pre><code>nc -l 5555 | pv &gt; /dev/null
+</code></pre>
+
+<p>向服务器113上发送数据：</p>
+
+<pre><code>nc 10.31.1.113 5555
+</code></pre>
+
+<h1>ifstat</h1>
+
+<p>Homepage: <a href="http://gael.roualland.free.fr/ifstat/">http://gael.roualland.free.fr/ifstat/</a></p>
+
+<h2>使用</h2>
+
+<pre><code>ifstat -i eth0 1 5 // 监测网口eth0的流量，每一秒测试一次，共测试5次
+</code></pre>
+
+<p>该工具不需要root权限</p>
+
+<h2>安装</h2>
+
+<p>Ubuntu可以用apt-get直接装，官网上的ifstat-1.1.tar.gz包是源码包，在RedHat上安装需要编译，过程很简单，根据INSTALL文档的说明：</p>
+
+<pre><code>./configure
+make
+make install
+</code></pre>
+
+<h2>atsar</h2>
+
+<p>atsar（Unix的sar指令的Linux移植版，可以用apt-get安装）也有几个选项是用来监控网络情况的，例如每隔2秒显示一次系统当前TCP流量：</p>
+
+<pre><code>atsar -t 2 5
+</code></pre>
+
+<h2>iftop</h2>
+
+<p>Ubuntu: apt-get install iftop.</p>
+
+<p>监控与47的交互：</p>
+
+<pre><code>iftop -n -i eth0 -f "host 10.0.2.47" // 监测47与113的双向传输数据
+iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
+</code></pre>
+
+<p>目前看来iftop显示的信息最全，但需要好好看手册，每个值都是什么意思；使用它需要root权限；</p>
+
+<p>参考：<a href="https://sickbits.net/iftop-finding-traffic-hogs/">https://sickbits.net/iftop-finding-traffic-hogs/</a></p>
+
+<h2>trafshow</h2>
+
+<p>Ubuntu: apt-get install trafshow</p>
+
+<p>监控与47的交互：<code>trafshow -n -i eth0 host 10.0.2.47</code>;</p>
+
+<h1>网络带宽测试：iperf</h1>
+
+<p>又叫bandwidth或者throughput测试，用来测试Server和Client间的最大传输速率。</p>
+
+<p>iperf是命令行工具，还有一个基于Java的图形界面<a href="https://code.google.com/p/xjperf/">jperf</a>可运行在Windows和linux上；</p>
+
+<p>安装：Ubuntu用apt-get install iperf安装，Redhat需要在&#8221;<a href="http://pkgs.repoforge.org/iperf/">http://pkgs.repoforge.org/iperf/</a>&ldquo;上根据操作系统的版本和架构选择一个rpm下载（47服务器系统为Redhat 5.4, x86_64，下载的是iperf-2.0.4-1.el5.rf.x86_64.rpm），然后用rpm -ivh <file_name>安装；</p>
+
+<h2>用法</h2>
+
+<ol>
+<li><p>启动服务端：iperf -s；</p></li>
+<li><p>启动客户端：iperf -c 10.0.2.47 -i 1 -f M（-c后面跟服务器IP地址，-i表示发送的时间间隔，-f M表示返回结果以MByte为单位）；</p></li>
+</ol>
+
+
+<p>或者启动图像客户端jperf，点击&#8221;Run IPerf&#8221;按钮就可以测网络带宽了。给出的结果是笔记本电脑与113服务器之间单向单流（1 stream）带宽为1.8MB/s左右；</p>
+
+<p>iperf作为客户端还有两个比较有用的选项分别是-d和-d -r，前者表示测试同时双向传输的速率，后者表示先进行client to server的单向传输测试，完毕后互换角色，反过来进行server to client的单向传输测试，过程如下：</p>
+
+<p>server: iperf -s</p>
+
+<p>client: iperf -c 10.0.2.47 -i 1 -f M -d（或者iperf -c 10.0.2.47 -i 1 -f M -d -r）</p>
 
 <p>参考：</p>
 
-<p> <a href="http://stackoverflow.com/questions/1426754/linkedblockingqueue-vs-concurrentlinkedqueue">http://stackoverflow.com/questions/1426754/linkedblockingqueue-vs-concurrentlinkedqueue</a></p>
+<p><a href="http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf">http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf</a></p>
 
-<p> <a href="http://stackoverflow.com/questions/1426342/need-a-queue-that-can-support-multiple-readers/1426375#1426375">http://stackoverflow.com/questions/1426342/need-a-queue-that-can-support-multiple-readers/1426375#1426375</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/01/160330/">用expect做自动运行脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-01T16:03:30+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>4:03 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的脚本演示了在Ubuntu上安装expect，写一个切换用户的expect脚本，并运行脚本看到效果的过程。</p>
-
-<p> root@guserver:~# apt-get install expect
- godu@guserver:~$ cat su.exp
- #!/usr/bin/expect
- set timeout 20
- set user [lindex $argv 0]
- set password [lindex $argv 1]
- spawn su $user
- expect &ldquo;Password:&rdquo;
- send &ldquo;$password\r&rdquo;;
- interact
- godu@guserver:~$ ./su.exp chad mypwd
- spawn su chad
- Password:
- chad@guserver:/home/godu$</p>
-
-<p>参考：<a href="http://www.thegeekstuff.com/2010/10/expect-examples/">6 Expect Script Examples to Expect the Unexpected (With Hello World)</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/28/182753/">ConEmu笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-28T18:27:53+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>所有console都关闭后是否在托盘区保留ConEmu图标：Settings -> Main -> Task bar -> When last console is closed: check &ldquo;Close ConEmu window&rdquo;;</p></li>
-<li><p>单个窗口时隐藏tab页：Settings -> Features -> Tabs -> Tabs: check &ldquo;Auto show&rdquo;;</p></li>
-</ul>
-
-
-<h1>常用快捷键</h1>
-
-<p>Win+Q: 下一个tab页；</p>
-
-<p>Win+X: 新建一个tab页；</p>
-
-<p>Win+Delete: 关闭当前tab页；</p>
-
-<p>Ctrl + PgUp/PgDown: 向前/后翻页</p>
-
-<p>Win+Alt+P: 打开设置窗体</p>
-
-<h1>在TotalCmd中启动ConEmu等外部程序</h1>
-
-<p>TotalCmd的Ctrl+G（Start DOS）可以在当前路径下启动命令行，但命令行窗口的字体太丑了，需要以ConEmu（命令行增强工具）代替它，不用Autohotkey或者Executor启动ConEmu的原因在于，我们需要ConEmu启动后的当前目录是TotalCmd的当前目录，这个值每次都不同，不可能配到这些全局性的程序里，只能从TotalCmd里拿到当前目录然后启动ConEmu，实现方法如下：</p>
-
-<ol>
-<li><p>定义用户指令：主菜单 -> Commands -> Browse Internal Commands，&#8221;Category&#8221;选usercmd.ini，新建一个名为em_ConEmu的指令，&#8221;Command&#8221;和&#8221;Icon file&#8221;都填&#8221;d:\Apps\ConEmu\ConEmu.exe&#8221;，&#8221;Parameters&#8221;写&#8221;/Single&#8221;（大小写敏感，新创建的窗口作为已有ConEmu窗口的tab，而不是新开一个窗口），&#8221;Start path&#8221;留空，因为留空意味着以当前目录为起始目录；</p></li>
-<li><p>为该指令指定快捷键：主菜单 -> Configuration -> Misc -> Redefine hotkeys，快捷键设为Alt + G，Command设为em_ConEmu。</p></li>
-</ol>
-
-
-<p>这样就可以用Alt + G启动增强的命令行了，同样的方法可以启动其他任何需要获得TotalCmd当前路径的可执行程序；</p>
-
-<p>要查看已经定义的快捷键，点击&#8221;Hotkey&#8221;单选框后面的小三角按钮，就会列出所有已定义的快捷键。</p>
-
-<p> -></p>
-
-<h1>其他</h1>
-
-<ul>
-<li>用ConEmu取代cmd.exe作为默认的Console程序环境：Settings -> Features -> Integration:</li>
-</ul>
-
-
-<p> Check &ldquo;Force ConEmu as default terminal for console applications&rdquo; &amp; &ldquo;Register on OS startup&rdquo;;</p>
-
-<ul>
-<li>ConEmu还有其他很多有用的命令行参数，使用ConEmu.exe /help查看。</li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/27/132736/">计算成本图像演示方法的改进</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-27T13:27:36+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>1:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>本文在笔记 BinarySearchST计算成本的测试代码 的基础上，尝试将成本计算和图像演示等功能封装在一个单独的类中，尽量降低对被测试类的改动。</p>
-
-<h1>测试方法</h1>
-
-<ol>
-<li><p>在被测类中增加一个成员及其getter；</p></li>
-<li><p>在FrequencyCounter类中增加：st.getVisitTimes().drawCostCurve();</p></li>
-</ol>
-
-
-<h1>两个实例</h1>
-
-<h2>BinarySearchST</h2>
-
-<p> public class BinarySearchST<Key extends Comparable<Key>, Value> {
-  private final VisitTimeCounter vtc = new VisitTimeCounter();
-  public VisitTimeCounter getVisitTimes() {
-   return vtc;
-  }
-  public int rank(Key key) {
-   int lo = 0, hi = N - 1;
-   while (lo &lt;= hi) {
-    int m = lo + (hi - lo) / 2;
-    vtc.addVisitTimes();
-    int cmp = key.compareTo(keys[m]);
-    if (cmp &lt; 0)
-     hi = m - 1;
-    else if (cmp > 0)
-     lo = m + 1;
-    else
-     return m;
-   }
-   return lo;
-  }
-  public void put(Key key, Value val) {
-   if (val == null) {
-    delete(key);
-    return;
-   }
-   int i = rank(key);
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0) {
-    vtc.putComplete();
-    vals[i] = val;
-    return;
-   }
-   if (N == keys.length)
-    resize(2 * keys.length);
-   for (int j = N; j > i; j&ndash;) {
-    keys[j] = keys[j - 1];
-    vals[j] = vals[j - 1];
-    vtc.addVisitTimes();
-   }
-   keys[i] = key;
-   vals[i] = val;
-   N++;
-   vtc.putComplete();
-   assert check();
-  }
- }</p>
-
-<p>对原版BinarySearchST类的修改包括增加了一个成员（vtc）和它的getter，在rank和put中各加了一个vtc.addVisitTimes()表示查询和插入操作中对数组的访问，以及put中两处vtc.putComplete()，表示在命中和未命中两种情况下将本次put的访问次数存入数组记录中。</p>
-
-<p>下面是VisitTimeCounter类：</p>
-
-<p> public class VisitTimeCounter {
-  private int visitTimesInsidePut = 0; // 一次put操作当中的数组访问次数
-  private final List<Integer> visitTimesInAllPut = new ArrayList<Integer>(); // 各次put的访问次数汇总保存在这里
-  public void addVisitTimes() {
-   visitTimesInsidePut++;
-  }
-  public void putComplete() {
-   visitTimesInAllPut.add(visitTimesInsidePut);
-   visitTimesInsidePut = 0;
-  }
-  public void drawCostCurve() {
-   int maxComp = 0;
-   for (Integer i : visitTimesInAllPut) {
-    if (i > maxComp) {
-     maxComp = i;
-    }
-   }
-   StdOut.println(&ldquo;matrix scale: &rdquo; + visitTimesInAllPut.size() + &ldquo;, &rdquo;
-     + maxComp);
-   VisualAccumulator va = new VisualAccumulator(visitTimesInAllPut.size(),
-     maxComp);
-   for (int t = 0; t &lt; visitTimesInAllPut.size(); t++) {
-    va.addDataValue(visitTimesInAllPut.get(t));
-   }
-  }
- }</p>
-
-<p>FrequencyCounter类中演示成本只需要一条语句：</p>
-
-<p> BinarySearchST&lt;String, Integer> st = new BinarySearchST&lt;String, Integer>(); // copy from original codes</p>
-
-<p> st.getVisitTimes().drawCostCurve();</p>
-
-<h2>BST</h2>
-
-<p>即二叉查找树（binary search tree），原版代码见algs4-package.jar的BST.java类。</p>
-
-<p> public class BST<Key extends Comparable<Key>, Value> {
-  private final VisitTimeCounter vtc = new VisitTimeCounter();
-  public VisitTimeCounter getVisitTimes() {
-   return vtc;
-  }
-  public void put(Key key, Value val) {
-   if (val == null) {
-    delete(key);
-    return;
-   }
-   root = put(root, key, val);
-   vtc.putComplete();
-   assert check();
-  }
-  private Node put(Node x, Key key, Value val) {
-   if (x == null)
-    return new Node(key, val, 1);
-   int cmp = key.compareTo(x.key);
-   vtc.addVisitTimes();
-   if (cmp &lt; 0)
-    x.left = put(x.left, key, val);
-   else if (cmp > 0)
-    x.right = put(x.right, key, val);
-   else
-    x.val = val;
-   x.N = 1 + size(x.left) + size(x.right);
-   return x;
-  }
-  private int rank(Key key, Node x) {
-   if (x == null)
-    return 0;
-   int cmp = key.compareTo(x.key);
-   vtc.addVisitTimes();
-   if (cmp &lt; 0)
-    return rank(key, x.left);
-   else if (cmp > 0)
-    return 1 + size(x.left) + rank(key, x.right);
-   else
-    return size(x.left);
-  }
- }</p>
-
-<p>查找成本体现在rank方法中，插入时每次访问的记录体现在private Node put方法中，总次数的记录体现在public void put方法中。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/26/231249/">BinarySearchST计算成本的测试代码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-26T23:12:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面是在原有BinarySearchST类上的修改，增加了两个成员（visitTimes与visitTime）和一个方法（getComparisionTimes），查找的成本主要体现在rank方法中的“cmp=key.compareTo(keys[m])”，在这一句后面加上visitTime++来标记访问次数增加了一次；写入的成本体现在put方法的两个位置，当key已经在keys中时，本次put的总成本是visitTime+1，当key不在keys数组中时（增加一个新元素），每移动一个元素，visitTime要加1，注意每次put操作记录结束后，除了要将次数存入visitTimes数组，还要将visitTime清零。</p>
-
-<p>另外下面的代码省略了与原BinarySearchST类相同的成员和方法。</p>
-
-<p> public class BinarySearchST<Key extends Comparable<Key>, Value> {
-  private final List<Integer> visitTimes = new ArrayList<Integer>(); // 每次put访问数组的次数的集合
-  int visitTime = 0; // 一次put操作中访问数组的次数计数器
-  public Value get(Key key) {
-   if (isEmpty())
-    return null;
-   int i = rank(key);
-   visitTime++;
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0)
-    return vals[i];
-   return null;
-  }
-  public int rank(Key key) {
-   int lo = 0, hi = N - 1;
-   while (lo &lt;= hi) {
-    int m = lo + (hi - lo) / 2;
-    int cmp = key.compareTo(keys[m]);
-    visitTime++;
-    if (cmp &lt; 0)
-     hi = m - 1;
-    else if (cmp > 0)
-     lo = m + 1;
-    else {
-     return m;
-    }
-   }
-   return lo;
-  }
-  public void put(Key key, Value val) {
-   if (val == null) {
-    delete(key);
-    return;
-   }
-   int i = rank(key);
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0) {
-    vals[i] = val;
-    visitTimes.add(visitTime + 1); // 查找了visitTime次，写入的成本是1
-    visitTime = 0;
-    return;
-   }
-   if (N == keys.length)
-    resize(2 * keys.length);
-   for (int j = N; j > i; j&ndash;) {
-    keys[j] = keys[j - 1];
-    vals[j] = vals[j - 1];
-    visitTime++;
-   }
-   keys[i] = key;
-   vals[i] = val;
-   N++;
-   visitTimes.add(visitTime);
-   visitTime = 0;
-   assert check();
-  }
-  public List<Integer> getComparisionTimes() {
-   return visitTimes;
-  }
- }</p>
-
-<p>计算成本的图像演示代码FrequencyCounter类见笔记 SequentialSearchST算法成本的图形演示 。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/25/072710/">键盘插拔对用户登录的影响实验</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-25T07:27:10+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>7:27 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>实验服务器：Ubuntu Server 12.04；</p>
-
-<p>实验过程：</p>
-
-<ol>
-<li><p>在服务器本机上以用户user1登录服务器；</p></li>
-<li><p>在另一台终端上以SSH方式登录服务器，用who命令查看当前登录用户有两个：</p></li>
-</ol>
-
-
-<p> root@guserver:~# who -H
- NAME  LINE   TIME    COMMENT
- user1 tty1   2013-01-25 07:21
- user1 pts/0  2013-01-25 07:22 (10.31.1.32)
-由IP地址可知，上面的tty1是服务器本机登录用户，pts/0是SSH登录用户；</p>
-
-<ol>
-<li><p>拔出服务器上的USB键盘插头，终端上再执行who命令，与上面的结果相同；</p></li>
-<li><p>再插上服务器上的USB键盘，不论是否插入原插槽，都可以继续输入指令，完全不受键盘插拔的影响；</p></li>
-</ol>
-
-
-<p>结论：</p>
-
-<p>键盘登录服务器的方式下，USB键盘的插拔和改变USB插口不会影响用户的登录状态。进一步，键盘作为操作系统的standard input，不受其物理状态（是否连接）的影响。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/24/174632/">Notes About Multiboot Usb Creator</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-24T17:46:32+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>U盘上的多系统启动工具，Windows上YUMI比较好，Ubuntu上<a href="http://www.pendrivelinux.com/multiboot-create-a-multiboot-usb-from-linux/">MultiSystem</a>用法复杂，<a href="http://sourceforge.net/projects/unetbootin/">unetbootin</a>是另外一款，需要安装p7zip（apt-get install p7zip-full），不能做多个Live CD在一个U盘上，安装新系统前要格式化USB盘，否则安装无效。</p>
-
-<p>用YUMI制作包含小马PE 2013版（XMPE2013.ISO）、Windows 7安装盘和Ubuntu Server 12.04 amd64(ubuntu-12.04.1-server-amd64.iso)的启动盘过程如下：</p>
-
-<ol>
-<li><p>插入U盘；</p></li>
-<li><p>启动YUMI（YUMI-0.0.8.7.exe）；</p></li>
-<li><p>安装界面上首先选好U盘的盘符，然后选安装系统的类型，上面3个系统对应的类型分别是：“Try an unlisted ISO(run from RAM)”（列表最后面）、“Windows Vista/7/8 Installer”和“Ubuntu Server 12.04 amd64”；</p></li>
-<li><p>选择对应的ISO文件；</p></li>
-<li><p>点击“Create”开始安装；</p></li>
-</ol>
-
-
-<p>安装的系统可以通过勾选“Remove an Installed Item?”卸载，但PE盘无法卸载。如果真不想要的话可以格盘重做一个。</p>
-
-<hr />
-
-<p>2013-01-28：
-使用YUMI制作了包含小马PE 2013版、Windows 7安装盘和Ubuntu Server 12.04的启动盘，在PNY盘（8GB）和Kingston microSD卡（8GB）上制作后3个系统都可以正常启动（DELL PC机），在SanDisk U3 curzer盘（4GB）上制作后无法启动，原因不明。
-XBoot不支持Windows启动ISO，放弃。</p>
-
-<hr />
-
-<p>2013-01-27：
-安装了小马PE 2013，注意小马PE的ISO文件不要使用中文文件名，否则在YUMI启动列表里会变成乱码。
-参考：<a href="http://www.rjno1.com/yumi">YUMI 0.0.8.7绿色版-制作引导多个iso系统镜像的自启动U盘</a></p>
-
-<hr />
-
-<p>2013-01-24：
-上午先用Sardu（2.0.5和2.0.6）做USB启动盘，它感知不到U盘，已经插入U盘还提示插入U盘，放弃，改用YUMI，首先在U盘上装了Ubuntu Server 12.04，后来又装了小马PE，虽然都装上了，但小马PE不能用；明天尝试装Win7。</p>
-
-<p>类似的工具还有一个叫XBoot的，下载了，没试；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/24/155123/">SequentialSearchST算法成本的图形演示</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-24T15:51:23+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:51 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>中文版238页图3.1.3演示了SequentialSearchST算法中每次写入单词数量（put方法中）时需要进行的比较次数，也就是此算法的成本，但书中没有生成此图的代码，下面是我自己的实现（第一个是新增的类，后两个是修改的类）：</p>
-
-<p> package edu.princeton.cs.algs4;
- public class VisualAccumulator {
-  private double total;
-  private int N;
-  public VisualAccumulator(int trials, double max) {
-   StdDraw.setXscale(0, trials);
-   StdDraw.setYscale(0, max);
-   StdDraw.setPenRadius(.005);
-  }
-  public void addDataValue(double val) {
-   N++;
-   total += val;
-   StdDraw.setPenColor(StdDraw.DARK_GRAY);
-   StdDraw.point(N, val);
-   StdDraw.setPenColor(StdDraw.RED);
-   StdDraw.point(N, total / N);
-   StdOut.println(&ldquo;Red point value:&rdquo; + total / N);// 平均比较次数
-  }
-  public double mean() {
-   return total / N;
-  }
-  @Override
-  public String toString() {
-   return &ldquo;Mean (&rdquo; + N + &ldquo; values): &rdquo; + String.format(&ldquo;%7.5f&rdquo;, mean());
-  }
-  public static void main(String[] args) {
-   int T = 300;
-   VisualAccumulator a = new VisualAccumulator(T, 1.0);
-   for (int t = 0; t &lt; T; t++) {
-    a.addDataValue(StdRandom.random());
-   }
-   StdOut.println(a);
-  }
- }</p>
-
-<p> public class SequentialSearchST&lt;Key, Value> {
-  private final List<Integer> compareTimes = new ArrayList<Integer>();
-  public List<Integer> getComparisionTimes() {
-   return compareTimes;
-  }
-  public void put(Key key, Value val) {
-   int compareTime = 0;
-   if (val == null) {
-    compareTimes.add(1);
-    delete(key);
-    return;
-   }
-   for (Node x = first; x != null; x = x.next) {
-    compareTime++;
-    if (key.equals(x.key)) {
-     x.val = val;
-     compareTimes.add(compareTime);
-     return;
-    }
-   }
-   first = new Node(key, val, first);
-   N++;
-   compareTimes.add(compareTime);
-  }
-  public static void main(String[] args) {
-   StdIn2.setInputFile(&ldquo;data/tale.txt&rdquo;);
-   SequentialSearchST&lt;String, Integer> st = new SequentialSearchST&lt;String, Integer>();
-   for (int i = 0; !StdIn2.isEmpty(); i++) {
-    String key = StdIn2.readString();
-    st.put(key, i);
-   }
-   List<Integer> comparisionTimes = st.getComparisionTimes();
-   VisualAccumulator va = new VisualAccumulator(comparisionTimes.size(), 1.0);
-   for (int t = 0; t &lt; comparisionTimes.size(); t++) {
-    va.addDataValue(comparisionTimes.get(t));
-   }
-   for (String s : st.keys())
-    StdOut.println(s + &ldquo; &rdquo; + st.get(s));
-  }
- }</p>
-
-<p> public class FrequencyCounter {
-  public static void main(String[] args) {
-   StdIn2.setInputFile(&ldquo;data/tale.txt&rdquo;);
-   int distinct = 0, words = 0;
-   int minlen = 8; // this is the first parameter
-   SequentialSearchST&lt;String, Integer> st = new SequentialSearchST&lt;String, Integer>();
-   while (!StdIn2.isEmpty()) {
-    String key = StdIn2.readString();
-    if (key.length() &lt; minlen)
-     continue;
-    words++;
-    if (st.contains(key)) {
-     st.put(key, st.get(key) + 1);
-    } else {
-     st.put(key, 1);
-     distinct++;
-    }
-   }
-   String max = &ldquo;&rdquo;;
-   st.put(max, 0);
-   for (String word : st.keys()) {
-    if (st.get(word) > st.get(max))
-     max = word;
-   }
-   StdOut.println(max + &ldquo; &rdquo; + st.get(max));
-   StdOut.println(&ldquo;distinct = &rdquo; + distinct);
-   StdOut.println(&ldquo;words = &rdquo; + words); // 以上是原始版本的代码，修改了获取输入的方法
-   List<Integer> comparisionTimes = st.getComparisionTimes(); // 获取原始成本数据
-   int maxComp = 0;
-   for (Integer i : comparisionTimes) {
-    if (i > maxComp) {
-     maxComp = i;
-    }
-   } // 获得原始成本最大值，以确定画布的Y轴高度
-   VisualAccumulator va = new VisualAccumulator(comparisionTimes.size(), maxComp);
-   for (int t = 0; t &lt; comparisionTimes.size(); t++) {
-    va.addDataValue(comparisionTimes.get(t));
-   } // 画图
-  }
- }</p>
-
-<p>以上VisualAccumulator是完整的类，SequentialSearchST只写出了新增的属性compareTimes及其get方法，和修改后的put和main方法；FrequencyCounter类中修改后的main方法，</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/23/125458/">调试Algorithms一书中带有输入重定向的代码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-23T12:54:58+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>12:54 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Algorithms(by Robert Sedgewick)中运行算法程序一般是这样的：</p>
-
-<p> java AlgorithmClass &lt; inputFile.txt</p>
-
-<p>例如第47页&#8221;java BinarySearch tinyW.txt &lt; tinyT.txt&#8221;，其中的&#8221;&lt;&ldquo;是输入重定向（standard input redirect），即用文件（tiny.txt）的内容代替键盘（standard input）作程序的输入，在Eclipse中调试这种代码很麻烦，因为Eclipse不支持输入重定向（直接在参数里写&rdquo;&lt; tiny.txt&#8221;无效，但支持输出到某一指定文件中），有两个方法解决这个问题。</p>
-
-<p>首先是准备工作：</p>
-
-<ol>
-<li><p>Create a project in eclipse, then creating a folder named &ldquo;data&rdquo; in it;</p></li>
-<li><p>copy tinyT.txt &amp; tinyW.txt into &ldquo;data&rdquo;;</p></li>
-</ol>
-
-
-<h1>方法1：使用System.setIn()方法</h1>
-
-<ol>
-<li>modify &ldquo;int[] whitelist = In.readInts(args[0]);&rdquo; in BinarySearch.java as following:
-System.setIn(new FileInputStream(&ldquo;data/tinyT.txt&rdquo;));
-int[] whitelist = In.readInts(&ldquo;data/&rdquo; + &ldquo;tinyW.txt&rdquo;);</li>
-<li>run BinarySearch;
-Reference: <a href="http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file">http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file</a></li>
-</ol>
-
-
-<p>这个方法的不足之处是有时候程序在运行完后会报一个JNI异常，让人很不爽，于是有了下面第二个方法。</p>
-
-<h1>方法2：自己修改StdIn类</h1>
-
-<p>分析StdIn类的代码可知，它用了一个Scanner类包装了System.in，所以只要把System.in换成我们指定的文本文件就可以了，于是新建一个StdIn2类，代码与StdIn基本一样，增加了下面的方法：</p>
-
-<p> public static void setInputFile(String path) {
-  try {
-   scanner = new Scanner(new BufferedInputStream(new FileInputStream(
-     path)), charsetName);
-  } catch (FileNotFoundException e) {
-   e.printStackTrace();
-  }
-  scanner.useLocale(usLocale);
- }</p>
-
-<p>其实就是把scanner的初始化方法放到了setInputFile中（包括声明scanner和static{}块中两处），然后修改算法代码：</p>
-
-<ol>
-<li><p>将BinarySearch中的StdIn重构为StdIn2；</p></li>
-<li><p>main()方法的开始处加上&#8221;StdIn2.setInputFile(&ldquo;data/tiny.txt&rdquo;);&ldquo;；</p></li>
-<li><p>运行代码。</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/21/120949/">用PhotoRec恢复误删除的文件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-21T12:09:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>12:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今天尝试用<a href="http://www.cgsecurity.org/wiki/PhotoRec">PhotoRec</a>恢复被误删除的文件，效果不错，找回了被误删的pdf文件，另外被恢复的jpg，chm文件也能正常显示，但java文件和txt文件里面的内容似乎不是原文件内容。这个软件有下面的特点：</p>
-
-<ol>
-<li><p>命令行（字符）界面；</p></li>
-<li><p>不能指定要恢复的目录，只能指定恢复某一分区；</p></li>
-<li><p>不能指定要恢复文件的类型（扩展名），只能自己在被恢复的目录里找；</p></li>
-<li><p>U盘被格式化后这个软件能够恢复上面的文件；</p></li>
-<li><p>目录结构无法恢复，只能恢复文件；</p></li>
-</ol>
-
-
-<p>其他类似的软件见<a href="http://www.freewaregenius.com/the-best-free-data-recovery-tool-13-undelete-tools-compared/%E3%80%82">http://www.freewaregenius.com/the-best-free-data-recovery-tool-13-undelete-tools-compared/%E3%80%82</a></p>
+<p><a href="http://openmaniak.com/iperf.php">http://openmaniak.com/iperf.php</a></p>
 </div>
   
   
@@ -888,23 +852,23 @@ Reference: <a href="http://stackoverflow.com/questions/188547/eclipse-reading-st
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
+        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/27/113819/">A Simple Ring Server</a>
+        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/24/073009/">Xen on CentOS 6</a>
+        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
+        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
       </li>
     
   </ul>

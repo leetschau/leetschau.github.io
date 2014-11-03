@@ -96,19 +96,99 @@
 </pre></td><td class='code'><pre><code class=''><span class='line'>sudo aptitude install i3-wm dmenu i3status i3lock</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 
-<p>That&rsquo;s it. Now you can logout. In login manager, you can find &ldquo;i3&rdquo;, choose it, and login i3 environment.</p>
+<h2>Startup Configurations</h2>
+
+<h3>MDM</h3>
+
+<p>Mint&rsquo;s default graphical login manager is MDM,
+see <a href="http://linuxmint.com/rel_qiana_xfce_whatsnew.php">New features in Linux Mint 17 Xfce</a>.
+Logout of Xfce desktop. In login manager, you can find &ldquo;i3&rdquo;, choose it, and login i3 environment.
+Its user level auto startup script is ~/.xsessionrc. It should be the same with .xinitrc.
+So make a link from it with <code>ln -s ~/.xinitrc ~/.xsessionrc</code>.
+See /etc/mdm/Xsession for variable definitions, such as USERXSESSION, USERXSESSIONRC, etc.
+See <a href="https://wiki.ubuntu.com/CustomXSession">CustomXSession</a> for more.</p>
+
+<h3>xinit</h3>
+
+<p>See note &ldquo;Run Linux Without Desktop Environment&rdquo;.
+Its user level auto startup script is ~/.xinitrc.</p>
+
+<h2>Input Method</h2>
+
+<p>Add the following lines into ~/.xinitrc before &ldquo;exec i3&rdquo;:</p>
+
+<pre><code>export GTK_IM_MODULE=xim
+export QT_IM_MODULE=xim
+export XMODIFIERS="@im=fcitx"
+fcitx &amp;
+</code></pre>
 
 <h2>Power Management in i3</h2>
 
 <p>Check if &ldquo;pm-utils&rdquo; has been installed via <code>dpkg -l|grep pm-utils</code>. If not, install it with <code>sudo aptitude install pm-utils</code>;</p>
 
-<ul>
-<li><p>suspend: <code>sudo pm-suspend-hybrid</code>, it will suspend your system. When out of power, it will hibernate. See <code>man pm-actions</code> for details;</p></li>
-<li><p>hibernate: <code>sudo pm-hibernate</code>, it will save current state into disk;</p></li>
-<li><p>poweroff: <code>sudo poweroff</code>;</p></li>
-<li><p>restart: <code>sudo restart</code>;</p></li>
-<li><p>exit i3: <code>i3-msg exit</code> or Mod+Shift+E;</p></li>
-</ul>
+<p>Add the following line into /etc/sudoers:</p>
+
+<pre><code>%sudo   ALL=(ALL) NOPASSWD: /sbin/poweroff, /sbin/reboot, /sbin/shutdown, /usr/sbin/pm-suspend, /usr/sbin/pm-suspend-hybrid
+</code></pre>
+
+<p>Add file /usr/local/bin/pm and <code>chmod 755 /usr/local/bin/pm</code>:</p>
+
+<pre><code>#!/bin/sh
+lock() {
+    i3lock -c 000000
+}
+
+case "$1" in
+    lk)
+        lock
+        ;;
+    logout)
+        i3-msg exit
+        ;;
+    ssd)
+        lock &amp;&amp; sudo pm-suspend-hybrid
+        ;;
+    hibernate)
+        lock &amp;&amp; sudo pm-hibernate
+        ;;
+    rbt)
+        sudo reboot
+        ;;
+    shd)
+        sudo poweroff
+        ;;
+    *)
+        echo "Usage: $0 {lk|logout|ssd|hibernate|rbt|shd}"
+        exit 2
+esac
+exit 0
+</code></pre>
+
+<p>The &ldquo;-c&rdquo; option of i3lock command specifies the screen color, where &ldquo;000000&rdquo; is black.</p>
+
+<p>Now any user belonging to sudo group can run <code>pm lk|ssd|rbt|shd</code> to lock, suspend, reboot or shutdown computer without input password.
+If the user is not a sudoer, run <code>usermod -aG sudo username</code> with root.
+Verify user&rsquo;s group with <code>id</code>, <code>groups</code> or <code>groups username</code>.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://askubuntu.com/questions/168879/shutdown-from-terminal-without-entering-password">http://askubuntu.com/questions/168879/shutdown-from-terminal-without-entering-password</a></p>
+
+<p><a href="http://askubuntu.com/questions/159007/how-do-i-run-specific-sudo-commands-without-a-password">http://askubuntu.com/questions/159007/how-do-i-run-specific-sudo-commands-without-a-password</a></p>
+
+<p><a href="http://askubuntu.com/questions/2214/how-do-i-add-a-user-to-the-sudo-group">http://askubuntu.com/questions/2214/how-do-i-add-a-user-to-the-sudo-group</a></p>
+
+<p><a href="http://www.cyberciti.biz/faq/howto-linux-add-user-to-group/">http://www.cyberciti.biz/faq/howto-linux-add-user-to-group/</a></p>
+
+<p><a href="http://linuxers.org/article/difference-between-primary-and-secondary-groups-linux">http://linuxers.org/article/difference-between-primary-and-secondary-groups-linux</a></p>
+
+<h2>Config System Font</h2>
+
+<ol>
+<li><p>List all available fonts installed: <code>fc-list</code>. For example, when run <code>fc-list|grep wqy</code>, we got the name of this pre-installed Chinese font: &ldquo;WenQuanYi Micro Hei&rdquo;.</p></li>
+<li><p>Edit config file ~/.i3/config: replace &ldquo;font -misc-fixed-medium-r-normal&ndash;13-120-75-75-C-70-iso10646-1&rdquo; with &ldquo;font pango:WenQuanYi Micro Hei 11&rdquo;.</p></li>
+</ol>
 
 </div>
 
@@ -166,23 +246,23 @@
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/10/02/005047/">Clojure Web Development</a>
+        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/01/210506/">Dmenu Notes</a>
+        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/27/113819/">A Simple Ring Server</a>
+        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/24/073009/">Xen on CentOS 6</a>
+        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a>
+        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
       </li>
     
   </ul>

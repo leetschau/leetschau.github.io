@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Arch | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/arch/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-10-03T10:34:30+08:00</updated>
+  <updated>2014-11-03T17:15:36+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Automount USB Disk on ArchLinux]]></title>
+    <title type="html"><![CDATA[Automount USB Disk on Linux]]></title>
     <link href="http://leetschau.github.io/blog/2014/09/03/111703/"/>
     <updated>2014-09-03T11:17:03+08:00</updated>
     <id>http://leetschau.github.io/blog/2014/09/03/111703</id>
@@ -26,7 +26,62 @@
 
 <p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
 
-<p>Use <code>udiskie-umount -a</code> to unmount it.</p>
+<h2>Unmount USB disk</h2>
+
+<p>Create an executable script in /usr/local/bin:</p>
+
+<pre><code>$ cat /usr/local/bin/unmount
+#!/bin/sh
+
+# Global variables
+TITLE="Unmount Utility"
+COLUMNS=3 # TARGET,SOURCE,FSTYPE
+#IFS=$'\n'
+
+# Populate list of unmountable devices
+deviceList=($(findmnt -Do TARGET,SOURCE,FSTYPE | grep -e "sd[b-z]"))
+deviceCount=$((${#deviceList[@]} / $COLUMNS))
+
+# Start of program output
+echo $TITLE
+
+# Display list of devices that can be unmounted
+for ((device=0; device&lt;${#deviceList[@]}; device+=COLUMNS))
+do
+  printf "%4s)   %-25s%-13s%-10s\n"\
+    "$(($device / $COLUMNS))"\
+    "${deviceList[$device]}"\
+    "${deviceList[$(($device + 1))]}"\
+    "${deviceList[$(($device + 2))]}"
+done
+
+printf "%4s)   Exit\n" "x"
+
+# Get input from user
+read -p "Choose a menu option: " input
+
+# Input validation
+if [ "$input" = "X" ] || [ "$input" = "x" ]
+then
+  echo "Exiting"
+  exit 0
+fi
+
+if (( $input&gt;=0 )) &amp;&amp; (( $input&lt;$deviceCount ))
+then
+  echo "Unmounting: ${deviceList[$(($input * $deviceCount))]}"
+  sudo umount "${deviceList[$(($input * $deviceCount))]}"
+  exit 0
+else
+  echo "Invalid menu choice"
+  exit 1
+fi
+$ chmod 755 /usr/local/bin/unmount
+</code></pre>
+
+<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
+See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a> for details.
+Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
 
 <p>See <code>man udiskie</code> for more information.</p>
 
@@ -109,10 +164,10 @@ In case of you startup your system without display manager and login to shell, s
 
 <p> # echo blackpad > /etc/hostname
  # vi /etc/hosts</p></li>
-<li><p>Config wireless:</p>
+<li><p>Config wireless (modify the wireless name based on your machine):</p>
 
 <p> # pacman -S iw wpa_supplicant dialog wpa_actiond
- # systemctl enable <a href="&#109;&#x61;&#105;&#108;&#116;&#111;&#x3a;&#110;&#101;&#116;&#99;&#x74;&#x6c;&#45;&#97;&#117;&#116;&#111;&#64;&#119;&#x6c;&#112;&#x35;&#x73;&#x30;&#x2e;&#115;&#x65;&#114;&#x76;&#x69;&#99;&#101;">&#x6e;&#x65;&#116;&#99;&#116;&#108;&#45;&#97;&#x75;&#x74;&#111;&#x40;&#119;&#108;&#x70;&#53;&#115;&#x30;&#x2e;&#115;&#x65;&#114;&#x76;&#105;&#x63;&#101;</a></p></li>
+ # systemctl enable <a href="&#109;&#97;&#105;&#108;&#x74;&#x6f;&#x3a;&#110;&#101;&#116;&#99;&#116;&#108;&#x2d;&#97;&#117;&#116;&#111;&#x40;&#119;&#108;&#112;&#x35;&#115;&#48;&#x2e;&#115;&#101;&#x72;&#118;&#x69;&#x63;&#x65;">&#x6e;&#x65;&#116;&#99;&#x74;&#108;&#45;&#x61;&#117;&#116;&#x6f;&#x40;&#119;&#x6c;&#x70;&#x35;&#x73;&#48;&#x2e;&#x73;&#x65;&#x72;&#x76;&#105;&#x63;&#101;</a></p></li>
 <li><p>Set root passwd:</p>
 
 <p> # passwd</p></li>
@@ -188,97 +243,17 @@ The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
     <link href="http://leetschau.github.io/blog/2014/05/01/121138/"/>
     <updated>2014-05-01T12:11:38+08:00</updated>
     <id>http://leetschau.github.io/blog/2014/05/01/121138</id>
-    <content type="html"><![CDATA[<p>Search packages:</p>
+    <content type="html"><![CDATA[<p>Search packages: <code>pacman -Ss pkg1 pkg2 ...</code>;</p>
 
-<pre><code>$ pacman -Ss pkg1 pkg2 ...
-</code></pre>
+<p>Install packages with updated repo: <code>pacman -Syu pkg1 pkg2 ...</code>;</p>
 
-<p>Install packages with updated repo:</p>
+<p>Remove a package and its dependencies which is not required by other installed packages: <code>pacman -Rs pkg1</code>;</p>
 
-<pre><code>$ pacman -Syu pkg1 pkg2 ...
-</code></pre>
+<p>Remove a package and leaving all its dependencies installed: <code>pacman -R pkg1</code>;</p>
 
-<p>Remove a package and its dependencies which is not required by other installed packages:</p>
-
-<pre><code>$ pacman -Rs pkg1
-</code></pre>
-
-<p>Remove a package and leaving all its dependencies installed:</p>
-
-<pre><code>$ pacman -R pkg1
-</code></pre>
+<p>Remove all orphaned packages: <code>pacman -Rns $(pacman -Qtdq)</code>;</p>
 
 <p>Ref: <a href="https://wiki.archlinux.org/index.php/pacman">pacman</a> on Arch Linux.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[I3 Window Manager on Arch Linux]]></title>
-    <link href="http://leetschau.github.io/blog/2014/05/01/112805/"/>
-    <updated>2014-05-01T11:28:05+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/05/01/112805</id>
-    <content type="html"><![CDATA[<p>i3 is a good wm(window manager), it&rsquo;s powerful and easy to install. It supports system tray, app like golden-dict will have a icon in system tray after it&rsquo;s closed.</p>
-
-<h1>Install</h1>
-
-<pre><code># pacman -S xorg-server xorg-server-utils
-# pacman -S xorg-xinit
-# pacman -S dmenu
-# pacman -Syu gnome    // use `pacman -Rsc gnome` to remove package and its dependencies
-# pacman -S i3
-$ echo "exec i3" &gt;  ~/.xinitrc
-$ startx
-</code></pre>
-
-<h1>Configuration</h1>
-
-<p>Config file: ~/.i3/config.</p>
-
-<p>Define Alt key:</p>
-
-<pre><code>set $mod Mod4
-</code></pre>
-
-<p>Define Win key:</p>
-
-<pre><code>set $sup Mod1
-</code></pre>
-
-<p>Adjust the font of titlebar:</p>
-
-<pre><code>font pango:Dejavu Sans Mono 11
-</code></pre>
-
-<p>Add custom keybindings:</p>
-
-<pre><code>bindsym $sup+x exec /home/chad/apps/idea-IC-135.690/bin/idea.sh
-</code></pre>
-
-<h1>Frequently used keybindings</h1>
-
-<p>&ldquo;M&rdquo; means $mod key, &ldquo;S&rdquo; means Shift key.</p>
-
-<ul>
-<li><p>M-d: application launcher;</p></li>
-<li><p>M-<Enter>: start a termianl;</p></li>
-<li><p>M-f: full screen current app;</p></li>
-<li><p>M-S-q: quit</p></li>
-<li><p>M-S-c: reload config without restart;</p></li>
-<li><p>M-2: jump to workspace 2;</p></li>
-<li><p>M-S-2: move application to workspace 2;</p></li>
-</ul>
-
-
-<h1>Power Management</h1>
-
-<ul>
-<li><p>suspend: <code>sudo systemctl suspend</code>;</p></li>
-<li><p>hibernate: <code>sudo systemctl hibernate</code>;</p></li>
-<li><p>poweroff: <code>sudo poweroff</code>;</p></li>
-<li><p>restart: <code>sudo restart</code>;</p></li>
-<li><p>exit i3: <code>i3-msg exit</code> or Mod+Shift+E;</p></li>
-</ul>
-
 ]]></content>
   </entry>
   

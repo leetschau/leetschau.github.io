@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Shell | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/shell/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-10-03T10:36:40+08:00</updated>
+  <updated>2014-11-03T17:15:36+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,109 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Spark任务自动执行脚本]]></title>
+    <link href="http://leetschau.github.io/blog/2014/11/03/171108/"/>
+    <updated>2014-11-03T17:11:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/11/03/171108</id>
+    <content type="html"><![CDATA[<p>当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin：</p>
+
+<p>runJobs:</p>
+
+<pre><code>#!/bin/bash
+
+BMIN_CNT_WEI_LIST='0.5 0.3'
+MIN_SUP_LIST='0.004 0.0002'
+
+rm -rf {result,script}
+mkdir {result,script}
+origin_job=wfp-origin
+for bmin_cnt_wei in $BMIN_CNT_WEI_LIST; do
+    for min_sup in $MIN_SUP_LIST; do
+        echo MIN_SUP is: $min_sup , Bmin count weight is: $bmin_cnt_wei
+        new_script_name=wfp-bmin-${bmin_cnt_wei}-sup-${min_sup}
+        sed "4s/xxx/$min_sup/" $origin_job &gt; script/tmp
+        sed "11s/xxx/$bmin_cnt_wei/" script/tmp &gt; script/$new_script_name
+        rm script/tmp
+        echo Run shell script/$new_script_name
+        spark-shell -i script/$new_script_name
+        echo ------Calc is over------
+    done
+done
+</code></pre>
+
+<p>wfp-origin:</p>
+
+<pre><code>import Math.ceil
+import scala.io
+
+val MIN_SUP = xxx
+val MIN_CONF = 0.1
+val MAX_RELATION_ORDER = 3
+val DATA_FILE = "input"
+val SEP = "\001"
+val WEI_IDX = 5
+val MIN_INT_ID_LEN = 5
+val BMIN_CNT_WEI = xxx
+
+val RES_FILE = "result/wfp-result-bmin-" + BMIN_CNT_WEI.toString + "-sup-" + MIN_SUP.toString
+
+val rawData = sc.textFile(DATA_FILE).distinct
+val data = rawData.filter(x =&gt; x.split(SEP)(1).split("_")(0).size &gt; MIN_INT_ID_LEN)   
+val item_count = data.map(_.split(SEP)(1)).map(w =&gt; (w,1)).reduceByKey(_+_)
+val wids = data.map(_.split(SEP)(0))
+val MAX_ITEM = wids.map(w =&gt; (w,1)).reduceByKey(_+_).map(_._2).max
+val T = wids.distinct.count
+
+val weight = data.map(x =&gt; (x.split(SEP)(1), x.split(SEP)(WEI_IDX).toFloat)).distinct
+val rule_sets = weight.top(2000)
+scala.tools.nsc.io.File(RES_FILE).writeAll(rule_sets.map(_.toString).reduce(_ + "\n" + _))
+exit
+</code></pre>
+
+<p>这里的wfp-orgin只是一个示例，根据自己的脚本调整具体内容，但最后一行&#8221;exit&#8221;必须有，否则不能退出spark shell执行后面的任务。
+配合tmux，可以在tmux上运行runJobs.sh，下班时从tmux上detach出来，第二天上班时在attach上去看结果。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A Spark Job Runner in Web Browser]]></title>
+    <link href="http://leetschau.github.io/blog/2014/10/27/111204/"/>
+    <updated>2014-10-27T11:12:04+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/10/27/111204</id>
+    <content type="html"><![CDATA[<p>I wrote a Spark script. Now I need adding a web interface for it. Thus users can input parameters of the script in web browser, run the script,
+and see the calculation results in browser.</p>
+
+<h1>JEE</h1>
+
+<p>Download apache tomcat 7.0.56 core (apache-tomcat-7.0.56.tar.gz) and extract it to ~/apps;</p>
+
+<p>Download Eclipse IDE for Java EE Developers (eclipse-jee-luna-SR1-linux-gtk-x86_64.tar.gz) and extract it to ~/apps;</p>
+
+<p>Start Eclipse IDE for Java EE Developers, build a new Web project: [File -> New -> Web -> Dynamic Web Project];</p>
+
+<p>Specify &ldquo;Project&rdquo; as &ldquo;SparkRunner&rdquo;, &ldquo;Target runtime&rdquo; as &ldquo;Apache Tomcat v7.0&rdquo;.
+If the default runtime has not existed yet, build a new one: Type of runtime environment: Apache -> Apache Tomcat v7.0).
+Check &ldquo;Generate web.xml deployment descriptor&rdquo; at the last step and click &ldquo;Finish&rdquo;.</p>
+
+<p>Add the following texts into &ldquo;web-app&rdquo; of web.xml under $PROJECT_HOME/WebContent/WEB-INF:</p>
+
+<pre><code>&lt;servlet&gt;
+    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
+    &lt;servlet-class&gt;com.boco.dm.JobRunner&lt;/servlet-class&gt;
+&lt;/servlet&gt;
+&lt;servlet-mapping&gt;
+    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
+    &lt;url-pattern&gt;/JobRunner&lt;/url-pattern&gt;
+&lt;/servlet-mapping&gt;
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="https://cloud.google.com/appengine/docs/java/config/webxml#About_Deployment_Descriptors">The Deployment Descriptor: web.xml</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Replay Recent Executed Commands]]></title>
@@ -68,173 +171,6 @@ while ! nc -zv localhost 5556; do sleep 5; done
 <p>This solution based on the netcat utility.</p>
 
 <p>Ref: <a href="http://snipplr.com/view/43113/">bash: how to start a service and wait until it&rsquo;s up</a>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Run Shell Commands in Python]]></title>
-    <link href="http://leetschau.github.io/blog/2014/01/03/111321/"/>
-    <updated>2014-01-03T11:13:21+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/01/03/111321</id>
-    <content type="html"><![CDATA[<h1>subprocess.call</h1>
-
-<p>This is the recommended way to run shell commands in Python compared with old-fashioned os module.
-This is a realtime method, which means you can get the shell output on the fly, compared with following &ldquo;subprocess.check_output&rdquo; method, which collect all output in its return value.
-This method return the return value of the command, for example:</p>
-
-<pre><code>ret = subprocess.call('ls -l')
-</code></pre>
-
-<p>where ret=0, while</p>
-
-<pre><code>ret = subprocess.call('cd aaa')
-</code></pre>
-
-<p>ret=2 when there isn&rsquo;t &ldquo;aaa&rdquo; subfolder under CWD.</p>
-
-<p>For ease of use, write a shorthand function:</p>
-
-<pre><code>import subprocess
-def run(cmd):
-    ret = subprocess.call(cmd, shell=True)
-    if ret != 0:
-        sys.exit('Exec cmd %s error, return value: %s' %(cmd, str(ret)))
-</code></pre>
-
-<p>Then you can simply use &ldquo;run(cmd)&rdquo; as a shell interface. &ldquo;run&rdquo; print command stdout stderr to console stdout, and if there&rsquo;s something wrong during execution, we interrupt it.</p>
-
-<h1>subprocess.check_output</h1>
-
-<p>A more safe way to run shell command is using &ldquo;check_output&rdquo; function. If the return value if not 0, a exception raised, otherwise return the command output.</p>
-
-<pre><code>$ cat myrun.py
-import subprocess
-def run(cmd):
-    return subprocess.check_output(cmd, shell=True)
-$ python -i myrun.py
-&gt;&gt;&gt; ret = run('ls -l|grep donno')
-&gt;&gt;&gt; ret
-'drwxr-xr-x 6 chad chad 4096 Jan 26 18:18 donno-0.1.10\n-rw-r--r-- 1 chad chad 8716 Jan 27 15:53 donno-0.1.10.tar.gz\n'
-&gt;&gt;&gt; ret = run('cd aaa')
-/bin/sh: 1: cd: can't cd to aaa
-Traceback (most recent call last):
-  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
-  File "shtest.py", line 3, in run
-    return subprocess.check_output(cmd, shell=True)
-  File "/usr/lib/python2.7/subprocess.py", line 544, in check_output
-    raise CalledProcessError(retcode, cmd, output=output)
-subprocess.CalledProcessError: Command 'cd aaa' returned non-zero exit status 2
-</code></pre>
-
-<h1>subprocess.Popen</h1>
-
-<p>If you want some more powerful tools, use this. You can&rsquo;t use pipe directly in this form. Instead, You have to use subprocess.PIPE:</p>
-
-<pre><code>&gt;&gt;&gt; import subprocess
-&gt;&gt;&gt; lsres = subprocess.Popen(['ls','-l'], stdout=subprocess.PIPE)
-&gt;&gt;&gt; grepres = subprocess.Popen(['grep', 'Do'], stdin=lsres.stdout, stdout=subprocess.PIPE)
-&gt;&gt;&gt; res = grepres.communicate()
-</code></pre>
-
-<p>communicate() interact with process: Send data to stdin. Read data from stdout and stderr, until end-of-file is reached. Wait for process to terminate. It returns a tuple (stdoutdata, stderrdata).</p>
-
-<h2>Full solution of running shell command</h2>
-
-<p>If you want realtime output, while saving output and return code in variables, you should use Popen:</p>
-
-<pre><code>from subprocess import Popen, PIPE, STDOUT
-cmd = 'vmstat 2 3'
-cmd2 = 'exit 3'
-
-p = Popen(cmd, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
-
-line = ''
-while p.poll() is None:
-    out = p.stdout.read(1)
-    if out=='\n':
-        print(line)
-        line = ''
-    else:
-        line = line + out
-print('--------\nret is: %d' % p.returncode)
-</code></pre>
-
-<p>The Popen.stdout is a file object, so its &ldquo;read(size)&rdquo; method here means read every 1 byte.
-&ldquo;close_fds=True&rdquo; is maybe unnecessary, but I keep it for safe.</p>
-
-<h1>os.system</h1>
-
-<p>If it&rsquo;s unnecessary to save command output, this is most convenient way. The output will output to console. You can use space and pipe in command:</p>
-
-<pre><code>&gt;&gt;&gt; import os 
-&gt;&gt;&gt; ret = os.system('ls -l|grep D') 
-</code></pre>
-
-<p>And it will return after the command complete:</p>
-
-<pre><code>&gt;&gt;&gt; ret = os.system('vmstat 3 3')
-</code></pre>
-
-<h1>os.popen</h1>
-
-<p>Use this form if you want to save command output.</p>
-
-<pre><code>&gt;&gt;&gt; retfile = os.popen('pwd')
-&gt;&gt;&gt; ret = retfile.read() 
-&gt;&gt;&gt; ret 
-'/home/lichao\n' 
-&gt;&gt;&gt; retfile 
-&lt;open file 'pwd', mode 'r' at 0xb74aad30&gt;
-</code></pre>
-
-<p>or write it more compact:</p>
-
-<pre><code>&gt;&gt;&gt; result = os.popen('ls|grep enex').read()
-</code></pre>
-
-<h2>Deprecated</h2>
-
-<ul>
-<li><p>commands.getoutput()</p></li>
-<li><p>commands.getstatusoutput()</p></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Get Total Testcase Number in JUnit Report File With Grep and Awk]]></title>
-    <link href="http://leetschau.github.io/blog/2013/12/06/111936/"/>
-    <updated>2013-12-06T11:19:36+08:00</updated>
-    <id>http://leetschau.github.io/blog/2013/12/06/111936</id>
-    <content type="html"><![CDATA[<p>Under $JENKINS_HOME/jobs/GSP/workspace/build/work/plugins(we call this folder as &ldquo;basedir&rdquo;), there are many bundle folders. Some of them were compiled, so there are many test report file &ldquo;TEST-<full-name>.xml&rdquo; in <bundle-name>/build/unittest_report, for example, com.boco.gsp.element.decision.config/build/unittest_report/TEST-com.boco.gsp.decision.config.parser.DecisionParserTest.xml. The content of this file is:</p>
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo; ?></p>
-
-<p> <testsuite errors="0" failures="0" hostname="
-pwm" name="com.boco.gsp.decision.config.parser.DecisionParserTest" tests="3" time="0.127" timestamp="2013-12-05T19:25:11"></p>
-
-<p>  <properties></p>
-
-<p>   &hellip;</p>
-
-<p> </testsuite></p>
-
-<p>In this case the testcase number is 3 according to &lsquo;test=&ldquo;3&rdquo;&rsquo;. Now we need get the total number of testcases with following steps:</p>
-
-<ol>
-<li><p>find all these test report file under ${basedir};</p></li>
-<li><p>get the testcase number;</p></li>
-<li><p>add all these number up;</p></li>
-<li><p>print the result;</p></li>
-</ol>
-
-
-<p>We achieve this by the following command under ${basedir}:</p>
-
-<p> grep -Po &lsquo;(?&lt;=tests=&ldquo;)\d+&rsquo; <em>*/TEST-</em>.xml | awk -F':&lsquo; &rsquo;{SUM += $2; print $1 &rdquo;: &ldquo; $2} END {print "Total: &rdquo; SUM}'</p>
-
-<p>&ldquo;-P&rdquo; let grep interpret pattern as perl regular expression. &ldquo;-o&rdquo; means only output the matched part. &ldquo;(?>=&hellip;)&rdquo; eliminates the text in parenthesis. &ldquo;-F&rdquo; of awk specify the delimiter. This command works on zsh because the &ldquo;<em>*/</em>&rdquo; syntax only valid on zsh. If you use bash, you have to modify this.</p>
 ]]></content>
   </entry>
   
