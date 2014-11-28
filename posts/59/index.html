@@ -9,10 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="day 1 Print the string “Hello, world.”
-puts &ldquo;Hello, world.&rdquo;
-For the string “Hello, Ruby,” find the index of the word “Ruby.”
-&ldquo;Hello &hellip;">
+  <meta name="description" content="Linux系统的iconv指令是一个很好的文件编码转换工具，支持的编码范围广，使用方便，例如将一个utf-8编码的文件（名为tic）转换为gbk编码： iconv -f utf-8 -t gbk tic > ticgbk 可以用&#8221;iconv -l&#8221;查看系统支持的所有编码列表 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +65,508 @@ For the string “Hello, Ruby,” find the index of the word “Ruby.”
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/13/154337/">Linux平台上转换文件编码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-12-13T15:43:37+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>3:43 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Linux系统的iconv指令是一个很好的文件编码转换工具，支持的编码范围广，使用方便，例如将一个utf-8编码的文件（名为tic）转换为gbk编码：</p>
+
+<p>iconv -f utf-8 -t gbk tic > ticgbk</p>
+
+<p>可以用&#8221;iconv -l&#8221;查看系统支持的所有编码列表。</p>
+
+<p>另：用file -i <file_name>可以查看一个文件的编码方式。</p>
+
+<p>下面是一个可以一次转换多个文件的脚本：</p>
+
+<pre><code>mkdir dst
+for file in $(find src -type f); do
+  iconv -f gbk -t utf-8 $file &gt; dst/$(basename $file)
+done
+</code></pre>
+
+<p>这里要注意的是，由于重定向的目标文件所在的目录必须已经存在，所以需要首先创建目标目录dst，其次find命令输出的文件列表是以当前目录为基准，所以输出目标必须去掉路径部分，也就是&#8221;basename $file&#8221;做的，且源目录src中不能有子目录，否则所有目录下的文件会被摊平放在dst下，如果不同子目录下有同名文件，则最后一个会覆盖前面同名文件的内容。</p>
+
+<p>如果确实需要转换包括子目录的所有文件，可以通过一个临时目录中转，完成该过程的脚本&#8221;myconv.sh&#8221;内容如下：</p>
+
+<pre><code>#!/bin/bash
+if [[ $# != 2 ]]; then
+    echo Usage: ./myconv.sh src dst
+    exit 1
+fi
+src=$1
+dst=$2
+mkdir -p tmp
+cp -r $src tmp/
+for file in $(find $src -type f); do
+    #echo iconv from $file to $dst/$file
+    iconv -f gbk -t utf-8 $file &gt; tmp/$file
+done
+mv tmp/$src $dst
+rm -rf tmp
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/13/125323/">Vim的文件浏览</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-12-13T12:53:23+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>12:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Vim的Explore指令按照vi的哲学实现了文件浏览器的功能，使用方法是:Explore，或者简写为:E（使用方法详见:h :Explore）。执行该指令后出现当前目录下文件（夹）列表，可以用jk键上下移动光标，&#8221;s&#8221;键改变文件排列顺序，&#8221;r&#8221;键表示“逆序排列”，“/”键查找文件名，选中文件后Enter键在vim中打开该文件，“-”键跳转到上一级目录，&#8221;i&#8221;改变文件显示方式，可以在“文件名列表”、“详细列表”和“树形目录”三者之间切换；&#8221;d&#8221;新建目录，&#8221;R&#8221;重命名文件，&#8221;D&#8221;删除文件，&#8221;x&#8221;执行文件（用来查看pandoc写成的html文件），&#8221;c&#8221;将Explore所在目录设置为vim的当前目录。</p>
+
+<p>:E后面跟路径名表示打开该路径，例如要分析f:\ghost\tmpFiles\MyProj下的Java代码：:E f:\ghost\tmpFiles\MyProj，与&#8221;c&#8221;键配合可以修改vim的工作路径。</p>
+
+<p>使用:Vexplore（简写为:Ve或者:Sex!）可以实现类似于Eclipse的Package Explorer那种左边是文件列表、右边是文件的界面风格，但左边选中文件后回车不会在右边打开，而是直接在左边窗口里打开，所以貌似没什么用，:E就很好了。</p>
+
+<h1>相关操作</h1>
+
+<ul>
+<li><p>用:pwd可以查询当前目录，用:lcd <target path>可以改变当前目录；</p></li>
+<li><p>用:ls可以查看目前已打开的文件（buffer）列表，用:b[N]可以跳到该文件，用:bn打开下一个buffer，详见笔记 buffer-related operations in vim 。</p></li>
+<li><p>用打开文件命令处理文件夹时会自动进入文件浏览模式，例如&#8221;:e .&ldquo;是浏览当前目录；</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/11/173112/">Bat脚本中%~dp0含义解释</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-12-11T17:31:12+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:31 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在Windows脚本中，%i类似于shell脚本中的$i，%0表示脚本本身，%1表示脚本的第一个参数，以此类推到%9，在%和i之间可以有“修饰符”（完整列表可通过&#8221;for /?&ldquo;指令查看），表示对%i进行各种处理，其中d表示盘符，p表示除盘符外的路径，n表示文件名，x表示扩展名，f表示全路径（路径+文件名），s表示8.3格式的全路径，修饰符可以组合，所以%~dp0的意思是：脚本本身（%0）的路径（盘符d+路径p）。下面是实例演示，在F:\ghost\tmpFiles\下新建aa.bat文件，内容如下：</p>
+
+<p> @echo off
+ echo %%0 = %0
+ echo %%1 = %1
+ echo %%2 = %2
+ echo %%~0 = %~0
+ echo %%~1 = %~1
+ echo %%~2 = %~2
+ echo %%~d0 = %~d0
+ echo %%~p0 = %~p0
+ echo %%~dp0 = %~dp0
+ echo %%~n0 = %~n0
+ echo %%~x0 = %~x0
+ echo %%~nx0 = %~nx0
+ echo %%~f0 = %~f0
+ echo %%~s0 = %~s0
+ echo %%~fs0 = %~fs0
+ echo %%~dp1 = %~dp1
+ echo %%~nx1 = %~nx1
+ echo %%~fs1 = %~fs1
+ echo %%~dp2 = %~dp2
+ echo %%~nx2 = %~nx2
+ echo %%~f2 = %~f2
+ echo %%~s2 = %~s2
+ echo %%~fs2 = %~fs2</p>
+
+<p>然后加两个附加参数运行这个文件： &ldquo;aa.bat f:\CMDTest.zip f:\warez\Develop\C\codeblocks-12.11mingw-setup.zip&#8221;，运行结果如下：</p>
+
+<p> %0 = aa.bat
+ %1 = f:\CMDTest.zip
+ %2 = f:\warez\Develop\C\codeblocks-12.11mingw-setup.zip
+ %~0 = aa.bat
+ %~1 = f:\CMDTest.zip
+ %~2 = f:\warez\Develop\C\codeblocks-12.11mingw-setup.zip
+ %~d0 = F:
+ %~p0 = \ghost\tmpFiles\
+ %~dp0 = F:\ghost\tmpFiles\
+ %~n0 = aa
+ %~x0 = .bat
+ %~nx0 = aa.bat
+ %~f0 = F:\ghost\tmpFiles\aa.bat
+ %~s0 = F:\ghost\tmpFiles\aa.bat
+ %~fs0 = F:\ghost\tmpFiles\aa.bat
+ %~dp1 = f:\
+ %~nx1 = CMDTest.zip
+ %~fs1 = f:\CMDTest.zip
+ %~dp2 = f:\warez\Develop\C\
+ %~nx2 = codeblocks-12.11mingw-setup.zip
+ %~f2 = f:\warez\Develop\C\codeblocks-12.11mingw-setup.zip
+ %~s2 = f:\warez\Develop\C\CODEBL~1.ZIP
+ %~fs2 = f:\warez\Develop\C\CODEBL~1.ZIP</p>
+
+<p>参考<a href="http://stackoverflow.com/questions/5034076/what-does-dp0-mean-and-how-does-it-work">What does %~dp0 mean, and how does it work?</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/11/131018/">Gdb Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-12-11T13:10:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>1:10 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ubuntu 11自带gcc和gdb，下面是使用gdb调试代码的过程：</p>
+
+<ol>
+<li><p>首先写一个简单的hw.c程序：</p>
+
+<p> #include &lt;stdio.h>
+ int main() {
+     char str[] = &ldquo;hello, world&rdquo;;
+     printf(&ldquo;%s\n&rdquo;,str);
+     return 0;
+ }</p></li>
+<li><p>编译并运行源代码（gcc指令必须有-g选项，不能加-Wall选项，否则无法调试）：</p>
+
+<p> chad@ubuntu:~/Documents$ gcc -g hw.c -o hw
+ chad@ubuntu:~/Documents$ ./hw
+ hello, world</p></li>
+<li><p>用gdb调试编译出来的文件：</p>
+
+<p> chad@ubuntu:~/Documents$ gdb hw
+ GNU gdb (Ubuntu/Linaro 7.3-0ubuntu2) 7.3-2011.08
+ &hellip;
+ (gdb) b 3
+ Breakpoint 1 at 0x8048449: file hw.c, line 3.
+ (gdb) r
+ Starting program: /home/chad/Documents/hw
+ Breakpoint 1, main () at hw.c:3
+ 3   char str[] = &ldquo;hello, world&rdquo;;
+ (gdb) p str
+ $1 = &ldquo;\000\364\217*\000U&lt;\026\000\231\204\004\b&rdquo;
+ (gdb) s
+ 4   printf(&ldquo;%s\n&rdquo;,str);
+ (gdb) p str
+ $2 = &ldquo;hello, world&rdquo;</p>
+
+<p> (gdb) p str[1]=&lsquo;y&rsquo;   $3 = 121 &lsquo;y&rsquo;
+ (gdb) p str
+ $4 = &ldquo;hyllo, world&rdquo;</p>
+
+<p> (gdb) p $2
+ $5 = &ldquo;hello, world&rdquo;</p>
+
+<p> (gdb) c
+ Continuing.
+ hello, world
+ [Inferior 1 (process 3345) exited normally]
+ (gdb) q
+ chad@ubuntu:~/Documents$</p></li>
+</ol>
+
+
+<p>上述操作过程，代码前面的标号是行号。用户输入的指令，&#8221;b 3&#8221;表示在第3行打断点，r表示run，p表示print，s表示step（即step in），这里也可以用n（next，即step over），c表示continue，q表示quit。可以看到step指令之前打印str的值是一个随机值（因为还没有赋值），step之后（到第4行）就有了值；</p>
+
+<p>p指令除了可以显示程序变量值，还可以修改变量值，如上面的p str[1]=&lsquo;y&#8217;；</p>
+
+<p>gdb每次输出都被保持到了一个格式为$n的变量中，后面可以再引用这个变量，如上面的p $2；</p>
+
+<p>可以用l(list)指令打印出完整的源代码。</p>
+
+<h2>C++</h2>
+
+<pre><code>$ g++ -g srcfile.cc -o rr
+$ gdb rr
+$ l
+</code></pre>
+
+<p>这里&#8221;-g&#8221;选项是必须的，否则gdb无法得到原文件信息。</p>
+
+<h1>Windows平台</h1>
+
+<p><a href="http://www.codeblocks.org/">Code::Blocks</a>是目前唯一实现了断点调试的Windows平台上C开发环境（它本身是跨平台的），带MinGW安装包100MB，不带MinGW的20MB多，比较符合轻量级的要求；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/07/170351/">Pandoc笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-12-07T17:03:51+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:03 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天在用markdown写多级列表的时候发现markdown不支持多级列表，找了一番发现<a href="http://johnmacfarlane.net/pandoc/">Pandoc</a>是个比较好的替代工具。功能强（支持多级列表，配上插件可以生成pdf和docx文件），开源（GPL）。</p>
+
+<h1>Hello World Demo (multi-level ordered list)</h1>
+
+<ol>
+<li><p>下载Pandoc for Windows；</p></li>
+<li><p>写一个简单的示例demo.txt，内容如下：</p></li>
+</ol>
+
+
+<blockquote><ol>
+<li>title one</li>
+<li><p>sub one</p></li>
+<li><p> sub sub one</p></li>
+<li><p> sub sub two</p></li>
+<li>sub two</li>
+<li>title two</li>
+<li>title three</li>
+<li>sub three one</li>
+<li>sub three two</li>
+</ol>
+</blockquote>
+
+<ol>
+<li>demo.txt所在路径下运行&#8221;pandoc -o demo.html demo.txt&#8221;，会在当前目录下生成demo.html文件，效果如下：</li>
+</ol>
+
+
+<p> title one
+ sub one
+ sub sub one sub sub two sub two title two title three
+ sub three one sub three two</p>
+
+<p> 采用pandoc语法写多级列表的格式是：第2级列表行首缩进4格，以&#8221;i. &ldquo;开头，第3级多加4个空格，以&#8221;a. &#8220;开头。</p>
+
+<h1>Multi-level bullet list</h1>
+
+<p>demo.txt内容如下：</p>
+
+<ul>
+<li>this is list line 1</li>
+<li>this is sub list 1</li>
+<li> this is sub sub list 1</li>
+<li>this is sub list 2</li>
+<li>this is list 2</li>
+</ul>
+
+
+<p>输出结果：</p>
+
+<p> this is list line 1
+ this is sub list 1
+ this is sub sub list 1 this is sub list 2 this is list 2</p>
+
+<p>注意：</p>
+
+<ul>
+<li>GBK编码的文件中如果有中文，pandoc会报错退出，如果一定要显示中文，需要保存为UTF-8格式。</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/07/111330/">比较不同文件夹下源代码的内容差异</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-12-07T11:13:30+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>场景</h1>
+
+<p>现有两个源代码文件夹：&#8221;d:\workspace\GoduServer3.0\src&#8221;和&#8221;d:\workspace\Godu_Server_2.3\src&#8221;，分别包含多级子目录，需要比较所有子目录中文件内容的差异（不能只比较文件的大小和修改时间）。</p>
+
+<h1>Linux</h1>
+
+<p>diff -rq, see &ldquo; Diff Notes &rdquo;;</p>
+
+<h1>解决方案</h1>
+
+<h2>Windows</h2>
+
+<h3>TotalCmd</h3>
+
+<ol>
+<li><p>分别打开要比较的两个文件夹，[Commands -> Synchronize dirs] (Shift+F12);</p></li>
+<li><p>取消&#8221;Asymmetric&#8221;，选中&#8221;subdirs&#8221;, &ldquo;by content&rdquo; and &ldquo;ignore date&#8221;，点击&#8221;compare&rdquo;;</p></li>
+<li><p>TotalCmd会列出所有不同的文件，要比较不同的文件，选中然后右键 -> Compare Left &amp; Right (Ctrl+F3);</p></li>
+<li><p>根据文件内容确定同步的方向，点击&#8221;Synchronize&#8221;；</p></li>
+</ol>
+
+
+<h3>UltraCompare</h3>
+
+<p>用<a href="http://www.ultraedit.com/products/ultracompare.html">UltraCompare Pro</a>的绿色版，解压后在uc.exe所在目录下运行：
+uc -d -r -ne -dmf -B d:\workspace\GoduServer3.0\src d:\workspace\Godu_Server_2.3\src</p>
+
+<p>指令格式：uc [options] dir1 dir2</p>
+
+<p>选项含义：</p>
+
+<p>-d：文件夹比较模式（而不是文本比较）；</p>
+
+<p>-r：包含所有子文件夹；</p>
+
+<p>-ne：只显示不同的文件；</p>
+
+<p>-dmf：文本比较模式（逐字节比较，另外还有：-dmb：基本比较模式，只比较文件大小和日期；-dms：智能比较模式）</p>
+
+<p>-B：文本比较时忽略空行；</p>
+
+<p>详见UltraCompare帮助文档“命令行选项”一节。</p>
+
+<p>UC支持界面操作，上面各个选项在工具栏上都有图标，选中后点击两个路径输入框中间的绿色三角按钮就开始比较了（Ctrl+F5），比较完之后可以用工具栏上的各种合并按钮进行合并操作。</p>
+
+<h3>备选方案</h3>
+
+<ul>
+<li>免费软件FreeFileSync也具备比较文件内容和子文件夹循环比较的能力，但只能找到不用的文件，不能对选定的文件进行文本比较。</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/06/092553/">关于Algorithm in Nutshell源代码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-12-06T09:25:53+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:25 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>获取源码包</h1>
+
+<p>&ldquo;Algorithm in Nutshell&#8221;的源码包<a href="http://examples.oreilly.com/9780596516246/Releases/ADK-1.0.zip">ADK-1.0.zip</a>在这本书<a href="http://shop.oreilly.com/product/9780596516246.do">主页</a>上&#8221;Download Example Code&#8221;页面的Releases目录中。</p>
+
+<h1>构建源码</h1>
+
+<p>构建ADK需要JDK6或者7，且源代码的文件编码为UTF-8，在Windows下编译失败，在47上写了一个脚本：</p>
+
+<p> #!/bin/sh
+ JAVA_HOME=/opt/jdk1.6.0_35
+ PATH=$JAVA_HOME/bin:/usr/kerberos/bin:/usr/local/bin:/bin:/usr/bin
+ export PATH
+ ./no_ant.sh</p>
+
+<p>然后运行这个脚本，编译出dist目录及下面的两个jar文件：ADK-1.0-ExamplesAndFigures.jar和ADK-1.0.jar。</p>
+
+<h1>验证构建结果</h1>
+
+<p>将dist目录拷贝回PC机上，运行“java -cp dist/ADK-1.0-ExamplesAndFigures.jar algs.chapter3.table1.Main”（参见源码包根目录下的Readme文件）</p>
+
+<p>得到结果，证明编译成功。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -204,438 +703,6 @@ puts &ldquo;You got it: #{i}&rdquo;</li>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/04/081907/">Ruby笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-12-04T08:19:07+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:19 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Windows平台上的Ruby编译器首推<a href="http://rubyinstaller.org/">RubyInstaller</a>的7z绿色版，其次是exe安装包，最后还可以选择<a href="http://jruby.org/">JRuby</a>，需要jre才能运行，Windows上有zip和exe安装包两种方式供选择，Linux上有gz包。RubyInstaller的运行速度远高于JRuby。</p></li>
-<li><p>跳出嵌套层次</p></li>
-</ul>
-
-
-<p>030后面的数字是嵌套层次，用end可以跳到上一级。
-irb(main):030:2> end</p>
-
-<p>irb(main):030:1></p>
-
-<ul>
-<li>Ruby语言模型(引自&#8221;3.2 The Ruby Universe&#8221; of Brian Marick: &ldquo;Everyday Scripting with Ruby&rdquo;)：</li>
-</ul>
-
-
-<p>When you run the inventory.rb script, you create a little Ruby universe. That universe, in essence, contains only three kinds of things: nouns, verbs, and names. The nouns are usually called objects. They are the “things” in the Ruby universe. Objects just sit there until they’re told to do something. That’s where the verbs come in. All the verbs in the Ruby universe are imperative: verbs like “sit!” and “stay!” and “roll over!” In Ruby, these verbs are called messages, and telling an object to do some-thing is called sending a message.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/11/19/145129/">Windows Server FTP工具</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-11-19T14:51:29+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:51 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>试用了<a href="http://www.freesshd.com/">freeFTPd</a>和<a href="http://www.coreftp.com/server/">mini sftp server on CoreFTP</a>。</p>
-
-<p>freeFTPd的ftp server启动并上传/下载成功，sftp server能启动，也能接收用户登录，但无法上传/下载文件。</p>
-
-<p>mini sftp server是一个绿色文件，只要在启动界面上配好用户名、密码、端口即可，非常方便，只能配一个用户，但这个用户可以与server建立多个连接，用ftp客户端上传/下载正常，但用Ant的scp指令上传文件时，在连接server时僵死。</p>
-
-<p>总结：freeFTPd需要安装，还会生成一个服务，对系统影响比较大，如果只是用sftp做部署时上传的话，mini sftp够用了。</p>
-
-<p>另：freeSSHd启动后用户无法登录，Windows对SSH以及SFTP的支持不好，需要测SSH服务的时候最好在Linux server上测。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/11/13/104147/">VirtualBox使用笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-11-13T10:41:47+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>版本：VirtualBox 4.2.4；</p>
-
-<ul>
-<li><p>VirtualBox是开源软件（GPL），其安装文件只有90多MB，比vmware小多了；</p></li>
-<li><p>支持的操作系统很全面，Windows, Linux, Max OS X, Solaris, BSD, IBM OS/2, DOS &hellip;</p></li>
-<li><p>需要在全局设置中预先指定好虚拟电脑的位置，而不是像vmware那样安装虚拟机的时候再设置；</p></li>
-<li><p>加载虚拟光驱盘片（如iso文件）和USB设备是虚拟机窗口中设定的；</p></li>
-<li><p>中文界面的翻译质量令人满意；</p></li>
-<li><p>主程序退出后不会驻留内存（如vmware-tray.exe），更轻量级；</p></li>
-<li><p>初次使用整体感觉很好，容易上手；</p></li>
-</ul>
-
-
-<h1>Shared Folders</h1>
-
-<p>首先要在虚拟机的Settings->Shared folders中添加一个shared folder，然后启动虚拟机，安装Guest Additions（Devices -> Install Guest Additions）</p>
-
-<ul>
-<li><p>WinXP虚拟机在网络邻居里可以看到Virtualbox shared folders；</p></li>
-<li><p>Ubuntu虚拟机在/media下可以看到sf_xxx目录，这就是shared folder了，用root用户可以访问此目录，从中拷贝文件；</p></li>
-</ul>
-
-
-<h1>快捷键的使用方法</h1>
-
-<p>VirtualBox管理窗口和各虚拟机是不同的窗体（而不像vmware那样是不同的标签），启动虚拟机后管理界面就可以关闭了。对虚拟机的操作可以使用快捷键，例如关闭虚拟机的快捷键是Ctrl+H（必须是右边的Ctrl键，因为这个快捷键实际上是Host（也叫“热键”）+H，而VirtualBox默认的Host键是右边的Ctrl键，可以在管理窗体主菜单【管理->全局设定->热键】中修改），在管理窗体主菜单【控制->退出->正常关机】后面可以看到快捷键定义，见下图。这样关闭虚拟机有3种方法，一种是在虚拟机里执行关机指令，另一种是在管理窗体上执行上面的菜单项，最后一种方法是在虚拟机窗体上右Ctrl+H，最后这种方法适用于管理界面已经关闭的情况下控制虚拟机。</p>
-
-<h1>命令行用法</h1>
-
-<p>假设通过图形界面建好了一个虚拟机叫uServer1204。</p>
-
-<h2>完全命令行</h2>
-
-<p>适用于启动只有命令行界面的虚拟机，例如Ubuntu Server，用VBoxHeadless.exe的startvm命令（vrde是远程桌面，因为没有图形界面，也就不需要启动远程桌面了）：</p>
-
-<pre><code>E:\MyDoc\ahkFiles&gt;"C:\Program Files\Oracle\VirtualBox\VBoxHeadless.exe" --startvm uServer1204 --vrde off 
-Oracle VM VirtualBox Headless Interface 4.2.8 
-(C) 2008-2013 Oracle Corporation 
-All rights reserved.
-</code></pre>
-
-<p>然后就可以用&#8221;ssh user@ip&#8221;登录这个虚拟机了，如果知道虚拟机的hostname，可以用&#8221;ssh user@hostname&#8221;连接，这样避免了连接前查IP地址的麻烦。需要关闭虚拟机时，新开一个命令行界面运行VBoxManage controlvm <vm_name> poweroff命令：</p>
-
-<pre><code>E:\MyDoc\ahkFiles&gt;"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" controlvm uServer1204 poweroff
-0%...10%...20%...30%...40%...50%...60%...70%...80%...90%...100%
-</code></pre>
-
-<p>这种方法启动Ubuntu Server大概消耗150~200MB左右内存，启动速度比较快，不占用单独的窗口（ConEmu的一个标签页），是启动Server的最佳方法，缺点是看不到启动过程，只能根据宿主机的内存和CPU消耗推断虚拟机是否启动，如果启动后一直连不上，可以用图形界面（或者下面介绍的方法）启动虚拟机，查看错误信息。</p>
-
-<h2>命令行启动图形界面</h2>
-
-<p>适用于启动有图形界面的虚拟机。用VBoxManage.exe的list vms子命令查看已有的虚拟机：</p>
-
-<pre><code>E:\MyDoc\ahkFiles&gt;"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" list vms
-"Ubuntu11.10" {bfae3b28-7063-4c14-ae3f-47a46eb894be} 
-"uServer1204" {faca3e8a-d27e-4ca4-bb92-3b03d07a753c} 
-"GameXP" {609dfe66-6554-40dc-a2af-7526962bc6bb}
-</code></pre>
-
-<p>然后用startvm和controlvm <vm_name> poweroff两个子命令来启动和关闭虚拟机：</p>
-
-<pre><code>E:\MyDoc\ahkFiles&gt;"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" startvm uServer1204
-Waiting for VM "uServer1204" to power on... 
-VM "uServer1204" has been successfully started. 
-E:\MyDoc\ahkFiles&gt;"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" controlvm uServer1204 poweroff
-0%...10%...20%...30%...40%...50%...60%...70%...80%...90%...100%
-</code></pre>
-
-<p>试验发现启动和关闭速度高于图形界面，另外命令行操作可以实现一定程度的自动化（例如通过autohotkey脚本用快捷键启动和关闭虚拟机）。</p>
-
-<p>用VBoxManage.exe &ndash;help（或者google &ldquo;virtualbox VBoxManage&#8221;，或者查看随机文档VirtualBox-4.2.4-UserManual.pdf第8章）查看详细使用方法。</p>
-
-<h1>Clone and Portability</h1>
-
-<p>// 2014-7-2更新</p>
-
-<p>VirtualBox的Clone分为full clone和linked clone两种方式，前者的优点是源的完全拷贝，可以独立地运行，由于它的虚拟磁盘包括VM的所有信息，比较费磁盘空间，后者正好相反，它的虚拟盘只保存相对于源盘的增量部分，所以节省空间，但必须与源处于同一主机上。</p>
-
-<p>VirtualBox目前支持的导入/导出格式是ova文件，结合这两点，在Linux上使用Windows虚拟机的方法是：</p>
-
-<ol>
-<li><p>创建一个干净的Windows虚拟机，将其导出为ova格式文件保存；</p></li>
-<li><p>在需要使用Windows的主机上，安装VirtualBox和对应版本的Extension Pack（否则虚拟机无法使用USB设备），导入这个ova文件，形成一个基准系统，例如名为Win7Base；</p></li>
-<li><p>为这个基准系统做Linked Clone：在Win7Base上右键->Clone，选择Linked clone；</p></li>
-</ol>
-
-
-<p>注意不要在Win7Base上安装软件，它只作基准系统，clone生成的VM才是工作VM，可以为Win7Base制作多个clone，比如一个主要做文档处理，就只安装Office，另一个做C#开发，则安装Visual Studio，当软件安装好后别忘了制作一个snapshot，这样当软件出问题时无需重装，只要简单地&#8221;Restore Snapshot&#8221;就OK了，然后导出为ova文件保存；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/11/10/170839/">Installation of Agilefant & Icescrum</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-11-10T17:08:39+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:08 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>install agilefant</h1>
-
-<p>modify root password:
-1. unzip mysql-5.5.28-win32.zip to d:/apps
-1. D:\Apps\mysql-5.5.28-win32\bin>mysqld -u root &ndash;skip-grant-tables
-1. in a new cmd window: D:\Apps\mysql-5.5.28-win32\bin>mysql
-1. mysql> use mysql;
-1. mysql> UPDATE user SET Password = PASSWORD(&lsquo;mypwd&rsquo;) WHERE User = &lsquo;root&rsquo;;
-verify password:
-1. D:\Apps\mysql-5.5.28-win32\bin>mysql -u root -p
-1. input password: mypwd
-1. mysql> CREATE DATABASE agilefant;
-1. mysql> flush privileges;
-1. mysql> GRANT ALL ON agilefant.* to agilefant@localhost IDENTIFIED BY &lsquo;zhangjingg&rsquo;;
-1. mysql> exit;
-1. D:\Apps\mysql-5.5.28-win32\bin>mysql -u agilefant -p
-1. mysql> use agilefant;
-1. mysql> source f:/ghost/tempFiles/agilefant-3.0.1/create-db.ddl;
-d:\Apps\apache-tomcat-7.0.32\bin\startup.bat
-<a href="http://localhost:8080/">http://localhost:8080/</a></p>
-
-<h1>install icescrum</h1>
-
-<p>follow: <a href="http://www.icescrum.org/en/simple-installation/">Simple Installation</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/11/08/201411/">Android Hello World程序开发过程</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-11-08T20:14:11+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:14 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>按照<a href="https://developer.android.com/training/basics/firstapp/index.html">Building Your First App</a>，详细过程如下：</p>
-
-<ol>
-<li><p>安装SDK（如果网速慢，需要用离线安装的方法，见笔记 离线安装Android SDK的方法 ）；</p></li>
-<li><p>采用命令行开发方法（不用装Eclipse插件ADT）；</p></li>
-<li><p>$SDK_HOME/tools下运行android list targets（$SDK_HOME=C:\Program Files\Android\android-sdk）；</p></li>
-<li><p>$SDK_HOME/tools下运行&#8221;android create project &ndash;target 2 &ndash;name MyFirstApp &ndash;path e:/MyDoc/AndroidEx/MyFirstApp &ndash;activity MainActivity &ndash;package com.example.myfirstapp&#8221;；</p></li>
-<li><p>生成一个虚拟设备：$SDK_HOME/tools下运行&#8221;android avd&#8221;，Name: ChadAVD, Target: Android 4.1.2, CPU/ABI: ARM;</p></li>
-<li><p>启动此设备：Android Virtual Device Manager中选中&#8221;ChadAVD&#8221;，点&#8221;start&#8221;；</p></li>
-<li><p>修改应用界面：e:\MyDoc\AndroidEx\MyFirstApp\res\layout\main.xml修改其中&#8221;android:text&#8221;的值为&#8221;你好安卓！&#8221;；</p></li>
-<li><p>编译应用：项目根目录（e:/mydoc/androidEx）下运行&#8221;ant debug&#8221;;</p></li>
-<li><p>安装应用：E:\MyDoc\AndroidEx\MyFirstApp>&ldquo;c:\Program Files\Android\android-sdk\platform-tools\adb.exe&rdquo; install bin/MyFirstApp-debug.apk；</p></li>
-<li><p>验证安装成功：在应用列表里可以看到MainActivity，点击，可以看到&#8221;你好安卓！&#8221;；</p></li>
-<li><p>如果修改了源代码，需要在AVD里卸载MainActivity，然后再用adb install安装，否则报“App already exists”错误。</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/11/08/100435/">演示切换屏幕控制序列的程序</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-11-08T10:04:35+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:04 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>\033[?1049h和\033[?1049l的功能是切换屏幕（见笔记 关于ansi转义序列控制符 ），下面的代码是一个Telnet Server的一部分，用Telnet Client连上后，先收到一个&#8221;hello&#8221;,然后切换到一个新屏幕上再收到一个&#8221;hello&#8221;，然后切换回原来的屏幕，并断开连接。</p>
-
-<p> SocketAddress clientAddress = sock.getRemoteSocketAddress();</p>
-
-<p> // sock is the incoming socket
- logger.info(&ldquo;Accept client from &rdquo; + clientAddress);
- Thread.currentThread().setName(this.getClass().getName());
- InputStream is = sock.getInputStream();
- OutputStream os = sock.getOutputStream();
- byte[] helloMsg = &ldquo;hello&rdquo;.getBytes();
- os.write(helloMsg);
- os.flush();
- Thread.sleep(2000);
- byte[] switchScreen = { 0x1b, 0x5b, 0x3f, 0x31, 0x30, 0x34, 0x39, 0x68 };
- // \033[?1049h, switch to a new screen
- os.write(switchScreen);
- os.flush();
- Thread.sleep(2000);
- os.write(helloMsg);
- os.flush();
- Thread.sleep(2000);
- byte[] switchBack = { 0x1b, 0x5b, 0x3f, 0x31, 0x30, 0x34, 0x39, 0x6c };
- // \033[?1049l, switch back to original screen
- os.write(switchBack);
- os.flush();
- sock.close();</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/11/08/093029/">Shortcut of Vimium</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-11-08T09:30:29+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:30 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Navigating the page</h1>
-
-<p>?: Show the help dialog (the same with google reader)
-j: Scroll down
-k: Scroll up
-h: Scroll left
-l: Scroll right
-gg: Scroll to the top of the page
-G: Scroll to the bottom of the page
-u: Scroll a half page up
-d: Scroll a half page down</p>
-
-<h1>Manipulating tabs</h1>
-
-<p>K or gt: Go one tab right
-J or gT: Go one tab left
-t: Create new tab
-x: Close current tab
-X: Restore closed tab</p>
-
-<h1>Open something</h1>
-
-<p>f: Open a link in the current tab
-F: Open a link in a new tab
-o: Open URL, bookmark, or history entry
-O: Open URL, bookmark, or history entry in a new tab</p>
-
-<h1>Search &amp; Find</h1>
-
-<p>/: Enter find mode
-n: Cycle forward to the next find match
-N: Cycle backward to the previous find match</p>
-
-<h1>Navigating history</h1>
-
-<p>H: Go back in history
-L: Go forward in history</p>
-
-<h1>Miscellaneous</h1>
-
-<p>r: Reload the page</p>
-
-<p>yy: Copy the current URL to the clipboard
-yf: copy a link url to the clipboard</p>
-
-<p>gi: focus the first (or n-th) text input box on the page</p>
-
-<p>gu: go up one level in the URL hierarchy</p>
-
-<p>gf: Cycle focus to the next frame ( you can use this to get out of text input box in a web page)
-i: Enter insert mode
-gs: View page source</p>
-
-<p>Reference: <a href="https://github.com/philc/vimium">https://github.com/philc/vimium</a></p>
-
-<p>For Firefox, the VimFx is recommended. The &ldquo;Vimium&rdquo; is poor in functions, which not support &ldquo;go to next/previous page&rdquo; and some other important shortcuts.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/60">&larr; Older</a>
@@ -653,23 +720,23 @@ gs: View page source</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
+        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
+        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
+        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
+        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
+        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
       </li>
     
   </ul>

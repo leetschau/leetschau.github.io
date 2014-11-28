@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="本文为转载，有少许修订，原文出处不详。 很久很久以前，有一群人，他们决定用8个可以开合的晶体管来组合成不同的状态，以表示世界上的万物。他们认为8个开关状态作为原子单位很好，于是他们把这称为&#8221;字节&#8221;。 再后来，他们又做了一些可以处理这些字节的机器，机器开动了， &hellip;">
+  <meta name="description" content="ivy.xml文件 此文件用来定义某个模块（module）的依赖情况； 表明该文件使用的哪个版本的ivy语法； 域说明是这个xml文件定义的是哪个module的依赖； 依赖的声明方法：在http://mvnrepository.com/%E6%90%9C%E7%B4%A2%E5%88%B0%E8% &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,331 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/10/24/114340/">Ivy文件说明</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-24T11:43:40+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:43 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>ivy.xml文件  此文件用来定义某个模块（module）的依赖情况； <ivy-module version="2.0">表明该文件使用的哪个版本的ivy语法； <info .../>域说明是这个xml文件定义的是哪个module的依赖； 依赖的声明方法：在<a href="http://mvnrepository.com/%E6%90%9C%E7%B4%A2%E5%88%B0%E8%A6%81%E7%94%A8%E7%9A%84%E7%AC%AC%E4%B8%89%E6%96%B9%E5%8C%85%E5%90%8E%EF%BC%8C%E7%82%B9%E5%87%BB%E2%80%9Cdetail%E2%80%9D%E5%8F%AF%E4%BB%A5%E7%9C%8B%E5%88%B0%E5%AE%83%E5%9C%A8ivy%E4%B8%AD%E5%A6%82%E4%BD%95%E5%BC%95%E7%94%A8%EF%BC%88">http://mvnrepository.com/%E6%90%9C%E7%B4%A2%E5%88%B0%E8%A6%81%E7%94%A8%E7%9A%84%E7%AC%AC%E4%B8%89%E6%96%B9%E5%8C%85%E5%90%8E%EF%BC%8C%E7%82%B9%E5%87%BB%E2%80%9Cdetail%E2%80%9D%E5%8F%AF%E4%BB%A5%E7%9C%8B%E5%88%B0%E5%AE%83%E5%9C%A8ivy%E4%B8%AD%E5%A6%82%E4%BD%95%E5%BC%95%E7%94%A8%EF%BC%88</a><dependency org=,,,）； <publications>&hellip;</publications>标签说明自己开发的项目要发布的包（一般是jar文件），可为每个包定义一个所属的配置（configuration），以便于别人使用（参见tutorial->Using Ivy Module Configurations）； 可在此文件中自 定义 标签，以便于在dependency中使用，参见Ivy文档：Documentation (2.2.0) > Reference > Introduction > Main Concepts > Extra attributes；  build.xml文件  <project name="..." default="..." xmlns:ivy="antlib:org.apache.ivy.ant"> 只有声明了xmlns&hellip;，才能使用ivy指令（ivy ant task，如&lt;ivy:resolve &hellip;/>、&lt;ivy:retrieve &hellip;/>之类）；  ivy指令中，install用来从公共库中下载包到企业库中，resolve用来从企业库中获取包到本地ivy缓存（cache）中，retrieve用来从本地缓存取包到本地开发环境（project workspace）中，publish将本地编译好的包放入企业库中供其他项目使用； retrieve命令在脱离Eclipse环境下使用时需要先运行resolve命令，例如Eclipse下在javac之前需要如下任务：    <target  name= "resolve"  depends=  "init"  description= "..." >
+     &lt;ivy:retrieve  pattern= &ldquo;${lib.dir}/[artifact]-[Revision].[ext]&rdquo; />
+   </target>
+ 脱离Eclipse之后应写为如下形式：
+    <target  name= "resolve"  depends=  "init"  description= "..." >
+     &lt;ivy:resolve  file= &ldquo;./ivy_file.xml&rdquo; />
+     &lt;ivy:retrieve  pattern= &ldquo;${lib.dir}/[artifact]-[Revision].[ext]&rdquo; />
+   </target></p>
+
+<p>   ivysettings.xml文件  resolvers链是在 resolvers标签的chain子标签 中定义的，一个artifact会用这个链中的resolver依次查找； resolver的功能包括两部分：一是寻找依赖项目的ivy文件，二是寻找依赖项目的产品（artifact）；resolver确定了库的位置，常见的有IBiblio resolver（从maven库中取包）、sftp resolver（企业架设共享库服务器）和FileSystem resolver（本机上的库）三种； 如果出现模块描述文件（module descriptions，如ivy文件）与产品（module artifacts，如jars）分离的情况，可在本文件中用dual标签定义各自的位置； properties标签从一个properties文件里提取值保存到变量中，这是一种灵活且方便的设置变量的方法； settings标签进行一些初始化工作，例如cache目录位置的定义、定义默认resolver等；   modules标签定义哪个module使用哪个resolver（发布时有用），未提及的module使用默认resolver，使用这个标签可以为项目自制产品定义专门的resolver，例如：   &lt; modules  >
+ &lt; module  organisation  =  &ldquo;com.boco&rdquo;  name  =  &ldquo;g*&rdquo;  matcher  =  &ldquo;glob&rdquo;  resolver  =  &ldquo;home-made&rdquo;  />
+ </ modules  ></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/10/24/114055/">Ivy入门笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-24T11:40:55+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:40 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>安装过程
+ 命令行安装</p>
+
+<p> 下载和安装JDK5、Eclipse3.5、Ant 1.8、Ivy 2.2；
+安装JDK：成功标志：在命令行下运行java命令，得到java命令行帮助；
+安装Ant：解压Ant，在系统环境变量中设置JAVA_HOME（例如c:\Program Files\Java\jdk1.5.0_22）、ANT_HOME，将${ANT_HOME}/bin加入到path中；成功标志：在命令行下运行ant命令得到“Buildfile: build.xml does not exist!&hellip;”；
+在Eclipse里建两个项目，其中A引用B的方法；
+安装ivy：解压ivy，设置环境变量IVY_HOME，将ivy-2.2.0.jar拷贝到${ANT_HOME}/lib目录中，在${IVY_HOME}\src\example\hello-ivy下运行ant，如果出现“BUILD SUCCESSFUL”，说明IVY安装成功；</p>
+
+<p> eclipse中的安装</p>
+
+<p>eclipse->Window->Preferences->Ant->Runtime->Global Entries->Add External JARs，选中IVY压缩包里的ivy-2.2.0.jar，测试：</p>
+
+<p>Eclipse中新建一个项目，在此项目下新建一个build.xml文件，内容为：</p>
+
+<p> &lt;? xml version = &ldquo;1.0&rdquo; encoding = &ldquo;UTF-8&rdquo; ?></p>
+
+<p> &lt; project name = &ldquo;project&rdquo; default = &ldquo;default&rdquo; xmlns:ivy = &ldquo;antlib:org.apache.ivy.ant&rdquo; ></p>
+
+<p>  &lt; taskdef resource = &ldquo;org/apache/ivy/ant/antlib.xml&rdquo; uri = &ldquo;antlib:org.apache.ivy.ant&rdquo; /></p>
+
+<p>  &lt; target name = &ldquo;default&rdquo; ></p>
+
+<p>   &lt; ivy:settings /></p>
+
+<p>   &lt; ivy:info organisation = &ldquo;org.apache.ivy&rdquo; module = &ldquo;ivy&rdquo; revision = &ldquo;2.0.0&rdquo; property = &ldquo;ivyinfo&rdquo; /></p>
+
+<p>   &lt; echoproperties prefix = &ldquo;ivyinfo&rdquo; /></p>
+
+<p>  </ target ></p>
+
+<p> </ project ></p>
+
+<p> 运行此文件，如果显示“ BUILD SUCCESSFUL ”说明安装成功；</p>
+
+<p> 采用自动安装方法安装IvyDE，手动安装失败，原因不清楚；</p>
+
+<p> Eclipse中的实验用例采用Ivy发布包自带例子中的dependence；</p>
+
+<p> 常用术语</p>
+
+<p>被依赖项目：dependee(parent)
+依赖源项目：depender(child)</p>
+
+<p> 其他</p>
+
+<p>如果是用ant执行ivy，Build.xml文件中定义的变量可以在ivy.xml文件中直接使用，典型的例子见${IVY_HOME}\src\example\dependence中，在depender和dependee的build.xml文件中定义&#8221;ivy.settings.dir&#8221;，在ivysettings.xml文件中直接使用该变量；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/10/20/090319/">开发流程改进</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-20T09:03:19+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>9:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>测试驱动</p>
+
+<p>重视测试计划评审会。测试部会根据自己对需求文档的理解形成自己的测试计划，然后根据测试计划生成测试用例，详见QC平台；</p>
+
+<p>自动打包和自动测试问题</p>
+
+<p>开发过程中全局变量和接口的统一问题</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/10/19/200208/">GnuCash笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-19T20:02:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:02 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>【Actions->Transfer】，箭头左边是transfer from，右边是transfer to。</p>
+
+<p> 现金消费：钱包里的现金（资产）->支出</p>
+
+<p> 工资收入：工资（收入）->XX银行（资产）</p>
+
+<p>信用卡：</p>
+
+<p>消费： XX 信用卡->支出</p>
+
+<p>用储蓄卡还款：XX银行（资产）->XX信用卡（负债）</p>
+
+<p>现金还款： 钱包里的现金（资产）-> XX信用卡（负债）</p>
+
+<p> 参考：
+ 阿潘道 » 花了一个周末，搞定GnuCash之信用卡和个人借贷</p>
+
+<p> 阿潘道 » 再战GnuCash之基本买卖交易</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/10/18/141748/">计算总值的Ultraedit脚本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-18T14:17:48+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:17 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>// 使用方法：首先在一个空文本文件总写上需要做和的数字，每个数一行，选中所有数字，然后运行本脚本
+var lineTerminator = &ldquo;\r\n&rdquo;;
+var str = UltraEdit.activeDocument.selection;
+var resultArr = new Array();
+resultArr = str.split(lineTerminator);
+var itemCnt = resultArr.length;
+var total = 0;
+for (var i = 0; i &lt; itemCnt; i++) {
+ total = total+parseFloat(resultArr[i]);
+}
+UltraEdit.activeDocument.bottom();
+UltraEdit.activeDocument.write(&ldquo;\r\n======================\r\n&rdquo;);
+UltraEdit.activeDocument.write(&ldquo;Total value is: &rdquo; + total + &ldquo; Yuan.\r\n&rdquo;);
+UltraEdit.activeDocument.write(&ldquo;Totally &rdquo;+itemCnt+&ldquo; items in the list.&rdquo;);
+//UltraEdit.outputWindow.write(&ldquo;Total value is: &rdquo; + total + &ldquo; Yuan.&rdquo;);
+//UltraEdit.outputWindow.write(&ldquo;Totally &rdquo;+itemCnt+&ldquo; items in the list.&rdquo;);</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/10/18/082950/">怎样获取计算机上次启动时间</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-18T08:29:50+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:29 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>有时候需要知道最近一次电脑的启动时间（或者关闭时间），在Windows XP下，有两种方法可以得到这个信息。</p>
+
+<p> 事件查看器方法</p>
+
+<p>【控制面板->管理工具->事件查看器->系统（ 在左边的窗口中，Win7下是在“Windows日志”下 ）->右键->属性】，在打开的【系统属性】窗口中选择【筛选器】，在【事件类型】下面 仅 选中【信息】复选项，并在【事件来源】列表中选择【eventlog】项，【确定】返回事件查看器。右边的窗口中，【事件】下面为6005的表示开机，6006表示关机。基本上可以查看最近3个月以来计算机的开/关机记录。</p>
+
+<p> 日志文件方法</p>
+
+<p>【开始->运行】里输入“schedlgu.txt”，在打开的文件里搜索“任务计划程序服务”，下面的一行就是计算机 开/关机记录。下面是一个样例：</p>
+
+<p> ……</p>
+
+<p> “任务计划程序服务”</p>
+
+<p>  已退出于 2010-10-12 18:21:45</p>
+
+<p> “任务计划程序服务”</p>
+
+<p>  已启动于 2010-10-13 8:11:11
+……</p>
+
+<p>注：Notepad++ v5.6/5.7的中文搜索好像有问题，经常出现搜不到的情况，如果搜不到 “任务计划程序服务”这个字符串，可以用其他文本编辑器（如Vim、UE等）试试。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/10/13/134904/">Javadoc中插入超链接</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-10-13T13:49:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>1:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Javadoc中插入的超链接可分为两类，一类是在@see 标记后面写上class_qualified_name#method_name，编译后的效果是“另请参见……”，例如 @see  com.boco.godu.gapi.IResult#getByteArray() 编译后得到：</p>
+
+<p> 另请参见：</p>
+
+<p>   IResult.getByteArray()</p>
+
+<p> 另一类是使用html的语法插入超链接，例如超链接是 <a href ="IConnection.html#admin_port_demo">样例  </a> ，被指向的地方是 <h3 id=admin_port_demo>场景一：查看网元磁盘空间（数据端口的同步场景）  </h3> ，这样就可以实现指向一个html文件的某一小节。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -208,325 +533,6 @@ c1aacda8</p></blockquote></blockquote></blockquote>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/11/165327/">UNIX文件的编码问题</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-11T16:53:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:53 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>根据目前的实验结果，在Windows下生成的ANSI编码文件转为Unix格式后，Unix脚本（例如用awk命令取该文件某一行的某一段数据）可以正确读取； Windows下生成的UTF-8编码文件转为Unix格式后， Unix脚本不能正确读取，因此日志文件在Notepad++中打开后，应为Unix, ANSI格式，在Ultraedit中应为Unix格式，而不是U8-UNIX格式。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/11/083523/">技术类书籍读书笔记撰写内容</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-11T08:35:23+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:35 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>1 这本书的主要内容是什么？
-1.1 概括这本书主要内容的关键字；
-1.2 用尽量简短的句子说明这本书在说什么；
-1.3 列出这本书的大纲，以及各部分之间的关系；
-1.4 确定作者想要解决的问题；</p>
-
-<p>2 我从这本书中得到了什么？
-2.1 我希望通过这本书解决什么（哪些）问题？
-2.2 针对这个（这些）问题此书是怎么论述的？（读书笔记的主体部分）
-2.3 此书的论述与我的问题相关度如何？还有哪些地方本书没有涉及？</p>
-
-<p>2.4 简要叙述此书还有哪些有价值的信息？</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/09/170608/">网络通信框架选型</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-09T17:06:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>事件驱动的异步IO通信框架
- Apache Mina , JBoss Netty , Grizzly (Java), Twisted , gevent (python), eventmachine (Ruby), POE (Perl), Node.js (JavaScript), libevent &copy;</p>
-
-<p>各框架实现的Echo Server</p>
-
-<p> Twisted , libevent (不是echo server，但讲了很多基础知识), gevent , eventmachine , Node.js , Netty , Grizzly , POE ，按先后顺序进行学习。</p>
-
-<p>选型的依据：</p>
-
-<p> 功能： 截取模式：
- Mina: Filter-Handler;
-Netty/Grizzly: Handler only</p>
-
-<p> 支持的Filter/Handler：</p>
-
-<p>Mina: blacklist filters, compression filters, connection throttling filters, SSL filters, logging filters, protocol codecs such as delimiter based, and HTTP. Grizzly provides support for SSL, custom protocol codecs, logging, and HTTP;</p>
-
-<p>Netty: Base64 encoding/decoding, delimiter based codecs, fixed length codecs, HTTP handlers, logging handlers, Java object serialization/deserialization codecs, Google Protocol Buffer codecs, SSL handlers, simple string codecs, and handlers used to control bandwidth, traffic shaping, etc. There are also several utility handlers that may be used to build custom handlers such as a replay handler, timeout handler , frame decoder, etc;（Netty在支持基于已有的Handler构建用户Handler方面更灵活）</p>
-
-<p> 高级缓存</p>
-
-<p>Netty: ChannelBuffer中封装了多个ByteBuffer实例的引用（而非拷贝），支持zero copy，支持标记与重设“读指针”(Reader)索引，支持搜索、切片、读写不同类型数据；</p>
-
-<p>Mina: 与Netty基本类似，但不支持zero copy（在Mina 3中实现）；</p>
-
-<p> Socket and Protocol Independence</p>
-
-<p>三者均支持，使通信框架底层技术变化（例如从NIO向AIO过渡）时，无需更新业务逻辑代码；</p>
-
-<p> 可定制的协议与POJO</p>
-
-<p>三者均支持，POJO在网络传输中的作用是什么？</p>
-
-<p> 线程模型</p>
-
-<p>三者均使用线程池模型，应付高并发能力良好；</p>
-
-<p> 性能：</p>
-
-<p>速度：MINA能够满足要求（并发800+），Netty=Grizzly>MINA；</p>
-
-<p>内存占用量：Netty=Mina&lt;Grizzly
- 扩展性：采用此框架的项目代码是否易于修改，易于在已有功能基础上拓展新功能； 易用性：框架的简洁程度，API Docs是否完善，Tutorials是否丰富，论坛是否活跃； 与GODU的整合能力/迁移成本；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/09/100259/">用WinHTTrack下载博客</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-09T10:02:59+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:02 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>创建一个存放博客的总目录，例如： “E:\MyDoc\WinHTTrackFiles\Blogs”；
- 启动WinHTTrack；
- 【下一步】之后在【工程名】里写“李四”，【总保存路径】里写“E:\MyDoc\WinHTTrackFiles\Blogs”，这样所有网站内容就会被下一步；
- 【操作】选【下载网站】（如果是更新，则双击李四.whtt文件即可）；
- 【Web地址】填博客地址；
- 【选项->限制->最大深度】设为2，【最大外部链接深度】设为0。 勾选【 选项->链接->首先保存html文件 】；
- 开始下载进程后，【已扫描链接】后面的数据由三部分组成，例如：248/251(+5)，其中251表示需要下载的所有链接数量，248表示已下载的链接数量，+5含义尚不清楚。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/08/175808/">Log4j日志输出格式参数定义</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-08T17:58:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>PatternLayout (Apache Log4j 1.2.16 API)</p>
-
-<p> Conversion Character
- Effect
- c
- Used to output the category of the logging event. The category conversion specifier can be optionally followed by precision specifier , that is a decimal constant in brackets.
- If a precision specifier is given, then only the corresponding number of right most components of the category name will be printed. By default the category name is printed in full.
- For example, for the category name &ldquo;a.b.c&rdquo; the pattern %c{2} will output &ldquo;b.c&rdquo;.
-  C
- Used to output the fully qualified class name of the caller issuing the logging request. This conversion specifier can be optionally followed by precision specifier , that is a decimal constant in brackets.
- If a precision specifier is given, then only the corresponding number of right most components of the class name will be printed. By default the class name is output in fully qualified form.
- For example, for the class name &ldquo;org.apache.xyz.SomeClass&rdquo;, the pattern %C{1} will output &ldquo;SomeClass&rdquo;.
- WARNING Generating the caller class information is slow. Thus, use should be avoided unless execution speed is not an issue.
-  d
- Used to output the date of the logging event. The date conversion specifier may be followed by a date format specifier enclosed between braces. For example, %d{HH:mm:ss,SSS} or %d{dd MMM yyyy HH:mm:ss,SSS} . If no date format specifier is given then ISO8601 format is assumed.
- The date format specifier admits the same syntax as the time pattern string of the  SimpleDateFormat . Although part of the standard JDK, the performance of SimpleDateFormat is quite poor.
- For better results it is recommended to use the log4j date formatters. These can be specified using one of the strings &ldquo;ABSOLUTE&rdquo;, &ldquo;DATE&rdquo; and &ldquo;ISO8601&rdquo; for specifying  AbsoluteTimeDateFormat ,  DateTimeDateFormat  and respectively  ISO8601DateFormat . For example, %d{ISO8601} or %d{ABSOLUTE} .
- These dedicated date formatters perform significantly better than  SimpleDateFormat .
-  F
- Used to output the file name where the logging request was issued.
- WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
-  l
- Used to output location information of the caller which generated the logging event.
- The location information depends on the JVM implementation but usually consists of the fully qualified name of the calling method followed by the callers source the file name and line number between parentheses.
- The location information can be very useful. However, its generation is extremely slow and should be avoided unless execution speed is not an issue.
-  L
- Used to output the line number from where the logging request was issued.
- WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
-  m
- Used to output the application supplied message associated with the logging event.
- M
- Used to output the method name where the logging request was issued.
- WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
-  n
- Outputs the platform dependent line separator character or characters.
- This conversion character offers practically the same performance as using non-portable line separator strings such as &ldquo;\n&rdquo;, or &ldquo;\r\n&rdquo;. Thus, it is the preferred way of specifying a line separator.
-  p
- Used to output the priority of the logging event.
- r
- Used to output the number of milliseconds elapsed from the construction of the layout until the creation of the logging event.
- t
- Used to output the name of the thread that generated the logging event.
- x
- Used to output the NDC (nested diagnostic context) associated with the thread that generated the logging event.
- X
- Used to output the MDC (mapped diagnostic context) associated with the thread that generated the logging event. The X conversion character must be followed by the key for the map placed between braces, as in %X{clientNumber} where clientNumber is the key. The value in the MDC corresponding to the key will be output.
- See  MDC  class for more details.
-  %
- The sequence %% outputs a single percent sign.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/09/30/164309/">通信框架学习笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-09-30T16:43:09+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Netty是如何处理信息的？例如Netty中有Handler，是否有filter？是否也使用链式结构？IoSession对应的类是什么？</p>
-
-<p>Netty如何处理session与properties在时间上的矛盾？</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/09/29/162410/">软件开发类书籍</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-09-29T16:24:10+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:24 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>我也能做CTO之程序员职业规划 [专著] / 高阳著，北京 : 电子工业出版社, 2009， 国图基藏库
- 卓有成效的程序员，Neal Ford，机械工业出版社,2009-03 ， 国图基藏库
- 走出软件作坊，阿朱，电子工业出版社，2009-01
- 高效程序员的45个习惯 [专著] = Practices of an agile developer : 敏捷开发修炼之道 / (美)Venkat Subramaniam，(美)Andy Hunt著 ; 钱安川，郑柯译， 国图中文外借室
- Expert one-on-one J2EE Development without EJB中文版 [专著] / (美)Rod Johnson，(美)Juergen Hoeller著 ; JavaEye译，北京 : 电子工业出版社, 2005， 国图基藏库 ， 国图中文外借室
- C++网络编程. 卷1, 运用ACE和模式消除复杂性 [专著] = C++ network programming. Volume 1, Mastering complexity with ACE and patterns / (美)Douglas C. Schmidt，(美)Stephen D. Huston著 ; 於春景译，电子工业出版社, 2007， 国图 基藏库，北区中文图书区
- C++网络编程. 卷2, 基于ACE和框架的系统化复用 [专著] / Douglas C.Schmidt，Stephen D.Huston著 ; 马维达译，电子工业出版社, 2004
- ACE程序员指南 [专著] : 网络与系统编程的实用设计模式 / (美)Stephen D.Huston等著 ; 马维达译，北京 : 中国电力出版社, 2004 ， 国图  基藏库，北区中文图书区</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/92">&larr; Older</a>
@@ -544,23 +550,23 @@ Netty/Grizzly: Handler only</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
+        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
+        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
+        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
+        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
+        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
       </li>
     
   </ul>

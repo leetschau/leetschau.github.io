@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Evernote笔记要自动分享到博客还真不那么容易，借鉴Using Evernote to Post to WordPress，申请了一个Wordpress帐号，点击dashboard左边的“控制板” -> My Blogs -> Post by Email下面的&#8221;Enable&# &hellip;">
+  <meta name="description" content="网元日志的特点是：每个网元的日志要写在单独的文件中，文件名要能够唯一地确定一组“用户-网元”连接，因此不可能预先指定或者写在配置文件里，只能在运行时根据登录的用户名和连接网元的ID动态生成。 使用JDK原生的java.io.FileOutputStream等类可以达到上述目的，但文件的关闭比较麻烦 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,6 +71,679 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2013/04/23/110349/">运行时动态指定文件名的日志工具实现方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-23T11:03:49+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>网元日志的特点是：每个网元的日志要写在单独的文件中，文件名要能够唯一地确定一组“用户-网元”连接，因此不可能预先指定或者写在配置文件里，只能在运行时根据登录的用户名和连接网元的ID动态生成。</p>
+
+<p>使用JDK原生的java.io.FileOutputStream等类可以达到上述目的，但文件的关闭比较麻烦，由于JVM垃圾回收的特点，日志包装类被回收的时间是不确定的，如果它被回收的比较慢，文件句柄就不会被关闭，导致系统资源消耗变大。</p>
+
+<p>下面的代码基于Logback实现了运行时动态指定日志文件名的日志工具，并发500个线程写日志文件，大约耗时3s左右。</p>
+
+<p> import ch.qos.logback.classic.Logger;
+ import ch.qos.logback.classic.LoggerContext;
+ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+ import ch.qos.logback.classic.spi.ILoggingEvent;
+ import ch.qos.logback.core.FileAppender;
+ public class DynamicLogWriter {
+  private String loggerName = null;
+  private final Logger logbackLogger;
+  public DynamicLogWriter(String logfileName) {
+   loggerName = logfileName;
+   LoggerContext loggerContext = new LoggerContext();
+   FileAppender<ILoggingEvent> fileAppender = new FileAppender<ILoggingEvent>();
+   fileAppender.setContext(loggerContext);
+   fileAppender.setName(&ldquo;logfile&rdquo;);
+   fileAppender.setFile(&ldquo;log/&rdquo; + loggerName + &ldquo;.log&rdquo;);
+   PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+   encoder.setContext(loggerContext);
+   encoder.setPattern(&ldquo;%msg&rdquo;);
+   encoder.start();
+   fileAppender.setEncoder(encoder);
+   fileAppender.start();
+   logbackLogger = loggerContext.getLogger(&ldquo;nelogger&rdquo;);
+   logbackLogger.addAppender(fileAppender);
+   // OPTIONAL: print logback internal status messages
+   // StatusPrinter.print(loggerContext);
+  }
+  public void writeNeLog(String msg) {
+   logbackLogger.debug(msg);
+  }
+  public static void main(String[] args) {
+   for (int i = 0; i &lt; 500; i++) {
+    new Thread(new ThreadWrapper(i)).start();
+   }
+  }
+ }
+ class ThreadWrapper implements Runnable {
+  private final int id;
+  public ThreadWrapper(int i) {
+   id = i;
+  }
+  @Override
+  public void run() {
+   DynamicLogWriter logWriter = new DynamicLogWriter(&ldquo;192.168.0.2.&rdquo; + id);
+   logWriter.writeNeLog(&ldquo;Welcome t&rdquo;);
+   logWriter.writeNeLog(&ldquo;o Ubuntu 11.4\r\nlogi&rdquo;);
+   logWriter.writeNeLog(&ldquo;n:user\r\npasswor&rdquo;);
+   logWriter.writeNeLog(&ldquo;d:\r\nlast login&hellip;&rdquo;);
+  }
+ }</p>
+
+<p>参考： <a href="http://stackoverflow.com/questions/7824620/logback-set-log-file-name-programatically">http://stackoverflow.com/questions/7824620/logback-set-log-file-name-programatically</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/22/131818/">Hg单用户操作的分支合并</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-22T13:18:18+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>1:18 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>$ hg init hgBranchTest // 新建一个名为hgBranchTest的repo，hg自动创建目录</p>
+
+<p>$ cd hgBranchTest</p>
+
+<p>$ vi readme.txt</p>
+
+<p>$ cat readme.txt
+this is the first version</p>
+
+<p>$ hg add readme.txt
+$ hg ci -m &ldquo;first time commit&rdquo; // or use &ldquo;hg ci -A -m &hellip;&rdquo; for add and commit
+$ vi readme.txt
+$ cat readme.txt
+this is the first version
+add a line
+$ hg st
+M readme.txt
+$ hg log
+修改集:  0:ffecf69346a5
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit
+$ hg diff
+diff -r ffecf69346a5 readme.txt
+&mdash; a/readme.txt  Mon Apr 22 05:49:29 2013 +0100
++++ b/readme.txt  Mon Apr 22 05:51:03 2013 +0100
+@@ -1,1 +1,2 @@
+this is the first version
++add a line
+$ hg ci -m &ldquo;第二次提交&rdquo;
+$ hg log
+修改集:  1:770a5cda1659
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+修改集:  0:ffecf69346a5
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit
+$ hg branch
+default
+$ hg branches
+default      1:770a5cda1659
+$ hg branch red
+marked working directory as branch red
+(branches are permanent and global, did you want a bookmark?)
+$ vi readme.txt
+$ cat readme.txt
+this is the first version
+add a line
+add the 3rd line
+$ hg branches   // 没有提交（commit）之前分支不出现在branches列表中
+default      1:770a5cda1659
+$ hg branch   // 当前仍在red分支下
+red
+$ hg ci -m &ldquo;commit on branch red&rdquo;
+$ hg branches
+red       2:86e30b1564a9
+default      1:770a5cda1659 (inactive)
+$ hg log
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+修改集:  1:770a5cda1659
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+修改集:  0:ffecf69346a5
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit
+$ hg log -b red // 只显示red分支上的changeset
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+$ hg tip  // tip是最近版本的意思
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+$ hg heads  // head表示各分支最近版本
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+修改集:  1:770a5cda1659
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+$ hg up default   // 切换当前分支为default
+1 files updated, 0 files merged, 0 files removed, 0 files unresolved
+$ cat readme.txt  // 分支合并前文件内容
+this is the first version
+add a line
+$ hg merge red
+1 files updated, 0 files merged, 0 files removed, 0 files unresolved
+(branch merge, don&rsquo;t forget to commit)
+$ cat readme.txt  // 合并后文件内容改变
+this is the first version
+add a line
+add the 3rd line
+$ hg st
+M readme.txt
+$ hg ci -m &ldquo;after merge with branch red&rdquo;
+$ hg log
+修改集:  3:9a5f0a2b7b9c
+标签:  tip
+父亲:  1:770a5cda1659 // 合并后提交的版本的特点是有两个parent
+父亲:  2:86e30b1564a9
+用户:  Li Chao
+日期:  Mon Apr 22 06:00:31 2013 +0100
+摘要:  after merge with branch red
+修改集:  2:86e30b1564a9
+分支:  red
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+修改集:  1:770a5cda1659
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+修改集:  0:ffecf69346a5
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/20/105251/">局域网聊天和文件传输工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-20T10:52:51+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以前用飞秋在局域网内聊天、传文件，经常找不到目标，很难用，在网上找了一个开源、跨平台（Win, Linux &amp; Mac）的局域网聊天软件<a href="http://lanmsngr.sourceforge.net/">LAN Messenger</a>，以及<a href="http://portableapps.com/apps/internet/lan-messenger-portable">Portable版</a>，下载的文件是便携版LANMessengerPortable_1.2.35.paf.exe，聊天、传文件、群聊的功能都有，很方便。</p>
+
+<p>LANMessenger在Mint上安装后无法正常运行，发现Linux上的iptux（apt-get install iptux）实际山就是Windows上的FeiQ（下载压缩包FeiQ.rar后解压运行），目前工作良好。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/17/111523/">基于ScheduledExecutorService的并发定时任务处理能力测试</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-17T11:15:23+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:15 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>测试代码</h1>
+
+<h2>定时器类</h2>
+
+<p> package business.util;
+ import java.util.concurrent.Executors;
+ import java.util.concurrent.ScheduledExecutorService;
+ import java.util.concurrent.ScheduledFuture;
+ import java.util.concurrent.TimeUnit;
+ import transfer.IUserParser;
+ public class MyTimer {
+  private static ScheduledExecutorService ses = Executors
+    .newSingleThreadScheduledExecutor();</p>
+
+<p>   // .newScheduledThreadPool(10);
+  private MyTimer() {
+  }
+  /<strong>
+   * 设置某一parser正在执行脚本的超时时间
+   *
+   * @param parser
+   *   进行超时控制的解析器
+   * @param timeout
+   *   超时时间，单位：秒
+   * @return
+   */
+  public static ScheduledFuture&lt;?> set(IUserParser parser, int timeout) {
+   CloseRutine routine = new CloseRutine(parser);
+   ScheduledFuture&lt;?> job = ses.schedule(routine, timeout,
+     TimeUnit.SECONDS);
+   return job;
+  }
+  /</strong>
+   * 清除计时器
+   *
+   * @param unit
+   * @return
+   <em>/
+  public static boolean cancel(ScheduledFuture&lt;?> job) {
+   return job.cancel(true);
+  }
+  /**
+   * 关闭此计时器（进程）
+   </em>/
+  public static void shutdown() {
+   ses.shutdown();
+  }
+ }
+ class CloseRutine implements Runnable {
+  private final IUserParser parser;
+  CloseRutine(IUserParser parser) {
+   this.parser = parser;
+  }
+  @Override
+  public void run() {
+   parser.closePeer();
+  }
+ }</p>
+
+<h1>#</h1>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/16/120452/">Java语言子类调用父类构造函数的规则</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-16T12:04:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>子类初始化时，调用父类构造函数的规则是：如果父类没有任何构造函数，系统会</p>
+
+<ul>
+<li><p>父类如果没有任何构造函数，系统会自动为父类生成一个无参构造函数，如果父类有带参构造函数，系统不会为父类生成无参构造函数；</p></li>
+<li><p>如果父类和子类的构造函数都有参数且参数列表一样（包括参数的个数、类型、顺序），子类如果想调用父类的构造方法，必须在构造函数第一行用super(params)显式调用，否则子类的构造函数会去找父类的默认（无参）构造函数；</p></li>
+<li><p>如果父类有无参构造函数，子类的构造函数除非显式用super(params)调用父类的带参构造函数，否则一定会执行父类的无参构造函数（不需要写super()）；</p></li>
+</ul>
+
+
+<p>参考：google &ldquo;java constructor&rdquo;, <a href="http://www.leepoint.net/notes-java/oop/constructors/constructor.html">http://www.leepoint.net/notes-java/oop/constructors/constructor.html</a></p>
+
+<h1>父类有默认构造函数时</h1>
+
+<p> class SuperClass {
+  public SuperClass() {
+   System.out.println(&ldquo;I am the super class.&rdquo;);
+  }
+  public SuperClass (String name) {
+   System.out.println(&ldquo;I am the super class with a name: &rdquo; + name);
+  }</p>
+
+<p>  public SuperClass (int age) {
+   System.out.println(&ldquo;I am sub class with age: &rdquo; + age);
+  }</p>
+
+<p> }
+ public class TestedSubClass extends SuperClass {
+  public TestedSubClass(){
+   System.out.println(&ldquo;I am sub class&rdquo;);
+  }
+  public TestedSubClass(String name){
+   super(name);
+   System.out.println(&ldquo;I am sub class with a name: &rdquo; + name);
+  }
+  public TestedSubClass(int age) {
+   System.out.println(&ldquo;I am sub class with age: &rdquo; + age);
+  }</p>
+
+<p>  public static void main(String[] args) {
+   TestedSubClass tsc = new TestedSubClass();
+   TestedSubClass tsc2 = new TestedSubClass(&ldquo;chad&rdquo;);
+   TestedSubClass tsc3 = new TestedSubClass(33);
+  }
+ }</p>
+
+<p>运行结果：</p>
+
+<p> [java] I am the super class.
+ [java] I am sub class
+ [java] I am the super class with a name: chad
+ [java] I am sub class with a name: chad
+ [java] I am the super class.
+ [java] I am sub class with age: 33</p>
+
+<p>当父类有默认（无参数）构造函数情况下，子类初始化时，除非子类用super(param)显式调用其他构造函数，否则一定会执行父类的默认构造函数，不论子类初始化时有没有参数。</p>
+
+<h1>父类无默认构造函数</h1>
+
+<p>如果仅将父类的默认（无参）构造函数去掉重新运行，报找不到初始化方法错误，原因是当父类有带参构造函数时，系统不为父类生成构造函数，而第1次和第3次初始化子类对象时，会调用父类的无参构造方法，所以报错；</p>
+
+<p>如果去掉父类中所有的构造函数，子类中保留无参和int参数两个构造函数，运行正常；</p>
+
+<p>如果仅保留父类和子类的String参数构造方法，初始化运行正常；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/07/230132/">Sublime Text笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-07T23:01:32+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Sublime Text作为一款文本编辑器，最强大的是快速响应能力和&#8221;Goto Anything&#8221;功能，用Ctrl+Shift+P执行编辑器功能，用Ctrl+P+@进行文件间与文件内部的跳转，目前的编辑器还没有类似的，Vintage将vi的强大编辑能力吸收了进来，更是如虎添翼。</p>
+
+<p>它不适合作为静态语言（如Java）的正式开发IDE，与“标准的”IDE（如Eclipse）比较，它不具备针对静态语言的代码重构功能；在代码自动补全方面，无法提供类库的类名/方法补全（能够提供语言关键字和变量的补全）；它无法提供调试环境，需要单独的代码调试器（如JSwat）。所以Sublime Text适合作为展现语言（如HTML，Latex等）或者动态语言（Python, PHP等）的开发工具。</p>
+
+<p>但很多时候我们只是想浏览代码，或是写一些简单的试验程序，或是修改代码的一处细节，启动Eclipse太慢了，用Sublime text这样text editor处理正合适。</p>
+
+<h1>借助Ant打造Java IDE</h1>
+
+<p>项目目录结构：项目根目录（$PORJ_HOME）下存放源代码、编译后的class文件和需要引用的jar包（而不是分开放在src, bin, lib文件夹下，适合于技术验证式的小项目），以及sublime项目定义文件（ProjectName.sublime-project）和build.xml，通过Ant的javac和java指令编译和运行Java代码，源代码不论什么包名都放在$PORJ_HOME下（Ant的javac指令会根据源代码的包名创建class文件的目录结构）；</p>
+
+<h2>准备工作</h2>
+
+<ol>
+<li><p>指定用Ant做构建工具：修改[Preferences -> Browse Packages]打开packages文件夹，修改Java/JavaC.sublime-build文件，将原来&#8221;cmd&#8221;后面的&#8221;javac&#8221;改为&#8221;ant.bat&#8221;，如果ant所在目录没有加到系统的$Path里，这里需要写文件完整路径，例如&#8221;D:/Apps/apache-ant-1.8.1/bin/ant.bat&#8221;，然后将工作目录设置为项目根目录（默认的就是项目文件所在目录，因此这句不写也行）：&#8221;working_dir&#8221;: &ldquo;$project_path&#8221;；</p></li>
+<li><p>安装AdvancedNewFile插件：利用package control的install new package功能，装完后就可以用快捷键&#8221;Ctrl + Alt + N&#8221;在项目根目录下创建文件了；</p></li>
+</ol>
+
+
+<h2>创建Java项目</h2>
+
+<ol>
+<li><p>创建项目文件夹（TotalCMD），拷贝此文件夹的完整路径；</p></li>
+<li><p>Sublime Text -> Project -> Add Folder: 将上一步创建的文件夹加入到Project中；</p></li>
+<li><p>生成新的Sublime项目文件：Sublime Text -> Project -> Save Project As，这样项目文件就定义好了，如果希望隐藏不必要的文件和文件夹：[Project -> Save Project As]，用file_exclude_patterns和folder_exclude_patterns属性实现，例如：</p></li>
+</ol>
+
+
+<p> {
+  &ldquo;folders&rdquo;:
+  [
+   {
+    &ldquo;path&rdquo;: &ldquo;/e/workspace/PNProject&rdquo;,</p>
+
+<pre><code>"file_exclude_patterns": 
+[ 
+  "*.sublime*" 
+] 
+</code></pre>
+
+<p>   }</p>
+
+<p>  ]
+ }</p>
+
+<p>注：还可以用&#8221;folder_exclude_patterns&#8221;:[&ldquo;build&rdquo;]这样的方式去掉文件夹。</p>
+
+<ol>
+<li>在项目根目录下新建一个build.xml文件，主要内容是编译和运行java代码（注意每个项目的启动类是不同的（java命令的classname参数），拷贝这个模板时需要修改）：</li>
+</ol>
+
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ <project name="ExProj" basedir="./" default="run">
+  <path id="lib.path">
+   <fileset dir="${basedir}">
+    <include name="**/*.jar"/>
+   </fileset>
+  </path>
+  <target name="compile">
+   <javac srcdir="${basedir}" destdir="${basedir}"
+    classpathref="lib.path" encoding="UTF-8" debug="true"/>
+  </target>
+  <target name="run" depends="compile">
+   <java classname="org.leechau.HelloWorld">
+    <classpath>
+     <pathelement path="${basedir}"/>
+    </classpath>
+   </java>
+  </target>
+ </project></p>
+
+<ol>
+<li>运行构建：[Tools -> Build]（快捷键Ctrl+B）；</li>
+</ol>
+
+
+<h1>打开Vintage模式</h1>
+
+<p>Vintage是vi风格的操作方式，当然要打开啦，方法是：</p>
+
+<ol>
+<li><p>在user preference里加上：&#8221;ignored_packages&#8221;: []</p></li>
+<li><p>如果希望打开文档时初始状态是命令模式而不是插入模式，再加上：&#8221;vintage_start_in_command_mode&#8221;: true</p></li>
+</ol>
+
+
+<h1>自定义代码模板</h1>
+
+<ol>
+<li><p>[Tools -> New Snippet&hellip;];</p></li>
+<li><p>填写模板内容（content），触发器（写完触发器按tab键展开为content中定义的代码）和有效范围（定义那些文件中此模板有效）；</p></li>
+<li><p>保存模板文件：文件名统一约定为“范围名-触发器 .sublime-snippet”；</p></li>
+</ol>
+
+
+<p>参考<a href="http://www.granneman.com/webdev/editors/sublime-text/top-features-of-sublime-text/quickly-insert-text-and-code-with-sublime-text-snippets/#test">http://www.granneman.com/webdev/editors/sublime-text/top-features-of-sublime-text/quickly-insert-text-and-code-with-sublime-text-snippets/#test</a></p>
+
+<p>实例：Java代码中终端打印语句的代码模板（spl + <Tab> -> System.out.println(${1});）：</p>
+
+<p> <snippet>
+  <content>&lt;![CDATA[
+ System.out.println(${1});
+ ]]></content>
+  <!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+  <tabTrigger>spl</tabTrigger>
+  <!-- Optional: Set a scope to limit where the snippet will trigger -->
+  <scope>source.java</scope>
+ </snippet></p>
+
+<p>如果设置后不生效，检查各个标签的大小写是否正确（snippet文件是大小写敏感的），例如CDATA要大写，tabTrigger中T大写。</p>
+
+<h1>Best Practice</h1>
+
+<ul>
+<li>所有的个性化配置都写在&#8221;Settings - User&#8221;，不要修改&#8221;Settings -> Default&#8221;；</li>
+</ul>
+
+
+<h1>Trouble Shooting</h1>
+
+<ul>
+<li><p>&ldquo;Decode error - output not utf-8&rdquo; when build java files: this is caused by adding &ldquo;&#8221;shell&rdquo;: true&#8221; in JavaC.sublime-build. cmd.exe use GBK(cp936) for console output encoding, which is different with sublime&rsquo;s default output encoding utf-8. So adding &ldquo;&#8221;encoding&rdquo;: &ldquo;cp936&rdquo;&ldquo; in JavaC.sublime-build will resolve this problem. Reference: <a href="http://www.sublimetext.com/forum/viewtopic.php?f=3&amp;t=1535&amp;start=0">http://www.sublimetext.com/forum/viewtopic.php?f=3&amp;t=1535&amp;start=0</a></p></li>
+<li><p>Run Java without Ant: reference <a href="http://stackoverflow.com/questions/12030865/sublime-text-2-wont-run-java.">http://stackoverflow.com/questions/12030865/sublime-text-2-wont-run-java.</a> But when your java codes have package names, it&rsquo;s really difficult to compile and run them because package names are hardly get by sublime. So always use Ant to build java codes in sublime.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/06/004608/">基于goagent的翻墙方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-06T00:46:08+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>本机上使用</h1>
+
+<p><a href="http://www.hiadmin.org/shares/goagent-switchyplus">为Chrome 安装GoAgent并配上SwitchyPlus畅游互联网</a></p>
+
+<p>Goagent的使用方式如下：</p>
+
+<p>1、 申请一个Google App engine并创建一个appid（在申请的时候需要发送验证码到手机上面、所以手机号码一定得是真实的）</p>
+
+<p>2、 申请到appid后下载GoAgent最新的程序</p>
+
+<p>3、 将程序解压到硬盘上面、然后双击Serveruploader.bat文件、在弹出的界面中按照提示输入appid和你的Gmail 账号和密码。然后上传到服务端（如果出错多试几次）</p>
+
+<p>4、 接着我们修改$GOAGENT_ROOT/local/proxy.ini文件、在[gae]配置项下面将appid=修改为你的appid，将[listen]下面的visible的值改为0，这样启动后最小化到托盘区；</p>
+
+<p>5、 配置完成后我们可以直接运行Goagent.exe程序启动代理。是一个黑框框运行着的不要关掉</p>
+
+<p>6、 打开谷歌浏览器、配置代理服务器IP:127.0.0.1 端口：8087</p>
+
+<h1>作为局域网代理服务器</h1>
+
+<p>将goagent部署在一台服务器上，其他机器上网时借助于这台服务器上的goagent，方法是：</p>
+
+<ol>
+<li><p>修改上面proxy.ini文件[listen]下的ip的值为0.0.0.0，port保持8087不变；</p></li>
+<li><p>其他机器要借助于此服务器上网，将proxy的ip设为服务器的IP地址，端口号设为8087即可；</p></li>
+<li><p>Ubuntu系统下可以定义系统级的代理服务器，这样使用apt-get这样的命令行下载也不受限制了，在 [System settings -> network -> network proxy]中设置；</p></li>
+</ol>
+
+
+<h1>修复403错误</h1>
+
+<p>如果用goagent连接时浏览器报403错误，将$GOAGENT_HOME/local/proxy.ini中[gae]下面的profile值从google_cn改为google_hk即可；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2013/04/06/000709/">自动将Evernote笔记发布到博客上</a></h1>
     
     
@@ -104,8 +777,8 @@
  from email.mime.text import MIMEText
  # Create a text/plain message
  msg = MIMEText(&lsquo;this is a test blog from email&rsquo;)
- me = &lsquo;<a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#58;&#x6c;&#x65;&#x65;&#95;&#99;&#x68;&#97;&#117;&#64;&#49;&#54;&#x33;&#46;&#99;&#111;&#x6d;">&#108;&#x65;&#x65;&#x5f;&#x63;&#x68;&#97;&#117;&#64;&#x31;&#x36;&#x33;&#46;&#x63;&#x6f;&#x6d;</a>&rsquo;
- you = &lsquo;<a href="&#109;&#x61;&#x69;&#x6c;&#116;&#111;&#x3a;&#98;&#108;&#111;&#x67;&#109;&#97;&#x69;&#108;&#64;&#x31;&#x38;&#x38;&#46;&#99;&#x6f;&#x6d;">&#98;&#108;&#111;&#x67;&#109;&#x61;&#x69;&#108;&#x40;&#49;&#x38;&#56;&#46;&#x63;&#111;&#109;</a>&rsquo;
+ me = &lsquo;<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#111;&#58;&#x6c;&#x65;&#101;&#x5f;&#99;&#x68;&#x61;&#x75;&#64;&#49;&#x36;&#x33;&#x2e;&#99;&#x6f;&#109;">&#x6c;&#101;&#101;&#95;&#x63;&#x68;&#97;&#117;&#64;&#x31;&#54;&#51;&#x2e;&#99;&#111;&#109;</a>&rsquo;
+ you = &lsquo;<a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#x6f;&#x3a;&#98;&#x6c;&#111;&#103;&#x6d;&#x61;&#x69;&#x6c;&#64;&#x31;&#x38;&#56;&#46;&#99;&#111;&#109;">&#x62;&#x6c;&#111;&#x67;&#109;&#97;&#x69;&#108;&#x40;&#49;&#56;&#x38;&#46;&#x63;&#111;&#109;</a>&rsquo;
  msg[&lsquo;Subject&rsquo;] = &lsquo;A Test Blog from Email&rsquo;
  msg[&lsquo;From&rsquo;] = me
  msg[&lsquo;To&rsquo;] = you
@@ -260,450 +933,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/31/215259/">NFA算法笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-31T21:52:59+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>9:52 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>NFA(Nondeterministic finite-state automata)是一种在字符串中寻找正则表达式匹配的算法，优点是查找文本的指针不回退，适用于在网络传输的报文中寻找正则表达式描述的目标（因为网络传输中报文是被分段接收的，且分段的方式不确定），在Robert的&#8221;Algorithms&#8221;第5.4节&#8221;Regular Expressions&#8221;中有详细介绍。</p>
-
-<p>NFA算法可以分为定义和执行两部分，定义阶段和执行阶段。</p>
-
-<p>定义阶段是将要查找的正则表达式（String类型）转换为一个有向图（Digraph类型），该图中的边是所有可以进行的空转换（见p795倒数第2行），定义阶段在书中&#8221;Building an NFA corresponding to an RE&#8221;一节，图示见p803，代码见p802），在代码表现为以一个正则表达式字符串为参数的NFA构造函数；</p>
-
-<p>执行阶段就是判断待处理的文本中是否含有目标正则表达式（见&#8221;Simulating an NFA&#8221;一节，图示见p798），整个过程是一个循环过程，每次循环待处理文本指针前进一个字符，这次循环由两步组成，首先根据当前正则表达式指针所处位置（最初位置都是0）算出所有空转换可达位置（借助深度优先算法DirectedDFS，可达位置保存在变量pc中），然后将所有可达位置上的字符与待处理文本指针处的字符比较，如果一样则把正则表达式指针的后一位保存在变量match中。然后以match为初始位置重新构造DirectedDFS对象，进而得到可达位置集合pc，然后从中筛选匹配上的位置，如此循环，直到待处理文本指针到达文本尾部，如果pc中有正则表达式长度的那个元素（代表匹配成功的位置，书中代码用类成员M表示），说明匹配正则表达式成功，否则失败。</p>
-
-<p>需要说明的是，从所有可达状态pc中筛选匹配上位置并放入match中之前，需要先将值为M的元素去掉，以用&#8221;(A<em>B|AC)D&#8221;匹配&#8221;AABDC&#8221;为例，当目标文本指针等于4时，即指向&#8221;AABDC&#8221;的最后一个字符C时，pc中已经包含了最终状态11（正则串&#8221;((A</em>B|AC)D)&ldquo;的长度），因为AABD符合&rdquo;(A<em>B|AC)D&#8221;，但最后的C导致整个文本不匹配&#8221;(A</em>B|AC)D&#8221;，所以结果仍然是匹配失败。</p>
-
-<p>测试代码如下：</p>
-
-<p> String token = &ldquo;(A<em>B|AC)D&rdquo;;
- String regexp = &ldquo;(&rdquo; + token + &ldquo;)&rdquo;;
- // when test if target string &ldquo;contains&rdquo; regex, regexp = &ldquo;(.</em>&rdquo; + token + &ldquo;.*)&rdquo;
- NFA nfa = new NFA(regexp);
- String target = &ldquo;AABDC&rdquo;;
- if (nfa.recognizes(target)) {
-  System.out.println(&ldquo;match: &rdquo; + target);
- } else {
-  System.out.println(&ldquo;not match: &rdquo; + target);
- }</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/31/141131/">Wine笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-31T14:11:31+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:11 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在虚拟机（virtualbox）的Ubuntu 11.10上安装wine，使用图形界面的Softwre Center安装失败，提示网络连接异常，但在命令行下用apt-get install wine安装成功，版本是1.4。</p>
-
-<p>安装wine后exe文件双击就可以执行了。</p>
-
-<p>Windows绿色文件可以运行，但速度非常慢（虚拟机配置比较低造成的还是wine本身就很慢？），基本不可用，只能验证这个程序在Wine上能不能运行。</p>
-
-<hr />
-
-<p>2014.6.3更新：</p>
-
-<p>可以先用<code>apt-cache search wine</code>搜索可用的wine安装包的具体名称；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/29/111823/">Windows 7 启动Wireshark找不到网卡的解决办法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-29T11:18:23+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今天启动Wireshark时报“npf isn&rsquo;t running”，找不到网卡，google一番后发现是一个叫npf的系统服务没有启动所致，首先以管理员身份开启命令行，然后进入如下操作：</p>
-
-<p>C:\Windows\system32>sc qc npf
-[SC] QueryServiceConfig 成功
-SERVICE_NAME: npf
-  TYPE    : 1 KERNEL_DRIVER
-  START_TYPE   : 3 DEMAND_START
-  ERROR_CONTROL  : 1 NORMAL
-  BINARY_PATH_NAME : system32\drivers\npf.sys
-  LOAD_ORDER_GROUP :
-  TAG    : 0
-  DISPLAY_NAME  : NetGroup Packet Filter Driver
-  DEPENDENCIES  :
-  SERVICE_START_NAME :
-C:\Windows\system32>sc start npf
-SERVICE_NAME: npf
-  TYPE    : 1 KERNEL_DRIVER
-  STATE    : 4 RUNNING
-        (STOPPABLE, NOT_PAUSABLE, IGNORES_SHUTDOWN)
-  WIN32_EXIT_CODE : 0 (0x0)
-  SERVICE_EXIT_CODE : 0 (0x0)
-  CHECKPOINT   : 0x0
-  WAIT_HINT   : 0x0
-  PID    : 0
-  FLAGS    :</p>
-
-<p>C:\Windows\system32>sc config npf start= auto
-[SC] ChangeServiceConfig 成功</p>
-
-<p>注意第一个条指令是查询npf服务的状态，可以看到是DEMAND_START，不是自动启动，所以第二条指令手工启动了服务，第3条指令将npf启动方式改为自动启动，注意它的格式比较特别，等号后面要加一个空格（等号前面不能写空格）。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/24/111834/">Notes About Robert Algorithms Chapter 4</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-24T11:18:34+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>p534: &ldquo;These two&rdquo; in the last paragraph refers to &ldquo;Connectivity&rdquo; &amp; &ldquo;Single-source paths&rdquo; in this page.</p></li>
-<li></li>
-</ul>
-
-
-<h1>Chapter Structure</h1>
-
-<p>4.1 Undirected Graph 518
- Glossary 519
- Undircted graph data type 522
-  Representation alternatives 524
-  Adjacency-lists data structure 525
-  Design pattern for graph processing 528
- Depth-first search 530
-  Searching in a maze 530
-  Warmup 531
-  One-way passages 532
-  Detailed trace of depth-first search 533
- Finding paths 535
-  Implementation 535
-  Detailed trace 537
- Breadth-first search 538
-  Implementation 538
- Connected components 543
-  Implementation 543
-  Union-find 546
- Symbol graphs 548
-  Implementation 551
-  Degree of seperation 553
- Summary 556</p>
-
-<p>4.2 Directed Graphs 566
- Digraph data type 568
- Reachability in digraphs 570
- Cycles and DAGs 574
- Strong connectivity in digraphs 584
- Summary 594</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/22/184919/">关于单例模式</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-22T18:49:19+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>6:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>参考：<a href="http://www.cnblogs.com/coffee/archive/2011/12/05/inside-java-singleton.html">【深入】java 单例模式</a></p>
-
-<p>其中的第三种方法比较好，简单、稳定，唯一的缺点是在初始化时加载，没有实现lazy load，但在资源不紧张的场景下，没必要lazy load。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/21/231615/">Hsql笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-21T23:16:15+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>11:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="http://hsqldb.org/">hsql</a>是一款开源的基于Java的数据库。</p>
-
-<h1>数据库服务</h1>
-
-<h2>使用默认配置直接启动</h2>
-
-<p>运行$HSQL_HOME/bin/runServer.bat；</p>
-
-<h2>配置服务参数</h2>
-
-<p>如数据库文件名和服务监听端口等。</p>
-
-<ul>
-<li>通过命令行参数：（详见User guide -> Chapter 1 -> Server mode）通过runServer.bat文件可知它只是运行了&#8221;java -classpath ../lib/hsqldb.jar org.hsqldb.server.Server&#8221;，实际上可以加命令行参数指定服务特性。例如：</li>
-</ul>
-
-
-<p> java -cp ../lib/hsqldb.jar org.hsqldb.Server -database.0 file:mydb -dbname.0 xdb</p>
-
-<ul>
-<li>通过配置文件：（详见User guide -> Chapter 13: HyperSQL Network Listeners -> Server and Web Server Properties）在hsql服务启动目录（运行&#8221;java &hellip;Server&#8221;的目录）下创建一个server.properties文件，例如：</li>
-</ul>
-
-
-<p> server.database.0=godudb</p>
-
-<p> server.port=3001</p>
-
-<ul>
-<li>通过程序代码：（详见User guide -> Chapter 13: HyperSQL Network Listeners -> Starting a Server from your Application）例如：</li>
-</ul>
-
-
-<p> HsqlProperties p = new HsqlProperties();</p>
-
-<p> p.setProperty(&ldquo;server.database.0&rdquo;,&ldquo;file:/opt/db/accounts&rdquo;);</p>
-
-<p> p.setProperty(&ldquo;server.dbname.0&rdquo;,&ldquo;an_alias&rdquo;);</p>
-
-<p> // set up the rest of properties</p>
-
-<p> // alternative to the above is</p>
-
-<p> Server server = new Server();</p>
-
-<p> server.setProperties(p);</p>
-
-<p> server.setLogWriter(null); // can use custom writer</p>
-
-<p> server.setErrWriter(null); // can use custom writer</p>
-
-<p> server.start();</p>
-
-<h1>客户端</h1>
-
-<h2>图形界面操作</h2>
-
-<p>这里用<a href="http://squirrel-sql.sourceforge.net/">squirrel-sql</a>作为客户端，运行$SQUIRREL_HOME/squirrel-sql.bat启动程序；</p>
-
-<h3>安装hsql驱动</h3>
-
-<p>将$HSQL_HOME/lib/hsqldb.jar拷贝到$SQUIRREL_HOME/lib下；</p>
-
-<h3>配置数据库别名</h3>
-
-<p>jdbc url: jdbc:hsqldb:hsql://localhost；</p>
-
-<p>username: sa</p>
-
-<p>password: 留空</p>
-
-<p>然后连接就可以打开数据库了。</p>
-
-<h3>数据库操作</h3>
-
-<h4>建表</h4>
-
-<p>在SQL面板里输入：</p>
-
-<p> CREATE TABLE Person ( LastName varchar(10), FirstName varchar(10), Address varchar(10), Age int )</p>
-
-<p>运行后在database/PUBLIC/TABLE下会生成一个名为Person的表；</p>
-
-<h4>插入数据</h4>
-
-<p>insert into person values(&lsquo;chad&rsquo;,&lsquo;lee&rsquo;,&lsquo;guangzhou&rsquo;,33)</p>
-
-<h4>删除表</h4>
-
-<p>drop table person</p>
-
-<h3>持久化验证</h3>
-
-<p>重启数据库服务后再用客户端连接服务，可以看到原来的表以及表中的数据都在，这样就实现了数据的持久化。</p>
-
-<h2>程序代码操作</h2>
-
-<p>下面的代码演示了初始化数据驱动，连接数据库，读取数据及其关闭数据库服务的完整过程，与上面的代码启动服务配合，可以实现对数据库的自动化测试。</p>
-
-<p> try {
-  Class.forName(&ldquo;org.hsqldb.jdbcDriver&rdquo;);
- } catch (Exception e) {
-  System.err.println(&ldquo;ERROR: failed to load HSQLDB JDBC driver.&rdquo;);
-  e.printStackTrace();
-  return;
- }
- try {
-  Connection conn = DriverManager.getConnection(&ldquo;jdbc:hsqldb:hsql://localhost:3001&rdquo;, &ldquo;SA&rdquo;, &ldquo;&rdquo;);
-  String sql = &ldquo;select * from person&rdquo;;
-  PreparedStatement content = conn.prepareStatement(sql);
-  ResultSet res = content.executeQuery();
-  // int rowcount = -1;
-  // if (res.last()) { // ResultSet.last() is unsupported by hsql
-  // rowcount = res.getRow();
-  // }
-  while (res.next()) {
-   System.out.println(res.getString(1));
-   System.out.println(res.getString(2));
-   System.out.println(res.getString(3));
-  }
-  Statement st = conn.createStatement();
-  st.execute(&ldquo;SHUTDOWN&rdquo;);
-  conn.close();
- } catch (SQLException e) {
-  // TODO Auto-generated catch block
-  e.printStackTrace();
- }</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/21/143532/">用enchanter实现自动执行ssh任务</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-21T14:35:32+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:35 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="https://code.google.com/p/enchanter/">enchanter</a>可以自动执行ssh脚本：</p>
-
-<p> F:>java -jar enchanter-python-0.5.1.jar aaa.py</p>
-
-<p>其中task.py的内容如下：</p>
-
-<p> ssh.connect(&lsquo;192.168.1.127&rsquo;, 22, &lsquo;leechau&rsquo;,&lsquo;000&rsquo;);
- print &lsquo;recv: &rsquo;+ssh.getLine();
- ssh.waitFor(&lsquo;~$&rsquo;);
- ssh.sendLine(&lsquo;ls -l&rsquo;);
- print &lsquo;recv: &rsquo;+ssh.getLine();
- ssh.waitFor(&lsquo;~$&rsquo;);
- ssh.sendLine(&lsquo;exit&rsquo;);
- print &lsquo;recv: &rsquo;+ssh.getLine();
- ssh.disconnect();</p>
-
-<p>没找到执行telnet任务的方法，但expect4j的官网上说enchanter是可以运行telnet任务的。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/50">&larr; Older</a>
@@ -721,23 +950,23 @@ SERVICE_NAME: npf
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
+        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
+        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
+        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
+        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
+        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
       </li>
     
   </ul>

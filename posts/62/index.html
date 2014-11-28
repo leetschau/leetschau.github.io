@@ -9,8 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="chapter 2 -> Securing web applications 对书中步骤的补充: 项目根目录（$PROJ_HOME/web）下建立login.jsp和loginerror.jsp两个文件；
-配置部分，GlassFish的配置文件名为glassfish-web. &hellip;">
+  <meta name="description" content="根目录下pom.xml中 EclipseLink Repo
+下的
+http://mirror.csclub.uwaterloo.ca/eclipse/rt/eclipselink/maven.repo/
+改为：
+http://download.eclipse.org/rt/eclipselink/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +69,477 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/23/090345/">Beginning Java EE 6 Platform With GlassFish 3源代码编译问题解决办法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-23T09:03:45+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>9:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>根目录下pom.xml中
+<repository>
+   <id>EclipseLink Repo</id>
+下的
+<url><a href="http://mirror.csclub.uwaterloo.ca/eclipse/rt/eclipselink/maven.repo/">http://mirror.csclub.uwaterloo.ca/eclipse/rt/eclipselink/maven.repo/</a></url>
+改为：
+<url><a href="http://download.eclipse.org/rt/eclipselink/maven.repo/">http://download.eclipse.org/rt/eclipselink/maven.repo/</a></url>
+可以解决无法找到eclipselink 2.0.1导致mvn compile失败问题；第二章编译成功；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/19/173502/">读取配置文件的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-19T17:35:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:35 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>读取配置文件需要指定配置文件的路径和文件名，可以在Java代码里硬编码配置文件名，然后将配置文件所在目录加入classpath；也可以把路径和文件名都硬编码在Java代码里，只要启动脚本和配置文件的相对位置不变，就不必修改代码。第一种方法更灵活（指定配置文件路径的工作放在了启动脚本里，而不是Java代码中），推荐使用。</p>
+
+<h1>硬编码配置文件名</h1>
+
+<p>用Class的getResourceAsStream(String name)方法加载配置文件，代码如下：</p>
+
+<p> InputStream in = this.getClass().getResourceAsStream(&ldquo;/db.properties&rdquo;);</p>
+
+<p> Properties p = new Properties();</p>
+
+<p> p.load(in);
+ System.out.println(&ldquo;value is: &rdquo; + p.getProperty(&ldquo;db&rdquo;));</p>
+
+<p>其中GetResources是运行这段代码所在类的类名，部署目录结构是：</p>
+
+<p>root</p>
+
+<p> |-bin</p>
+
+<p>  |-start.bat</p>
+
+<p> |-conf</p>
+
+<p>  |-db.properties</p>
+
+<p> |-lib</p>
+
+<p>  |-res.jar</p>
+
+<p>启动脚本start.bat内容是：</p>
+
+<p> java -cp f:\VMFiles\tmpFiles\goduEx2\lib\res.jar;f:\VMFiles\tmpFiles\goduEx2\conf getResources.GetResources</p>
+
+<p>其中res.jar的结构是：getResources/GetResources.class（假设代码所在文件的包名是getResources）。</p>
+
+<p>这里最重要的是getResourceAsStream方法的参数前面要加上&#8221;/&ldquo;。</p>
+
+<p>在static方法里无法使用&#8221;this&#8221;关键字，可以硬编码类名，在Eclipse中重构可以同时修改类名：</p>
+
+<p> InputStream in = GetResources.class.getResourceAsStream(&ldquo;/db.properties&rdquo;);</p>
+
+<h1>指定配置文件相对路径</h1>
+
+<p>将上面代码的第一句改为：</p>
+
+<p>InputStream in = new FileInputStream(&ldquo;../conf/db.prop&rdquo;);</p>
+
+<p>相应地start.bat也不需要把conf加到classpath里：</p>
+
+<p> java -cp f:\VMFiles\tmpFiles\goduEx2\lib\res.jar getResources.GetResources</p>
+
+<p>不推荐ResourceBundle.getBundle()方法，因为这个方法不是用来加载文件的。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/19/105207/">用jstack监控远程主机上的java进程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-19T10:52:07+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>前面提到用visualvm监控远程主机上的java进程，这种方法的好处是可以“实时”监控，缺点是需要启动jstatd，且只能看到线程总数，无法显示每个线程的详细情况，jstack可以生成某一进程的dump，包含在特定时刻（命令执行时）Java进程内部各个线程的详细情况。</p>
+
+<p>首先用&#8221;jps -l&#8221;找到目标进程的PID，然后用&#8221;jstack [PID]&ldquo;获得dump，对于大型程序这个dump一般也比较大，所以用&#8221;jstack [PID] > dump_file_name&#8221;的方法将结果保存在文件dump_file_name里。</p>
+
+<p>下面是dump文件中的一段：</p>
+
+<p>&ldquo; HSQLDB Timer @5a1b5e32 &rdquo; daemon prio=3 tid=0x0000000101116800 nid=0x420a in Object.wait() [0xfffffffb5c2ff000]
+ java.lang.Thread.State : TIMED_WAITING (on object monitor)
+  at java.lang.Object.wait(Native Method)
+  - waiting on <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer$TaskQueue.park(HsqlTimer.java:883)
+  - locked <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer.nextTask(HsqlTimer.java:531)
+  - locked <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer$TaskRunner.run(HsqlTimer.java:611)
+  at java.lang.Thread.run(Thread.java:662)</p>
+
+<p>以上文本包含的信息包括：</p>
+
+<p>线程名：HSQLDB Timer @5a1b5e32</p>
+
+<p>锁住的资源：<0xfffffffb721e7700></p>
+
+<p>线程堆栈</p>
+
+<p>线程类型：daemon;</p>
+
+<p>线程优先级（prio）：3</p>
+
+<p>线程ID（tid）：0x0000000101116800</p>
+
+<p>线程状态：&#8221;Object.wait()&ldquo;和&#8221;TIMED_WAITING&rdquo;</p>
+
+<p>下面的一段供对照：</p>
+
+<p>&ldquo; T-14319652 &rdquo; prio=3 tid=0x000000010294d000 nid=0x4208 runnable [0xfffffffb5d5f8000]
+ java.lang.Thread.State: RUNNABLE
+  at org.hsqldb.ExpressionColumn.getValue(ExpressionColumn.java:627)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1172)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)</p>
+
+<p>参考：</p>
+
+<p><a href="http://zheng12tian.iteye.com/blog/1420508">Java自带的性能监测工具用法简介——jstack、jconsole、jinfo、jmap、jdb、jsta、jvisualvm</a></p>
+
+<p><a href="http://www.blogjava.net/jzone/articles/303979.html">JAVA线程dump的分析 &mdash; jstack pid</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/18/204259/">Top指令用法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-18T20:42:59+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:42 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>输出结果的含义：</p>
+
+<p><a href="http://blog.csdn.net/jackyren007/article/details/3728075">Linux下查看CPU使用率!系统资源使用情况</a></p>
+
+<p>指令参数说明：</p>
+
+<p><a href="http://www.thegeekstuff.com/2010/01/15-practical-unix-linux-top-command-examples/">Can You Top This? 15 Practical Linux Top Command Examples</a></p>
+
+<p>top界面上输入1（数字一）可以列出CPU每个核的情况，输入shift+h可以列出thread情况（详细说明在top界面上按h键）；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/18/202220/">用ps指令查看进程内的线程数量</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-18T20:22:20+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:22 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>[godu@goduserver ~]$ jps
+24121 Jps
+23854 PoolServer
+22522 AppMain
+22351 ResFreshAppMain
+23898 PoolServer
+22713 SimpleJettyServer</p>
+
+<p>[godu@goduserver ~]$ ps -p 23854 -L -o tid,pcpu,state,nlwp
+ TID %CPU S NLWP
+23854 0.0 S 40
+23855 0.0 S 40
+23856 0.0 S 40</p>
+
+<p>其中-L参数是列出进程内的线程（详见man ps的&#8221;THREAD DISPLAY&#8221;一节），-o是指定输出项（详见man ps的&#8221;STANDARD FORMAT SPECIFIERS&#8221;一节）。</p>
+
+<p>参考：<a href="http://www.thegeekstuff.com/2011/04/ps-command-examples/">UNIX / Linux: 7 Practical PS Command Examples for Process Monitoring</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/18/193739/">用visualvm监控远程主机上的java进程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-18T19:37:39+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>7:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>启动参数配置</h1>
+
+<p>要监控PoolServer的运行情况，需要在启动时加上以下参数：</p>
+
+<p> &ldquo;${JAVA_HOME}/bin/java&rdquo; -Dcom.sun.management.jmxremote \
+ -Dcom.sun.management.jmxremote.port=9090 \
+ -Dcom.sun.management.jmxremote.authenticate=false \
+ -Dcom.sun.management.jmxremote.ssl=false \
+ -Djava.rmi.server.hostname=10.0.2.47 \
+ -Dservice_name=godu-3.0 -cp $JARS transfer.PoolServer</p>
+
+<h1>系统配置</h1>
+
+<p>首先在jstatd所在目录下（$JAVA_HOME/bin）新建一个policy文件jstatd.all.policy：</p>
+
+<p>grant codebase &ldquo;file:${java.home}/../lib/tools.jar&rdquo; {</p>
+
+<p> permission java.security.AllPermission;</p>
+
+<p>};</p>
+
+<p>然后运行jstatd：</p>
+
+<p> jstatd -J-Djava.security.policy=jstatd.all.policy</p>
+
+<p>程序启动后没有任何输出，但用jps和netstat -an|grep 1099可以验证jstatd是否启动成功。</p>
+
+<p>参考：<a href="http://liwenqiu.github.com/blog/2012/02/22/use-visualvm-monitor-remote-java/">用VisualVM远程监控Java进程</a>（此文应该是基于<a href="http://docs.oracle.com/javase/6/docs/technotes/tools/share/jstatd.html">jstatd - Virtual Machine jstat Daemon</a>），注意其中的policy文件的写法，不要把${java.home}误写成${java_home}，因为这不是环境变量。</p>
+
+<hr />
+
+<p>2013-02-22更新</p>
+
+<p>不运行上述&#8221;jstatd -J-D&hellip;&ldquo;情况下连接113服务器失败，运行jstatd命令需要首先安装openjdk6，装完后运行该命令，又用Ctrl+C停止，在jVisualVM中配置远程主机10.31.1.113，在上面右键：添加JMX连接，“连接”项设为10.31.1.113:9090，连接成功后在“抽样器”中首先进行“CPU设置”，仅分析&#8221;transfer.*&#8221;，然后点击&#8221;CPU&#8221;按钮进行CPU抽样，可以看到各个public方法的执行时间。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/14/153649/">Markdown语法和编辑预览工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-14T15:36:49+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>3:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>标题</h1>
+
+<p>有#和=两种形式。</p>
+
+<h2>Setext格式</h2>
+
+<p>1~6个&#8221;#&ldquo;开头</p>
+
+<blockquote><h1>first layer title</h1>
+
+<h2>second layer title</h2></blockquote>
+
+<h2>atx格式</h2>
+
+<p>标题下面的&#8221;=&ldquo;表示一级标题，&rdquo;-&ldquo;表示二级标题</p>
+
+<blockquote><p>一级标题</p>
+
+<hr />
+
+<blockquote><p>二级标题</p>
+
+<hr /></blockquote></blockquote>
+
+<h1>引用</h1>
+
+<p>&ldquo;>&#8221;开头的是引用，&rdquo;>>&ldquo;表示引用中的引用；</p>
+
+<blockquote><p>这是一行引用</p></blockquote>
+
+<h1>列表</h1>
+
+<h2>排序列表</h2>
+
+<p>以&#8221;1. &ldquo;起首的行会被编号为1,2,&hellip;</p>
+
+<blockquote><ol>
+<li><p>first line;</p></li>
+<li><p>second line;</p></li>
+</ol>
+</blockquote>
+
+<h2>普通列表</h2>
+
+<blockquote><ul>
+<li><p>first item</p></li>
+<li><p>second item</p></li>
+<li><p>third item</p></li>
+<li><p>fourth item</p></li>
+</ul>
+</blockquote>
+
+<h1>段落</h1>
+
+<blockquote><ul>
+<li><p>空行分隔段落</p></li>
+<li><p>换行不影响，</p></li>
+</ul>
+</blockquote>
+
+<p>本行与上一行会处于同一段中</p>
+
+<h1>超链接</h1>
+
+<ul>
+<li><p>嵌入式：<a href="url">title</a></p></li>
+<li><p>文后注释式：文中[title]，在文后写上单独一行：[title]:url</p></li>
+</ul>
+
+
+<h1>强调</h1>
+
+<blockquote><p><strong>两个星号</strong> 是黑体形式的强调；</p>
+
+<p><em>一个星号</em> 是形体形式的强调</p></blockquote>
+
+<p>注意英文强调时星号与外部文本之间要留空格；</p>
+
+<h1>代码</h1>
+
+<p>以4个空格起首的都被处理为代码，代码区块中的特殊字符（如#）不会处理为markdown标识符；如果需要在正文中增加一段行内代码，可以用反引号将代码括起来（<code>some code</code>）。</p>
+
+<h1>分隔线</h1>
+
+<p>行首连续3个或以上&#8221;-&ldquo;, &rdquo;*&ldquo;或者&rdquo;_&ldquo;形成一条分隔线，注意用&rdquo;-&ldquo;做分割线时上一行必须是空行，否则会被当做标题标记；</p>
+
+<p><a href="http://wowubuntu.com/markdown/">Markdown 语法说明 (简体中文版)</a>讲得比较精当，<a href="http://dillinger.io/">Dillinger</a>是一个很好的在线markdown编辑器，将以上文本粘贴到其中可以看到效果。</p>
+
+<h1>markdown编辑/预览工具</h1>
+
+<ul>
+<li><p><a href="http://dillinger.io/">dillinger.io</a>，在线编辑，效果很好；</p></li>
+<li><p><a href="http://markdownpad.com/">MarkdownPad</a></p></li>
+<li><p><a href="http://savagelook.com/blog/actionscript3/gonzo-an-open-source-markdown-editor">Gonzo</a>，需要先安装Adobe Air，响应速度较MarkdownPad慢；</p></li>
+<li><p><a href="http://writemonkey.com/index.php">writemonkey</a>，软件本身是绿色的，无需安装，但运行时需要首先安装.NET 4.0；</p></li>
+<li><p>MarkPad: 需要安装，字体不好看；</p></li>
+</ul>
+
+
+<h1>类似工具</h1>
+
+<ul>
+<li><p><a href="http://fletcherpenney.net/multimarkdown/">MultiMarkdown</a></p></li>
+<li><p><a href="http://johnmacfarlane.net/pandoc/">Pandoc</a>，参考笔记 Pandoc笔记 ；</p></li>
+<li><p><a href="http://pypi.python.org/pypi/Markdown/">Markdown in Python</a></p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -189,269 +663,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/10/171328/">控制反转和依赖注入</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-10T17:13:28+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:13 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>控制反转（Inversion of Control, IoC）的主要作用是为软件模块解耦，增加可测性，提高模块内部聚合性，依赖注入（Dependency Injection, DI）是IoC的一种特殊形式，</p>
-
-<p>Benjamin J Evans: The Well-Grounded Java Developer, Chapter 3: Dependency Injection 很好地解释了什么是依赖注入，以及它的作用，并结合Google的 Guice 说明了DI的用法。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/07/162210/">Java字符串的格式化输出</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-07T16:22:10+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:22 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>左对齐
-String LS_HEADER = String.format(&ldquo;%-10s%-10s%-10s%-10s%-10s%-10s%n&rdquo;,</p>
-
-<p>   &ldquo;ID&rdquo;, &ldquo;Protocol&rdquo;, &ldquo;IP&rdquo;, &ldquo;Port&rdquo;, &ldquo;Username&rdquo;, &ldquo;Password&rdquo;);</p>
-
-<p>效果：</p>
-
-<p>ID  Protocol IP  Port  Username Password
-10025022 ssh  10.0.2.50 22  godu  godu<br/>
-10024723 telnet 10.0.2.47 23  godu  goduty
- 右对齐
- String LS_HEADER = String.format(&ldquo;%10s%10s%10s%10s%10s%10s%n&rdquo;,</p>
-
-<p>   &ldquo;ID&rdquo;, &ldquo;Protocol&rdquo;, &ldquo;IP&rdquo;, &ldquo;Port&rdquo;, &ldquo;Username&rdquo;, &ldquo;Password&rdquo;);</p>
-
-<p>效果：</p>
-
-<p>  ID Protocol  IP  Port Username Password
- 10025022  ssh 10.0.2.50  22  godu  godu
- 10024723 telnet 10.0.2.47  23  godu goduty</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/07/085845/">Tomcat笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-07T08:58:45+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>[Windows 7]</p>
-
-<p>启动/停止服务：$TOMCAT_HOME/bin/startup.bat, shutdown.bat;</p>
-
-<p>修改http监听端口：$TOMCAT_HOME/conf/server.xml, connector的port属性值；</p>
-
-<p>默认加载目录：$TOMCAT_HOME/webapps/ROOT
-自己应用的目录：在$TOMCAT_HOME/webapps下新建一个目录，将html,jsp文件放入其中即可；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/06/140402/">JavaFX笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-06T14:04:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:04 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>WebServer加载JavaFX应用的方法
-1. 首先在NetBeans 7.2中构建好&#8221; Creating a Form in JavaFX &ldquo;，将项目根目录的dist子目录中的所有文件拷贝到$XAMPP_DIR/htdocs/jnlpEx下；
-2. 启动xampp服务（参考“ PHP开发环境搭建 ”）；
-3. 浏览器中打开：<a href="http://localhost:8000/jnlpEx/Login.html%E3%80%82">http://localhost:8000/jnlpEx/Login.html%E3%80%82</a></p>
-
-<p>在Jetty上加载尚未成功；</p>
-
-<p> 界面设计
-布局： Working With Layouts in JavaFX</p>
-
-<p>控件说明： Using JavaFX UI Controls</p>
-
-<p> 文档总目录</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/06/102721/">Jetty笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-06T10:27:21+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:27 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>启动Jetty服务：java -jar start.jar</p>
-
-<p>修改监听端口号：$JETTY_HOME/etc/jetty.xml中修改port的值；</p>
-
-<p>运行“ Jetty官网教程 -> 1.2.1节Embedding Jetty -> Configuring Connectors -> ManyConnectors.java ”这个程序需要注意：</p>
-
-<ol>
-<li>程序包需要使用jetty-distribution-7.6.5.v20120716这个版本，使用7.2.1（jetty-all-7.2.1.v20101111.jar）会有API不兼容问题；</li>
-<li>要把7.6.5发布包解压后lib目录下所有jar包都加入Classpath，否则会有运行时类无法找到错误；</li>
-<li>ManyConnectors.java中“String jetty_home = System.getProperty(&hellip;);”这一句中默认值要改为解压后的路径，否则会报keystore文件无法找到错误；</li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/08/28/194219/">JMeter笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-08-28T19:42:19+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>7:42 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>将界面语言改为英文：$JMETER_HOME/bin/jmeter.properties中，取消注释&#8221;language=en&#8221;；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/08/22/163810/">英文版Windows 7支持中文显示和输入</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-08-22T16:38:10+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>4:38 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>显示中文
-Start -> Control Panel -> Region and Language:</p>
-
-<p> Location -> &ldquo;Current Location&rdquo; 改为 &ldquo;China&rdquo;;</p>
-
-<p> Administrative -> Change system locale&hellip; -> &ldquo;Current system locale&rdquo; 改为 &ldquo;Chinese (Simplified, PRC)&rdquo;;
- 输入中文
-这个比较简单，装一个搜狗输入法就行了，修改默认输入法：</p>
-
-<p>Start -> Control Panel -> Region and Language -> Keyboards and Languages -> Change keyboards;</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/63">&larr; Older</a>
@@ -469,23 +680,23 @@ Start -> Control Panel -> Region and Language:</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
+        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
+        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
+        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
+        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
+        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
       </li>
     
   </ul>

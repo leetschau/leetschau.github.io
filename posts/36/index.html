@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Scenario: When checkout codes in Juno SR2 with svn plugin subclipse 1.10.x, it reports &ldquo;unable to load default svn client&rdquo;, and checkout &hellip;">
+  <meta name="description" content="Start a terminal, run tty to get its device file name, &ldquo;/dev/pts/0&rdquo; in this case.
+Start another terminal. Create a expect script &ldquo; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,316 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/28/111229/">Show Output and Internal Diagnostics of Expect Script in Different Terminals</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-28T11:12:29+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Start a terminal, run <code>tty</code> to get its device file name, &ldquo;/dev/pts/0&rdquo; in this case.</p></li>
+<li><p>Start another terminal. Create a expect script &ldquo;testDebug.exp&rdquo;:</p>
+
+<pre><code> #!/usr/bin/expect 
+ set prompt "\\\[hadoop@49server\\s.*\\\]\\\$\\s" 
+ spawn telnet 10.0.2.49 
+ exp_internal 1 
+ expect "login:" 
+ send "hadoop\r" 
+ expect "Password:" 
+ send "h\r" 
+ expect -re $prompt 
+ send "df -h\r" 
+ expect -re $prompt 
+ send "exit\r" 
+ expect eof
+</code></pre></li>
+<li><p>Give execution priority to testDebug.exp (using chmod) and run it: <code>./testDebug.exp 2&gt; /dev/pts/0</code>. You can see all diagnostics information are printed in the terminal &ldquo;/dev/pts/0&rdquo; while all &ldquo;normal&rdquo; informal are printed in the second terminal window.</p></li>
+</ol>
+
+
+<p>Explanation: the command &ldquo;exp_internal 1&rdquo; send all pattern diagnostics to standard error, which is specified as &ldquo;2> &hellip;&rdquo; in the command line. Meanwhile, a terminal&rsquo;s id can be get from &ldquo;tty&rdquo; command.</p>
+
+<p>You can use &ldquo;exp_internal -f <log_file_name> 0&rdquo; instead of &ldquo;exp_internal 1&rdquo; to save all standard output and diagnostics information into file <log_file_name>. while only standard output can be seen on the terminal.</p>
+
+<p>Reference: Section &ldquo;Enabling Internal Diagnostics&rdquo; and &ldquo;Logging Internal Diagnostics&rdquo; in chapter 7:&ldquo;Debugging Patterns And Controlling Output&rdquo; of &ldquo;Exploring Expect&rdquo; by Don Libes.</p>
+
+<p>Notes: If you run command &ldquo;ls -l /dev/pts/*&rdquo;, you can get the following outputs:</p>
+
+<pre><code>crw--w---- 1 lichao tty 136, 0 Aug 28 11:56 0
+...
+</code></pre>
+
+<p>Notice that the file type are &ldquo;c&rdquo; (the first character of the line), which stands for &ldquo;character device&rdquo; (standard input/output, like keyboard and screen, relative to &ldquo;block device&rdquo;, like hard drives). See &ldquo;<a href="http://en.wikipedia.org/wiki/Unix_file_types#Device_file">http://en.wikipedia.org/wiki/Unix_file_types#Device_file</a>&rdquo; for details.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/27/111531/">Check Directory Existence in Shell</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-27T11:15:31+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:15 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following command in one line can check if a directory exists. You can check the return value (&ldquo;yes or &#8220;no) then decide what to do.</p>
+
+<p> $ if [ -d /home/gcp/deploy ] ; then echo &ldquo;yes&rdquo; ; else echo &ldquo;no&rdquo; ; fi</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/26/112747/">Get Tcl and Expect Version on Ubuntu</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-26T11:27:47+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:27 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>tcl version</h1>
+
+<p> $ tclsh</p>
+
+<p> % puts $tcl_version
+ 8.5</p>
+
+<h1>expect version</h1>
+
+<p> $ expect -v</p>
+
+<p> expect version 5.45</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/26/104022/">A Telnet Client Using Expect</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-26T10:40:22+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:40 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following expect script achieves a simple telnet client: login -> send command -> exit. The point is the form of prompt in regular expression. You have to add 3 backslash before &ldquo;[&rdquo;, &ldquo;]&rdquo; and &ldquo;$&rdquo;, and add &ldquo;-re&rdquo; option after expect command in &ldquo;expect $prompt&rdquo;.</p>
+
+<p> #!/usr/bin/expect
+ set prompt &ldquo;\[hadoop@49server\s.*\]&#92;$\s&rdquo;
+ spawn telnet 10.0.2.49
+ expect &ldquo;login:&rdquo;
+ send &ldquo;hadoop\r&rdquo;
+ expect &ldquo;Password:&rdquo;
+ send &ldquo;h\r&rdquo;
+ expect -re $prompt
+ send &ldquo;df -h\r&rdquo;
+ expect -re $prompt
+ send &ldquo;ls -l\r&rdquo;
+ expect -re $prompt
+ send &ldquo;exit\r&rdquo;
+ expect eof</p>
+
+<p>The following script achieves auto-login and auto-logout. Save it as autoTelnet.exp:</p>
+
+<p> #!/usr/bin/expect
+ set ip [lindex $argv 0]
+ set username [lindex $argv 1]
+ set password [lindex $argv 2]
+ spawn telnet $ip
+ expect &ldquo;login:&rdquo;
+ send &ldquo;$username\r&rdquo;
+ expect &ldquo;Password:&rdquo;
+ send &ldquo;$password\r&rdquo;
+ interact +++ return
+ send &ldquo;exit\r&rdquo;
+ expect eof</p>
+
+<p>then run it:</p>
+
+<p> $ ./autoTelnet.exp 10.0.2.49 hadoop h</p>
+
+<p>After auto-login, you can send any commands as if you communicates with host directly. When you want to quit, type &ldquo;+++&rdquo; and then the script exits from interact mode and runs logout routine.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/26/084605/">Use Laptop as Wifi Hotspot</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-26T08:46:05+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Your laptop used as wifi hotspot have to connect with internet with <strong>wired connection</strong>. see <a href="http://www.howtogeek.com/116409/how-to-turn-your-ubuntu-laptop-into-a-wireless-access-point/">http://www.howtogeek.com/116409/how-to-turn-your-ubuntu-laptop-into-a-wireless-access-point/</a> for details.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/23/104927/">Wildcards in Spawn Command</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-23T10:49:27+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following script works fine.</p>
+
+<p> #!/usr/bin/expect
+ spawn bash -c &ldquo;ls -l *.exp&rdquo;
+ expect eof</p>
+
+<p>Questions</p>
+
+<ol>
+<li><p>Why I can&rsquo;t remove &ldquo;expect eof&rdquo;?</p></li>
+<li><p>Why I can&rsquo;t remove &ldquo;bash -c&rdquo;?</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/23/102651/">Spawn and Expect</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-23T10:26:51+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:26 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Run this script:</p>
+
+<p> #!/usr/bin/expect
+ spawn ls -l
+ expect &ldquo;aaa&rdquo;
+ puts &ldquo;bbb&rdquo;
+ expect &ldquo;bbb&rdquo;</p>
+
+<p>you will get a</p>
+
+<p>spawn_id?</p>
+
+<p>When &ldquo;ls -l&rdquo; ends, it send a eof to expect script process, this signal canceled &ldquo;expect aaa&rdquo;?</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -356,483 +667,6 @@ arg 2: 3
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/20/102248/">Exercies of Chapter 2 in `Exploring Expect`</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-20T10:22:48+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:22 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><blockquote><ol>
-<li>Write a procedure to reverse a string. If you wrote an iterative solution, now write a recursive solution or vice versa.</li>
-</ol>
-</blockquote>
-
-<p> #!/usr/bin/tclsh</p>
-
-<p> # iterative solution:</p>
-
-<p> proc rev_str_iter { input } {
-  for {set idx [string length $input]} {$idx > 0} {incr idx -1} {
-   append res [string index $input [expr $idx-1]]
-  }
-  return $res
- }
- # recursive solution:
- proc rev_str_recur { input } {
-  set len [string length $input]
-  if {[expr $len - 1] > 0} {
-   append res [rev_str_recur [string range $input 1 end]] \
-             [string index $input 0]
-  } else {
-   set res $input
-  }
-  return $res
- }
- set m &ldquo;abcdefg&rdquo;
- set n [rev_str_iter $m]
- puts $n
- set n2 [rev_str_recur $m]
- puts $n2</p>
-
-<blockquote><ol>
-<li>Repeat the previous exercise but with a list instead of a string.</li>
-</ol>
-</blockquote>
-
-<p> #!/usr/bin/tclsh
- # iterative solution:
- proc rev_list_iter { input } {
-  for {set idx [llength $input]} {$idx > 0} {incr idx -1} {
-   lappend res [lindex $input [expr $idx-1]]
-  }
-  return $res
- }
- # recursive solution:
- proc rev_list_recur { input } {
-  set len [llength $input]
-  if {[expr $len - 1] > 0} {
-   set res [concat [rev_list_recur [lrange $input 1 end]] [lindex $input 0]]
-  } else {
-   set res $input
-  }
-  return $res
- }
- set m &ldquo;a b c d e g&rdquo;
- set n [rev_list_iter $m]
- puts $n
- set n2 [rev_list_recur $m]
- puts $n2</p>
-
-<blockquote><ol>
-<li>Write a procedure to rename all the files in a directory ending with .c to names ending in &ldquo;.cc“.</li>
-</ol>
-</blockquote>
-
-<p> #!/usr/bin/tclsh
- foreach file_name [glob *.c] {
-  file rename $file_name [append file_name c]
- }</p>
-
-<blockquote><ol>
-<li>Write a procedure that takes a list of variable names and a list of values, and sets each variable in the list to the respective value in the other list. Think of different alternatives to handle the case when the lists are of different lengths.</li>
-</ol>
-</blockquote>
-
-<p> #!/usr/bin/tclsh
- proc assign {names values} {
-  if {[llength $names] > [llength $values]} {
-   set len [llength $values]
-  } else {
-   set len [llength $names]
-  }
-  for {set idx 0} {$idx&lt;$len} {incr idx} {
-   set var_name [lindex $names $idx]
-   set $var_name [lindex $values $idx]
-   puts [concat $var_name = [set $var_name]]
-  }
- }
- set names &ldquo;za bb ee dk&rdquo;
- set values &ldquo;11 32 53 94 5&rdquo;
- assign $names $values</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/20/101843/">Tcl Shell Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-20T10:18:43+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Start origin tcl shell: tclsh (apt-get install tcl);</p></li>
-<li><p>Start tcl shell with command history shortcuts (up arrow for previous command and other powerful command line shortcuts like alt+backspace, brackets matching, etc. on Ubuntu): rlwrap -c tclsh;</p></li>
-</ul>
-
-
-<p>For efficiency, add <code>alias tcl="rlwrap -c tclsh"</code> to ~/.zshrc;</p>
-
-<p>Note: rlwrap is readline wrapper;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/16/174647/">Copy Full Path Name of a File in Ranger</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-16T17:46:47+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>After version 1.4.0, ranger add a command &ldquo;yp&rdquo; to copy full path name of a file with xsel. So you have to install xsel (apt-get install xsel), then use middle-button of the mouse to paste it somewhere else (both console and GUI apps, and if you are using laptop, you can only paste to console with <code>xsel -o</code>). Because xsel is a &ldquo;global clipboard&rdquo;, you can use yp of ranger in one console, and get the path with middle button or <code>xsel -o</code> in another console.</p>
-
-<p>Note: see man page of xsel for the concept of 3 different clipboard PRIMARY, SECONDARY and CLIPBOARD of X windows.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/15/103209/">CFEngine Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-15T10:32:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:32 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Based on: <a href="https://cfengine.com/archive/manuals/cf3-quickstart">CFEngine Quick Start Guide</a></p>
-
-<ol>
-<li><p>Use 10.21.3.23 as cfhub (server), 10.21.3.31 as cfhost (client);</p></li>
-<li><p>Install cfengine on both cfhub and cfhost:</p>
-
-<ol type="a">
-<li><p>download cfengine-community_3.5.1-3_i386.deb;</p></li>
-<li><p>Ensure OpenSSL, BerkeleyDB and PCRE are installed: <code>apt-get install libdb4.* libpcre3 libssl</code>, so weired that this can not be excecuted in zsh, but bash is ok;</p></li>
-<li><p><code>sudo dpkg --install cfengine-community_3.5.1-3_i386.deb</code>;</p></li>
-</ol>
-</li>
-<li><p>Start policy server: <code>/var/cfengine/bin/cf-agent -B 10.21.3.23</code>;</p></li>
-<li><p>Start client: same as above;</p></li>
-<li><p>On cfhub: create a file cftest1.cf at /var/cfengine/masterfiles;</p></li>
-<li><p>Modify /var/cfengine/masterfiles/promises.cf file;</p></li>
-<li><p>&hellip;</p></li>
-</ol>
-
-
-<h1>Uninstall CFEngine3</h1>
-
-<p>$ sudo apt-get purge cfengine-community</p>
-
-<p>$ sudo rm -rf /var/cfengine</p>
-
-<h1>bcfg2</h1>
-
-<ol>
-<li><p>Use 10.21.3.31 as server: <code>apt-get install bcfg2-server</code>;</p></li>
-<li><p>Use 10.21.3.23 as client: <code>apt-get install bcfg2</code>;</p></li>
-<li><p><a href="http://docs.bcfg2.org/appendix/guides/ubuntu.html#initialize-your-repository">Initialize your repository</a></p></li>
-</ol>
-
-
-<h1>cdist</h1>
-
-<ol>
-<li><p>install python3: <code>apt-get install python3</code>;</p></li>
-<li><p><code>git clone git://git.schottelius.org/cdist</code>;</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/14/160009/">Run Interactive Shell Command in Erlang</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-14T16:00:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following simple Erlang netcat client demonstrates the communication between Erlang program and external OS process. The rc.erl start a netcat client to connect to a netcat server, and send some message to the server at a given time.</p>
-
-<ol>
-<li><p>Create Erlang server;</p>
-
-<p> -module(rc).
- -export([cmd/1]).
- cmd(Cmd) ->
-     Opt = [stream, exit_status, stderr_to_stdout, eof],
-     P = open_port({spawn, Cmd}, Opt),
-     get_data(P, [], 0).
- get_data(P, Sofar, 3) ->
-     port_command(P, &ldquo;abcd&rdquo;),
-     get_data(P, Sofar, 4);
- get_data(P, Sofar, Cnt) ->
-     receive
-         {P, {data, Bin}} ->
-             io:format(&ldquo;rec Bin: ~p, Cnt=~p~n&rdquo;, [Bin, Cnt]),
-             get_data(P, [Bin|Sofar], Cnt+1);
-         {P, eof} ->
-             port_close(P),
-             receive
-                 {P, {exit_status, N}} ->
-                     {N, lists:reverse(Sofar)}
-             end
-     end.</p></li>
-<li><p>Start netcat server: run command <code>nc -l 3333</code> at host 10.21.3.31;</p></li>
-<li><p>Start netcat client:</p>
-
-<p> $ erl
- &hellip;</p>
-
-<p> 1> c(rc).</p>
-
-<p> {ok,rc}
- 2> rc:cmd(&ldquo;nc 10.21.3.31 3333&rdquo;).</p></li>
-<li><p>Send message from server to client: press &ldquo;1<CR>2<CR>3<CR>4<CR>^C&rdquo;, client output as follows:</p>
-
-<p> rec Bin: &ldquo;1\n&rdquo;, Cnt=0
- rec Bin: &ldquo;2\n&rdquo;, Cnt=1
- rec Bin: &ldquo;3\n&rdquo;, Cnt=2
- rec Bin: &ldquo;4\n&rdquo;, Cnt=4
- {0,[&ldquo;1\n&rdquo;,&ldquo;2\n&rdquo;,&ldquo;3\n&rdquo;,&ldquo;4\n&rdquo;]}
- 3></p></li>
-</ol>
-
-
-<p>When you press <CR> after 3, you can receive &ldquo;abcd&rdquo; from netcat client.</p>
-
-<p>The pattern of Erlang-Shell communication is:</p>
-
-<ul>
-<li><p>Use &ldquo;open_port&rdquo; to start a external shell process;</p></li>
-<li><p>Use &ldquo;receive&rdquo; clause to receive output of the process;</p></li>
-<li><p>Use &ldquo;port_command&rdquo; to send message to process;</p></li>
-<li><p>Use &ldquo;port_close&rdquo; to close the shell;</p></li>
-</ul>
-
-
-<p>Notes:</p>
-
-<ol>
-<li><p>For non-interactive shell command, os:cmd/1 is a better choice;</p></li>
-<li><p>If you want to catch the event that the peer close actively, add &ldquo;eof&rdquo; into option list of open_port; If you want to catch the exit value of the shell process, add &ldquo;exit_status&rdquo; to option list of open_port;</p></li>
-<li><p>Not specify &ldquo;in&rdquo; in option list of open_port when you want to send the process some message, or a &ldquo;ebadf&rdquo; exception arises, because &ldquo;in&rdquo; means this process only used for input, and &ldquo;ebadf&rdquo; means the file is not open for reading or writing.</p></li>
-<li><p><a href="http://www.cnblogs.com/gibbon/archive/2012/12/26/Erlang.html">Erlang port communicate with python</a> is a good demonstration of erlang calling a python script; Chapter 12 of &ldquo;Programming Erlang&rdquo; also concentrate Erlang interfacing techniques.</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/13/174638/">Myvimrc</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-13T17:46:38+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>set nocompatible
-execute pathogen#infect()
-call pathogen#helptags()
-call pathogen#incubate()
-imap jk <ESC>
-vmap jk <ESC>
-&ldquo; jj is not suitable <ESC> in visual mode
-set nobackup</p>
-
-<p>set noswapfile
-colo ron
-syntax on
-set incsearch
-set et
-set sw=4
-set ts=4
-set nu
-set nowrap
-set colorcolumn=80 &ldquo; mark the margin, or &lsquo;cc=80&rsquo; for short, only for vim v7.3+
-map <up> <nop>
-map <down> <nop>
-map <left> <nop>
-map <right> <nop>
-&rdquo; FuzzyFinder
-nnoremap <C-o> :FufCoverageFile
-let mapleader=&ldquo;,&rdquo;
-&ldquo; taglist
-let Tlist_Inc_Winwidth = 0
-let Tlist_Show_One_File = 1
-nmap <leader>to :TlistOpen<CR>
-nmap <leader>tt :TlistToggle<CR>
-filetype on
-filetype plugin indent on
-&#8220;nmap <silent> <leader>ev :e $MYVIMRC<CR>
-&rdquo; use global mark mV and &lsquo;V to make this function
-&ldquo;nmap <silent> <leader>sv :so $MYVIMRC<CR>
-&rdquo; use :so % instead of above line
-&ldquo;nnoremap ; :
-&rdquo; ; is the key for repeating last inline search (f<char>)</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/10/081522/">Hadoop 1.2.1 Up and Running</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-10T08:15:22+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:15 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Pseudo-distributed Mode</h1>
-
-<ol>
-<li><p>Download Oracle jdk-6u45-linux-i586.bin from Oracle website. Openjdk is unsuitable here because some package like sun.net.dns.ResolverConfiguration only exists in rt.jar of Oracle jdk;</p></li>
-<li><p>Install (run <code>./jdk-6u45-linux-i586.bin</code> under ~/apps) this jdk at ~/apps with current user (do not install it into /opt with root user, because this will cause access restriction of rt.jar of jdk);</p></li>
-<li><p>Add $JAVA_HOME and $CLASSPATH into /etc/profile and re-log into OS to validate:</p>
-
-<pre><code> export JAVA_HOME=/home/lichao/apps/jdk1.6.0_45 
- export PATH=$PATH:$JAVA_HOME/bin 
- export CLASSPATH=$CLASSPATH:$JAVA_HOME/lib:$JAVA_HOME/jre/lib
-</code></pre></li>
-<li><p>Follow <a href="https://hadoop.apache.org/docs/stable/single_node_setup.html">Single Node Setup</a>.</p></li>
-</ol>
-
-
-<p>Verified this morning: 2013-8-9, Linux Mint 14 32bit, Hadoop 1.2.1.</p>
-
-<h1>Distributed Mode</h1>
-
-<ol>
-<li><p>Create user hadoop in host 23, 31, 49 and 139;</p></li>
-<li><p>Create apps and warez folder in home directory on all hosts above;</p></li>
-<li><p>Copy jdk-6u45-linux-i586.bin from Oracle and hadoop-1.2.1.tar.gz to warez directory to all above hosts;</p></li>
-<li><p>Unzip jdk6u45 and hadoop to ~/apps;</p></li>
-<li><p>modify $JAVA_HOME as &ldquo;/home/hadoop/apps/jdk1.6.0_45&rdquo; in ~/apps/hadoop-1.2.1/conf/hadoop-env.sh;</p></li>
-<li></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/37">&larr; Older</a>
@@ -850,23 +684,23 @@ filetype plugin indent on
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
+        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
+        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
+        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
+        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
+        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
       </li>
     
   </ul>

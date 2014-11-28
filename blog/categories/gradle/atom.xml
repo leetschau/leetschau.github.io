@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Gradle | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/gradle/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-11-03T17:15:36+08:00</updated>
+  <updated>2014-11-28T08:48:37+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,61 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Add Customized Files and Folders Into Deployed Zip File Created by Gradle]]></title>
+    <link href="http://leetschau.github.io/blog/2014/11/19/153734/"/>
+    <updated>2014-11-19T15:37:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/11/19/153734</id>
+    <content type="html"><![CDATA[<p>Creating deployed zip file with gradle is very convenient. But what if I want to add some customized files and folders into this file?</p>
+
+<p>According to <a href="http://stackoverflow.com/questions/5743036/deploy-additional-files-in-gradle-application-plugin">Deploy additional files in Gradle Application Plugin</a>,
+creat a &ldquo;dist&rdquo; folder under &ldquo;src&rdquo; in the root of project. Then everything under &ldquo;dist&rdquo; will be copied to zip file created by <code>gradle distZip</code> or <code>gradle installApp</code>.</p>
+
+<pre><code>$ pwd
+/home/chad/docs/GDEP-0811
+$ mkdir -p src/dist/plugins
+$ echo "pwd" &gt; src/dist/plugins/autocmd.sh
+$ echo "config1: value1" &gt; src/dist/dep.conf
+$ tree src/dist
+src/dist
+├── dep.conf
+└── plugins
+    └── autocmd.sh
+$ gradle clean installApp
+$ tree build/install/gdep
+build/install/gdep
+├── bin
+│   ├── gdep
+│   └── gdep.bat
+├── dep.conf
+├── lib
+│   ├── commons-configuration-1.10.jar
+│   └── ...
+└── plugins
+    └── autocmd.sh
+$ gradle clean distZip
+$ unzip -l build/distributions/gdep-0.4.zip
+Archive:  build/distributions/gdep-0.4.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  2014-11-19 15:35   gdep-0.4/
+      132  2014-09-29 17:01   gdep-0.4/dep.conf
+        0  2014-11-19 15:20   gdep-0.4/plugins/
+        6  2014-11-19 15:13   gdep-0.4/plugins/autocmd.sh
+        0  2014-11-19 15:35   gdep-0.4/lib/
+     7255  2014-11-19 15:35   gdep-0.4/lib/gdep-0.4.jar
+    76643  2014-08-14 08:40   gdep-0.4/lib/...
+        0  2014-11-19 15:35   gdep-0.4/bin/
+     5369  2014-11-19 15:35   gdep-0.4/bin/gdep
+     2727  2014-11-19 15:35   gdep-0.4/bin/gdep.bat
+---------                     -------
+  2180116                     20 files
+</code></pre>
+
+<p>Here the file &ldquo;dep.conf&rdquo; and folder &ldquo;plugins&rdquo; is copied directly from $PROJ_ROOT/src/dist.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Two Java Building Tools]]></title>
@@ -369,39 +424,6 @@ gradle
 <li><p>Download vrapper_0.44.0_20140601.zip from <a href="http://sourceforge.net/projects/vrapper/">its website</a>;</p></li>
 <li><p>Extract it under $ECLIPSE_HOME/dropins;</p></li>
 <li><p>Start Eclipse;</p></li>
-</ol>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[基于Jenkins+Gradle的自动构建系统搭建笔记]]></title>
-    <link href="http://leetschau.github.io/blog/2013/05/09/172351/"/>
-    <updated>2013-05-09T17:23:51+08:00</updated>
-    <id>http://leetschau.github.io/blog/2013/05/09/172351</id>
-    <content type="html"><![CDATA[<h1>前期准备：</h1>
-
-<ol>
-<li><p>搭建SVN服务器，参考笔记“ SVN服务器搭建笔记 ”；</p></li>
-<li><p>新建一个基于Gradle的测试项目，参考“ 定制Gradle的项目文件目录结构 ”；</p></li>
-<li><p>将此项目提交到SVN服务器；</p></li>
-<li><p>启动Jenkins服务器：java -jar jenkins.war;</p></li>
-<li><p>安装Gradle插件：在Jenkins管理面板的 [系统管理 -> 管理插件] 中在线安装；</p></li>
-<li><p>指定Gradle位置：[系统管理 -> 系统设置 -> Gradle]中指定服务器上Gradle的安装位置（取消勾选“自动安装”）；</p></li>
-</ol>
-
-
-<h1>搭建过程</h1>
-
-<ol>
-<li><p>New Job -> “构建一个自由风格的软件项目”；</p></li>
-<li><p>配置此项目：</p></li>
-<li><p>项目名称；</p></li>
-<li><p>源码管理 -> Subversion -> Repository URL: svn://localhost/JenkinsGradleTest/quickstart2</p></li>
-<li><p>构建触发器 -> check &ldquo;Build periodically&rdquo; -> 日程表：H/15 * * * * （每15分钟构建一次）</p></li>
-<li><p>构建 -> 增加构建对象 -> Invoke Gradle script -> Tasks: build；</p></li>
-<li><p>构建后操作 -> Add post-build action -> Publish JUnit test result report -> Test report XMLs: <em>*/test-results/</em>Test.xml</p></li>
-<li><p>构建后操作 -> Add post-build action -> Email Notification -> Recipients: <a href="&#109;&#97;&#x69;&#108;&#116;&#111;&#58;&#117;&#115;&#101;&#114;&#64;&#99;&#111;&#109;&#112;&#x61;&#x6e;&#x79;&#x2e;&#x63;&#111;&#x6d;">&#x75;&#x73;&#x65;&#x72;&#64;&#99;&#111;&#109;&#112;&#x61;&#x6e;&#121;&#x2e;&#99;&#111;&#x6d;</a></p></li>
 </ol>
 
 ]]></content>

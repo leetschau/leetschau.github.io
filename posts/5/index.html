@@ -9,12 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="The following code snippets compare closures in several languages. First is closure in javascript. Here I use nvm to run javascript code. 1
-2
-3
-4
-5
-6 &hellip;">
+  <meta name="description" content="ArchLinux Install: sudo pacman -S udiskie; Start service: run udiskie &amp; manually when system startup, or add &ldquo;udiskie &amp;&rdquo; into ~/. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -70,6 +65,573 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/03/111703/">Automount USB Disk on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-03T11:17:03+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:17 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>ArchLinux</h1>
+
+<p>Install: <code>sudo pacman -S udiskie</code>;</p>
+
+<p>Start service: run <code>udiskie &amp;</code> manually when system startup, or add &ldquo;udiskie &amp;&rdquo; into ~/.xinitrc;</p>
+
+<p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
+
+<h2>Unmount USB disk</h2>
+
+<p>Create an executable script in /usr/local/bin:</p>
+
+<pre><code>$ cat /usr/local/bin/unmount
+#!/bin/sh
+
+# Global variables
+TITLE="Unmount Utility"
+COLUMNS=3 # TARGET,SOURCE,FSTYPE
+#IFS=$'\n'
+
+# Populate list of unmountable devices
+deviceList=($(findmnt -Do TARGET,SOURCE,FSTYPE | grep -e "sd[b-z]"))
+deviceCount=$((${#deviceList[@]} / $COLUMNS))
+
+# Start of program output
+echo $TITLE
+
+# Display list of devices that can be unmounted
+for ((device=0; device&lt;${#deviceList[@]}; device+=COLUMNS))
+do
+  printf "%4s)   %-25s%-13s%-10s\n"\
+    "$(($device / $COLUMNS))"\
+    "${deviceList[$device]}"\
+    "${deviceList[$(($device + 1))]}"\
+    "${deviceList[$(($device + 2))]}"
+done
+
+printf "%4s)   Exit\n" "x"
+
+# Get input from user
+read -p "Choose a menu option: " input
+
+# Input validation
+if [ "$input" = "X" ] || [ "$input" = "x" ]
+then
+  echo "Exiting"
+  exit 0
+fi
+
+if (( $input&gt;=0 )) &amp;&amp; (( $input&lt;$deviceCount ))
+then
+  echo "Unmounting: ${deviceList[$(($input * $deviceCount))]}"
+  sudo umount "${deviceList[$(($input * $deviceCount))]}"
+  exit 0
+else
+  echo "Invalid menu choice"
+  exit 1
+fi
+$ chmod 755 /usr/local/bin/unmount
+</code></pre>
+
+<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
+See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a> for details.
+Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
+
+<p>See <code>man udiskie</code> for more information.</p>
+
+<h1>Mint</h1>
+
+<p>Install: <code>sudo aptitude install udevil</code>;</p>
+
+<p>Start service: run <code>devmon</code> in dmenu when system startup, or add &ldquo;devmon &amp;&rdquo; into ~/.xsession;</p>
+
+<p>After plug USB key into computer, it will be automount to /media folder.
+If you do not startup devmon in background, you can run <code>devmon -a</code> to mount the USB key.</p>
+
+<p>Run <code>devmon -c</code> to unmount the USB key.</p>
+
+<p>See <code>man devmon</code> for more information.</p>
+
+<h1>Difference between .xinitrc and .xsession:</h1>
+
+<p>If you startup your system with <a href="https://wiki.archlinux.org/index.php/display_manager">display manager</a>, where you get a graphical login screen, it will read ~/.xsession.
+In case of you startup your system without display manager and login to shell, startup i3 (or other wm) with <code>startx</code>, then the <a href="http://en.wikipedia.org/wiki/Xinit">xinit</a> program will read ~/.xinitrc;</p>
+
+<p>See <a href="https://unix.stackexchange.com/questions/47359/what-is-xsession-for">What is “.xsession” for?</a> for details.</p>
+
+<p>See <a href="https://wiki.archlinux.org/index.php/Arch_boot_process">Arch boot process</a> for how Getty manage login process in system boot process.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/30/104928/">Docker Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-30T10:49:28+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Mint</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># sudo aptitude update
+</span><span class='line'># sudo aptitude install docker.io aufs-tools cgroup-lite apparmor-utils
+</span><span class='line'># sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
+</span><span class='line'># sudo sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
+</span><span class='line'># docker run ubuntu:14.04 echo 'hello ubuntu'
+</span><span class='line'># docker version
+</span><span class='line'>Client version: 0.9.1
+</span><span class='line'>Go version (client): go1.2.1
+</span><span class='line'>Git commit (client): 3600720
+</span><span class='line'>Server version: 0.9.1
+</span><span class='line'>Git commit (server): 3600720
+</span><span class='line'>Go version (server): go1.2.1
+</span><span class='line'>Last stable version: 1.2.0, please update docker</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>ArchLinux</h1>
+
+<p>Docker is only available on X86_64 repository so far.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># pacman -S docker
+</span><span class='line'># systemctl enable docker
+</span><span class='line'># systemctl start docker
+</span><span class='line'># docker run ubuntu:14.04 echo 'hello world'
+</span><span class='line'># docker run -i -t ubuntu:14.04 /bin/bash
+</span><span class='line'># lsb_release -a
+</span><span class='line'>Distributor ID: Ubuntu
+</span><span class='line'>Description: Ubuntu 14.04.1 LTS
+</span><span class='line'>Release: 14.04
+</span><span class='line'>Codename: trusty
+</span><span class='line'># exit
+</span><span class='line'># docker version
+</span><span class='line'>Client version: 1.2.0
+</span><span class='line'>Go version (client): go1.3.1
+</span><span class='line'>OS/Arch (client): linux/amd64
+</span><span class='line'>Server version: 1.2.0
+</span><span class='line'>Server API version: 1.14
+</span><span class='line'>Go version (server): go1.3.1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So you can see at least for now Docker is much newer and easy to use on Arch than on Mint (Ubuntu).
+If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relogin, you will find the &ldquo;tree&rdquo; command disappeared.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/27/180124/">Spark Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-27T18:01:24+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Spark Shell</h1>
+
+<h2>Shutdown info log in spark-shell:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>cd $SPARK_HOME/conf    // here it's ~/apps/spark-1.0.2-bin-hadoop2/conf
+</span><span class='line'>cp log4j.properties.template log4j.properties
+</span><span class='line'>sed -i '2s/INFO/WARN/g' log4j.properties</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The sed command here replace &ldquo;INFO&rdquo; with &ldquo;WARN&rdquo; in the second line of log4j.properties.</p>
+
+<h2>on cloud61</h2>
+
+<p>Modify /opt/cloudera/parcels/CDH-5.2.0-1.cdh5.2.0.p0.36/lib/spark/conf/log4j.properties, add:</p>
+
+<pre><code>log4j.appender.filelog=org.apache.log4j.RollingFileAppender
+log4j.appender.filelog.layout=org.apache.log4j.PatternLayout
+log4j.appender.filelog.File=sparkShell.log
+log4j.appender.filelog.layout.ConversionPattern=%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n
+</code></pre>
+
+<h2>Customize shell parameters</h2>
+
+<h3>master and memory</h3>
+
+<p>spark-shell &ndash;master spark://cloud60:7077 &ndash;driver-memory 2g &ndash;executor-memory 2g -i wfp-spark.script</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/26/100107/">Build Redis on CentOS 6</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-26T10:01:07+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:01 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This server can&rsquo;t access Internet. So we can only download source tarball (redis-2.8.2.tar.gz) and build from source.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>tar xf redis-2.8.2.tar.gz
+</span><span class='line'>cd redis-2.8.2
+</span><span class='line'>// if you run "sudo make install" directly, it gives a "zmalloc.h:50:31: error: jemalloc/jemalloc.h: No such file or directory" error.
+</span><span class='line'>cd deps
+</span><span class='line'>sudo make hiredis jemalloc linenoise lua
+</span><span class='line'>cd ..
+</span><span class='line'>sudo make install</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ref:
+<a href="http://unix.stackexchange.com/questions/94479/jemalloc-and-other-errors-making-redis-on-centos-6-4">jemalloc and other errors making redis on centos 6.4</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-24T11:09:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:09 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Base System</h1>
+
+<p>Install Linux Mint 17 Xfce with Live DVD (USB key created by YUMI 2.0.5) on Asus X84H laptop. The &ldquo;/&rdquo; partition is 30GB, while the &ldquo;/home&rdquo; partition is 50GB.</p>
+
+<p>No need to install any hardware drivers. It simply works!</p>
+
+<h1>Window Manager</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>sudo aptitude install i3-wm dmenu i3status i3lock</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Startup Configurations</h2>
+
+<h3>MDM</h3>
+
+<p>Mint&rsquo;s default graphical login manager is MDM,
+see <a href="http://linuxmint.com/rel_qiana_xfce_whatsnew.php">New features in Linux Mint 17 Xfce</a>.
+Logout of Xfce desktop. In login manager, you can find &ldquo;i3&rdquo;, choose it, and login i3 environment.
+Its user level auto startup script is ~/.xsessionrc. It should be the same with .xinitrc.
+So make a link from it with <code>ln -s ~/.xinitrc ~/.xsessionrc</code>.
+See /etc/mdm/Xsession for variable definitions, such as USERXSESSION, USERXSESSIONRC, etc.
+See <a href="https://wiki.ubuntu.com/CustomXSession">CustomXSession</a> for more.</p>
+
+<h3>xinit</h3>
+
+<p>See note &ldquo;Run Linux Without Desktop Environment&rdquo;.
+Its user level auto startup script is ~/.xinitrc.</p>
+
+<h2>Input Method</h2>
+
+<p>Add the following lines into ~/.xinitrc before &ldquo;exec i3&rdquo;:</p>
+
+<pre><code>export GTK_IM_MODULE=xim
+export QT_IM_MODULE=xim
+export XMODIFIERS="@im=fcitx"
+fcitx &amp;
+</code></pre>
+
+<h2>Power Management in i3</h2>
+
+<p>Check if &ldquo;pm-utils&rdquo; has been installed via <code>dpkg -l|grep pm-utils</code>. If not, install it with <code>sudo aptitude install pm-utils</code>;</p>
+
+<p>Add the following line into /etc/sudoers:</p>
+
+<pre><code>%sudo   ALL=(ALL) NOPASSWD: /sbin/poweroff, /sbin/reboot, /sbin/shutdown, /usr/sbin/pm-suspend, /usr/sbin/pm-suspend-hybrid
+</code></pre>
+
+<p>Add file /usr/local/bin/pm and <code>chmod 755 /usr/local/bin/pm</code>:</p>
+
+<pre><code>#!/bin/sh
+lock() {
+    i3lock -c 000000
+}
+
+case "$1" in
+    lk)
+        lock
+        ;;
+    logout)
+        i3-msg exit
+        ;;
+    ssd)
+        lock &amp;&amp; sudo pm-suspend-hybrid
+        ;;
+    hibernate)
+        lock &amp;&amp; sudo pm-hibernate
+        ;;
+    rbt)
+        sudo reboot
+        ;;
+    shd)
+        sudo poweroff
+        ;;
+    *)
+        echo "Usage: $0 {lk|logout|ssd|hibernate|rbt|shd}"
+        exit 2
+esac
+exit 0
+</code></pre>
+
+<p>The &ldquo;-c&rdquo; option of i3lock command specifies the screen color, where &ldquo;000000&rdquo; is black.</p>
+
+<p>Now any user belonging to sudo group can run <code>pm lk|ssd|rbt|shd</code> to lock, suspend, reboot or shutdown computer without input password.
+If the user is not a sudoer, run <code>usermod -aG sudo username</code> with root.
+Verify user&rsquo;s group with <code>id</code>, <code>groups</code> or <code>groups username</code>.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://askubuntu.com/questions/168879/shutdown-from-terminal-without-entering-password">http://askubuntu.com/questions/168879/shutdown-from-terminal-without-entering-password</a></p>
+
+<p><a href="http://askubuntu.com/questions/159007/how-do-i-run-specific-sudo-commands-without-a-password">http://askubuntu.com/questions/159007/how-do-i-run-specific-sudo-commands-without-a-password</a></p>
+
+<p><a href="http://askubuntu.com/questions/2214/how-do-i-add-a-user-to-the-sudo-group">http://askubuntu.com/questions/2214/how-do-i-add-a-user-to-the-sudo-group</a></p>
+
+<p><a href="http://www.cyberciti.biz/faq/howto-linux-add-user-to-group/">http://www.cyberciti.biz/faq/howto-linux-add-user-to-group/</a></p>
+
+<p><a href="http://linuxers.org/article/difference-between-primary-and-secondary-groups-linux">http://linuxers.org/article/difference-between-primary-and-secondary-groups-linux</a></p>
+
+<h2>Config System Font</h2>
+
+<ol>
+<li><p>List all available fonts installed: <code>fc-list</code>. For example, when run <code>fc-list|grep wqy</code>, we got the name of this pre-installed Chinese font: &ldquo;WenQuanYi Micro Hei&rdquo;.</p></li>
+<li><p>Edit config file ~/.i3/config: replace &ldquo;font -misc-fixed-medium-r-normal&ndash;13-120-75-75-C-70-iso10646-1&rdquo; with &ldquo;font pango:WenQuanYi Micro Hei 11&rdquo;.</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-24T10:30:23+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:30 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>After installing a new Linux (Mint 17, xfce), I need to install Chinese input method, so I have to install Chinese locale at first.</p>
+
+<ol>
+<li><p>List all installed locales: <code>locale -a</code>;</p></li>
+<li><p>View all supported locales on your system: <code>less /usr/share/i18n/SUPPORTED</code>, and &ldquo;zh_CN.UTF-8 UTF-8&rdquo; is what I want to install;</p></li>
+<li><p>Add this locale into locale list file: `echo &ldquo;zh_CN.UTF-8 UTF-8&rdquo; >> /var/lib/locales/supported.d/local&#8221;;</p></li>
+<li><p>Regenerate locale list: <code>sudo dpkg-reconfigure locales</code>;</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://askubuntu.com/questions/76013/how-do-i-add-locale-to-ubuntu-server">How do I add locale to ubuntu server?</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-21T11:39:49+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>// Before install qtile, you need download python2-setuptools manually, and install it:
+</span><span class='line'>$ sudo pacman -U python2-setuptools-1_5.7-1-any.pkg.tar.xz
+</span><span class='line'>$ yaourt -S qtile-git
+</span><span class='line'>$ mkdir ~/.config/qtile
+</span><span class='line'>$ cp /usr/share/doc/qtile-git/default_config.py ~/.config/qtile/config.py
+</span><span class='line'>$ echo "exec qtile" &gt; ~/.xinitrc
+</span><span class='line'>$ python2 -m py_compile ~/.config/qtile/config.py    // check syntax for config.py
+</span><span class='line'>$ qsh
+</span><span class='line'>&gt; restart
+</span><span class='line'>&gt; quit
+</span><span class='line'>$ </span></code></pre></td></tr></table></div></figure>
+
+
+<h1>Configuration</h1>
+
+<p>Something import in config.py:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>mod = "mod4"    # the Win key as mod key
+</span><span class='line'>Key([mod], "Return", lazy.spawn("xterm")),   # start a shell, you can modify it as another virtual terminal, such as "xfce4-terminal"
+</span><span class='line'>Key([mod], "w", lazy.window.kill()),         # close a application
+</span><span class='line'>Key([mod, "control"], "r", lazy.restart()),  # reload Qtile after modify config.py
+</span><span class='line'>Key([mod, "control"], "q", lazy.shutdown()), # quit Qtile</span></code></pre></td></tr></table></div></figure>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -532,581 +1094,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/15/175039/">Run MapReduce Jobs on Spark</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-15T17:50:39+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:50 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Interactive Mode</h1>
-
-<p>Follow <a href="http://spark.apache.org/docs/latest/quick-start.html">Quick Start of Spark 1.0.2 on Apache Spark website</a>.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># hadoop fs -put alarm_data_for_explore-0501-0505.txt alarm_data_for_explore-0501-0505.txt 
-</span><span class='line'>
-</span><span class='line'># hadoop fs -ls
-</span><span class='line'>...
-</span><span class='line'>-rw-r--r--   3 root root  260780698 2014-08-15 16:45 alarm_data_for_explore-0501-0505.txt
-</span><span class='line'>
-</span><span class='line'># wc -l alarm_data_for_explore-0501-0505.txt
-</span><span class='line'>1362005
-</span><span class='line'>
-</span><span class='line'># head -1 alarm_data_for_explore-0501-0505.txt 
-</span><span class='line'>-2117657102|102|1000012276|License...|3|4|102|
-</span><span class='line'>
-</span><span class='line'># grep 007-002-00-000592 alarm_data_for_explore-0501-0505.txt | wc -l
-</span><span class='line'>12
-</span><span class='line'>
-</span><span class='line'># mv alarm_data_for_explore-0501-0505.txt aaa.txt       // this local file is unnecessary any more
-</span><span class='line'>
-</span><span class='line'># spark-shell
-</span><span class='line'>
-</span><span class='line'>scala&gt; val textFile = sc.textFile("alarm_data_for_explore-0501-0505.txt")
-</span><span class='line'>textFile: org.apache.spark.rdd.RDD[String] = MappedRDD[1] at textFile at &lt;console&gt;:12
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.count()
-</span><span class='line'>...
-</span><span class='line'>res5: Long = 1362005
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.first()
-</span><span class='line'>...
-</span><span class='line'>res8: String = -2117657102|102|1000012276|License...|3|4|102|
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.filter(line =&gt; line.contains("007-002-00-000592")).count()
-</span><span class='line'>...
-</span><span class='line'>res12: Long = 12
-</span><span class='line'>
-</span><span class='line'>scala&gt; import java.lang.Math
-</span><span class='line'>import java.lang.Math
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.map(line =&gt; line.split("|").size).reduce((a, b) =&gt; Math.max(a, b))
-</span><span class='line'>...
-</span><span class='line'>res13: Int = 372</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Run Spark Script</h2>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ cat wfp-spark
-</span><span class='line'>val MIN_SUP = 0.0003
-</span><span class='line'>val MIN_CONF = 0
-</span><span class='line'>val MAX_RELATION_ORDER = 3
-</span><span class='line'>val DATA_FILE = "input"
-</span><span class='line'>
-</span><span class='line'>val textFile = sc.textFile(DATA_FILE)
-</span><span class='line'>val weight = textFile.map(x =&gt; x -&gt; x.split(",")(5).toFloat).cache
-</span><span class='line'>val data = textFile.groupBy(x =&gt; x.split(",")(0))
-</span><span class='line'>
-</span><span class='line'>$ spark-shell -i wfp-spark
-</span><span class='line'>...</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now you are in a spark shell, all variables such as MIN_SUP, MIN_CONF are accessible.</p>
-
-<h1>Batch Mode</h1>
-
-<p>Follow <a href="http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH5/latest/CDH5-Installation-Guide/cdh5ig_running_spark_apps.html">Running Spark Applications in CDH 5 Installation Guide</a>.</p>
-
-<pre><code># locate spark-defaults.conf       // find out where is $SPARK_HOME
-/etc/spark/conf.cloudera.spark/spark-defaults.conf
-...
-
-# ll /etc/spark/conf.cloudera.spark
-...
--rw-r--r-- 1 root root 883 Aug 14 10:12 spark-env.sh
-
-# cat /etc/spark/conf.cloudera.spark/spark-env.sh
-...
-export SPARK_HOME=/opt/cloudera/parcels/CDH-5.1.0-1.cdh5.1.0.p0.53/lib/spark
-...
-
-# source /etc/spark/conf.cloudera.spark/spark-env.sh     // load $SPARK_HOME, etc
-
-# spark-submit --class org.apache.spark.examples.SparkPi --deploy-mode client --master yarn $SPARK_HOME/examples/lib/spark-examples_2.10-1.0.0-cdh5.1.0.jar 10
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/13/102446/">Build Gradle Project in Netbeans</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-13T10:24:46+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:24 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Rename project: edit project name in settings.gradle, then right click project, choose &ldquo;Reload Project&rdquo;;</p></li>
-<li><p>Modify dependencies: edit build.gradle, then right click project, choose [Tasks -> buildDependents];</p></li>
-</ul>
-
-
-<p>The jVi plugin is not support Netbeans 8, so its editing is not very convenient like in Eclipse.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/13/102312/">Underscore in Scala</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-13T10:23:12+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:23 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>val name = &ldquo;abc&rdquo;
-println(name.exists(_.isUpper))</p>
-
-<p>Here &ldquo;_.isUpper&rdquo; is an anoymous function, which equals to &ldquo;x => x.isUpper&rdquo;.</p>
-
-<p>Ref:
-<a href="http://stackoverflow.com/questions/8260367/scala-placeholder-syntax">Scala placeholder syntax</a>
-<a href="http://docs.scala-lang.org/tutorials/tour/anonymous-function-syntax.html">Anonymous Function Syntax</a>
-<a href="http://ananthakumaran.in/2010/03/29/scala-underscore-magic.html">Scala underscore magic</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/13/090432/">Solve Integral Equation Set With Python</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-13T09:04:32+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:04 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The equation set is provided by 鲍珂 at 2014-8-12.</p>
-
-<p>Host: Windows 7
-VM: CentOS 6.5 minimal, python 2.6.6</p>
-
-<p>Start VM, make sure its ssh service start with <code>service sshd status</code>;</p>
-
-<p>Then connect it with Putty or Kitty;</p>
-
-<h1>Install</h1>
-
-<p>yum install wget
-wget <a href="http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm">http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm</a>
-rpm -ivh epel-release-6-8.noarch.rpm
-yum update</p>
-
-<p>// optional desktop environment, start with <code>startxfce4</code>
-yum groupinstall Xfce
-yum groupinstall Fonts
-yum install xorg-x11-fonts-Type1 xorg-x11-fonts-misc</p>
-
-<p>yum install python-pip
-yum install vim-enhanced
-yum install python-ipython.noarch
-pip install argparse
-pip install sympy
-pip install mpmath
-pip install scipy</p>
-
-<h1>Symbolic Method</h1>
-
-<p>from sympy import *
-var(&lsquo;x y s&rsquo;)
-integrate(gamma(x+y)/(gamma(x)+gamma(y))<em>s**(x-1)</em>(1-s)<strong>(y-1), (s, 0, 0.6))
-integrate(gamma(x+y)/(gamma(x)+gamma(y))*s</strong>(x-1)*(1-s)**(y-1), (s, 0.9, 1))</p>
-
-<p>Ref:
-<a href="http://docs.sympy.org/0.7.0/tutorial.html">http://docs.sympy.org/0.7.0/tutorial.html</a>
-<a href="http://scipy-lectures.github.io/advanced/sympy.html#integration">http://scipy-lectures.github.io/advanced/sympy.html#integration</a>
-<a href="http://docs.sympy.org/dev/modules/integrals/integrals.html">http://docs.sympy.org/dev/modules/integrals/integrals.html</a>
-<a href="http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html">http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html</a></p>
-
-<h1>Numeric Method</h1>
-
-<p>from <strong>future</strong> import division
-from scipy.optimize import fsolve
-from scipy.special import gamma
-from scipy.integrate import fixed_quad</p>
-
-<p>def myfunc(x, y, theta):
-gmp = gamma(x+y) / (gamma(x)+gamma(y))
-return gmp * theta<strong>(x-1) * (1-theta)</strong>(y-1)</p>
-
-<p>def equations(p):
-x, y = p
-intg1 = fixed_quad(myfunc, 0, 0.6, args=(x, y))
-intg2 = fixed_quad(myfunc, 0.9, 1, args=(x, y))
-return (intg1[0] - 0.05, intg2[0] - 0.05)</p>
-
-<p>xr, yr = fsolve(equations, (1, 1))
-print equations((xr, yr))</p>
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python">http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python</a></p>
-
-<p><a href="http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad">http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad</a></p>
-
-<p><a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve">http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/11/144152/">Build Java Project With Eclipse, Gradle and Git</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-11T14:41:52+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:41 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install and Usage</h1>
-
-<p>The order should be:</p>
-
-<ol>
-<li><p>Install Oracle JDK on system: downlaod, extract, define $JAVA_HOME and add $JAVA_HOME/bin folder to $PATH in ~/.zshrc;</p></li>
-<li><p>Install Gradle on System: downlaod, extract, define $GRADLE_HOME and add $GRADLE_HOME/bin folder to $PATH in ~/.zshrc;</p></li>
-<li><p>Install Eclipse: download, extract;</p></li>
-<li><p>Install Gradle plugin for eclipse via &ldquo;Market Place&rdquo; in Eclipse, because it&rsquo;s inconvenient to run gradle tasks in console while edit files in Eclipse;</p></li>
-<li><p>Configure Gradle plugin: set its working JDK;</p></li>
-<li><p>Build a new Gradle project in Eclipse, add git version control;</p></li>
-<li><p>Run Gradle tasks: right click &ldquo;build.gradle&rdquo; file, then select &ldquo;Gradle -> Tasks Quick Launcher&rdquo; (or Shift + Alt + Ctrl +R) to bring Gradle launcher, then input tasks name.</p></li>
-</ol>
-
-
-<p>That&rsquo;s it.</p>
-
-<h2>Frequently Used Tasks</h2>
-
-<p>Some need adding &ldquo;apply plugin: &lsquo;application&rsquo;&rdquo; and &ldquo;mainClassName = &lsquo;com.boco.gdep.Probe&rsquo;&rdquo; into build.gradle.
-Read <a href="http://www.gradle.org/docs/current/userguide/application_plugin.html">Gradle Application Plugin</a> for details.</p>
-
-<ul>
-<li><p>clean</p></li>
-<li><p>check</p></li>
-<li><p>test</p></li>
-<li><p>compileJava</p></li>
-<li><p>run</p></li>
-<li><p>startScripts: create start scripts for your application;</p></li>
-<li><p>distZip: build final deploy package, find zip file under build/distributions folder;</p></li>
-<li><p>installApp: install package created in &ldquo;distZip&rdquo; into build/install folder;</p></li>
-</ul>
-
-
-<p>Note that in development stage, testing codes with JUnit (using F11 to launch last dubug) is better than using Gradle&rsquo;s test task (using Shift + Ctrl + Alt + R, then input &ldquo;test&rdquo; and <Enter>).</p>
-
-<p>All these tasks can be executed within Eclipse and in console. So it works good both in development stage and BVT stage. A sample project using these tools is my <a href="https://github.com/leetschau/GDEP">GDEP</a> project.</p>
-
-<h1>Debug Gradle with println</h1>
-
-<p>Add the following scripts into build.gradle, then run &ldquo;check&rdquo; task.</p>
-
-<pre><code>println "--------"
-println project.name
-println "--------"
-</code></pre>
-
-<h2>Customize project name</h2>
-
-<p>Add a new file &ldquo;settings.gradle&rdquo; at the root of the project, add a string &ldquo;rootProject.name = &lsquo;myProj&rsquo;&rdquo; into the file. Now project name, jar file name, start script name will all be changed to myProject.jar/sh/zip, etc.</p>
-
-<hr />
-
-<p>First install gradle, then run the following commands:</p>
-
-<pre><code>$ mkdir myproj
-$ cd myproj
-$ gradle init --type java-library
-$ mkdir src/main/resources
-$ mkdir src/test/resources
-</code></pre>
-
-<p>Now the project layout is ready. If you want to develop this project in Eclipse, add &ldquo;apply plugin: &lsquo;eclipse&rsquo;&rdquo; into build.gradle, then run:</p>
-
-<pre><code>$ gradle eclipse
-</code></pre>
-
-<p>Then open this project with Eclipse.</p>
-
-<p>The default project layout (file structure) of &ldquo;java&rdquo; plugin is described in &ldquo;Project layout&rdquo; section of <a href="http://www.gradle.org/docs/current/userguide/userguide.html">Gradle User Guide</a>:</p>
-
-<p>src/main/java:           Production Java source
-src/main/resources:      Production resources
-src/test/java:           Test Java source
-src/test/resources:      Test resources
-src/sourceSet/java:      Java source for the given source set
-src/sourceSet/resources: Resources for the given source set</p>
-
-<p>Add git version control with:</p>
-
-<pre><code>$ cd myproj
-$ git init
-</code></pre>
-
-<p>In Eclipse Luna, the git plugin is build-in, so you can manage versions in command line or in eclipse.</p>
-
-<p>Gradle will create many help files and folders, which is not the contents of the project. So we need exclude them using .gitignore:</p>
-
-<pre><code>$ cat .gitignore
-build
-.gradle
-gradle
-...
-</code></pre>
-
-<p>Three Eclipse component &ldquo;.settings&rdquo;, &ldquo;.project&rdquo; and &ldquo;.classpath&rdquo; should be added to git repository.</p>
-
-<h1>Merge Github Project and Eclipse Gradle Project</h1>
-
-<ol>
-<li><p>git clone <a href="https://github.com/leetschau/GDEP.git">https://github.com/leetschau/GDEP.git</a> gdep2</p></li>
-<li><p>In Eclipse, build a new Gradle project &ldquo;GDEP-0811&rdquo; with &ldquo;Quick start&rdquo; template;</p></li>
-<li><p>Move all files and folders in gdep2 to GDEP-0811;</p></li>
-<li><p>Refresh project in Eclipse;</p></li>
-<li><p>Build project with [right click on project -> Gradle -> Tasks Quick Launcher], enter &ldquo;build&rdquo;, and press <Enter>. If you encounter a &ldquo;Cannot find System Java Compiler&rdquo; error, set Gradle&rsquo;s Java compiler in [Window -> Preferences -> Gradle -> Arguments -> Java Home], select &ldquo;Workspace JRE&rdquo;: jdk1.6.0_45 (which is the JDK of you system, you have to install it yourself).</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/09/140312/">Serial Device Debug on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-09T14:03:12+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:03 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The device name is &ldquo;Prolific Technology, Inc. PL2303 Serial Port&rdquo;, you can use <code>lsusb</code> to get its name. Then install gtkterm for communicating with it.</p>
-
-<pre><code>$ sudo apt-get install gtkterm
-</code></pre>
-
-<p>Now use syslog to get the device name of pl2303.</p>
-
-<pre><code>$ tail -f /var/log/syslog
-...
-... usb 3-2: pl2303 converter now attached to ttyUSB0
-...
-</code></pre>
-
-<p>So its device name is /dev/ttyUSB0. Now you can connect it with gtkterm:</p>
-
-<pre><code>$ sudo gtkterm -p /dev/ttyUSB0 -s 57600
-</code></pre>
-
-<p>View -> Send hexadecimal data: 41 54 2B 53 43 41 4E</p>
-
-<h1>minicom</h1>
-
-<pre><code># apt-get install minicom
-</code></pre>
-
-<p>But I don&rsquo;t know how to send command via this application.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/08/155030/">Java Development Environment on Eclipse</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-08T15:50:30+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:50 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Eclipse</h1>
-
-<p>Luna for Java Developer, file name: eclipse-java-luna-R-linux-gtk-x86_64.tar.gz</p>
-
-<h1>Gradle plugin</h1>
-
-<ol>
-<li><p>Download gradle-2.0-all.zip, extract it to ~/apps;</p></li>
-<li><p>Add following lines into ~/.zshrc and run <code>source ~/.zshrc</code>:</p>
-
-<p> export GRADLE_HOME=/home/chad/apps/gradle-2.0
- export PATH=$PATH:$GRADLE_HOME/bin</p></li>
-<li><p>Install &ldquo;Gradle IDE 3.6.0&rdquo;: searching &ldquo;gradle&rdquo; in Eclipse Marketplace and install it;</p></li>
-</ol>
-
-
-<h1>Vim mode plugin</h1>
-
-<ol>
-<li><p>Download vrapper_0.44.0_20140601.zip from <a href="http://sourceforge.net/projects/vrapper/">its website</a>;</p></li>
-<li><p>Extract it under $ECLIPSE_HOME/dropins;</p></li>
-<li><p>Start Eclipse;</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/6">&larr; Older</a>
@@ -1124,23 +1111,23 @@ gradle
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
+        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
+        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
+        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
+        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
+        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
       </li>
     
   </ul>

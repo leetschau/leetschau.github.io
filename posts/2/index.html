@@ -9,10 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="ArchLinux sudo pacman -S nodejs mongodb
-sudo systemctl enable mongodb.service
-sudo systemctl start mongodb.service
-// verify with command "mongo" &hellip;">
+  <meta name="description" content="This morning I tried to install Debian 7.6 64bit on the DELL PC, but it failed due to some hardware problems.
+Then I installed LinuxMint 17 Xfce &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +66,474 @@ sudo systemctl start mongodb.service
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-29T09:44:00+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This morning I tried to install Debian 7.6 64bit on the DELL PC, but it failed due to some hardware problems.
+Then I installed LinuxMint 17 Xfce 64bit on this machine, and partition disk following <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a>:</p>
+
+<blockquote><p>chad@chadpc ~ $ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       276M   45M  218M  17% /boot
+/dev/sda2        15G  4.1G  9.8G  30% /
+&hellip;</p></blockquote>
+
+<p>where /dev/sda1 is formated as ext2, and /dev/sda2 is formated as ext3, and leave /dev/sda4 unused.</p>
+
+<p>After reboot and login LinuxMint,
+modify apt mirror list according to <a href="https://launchpad.net/ubuntu/+archivemirrors">Official Archive Mirrors for Ubuntu</a>,
+adding the following lines into /etc/apt/sources.list:</p>
+
+<pre><code>deb http://mirrors.zju.edu.cn/ubuntu/ trusty main
+deb-src http://mirrors.zju.edu.cn/ubuntu/ trusty main
+deb http://ubuntu.cnssuestc.org/ubuntu/ trusty main
+deb-src http://ubuntu.cnssuestc.org/ubuntu/ trusty main
+</code></pre>
+
+<p>Then run commands as root:</p>
+
+<pre><code>apt-get update
+apt-get install openssh-server
+apt-get install lvm2
+pvcreate /dev/sda4
+vgcreate vg0 /dev/sda4
+apt-get install bridge-utils
+
+brctl addbr xenbr0
+brctl addif xenbr0 eth0
+dhclient xenbr0
+
+aptitude -P install xen-system  # not xen-linux-system
+dpkg-divert --divert /etc/grub.d/08_linux_xen --rename /etc/grub.d/20_linux_xen
+update-grub
+reboot
+# you can find now "Ubuntu GNU/Linux, with Xen hypervisor" is the default startup item in grub boot menu
+</code></pre>
+
+<h1>Build DomU</h1>
+
+<pre><code>apt-get install xen-tools
+</code></pre>
+
+<h2>Using xen-create-image</h2>
+
+<pre><code>xen-create-image --hostname=ch1 --memory=1024gb --vcpus=2 --lvm=vg0 --dhcp --pygrub --dist=wheezy
+</code></pre>
+
+<h2>Using xl</h2>
+
+<p>Follow <a href="http://wiki.xen.org/wiki/Debian_Guest_Installation_Using_Debian_Installer">Debian Guest Installation Using Debian Installer</a>.</p>
+
+<p>Here we download 2 net-install disk (which is very small) and install the guest system via Internet.
+So the host machine need to connected with Internet, or can connect to another machine which can access Internet,
+and defining a proxy when installing.</p>
+
+<p>Select a mirror <a href="http://ftp.cn.debian.org/debian/">ftp.cn.debian.org/debian/</a> in <a href="http://www.debian.org/mirror/list">Debian worldwide mirror sites</a>.
+And download vmlinuz and initrd.gz (from <a href="http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/">http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/</a>)
+to local folder /home/chad/warez/xen-images-debian.</p>
+
+<p>Create a config file /root/deb.cfg:</p>
+
+<pre><code>name = "debian-installer"
+memory = 1024
+disk = ['phy:/dev/vg0/debian-installer,xvda,w']
+vif = [' ']
+
+kernel = "/home/chad/warez/xen-images-debian/vmlinuz"
+ramdisk = "/home/chad/warez/xen-images-debian/initrd.gz"
+extra = "debian-installer/exit/always_halt=true -- console=hvc0"
+</code></pre>
+
+<p>Then run following commands as root:</p>
+
+<pre><code>lvcreate -L 4G -n debian-installer /dev/vg0
+xl create -c /root/deb.cfg
+</code></pre>
+
+<p>Once installation has completed the guest will shutdown and exit.
+Remove the kernel, initrd and extra lines from the guest configuration, here remove the last 3 lines in deb.conf
+and replace them with simply:</p>
+
+<pre><code>bootloader = "pygrub"
+</code></pre>
+
+<p>Now the deb.conf became:</p>
+
+<pre><code>name = "debian-installer"
+memory = 1024
+disk = ['phy:/dev/vg0/debian-installer,xvda,w']
+vif = [' ']
+bootloader = "pygrub"
+</code></pre>
+
+<p>Startup the guest system with <code>xl create -c deb.cfg</code>.
+List all running vms with <code>xl list</code> in dom0.
+Connect this vm with <code>xl console debian-installer</code>.
+List all available subcommands of xl with <code>xl help</code>.
+Shutdown this vm with <code>xl shutdown debian-installer</code></p>
+
+<h1>Post installation</h1>
+
+<p>The &ldquo;brctl&rdquo; and &ldquo;dhclient&rdquo; commands above only build the network interface during system session.
+After system reboot, the bridge interface disappears, thus startup vm will failed.
+So we need define the bridge in /etc/network/interfaces, add the following lines into this file:</p>
+
+<pre><code>auto eth0
+iface eth0 inet dhcp
+
+auto xenbr0
+iface xenbr0 inet dhcp
+    bridge_ports eth0
+</code></pre>
+
+<p>If after reboot, the eth0 can&rsquo;t get IP address, use <code>ifdown eth0</code> and <code>ifup eth0</code> to refresh eth0.</p>
+
+<p>Update 2014.10.31: these settings cause network connection failed. After removing &ldquo;auto xenbr0&hellip;&rdquo; section, everything goes fine.
+So use <code>brctl</code> and <code>dhclient</code> to setup bridge after system startup.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li><p>Use <code>lsblk -f</code> to see the volume group and logical volumes.</p></li>
+<li><p>pvcreate means &ldquo;create physical volume&rdquo;, vgcreate means &ldquo;create volume group&rdquo;, lvcreate means &ldquo;create logical volume&rdquo;.</p></li>
+<li><p>Use <code>lvremove /dev/vg0/debian-installer</code> to remove the logical volume created before.</p></li>
+<li><p>Use <code>dpkg-divert --list</code> to list all diversions, and <code>dpkg-divert --remove /etc/grub.d/20_linux_xen</code> to remove a diversion.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a></p>
+
+<p><a href="https://wiki.debian.org/Xen">Xen on Debian Wiki</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/28/182614/">DMShell Up and Running</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-28T18:26:14+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:26 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The dmshell is a web server accepting a shell command string, and run it on web server host.</p>
+
+<h1>Setup DataBase</h1>
+
+<h2>Fix Derby Server Startup Failed</h2>
+
+<p>When start Derby server with <code>/home/chad/apps/jdk1.6.0_45/db/bin/startNetworkServer</code>, the following error raised:</p>
+
+<blockquote><p>access denied (&ldquo;java.net.SocketPermission&rdquo; &ldquo;localhost:1527&rdquo; &ldquo;listen,resolve&rdquo;)</p></blockquote>
+
+<p>Solution:</p>
+
+<p>Find out system&rsquo;s JRE. On my laptop, it&rsquo;s /usr/lib/jvm/java-7-openjdk-amd64/jre
+Add the following codes into file lib/security/java.policy in this folder:</p>
+
+<pre><code>grant {
+    permission java.net.SocketPermission "localhost:1527", "listen";
+};
+</code></pre>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4">http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4</a></p>
+
+<h2>Create Database and Table</h2>
+
+<p>Run ~/apps/jdk1.6.0_45/db/bin/ij and run following commands:</p>
+
+<pre><code>connect 'jdbc:derby://localhost:1527/dmdb;create=true';
+create table shellstatus (id int not null generated by default as identity (start with 1, increment by 1), shellname varchar(40), starttime timestamp, endtime timestamp,status int);
+</code></pre>
+
+<p>Then you can use <code>select * from shellstatus;</code> to list all data in this table.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/27/111204/">A Spark Job Runner in Web Browser</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-27T11:12:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:12 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I wrote a Spark script. Now I need adding a web interface for it. Thus users can input parameters of the script in web browser, run the script,
+and see the calculation results in browser.</p>
+
+<h1>JEE</h1>
+
+<p>Download apache tomcat 7.0.56 core (apache-tomcat-7.0.56.tar.gz) and extract it to ~/apps;</p>
+
+<p>Download Eclipse IDE for Java EE Developers (eclipse-jee-luna-SR1-linux-gtk-x86_64.tar.gz) and extract it to ~/apps;</p>
+
+<p>Start Eclipse IDE for Java EE Developers, build a new Web project: [File -> New -> Web -> Dynamic Web Project];</p>
+
+<p>Specify &ldquo;Project&rdquo; as &ldquo;SparkRunner&rdquo;, &ldquo;Target runtime&rdquo; as &ldquo;Apache Tomcat v7.0&rdquo;.
+If the default runtime has not existed yet, build a new one: Type of runtime environment: Apache -> Apache Tomcat v7.0).
+Check &ldquo;Generate web.xml deployment descriptor&rdquo; at the last step and click &ldquo;Finish&rdquo;.</p>
+
+<p>Add the following texts into &ldquo;web-app&rdquo; of web.xml under $PROJECT_HOME/WebContent/WEB-INF:</p>
+
+<pre><code>&lt;servlet&gt;
+    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
+    &lt;servlet-class&gt;com.boco.dm.JobRunner&lt;/servlet-class&gt;
+&lt;/servlet&gt;
+&lt;servlet-mapping&gt;
+    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
+    &lt;url-pattern&gt;/JobRunner&lt;/url-pattern&gt;
+&lt;/servlet-mapping&gt;
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="https://cloud.google.com/appengine/docs/java/config/webxml#About_Deployment_Descriptors">The Deployment Descriptor: web.xml</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/24/150059/">告警资源过滤算法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-24T15:00:59+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>WFP算法从告警报文中挖掘出关联规则后，保存在下面的RDD data中，每一条规则包含4项：支持度、置信度、规则前项和规则后项。
+前项和后项分别是一个字符串，是一个逗号分隔的多个网元列表，
+例如一条规则(0.2, 0.3, &ldquo;a,b&rdquo;, &ldquo;c&rdquo;)表示“网元a,b上的告警导致网元c上告警发生的支持度是0.2，置信度是0.3。
+也就是a,b,c在所有告警中发生的概率是20%，当a,b已经发生时，c发生的比率是30%。</p>
+
+<p>在另一张资源表中，每一行包含一对网元，保存在下面的RDD res_data中，
+例如&#8221;a,c&#8221;这一行表示网元a和c有资源上的关联关系，可能是物理链路连接，可能是同一物理位置等等。</p>
+
+<p>所谓的资源过滤就是只有在资源表中的规则才算有效规则，
+资源关系是没有顺序的，不论规则(a => c)还是(c => a)都符合(a,c)这一资源约束，
+对于规则(x1, x2, &hellip;, xm => y1, y2, &hellip;, yn)，只有前项和后项的所有笛卡尔积</p>
+
+<pre><code>(x1, y1), (x1, y2), ... (x1, yn)
+...
+(xm, y1), (xm, y2), ... (xm, yn)
+</code></pre>
+
+<p>都在资源表中，才表明这一条规则通过了资源过滤。
+例如对于规则(a,b => c)，只有a与c，a与b都有资源关系（即(a,b)和(a,c)都在资源表中），这条规则才有效。</p>
+
+<p>实现算法是：对于一条规则R1，求出其所有笛卡尔积R2，然后求R2与资源表的交集R3，如果</p>
+
+<p>下面是描述这一筛选过程的Spark代码:</p>
+
+<pre><code>val data = sc.parallelize(List((0.2, 0.3, "a,b", "c"), (0.5, 0.2, "b,c", "a,d")))
+val combine_pre_suf = data.flatMap(x =&gt; (x._3.split(",").flatMap(y =&gt; (x._4.split(",").map(z =&gt; (y+","+z, x))))))
+val suf_pre = combine_pre_suf.map(x =&gt; (x._1.split(",")(1) + "," + x._1.split(",")(0), x._2))
+val double_pre_suf_rule = suf_pre ++ combine_pre_suf
+val res_data = sc.parallelize(List("a,c","b,c","c,e","c,d"))
+val res_join_double = res_data.map(x =&gt; (x,1)).join(double_pre_suf_rule)
+val rule_in_res_cnt = res_join_double.map(x =&gt; (x._2._2, x._2._1)).reduceByKey(_+_)
+val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._1._4.split(",").size == x._2)
+</code></pre>
+
+<p>将这段代码保存在文件res-filter.script中，运行<code>spark-shell -i res-filter.script</code>。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/22/103838/">Swap Mouse Buttons on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-22T10:38:38+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:38 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>LinuxMint</h1>
+
+<p>Add the following line into ~/.xinitrc before &ldquo;exec i3&rdquo;:</p>
+
+<blockquote><p>xmodmap -e &ldquo;pointer = 3 2 1&rdquo;</p></blockquote>
+
+<p>Ref: <a href="https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal">https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/21/191239/">`Key Could Not Be Imported` Error When Full Update ArchLinux System</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-21T19:12:39+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>7:12 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Today I update my ArchLinux system with <code>pacman -Syu</code>, when check for package key, I got following errors:</p>
+
+<blockquote><p>:: Proceed with installation? [Y/n]
+(211/211) checking keys in keyring                                      [########################################] 100%
+downloading required keys&hellip;
+:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#105;&#108;&#x74;&#x6f;&#58;&#x6d;&#x75;&#x66;&#x6c;&#111;&#110;&#101;&#64;&#x76;&#x62;&#x73;&#105;&#x6d;&#112;&#108;&#101;&#46;&#x6e;&#101;&#x74;">&#x6d;&#117;&#102;&#108;&#x6f;&#x6e;&#101;&#x40;&#x76;&#x62;&#115;&#105;&#109;&#x70;&#x6c;&#x65;&#x2e;&#110;&#x65;&#116;</a>&rdquo;, created: 2009-07-04? [Y/n]
+error: key &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#x69;&#108;&#x74;&#x6f;&#58;&#109;&#117;&#102;&#x6c;&#x6f;&#110;&#x65;&#x40;&#118;&#98;&#x73;&#x69;&#x6d;&#x70;&#x6c;&#101;&#x2e;&#110;&#x65;&#116;">&#x6d;&#x75;&#102;&#108;&#111;&#x6e;&#x65;&#64;&#118;&#98;&#115;&#105;&#109;&#112;&#x6c;&#x65;&#x2e;&#110;&#x65;&#x74;</a>&rdquo; could not be imported
+error: required key missing from keyring
+error: failed to commit transaction (unexpected error)
+Errors occurred, no packages were upgraded.</p></blockquote>
+
+<p>The solution is pretty simple. We need to first update archlinux-keyring before proceeding to update other packages.</p>
+
+<pre><code>$ sudo pacman -Syy
+$ sudo pacman -S archlinux-keyring
+$ sudo pacman -Syu
+</code></pre>
+
+<p>Ref: <a href="http://kiawin.com/blog/2014/09/error-key-could-not-be-imported.html">Error: Key could not be imported</a>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/21/100928/">Notes of Data Science at the Command Line</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-21T10:09:28+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:09 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>&ldquo;A Real-World Use Case&rdquo; in Chapter 1</h1>
+
+<p>In this case a GUI window need to be displayed based on data extracted from &ldquo;New York Times&rdquo;.
+So we have to connect to the VM with X forwarded: <code>ssh vagrant@localhost -p 2222 -X</code>.
+I registered the <a href="http://developer.nytimes.com/apps/myapps">NYT developer keys</a>.
+So the run following commands to extract data:</p>
+
+<pre><code>parallel -j1 --progress --delay 0.1 --results results "curl -sL 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=New+York+Fashion+Week&amp;begin_date={1}0101&amp;end_date={1}1231&amp;page={2}&amp;api-key=13fdd3f29a9479f92ef74c26166fda3a:16:60048486'" ::: {2009..2013} ::: {0..99} &gt; /dev/null
+cat results/1/*/2/*/stdout | jq -c '.response.docs[] | {date: .pub_date, type: .document_type,title: .headline.main }' | json2csv -p -k date,type,title &gt; fashion.csv
+&lt; fashion.csv Rio -ge 'g + geom_freqpoly(aes(as.Date(date), color=type), ''binwidth=7) + scale_x_date() + labs(x="date", title="Coverage of New York'' Fashion Week in New York Times")' | display
+</code></pre>
+
+<p>Now a GUI window named ImageMagick appears, and display the data in file fashion.csv.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -214,367 +680,6 @@ defaults.pcm.card 1
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/174733/">Install WPS on 64bit ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T17:47:33+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Now WPS is a 32bit application. It&rsquo;s can&rsquo;t run on 64bit ArchLinux.
-So firstly we should open the multilib repository of the system. Then install WPS with yaourt.</p>
-
-<ol>
-<li><p>Uncomment the following lines in /etc/pacman.conf:</p>
-
-<pre><code> [multilib]
- Include = /etc/pacman.d/mirrorlist
-</code></pre></li>
-<li><p>Install WPS: <code>yaourt -S wpsoffice</code>;</p></li>
-<li><p>Install printer drivers: <code>pacman -S libcups</code>;</p></li>
-<li><p>Install fonts: download wps-office_8.1.0.3724~b1p2_x86.tar.xz from WPS website, unpack it, run <code>./install_fonts</code>;</p></li>
-<li><p>Chinese input: <code>yaourt -S fcitx-wps</code>. Modify &ldquo;kingsoft-office&rdquo; with &ldquo;wpsoffice&rdquo; in pkgbuild file of fcitx-wps, because kingsoft-office doesn&rsquo;t exits now.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/multilib">Multilib on Arch Wiki</a></p>
-
-<p><a href="https://wiki.archlinux.org/index.php/WPS_Office">WPS Office on Arch Wiki</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/154329/">Define Key Binding With Xbindkeys on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T15:43:29+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Install xbindkeys: <code>pacman -S xbindkeys</code> or <code>apt-get install xbindkeys</code>;</p></li>
-<li><p>Start xbindkeys when X startup: add &ldquo;xbindkeys&rdquo; <strong>before</strong> &ldquo;exec i3&rdquo; in ~/.xinitrc;</p></li>
-<li><p>Get a template: <code>xbindkeys -d &gt; ~/.xbindkeysrc</code>;</p></li>
-<li><p>Detect key definition: <code>xbindkeys -k</code>;</p></li>
-<li><p>Add output from last command to ~/.xbindkeysrc;</p></li>
-<li><p>Reload new configs: <code>pkill xbindkeys; xbindkeys</code>;</p></li>
-<li><p>Verify the setup.</p></li>
-</ol>
-
-
-<p>Example:</p>
-
-<p>Add the following lines into ~/.xbindkeysrc, to increase and decrease LCD brightness of Thinkpad T440p:</p>
-
-<pre><code>"xbacklight -dec 10"
-    XF86MonBrightnessDown
-
-"xbacklight -inc 10"
-    XF86MonBrightnessUp
-</code></pre>
-
-<p>Ref:</p>
-
-<ul>
-<li><p><a href="https://wiki.archlinux.org/index.php/Xbindkeys">Xbindkeys</a></p></li>
-<li><p><a href="http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/">http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/</a></p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/15/084044/">Install Fcitx IM on ArchLinux and I3wm</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-15T08:40:44+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:40 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>After installation of i3wm complete, it&rsquo;s time for install Chinese input method for ArchLinux.</p>
-
-<pre><code>$ sudo pacman -S fcitx fcitx-im fcitx-ui-light fcitx-libpinyin fcitx-sunpinyin
-$ sudo pacman -S ttf-dejavu adobe-source-han-sans-otc-fonts
-$ cat .xinitrc
-...
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-export XMODIFIERS="@im=fcitx"
-...
-$ sudo reboot
-</code></pre>
-
-<p>To verify, run <code>fcitx</code> in terminal, check if there is any warns or errors.
-Then run <code>fcitx-configtool</code>. If there isn&rsquo;t input methods under &ldquo;Input Method&rdquo; tab,
-run <code>sudo pacman -S fcitx-cloudpinyin fcitx-sunpinyin fcitx-googlepinyin fcitx-libpinyin</code>.</p>
-
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/fcitx">Fcitx on Arch Wiki</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/13/104106/">Remove Linux From a Windows-Linux Dual-booting Computer</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-13T10:41:06+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I installed Linux Mint on Thinkpad T440p laptop. Now I need to remove the Linux from this computer.</p>
-
-<ol>
-<li><p>Download mbrfix.zip from &ldquo;Download&rdquo; channel on <a href="http://www.sysint.no/">sysint.no</a>.</p></li>
-<li><p>Login the Windows on the laptop, unzip mbrfix.zip, copy MbrFix.exe to C drive;</p></li>
-<li><p>Open a console as administrator, run <code>MbrFix /drive 0 fixmbr /win7 /yes</code>;</p></li>
-<li><p>Format Linux partition;</p></li>
-</ol>
-
-
-<p>Reboot, bingo.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/07/224855/">Dart Development on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-07T22:48:55+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Linux Mint 64bit</h1>
-
-<p>Today I tried Dart official tutorial <a href="https://www.dartlang.org/codelabs/darrrt/">Avast, Ye Pirates: Write a Web App</a>. When I run dartium in &ldquo;Step 1: Run the skeleton app&rdquo;, I met the following errors:</p>
-
-<blockquote><p>Could not launch browser - process terminated while trying to connect. Try closing and running Dartium instances.:
-Dartium stdout: /home/xxx/Apps/dart/chromium/chrome:error while loading share libraries: libudev.so.0: cannot open shared object file: No such file or directory</p></blockquote>
-
-<p>The official solution <a href="https://code.google.com/p/dart/wiki/PreparingYourMachine">PreparingYourMachine</a> on dart wiki is somewhat complicated.
-For I&rsquo;ve installed Chrome, there is a simple way to resolve this problem:</p>
-
-<pre><code>sudo ln -s /opt/google/chrome/libudev.so.0 /usr/lib/x86_64-linux-gnu/libudev.so.0
-</code></pre>
-
-<p>Verified on Linux Mint 17 x86_64.</p>
-
-<p>Notes:</p>
-
-<ul>
-<li><p>I met a &ldquo;404 not found&rdquo; error when install libudev-dev with aptitude.</p></li>
-<li><p>To install chrome, download google-chrome-stable_current_amd64.deb from <a href="https://www.google.com/chrome/">Chrome official website</a>.</p></li>
-</ul>
-
-
-<h1>ArchLinux</h1>
-
-<p>Download Dart complete bundle (darteditor-linux-x64.zip) on<a href="https://www.dartlang.org/">Dart website</a>.
-Extract it, and start dart editor with ./DartEditor.
-However, when running a dart project with &ldquo;Run in dartium&rdquo; context menu, an &ldquo;libgconf.so.4 no exist&rdquo; error raises.
-So we have to install dart sdk to provide this library file: <code>sudo pacman -S dart</code>.</p>
-
-<p>You can also install dart-editor and dartium from AUR:</p>
-
-<pre><code>yaourt -S dart-editor dartium-bin
-</code></pre>
-
-<p>But it&rsquo;s very slow.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/06/094327/">Config Environment Variables on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-06T09:43:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:43 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>System-wide environment variables</h1>
-
-<p>Add global environment variables in file <strong>/etc/environment</strong>.
-This file is specifically meant for system-wide environment variable settings.
-It is <strong>not</strong> a script file, but rather consists of assignment expressions, one per line:</p>
-
-<pre><code>JAVA_HOME=/usr/lib/jvm/default-java
-</code></pre>
-
-<p>So do not add &ldquo;export&rdquo; before assignments. Variable expansion does <strong>not</strong> work in this file.</p>
-
-<h1>User specific environment variables</h1>
-
-<p>Add user level environment variables in file <strong>~/.zshenv</strong>. For example, to override system PATH:</p>
-
-<pre><code>export PATH=$HOME/apps/spark-1.0.2-bin-hadoop2/bin:$PATH
-</code></pre>
-
-<h1>User aliases setup</h1>
-
-<p>For bash there is a ~/.bash_aliases file, so we define aliases in this file, and load it in zsh with adding following codes into ~/.zshrc:</p>
-
-<pre><code>if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
-</code></pre>
-
-<p>Some example in ~/.bash_aliases:</p>
-
-<pre><code>alias gst='git status'
-alias dn='$HOME/apps/dsnote/donshell.sh'
-</code></pre>
-
-<p>Refs:</p>
-
-<ul>
-<li><p><a href="https://help.ubuntu.com/community/EnvironmentVariables">EnvironmentVariables on UBUNTU wiki</a>.</p></li>
-<li><p><a href="https://wiki.archlinux.org/index.php/zsh">Zsh on ArchLinux Wiki</a>.</p></li>
-<li><p><a href="http://unix.stackexchange.com/questions/71253/what-should-shouldnt-go-in-zshenv-zshrc-zlogin-zprofile-zlogout">What should/shouldn&rsquo;t go in .zshenv, .zshrc, .zlogin, .zprofile, .zlogout?</a>.</p></li>
-<li><p><a href="http://stackoverflow.com/questions/663658/what-is-the-correct-target-for-the-java-home-envrionment-variable-for-a-linux-op">What is the correct target for the JAVA_HOME envrionment variable for a Linux OpenJDK debian-based distribution?</a>.</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/04/112244/">Restart WIFI on Mint</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-04T11:22:44+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:22 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>On i3wm of Linux Mint, sometimes the wifi can&rsquo;t refresh automatically when available.
-Use following commands to refresh wifi connection manually:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>nmcli nm wifi off
-</span><span class='line'>nmcli nm wifi on</span></code></pre></td></tr></table></div></figure>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/3">&larr; Older</a>
@@ -592,23 +697,23 @@ Use following commands to refresh wifi connection manually:</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a>
+        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/03/134818/">SparkR in Action</a>
+        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a>
+        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a>
+        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/10/28/182614/">DMShell Up and Running</a>
+        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
       </li>
     
   </ul>
