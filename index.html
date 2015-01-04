@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Jump betwwen tabs with ctrl+tab In a new tab, type about:config in the address bar and press Enter. Click the button promising to be careful. Set &hellip;">
+  <meta name="description" content="下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如&#8221;深圳东莞&#8221;的&#8221;圳&#8221;和&#8221;莞&#8221;两个字，原因不明。
+需要在vi中用&#8221;/\&lt;[A-Z]> &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +73,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a></h1>
     
     
       <p class="meta">
@@ -80,23 +82,433 @@
 
 
 
-<time class='entry-date' datetime='2014-11-28T08:44:28+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:44 am</span></time>
+<time class='entry-date' datetime='2014-12-31T10:10:55+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:10 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ul>
-<li><p><strong>Jump betwwen tabs</strong> with <em>ctrl+tab</em></p>
+  <div class="entry-content"><p>下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如&#8221;深圳东莞&#8221;的&#8221;圳&#8221;和&#8221;莞&#8221;两个字，原因不明。
+需要在vi中用&#8221;/\&lt;[A-Z]>搜索这种情况。</p>
 
-<p>  In a new tab, type <em>about:config</em> in the address bar and press Enter. Click the button promising to be careful.
-  Set <strong>browser.ctrlTab.previews</strong> to <em>true</em>;
-  Now use <em>ctrl+tab</em> to jump between two tabs;</p></li>
-<li><p><strong>Jump between tab groups</strong> with <em>ctrl+`</em></p>
+<p>实现过程是：首先尝试用unicode, utf8和gbk解码字符串，然后用GBK编码字符串，利用GBK汉字是按拼音顺序编码的原理查出其首字母。</p>
 
-<p>  Create and manage tab groups with <em>ctrl+shift+e</em> (see <a href="https://support.mozilla.org/en-US/kb/tab-groups-organize-tabs#w_how-do-i-organize-my-tab-groups">Use Tab Groups to organize a lot of tabs</a> for details).
-  And use <em>ctrl+`</em> to jump between two tab groups.</p></li>
+<pre><code>#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+def get_word_initial(inp):
+    if isinstance(inp, unicode):
+        unicode_str = inp
+    else:
+        try:
+            unicode_str = inp.decode('utf8')
+        except:
+            try:
+                unicode_str = inp.decode('gbk')
+            except:
+                print 'unknown coding'
+                return
+
+    init_list = [get_char_initial(i) for i in unicode_str]
+    return "".join(init_list)
+
+def get_char_initial(unicode1):
+    gbkStr = unicode1.encode('gbk')
+    try:
+        ord(gbkStr)
+        return gbkStr
+    except:
+        asc = ord(gbkStr[0]) * 256 + ord(gbkStr[1]) - 65536
+        if asc &gt;= -20319 and asc &lt;= -20284:
+            return 'A'
+        if asc &gt;= -20283 and asc &lt;= -19776:
+            return 'B'
+        if asc &gt;= -19775 and asc &lt;= -19219:
+            return 'C'
+        if asc &gt;= -19218 and asc &lt;= -18711:
+            return 'D'
+        if asc &gt;= -18710 and asc &lt;= -18527:
+            return 'E'
+        if asc &gt;= -18526 and asc &lt;= -18240:
+            return 'F'
+        if asc &gt;= -18239 and asc &lt;= -17923:
+            return 'G'
+        if asc &gt;= -17922 and asc &lt;= -17418:
+            return 'H'
+        if asc &gt;= -17417 and asc &lt;= -16475:
+            return 'J'
+        if asc &gt;= -16474 and asc &lt;= -16213:
+            return 'K'
+        if asc &gt;= -16212 and asc &lt;= -15641:
+            return 'L'
+        if asc &gt;= -15640 and asc &lt;= -15166:
+            return 'M'
+        if asc &gt;= -15165 and asc &lt;= -14923:
+            return 'N'
+        if asc &gt;= -14922 and asc &lt;= -14915:
+            return 'O'
+        if asc &gt;= -14914 and asc &lt;= -14631:
+            return 'P'
+        if asc &gt;= -14630 and asc &lt;= -14150:
+            return 'Q'
+        if asc &gt;= -14149 and asc &lt;= -14091:
+            return 'R'
+        if asc &gt;= -14090 and asc &lt;= -13119:
+            return 'S'
+        if asc &gt;= -13118 and asc &lt;= -12839:
+            return 'T'
+        if asc &gt;= -12838 and asc &lt;= -12557:
+            return 'W'
+        if asc &gt;= -12556 and asc &lt;= -11848:
+            return 'X'
+        if asc &gt;= -11847 and asc &lt;= -11056:
+            return 'Y'
+        if asc &gt;= -11055 and asc &lt;= -10247:
+            return 'Z'
+        return ''
+
+if __name__ == "__main__":
+    str_input='广州火车站A2c'
+    print(get_word_initial(str_input))
+</code></pre>
+
+<p>下面是一个完整的使用场景，利用上面的代码为小区的地理位置表添加ID字段。
+首先将上面的代码保存在chnInit.py中，然后相同目录下创建一个addID.py文件：</p>
+
+<pre><code>import chnInit
+import sys
+
+target = sys.argv[1]
+inclID = sys.argv[2]
+with open(target, 'r') as src:
+    with open(inclID, 'w') as dst:
+        for content in src:
+            line = content.strip()
+            cgi = line.split(' ,')[0]
+            node = line.split(' ,')[1].split(' ')[0]
+            city = line.split(' ,')[1].split(' ')[1]
+            nodeID = chnInit.get_word_initial(node)
+            cityID = chnInit.get_word_initial(city)
+            dst.write(cgi + ' ,' + city + ' ' + cityID + ' ' + node + ' ' + nodeID + '\n')
+</code></pre>
+
+<p>相同目录下保存输入文件input.csv，然后运行脚本：</p>
+
+<pre><code>$ head input.csv
+460010973309433 ,白云国际机场 广州
+...
+
+$ python addID.py input.csv loc_map.csv
+$ head loc_map.csv
+460010973309433 ,广州 GZ 白云国际机场 BYGJJC
+...
+</code></pre>
+
+<p>根据Python文档7.2.1节：&#8221;Methods of File Objects&#8221;中的描述：</p>
+
+<blockquote><p>For reading lines from a file, you can loop over the file object.
+This is memory efficient, fast, and leads to simple code:</p></blockquote>
+
+<pre><code>with open(target, 'r') as f:
+    for line in f:
+        ...
+</code></pre>
+
+<p>这种方式比较节省内存，适于处理大文件。
+当处理小文件时，可以用下面的方法将完整内容保存在一个变量中：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    read_data = f.read()
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-29T19:31:56+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:31 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The foloowing codes demonstrate the creation &copy;, query &reg;, update (U) and delete (D) operations on mongodb collections.</p>
+
+<p>It also shows how to rename collections and keys of documents.</p>
+
+<pre><code>$ mongo
+db.fairs.insert({'name': 'bikeShow', 'time': '2014.12.24', 'location': 'Beijing', 'products': ['bike', 'car', 'truck']})
+db.fairs.insert({'name': 'clothShow', 'time': '2014.2.14', 'location': 'Shanghai', 'products': ['silk', 'wood', 'paper']})
+db.fairs.insert({'name': 'MyFruits', 'time': '2011.4.18', 'location': 'Guangzhou', 'products': ['berry', 'apple', 'banana']})
+
+db.newfairs.find({}, {name: 1})
+db.newfairs.find({}, {'name.chn': 1})
+
+db.fairs.renameCollection('newfairs')
+
+db.newfairs.update({}, {$rename: {'time': 'date'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'name': 'names'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'names': 'name.chn'} }, {multi: true} )
+db.newfairs.update({}, {$unset: {'date': ""}}, {multi: true})
+db.newfairs.remove({})
+db.newfairs.drop()
+exit
+</code></pre>
+
+<p>You can&rsquo;t use <code>{$rename: {'name': 'name.chn'}}</code> directly for &ldquo;$rename must not be on the same path&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-29T15:14:19+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:14 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>启动node.js命令行，创建一个最简单的对象，然后遍历其属性：</p>
+
+<pre><code>$ node
+&gt; var myobj = {k1: "p1", k2: 'p2'}
+
+&gt; for (var key in myobj) {
+... console.log(key);
+... console.log(myobj.key);
+... console.log(myobj[key]);
+... }
+k1
+undefined
+p1
+k2
+undefined
+p2
+&gt; myobj.k1
+'p1'
+
+&gt; var ak = 'k4'
+undefined
+&gt; myobj.ak = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4' }
+&gt; myobj[ak] = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4' }
+
+&gt; myobj[nk] = 'p5'
+ReferenceError: nk is not defined
+    at repl:1:8
+    at REPLServer.self.eval (repl.js:110:21)
+    ...
+&gt; myobj['nk'] = 'p5'
+'p5'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4',
+  nk: 'p5' }
+</code></pre>
+
+<p>点操作符 (myobj.key) 和中括号 (myobj[key]) 都能用于获取和添加对象属性，
+二者的区别在于，点操作符后面的属性名称按照字面量处理，
+中括号中的属性名称按照变量名处理。</p>
+
+<p>如果想通过变量名读写对象属性，必须用中括号操作符，
+如果想不写引号直接引用属性名称，必须用点操作符。</p>
+
+<p>搜索&#8221;javascript object dot square bracket&#8221;查找相关文章。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-29T11:28:03+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>为一个用户增加可执行文件通常有两种方法，
+第一种是将可执行文件所在的目录添加到命令行自启动文件中（例如~/.profile，~/.bashrc，~/.zshenv等），
+这种方法的优点是无需root权限，绿色无污染，
+缺点是只对命令行有效，只对一个用户有效，
+并且不适用于从全局启动目录（如i3wm的dmenu命令行）中启动图形界面程序；</p>
+
+<p>另一种是把可执行文件添加到/usr/local/bin目录中，这个目录一般用来存放用户自定义的全局可执行命令，
+优缺点与上面修改自启动文件的方式相反；</p>
+
+<p>一段时间后/usr/local/bin下可能会有很多文件，清理的方法根据来源不同而不同：
+对于链接，直接删除；
+对非链接文件，用<code>dpkg -l</code>确认是否为apt-get或者dpkg安装的，然后用<code>apt-get remove</code>删除；
+如果不是上面的情况，用<code>pip list|grep &lt;filename&gt;</code>检查是否用pip安装的，若是，用<code>pip uninstall</code>删除。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-27T10:39:44+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Usually we can run shell command in Java program with <code>Runtime.getRuntime.exec(shellName);</code>.
+But if the shell command is <code>java -cp "lib/*" MainClass</code>, you can&rsquo;t get any output from &ldquo;line = reader.readLine()&rdquo;.</p>
+
+<p>You have to use ProcessBuilder instead of Runtime.exec to execute these commands.
+Maybe the reason is the double quotes after &ldquo;-cp&rdquo; option is mandatory, which are conflict with double quotes in parameters of Runtime.exec.</p>
+
+<pre><code>public static final String USER_PLUGIN_PATH = "plugins";
+public static final String USER_CLASSPATH = USER_PLUGIN_PATH + "/lib/*";
+public void runJavaProgram(String mainClass) {
+  logger.info("Running java program in class: " + mainClass);
+  try {
+    ProcessBuilder pb = new ProcessBuilder("java", "-cp", USER_CLASSPATH, mainClass);
+    pb.redirectErrorStream(true);
+    Process process = pb.start();
+    // Process process = Runtime.getRuntime().exec("java -cp " + USER_CLASSPATH + mainClass);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    String line = "";
+    String output = "";
+    while ((line = reader.readLine()) != null) {
+      logger.debug(line);
+      output += line + System.getProperty("line.separator");
+    }
+    process.waitFor();
+  } catch (IOException e) {
+    e.printStackTrace();
+  } catch (InterruptedException e) {
+    e.printStackTrace();
+  }
+}
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/25/100018/">Linux System Memory Probe</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-25T10:00:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:00 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="http://www.selenic.com/smem/">smem</a>  is a tool that can give numerous reports on memory usage on Linux systems.
+Install it with <code>sudo apt-get install smem</code>.</p>
+
+<p>List all process&rsquo;s memory consumption of a user with smem.</p>
+
+<h1>Using smem</h1>
+
+<p>Copy from <a href="http://www.selenic.com/smem/:">http://www.selenic.com/smem/:</a></p>
+
+<ul>
+<li><p>Show basic process information: <code>smem</code></p></li>
+<li><p>Show library-oriented view: <code>smem -m</code></p></li>
+<li><p>Show user-oriented view: <code>smem -u</code></p></li>
+<li><p>Show system view: <code>smem -R 4G -K /path/to/vmlinux -w</code></p></li>
+<li><p>Show totals and percentages: <code>smem -t -p</code></p></li>
+<li><p>Show different columns: <code>smem -c "name user pss"</code></p></li>
+<li><p>Sort by reverse RSS: <code>smem -s rss -r</code></p></li>
+<li><p>Show processes filtered by mapping: <code>smem -M libxml</code></p></li>
+<li><p>Show mappings filtered by process: <code>smem -m -P [e]volution</code></p></li>
+<li><p>Read data from capture tarball: <code>smem --source capture.tar.gz</code></p></li>
+<li><p>Show a bar chart labeled by pid: <code>smem --bar pid -c "pss uss"</code></p></li>
+<li><p>Show a pie chart of RSS labeled by name: <code>smem --pie name -s rss</code></p></li>
 </ul>
 
 </div>
@@ -111,7 +523,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/25/091714/">Mongodb Notes</a></h1>
     
     
       <p class="meta">
@@ -120,199 +532,24 @@
 
 
 
-<time class='entry-date' datetime='2014-11-27T09:28:46+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:28 am</span></time>
+<time class='entry-date' datetime='2014-12-25T09:17:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:17 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Jump between matching HTML and XML tags</h1>
+  <div class="entry-content"><h1>Start mongodb server as a common user</h1>
 
-<p>In normal mode, use &ldquo;vat&rdquo; to select all texts between these matching tags,
-then use &ldquo;o&rdquo; to jump between matching tags.</p>
+<p>The default data path of Mongodb is /data/db, which you have to create as root.</p>
 
-<p>In &ldquo;vat&rdquo;, &ldquo;v&rdquo; means select,
-&ldquo;a&rdquo; means including tags themselves(comparing with &ldquo;i&rdquo;),
-&ldquo;t&rdquo; means tags.</p>
+<p>If you just want play around mongodb with some test data, you can create a temporary folder as data directory:</p>
 
-<p>So we have &ldquo;cat&rdquo; (change outer), &ldquo;yat&rdquo; (copy outer), &ldquo;cit&rdquo; (change inner), &ldquo;dit&rdquo; (delete inner), etc.</p>
-
-<h1>Auto complete opened tags</h1>
-
-<h2>xmledit plugin</h2>
-
-<p>Install with <code>git clone https://github.com/sukima/xmledit.git ~/.vim/bundle/xmledit</code>.
-But it only works with .xml files. Not working with .html files.</p>
-
-<p>To fix this, <code>cd ~/.vim/bundle/xmledit/ftplugin; cp xml.vim html.vim</code> (overwrite the existing html.vim file).</p>
-
-<h2>No plugins</h2>
-
-<p>Add &ldquo;inoremap <F8> &lt;/<C-X><C-O>&rdquo; into ~/.vimrc.
-Now after &ldquo;<p>some text&rdquo;, press F8, it will be converted to &ldquo;<p>some text</p>&rdquo;.</p>
-
-<h2>ragtag plugin</h2>
-
-<p>Install <a href="https://github.com/tpope/vim-ragtag">ragtag</a> plugin for vim with <code>git clone https://github.com/tpope/vim-ragtag.git</code> into ~/.vim/bundle.</p>
-
-<p><code>:h ragtag</code> in vim for help.</p>
-
-<p>When editing a .html file, in insert mode, after input &ldquo;div&rdquo;, press Ctrl-x,Space, it will be convert to &ldquo;<div>|</div>&rdquo;.
-If press Ctrl-x,Enter, it will be converted to:</p>
-
-<pre><code>&lt;div&gt;
-|
-&lt;/div&gt;
-</code></pre>
-
-<p>where &ldquo;|&rdquo; marks the cursor position.</p>
-
-<h2>Other plugins</h2>
-
-<p>There are some more powerful plugins for xml/html editing, but they are more complicated.
-Like <a href="http://www.vim.org/scripts/script.php?script_id=1697">surround.vim</a>, <a href="http://www.vim.org/scripts/script.php?script_id=13">closetag.vim</a>, and <a href="https://github.com/mattn/emmet-vim">emmet-vim</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-20T10:03:41+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:03 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>LinuxMint</h1>
-
-<p>sudo aptitude install empathy telepathy-gabble telepathy-salut telepathy-rakia</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-19T15:37:34+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:37 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Creating deployed zip file with gradle is very convenient. But what if I want to add some customized files and folders into this file?</p>
-
-<p>According to <a href="http://stackoverflow.com/questions/5743036/deploy-additional-files-in-gradle-application-plugin">Deploy additional files in Gradle Application Plugin</a>,
-creat a &ldquo;dist&rdquo; folder under &ldquo;src&rdquo; in the root of project. Then everything under &ldquo;dist&rdquo; will be copied to zip file created by <code>gradle distZip</code> or <code>gradle installApp</code>.</p>
-
-<pre><code>$ pwd
-/home/chad/docs/GDEP-0811
-$ mkdir -p src/dist/plugins
-$ echo "pwd" &gt; src/dist/plugins/autocmd.sh
-$ echo "config1: value1" &gt; src/dist/dep.conf
-$ tree src/dist
-src/dist
-├── dep.conf
-└── plugins
-    └── autocmd.sh
-$ gradle clean installApp
-$ tree build/install/gdep
-build/install/gdep
-├── bin
-│   ├── gdep
-│   └── gdep.bat
-├── dep.conf
-├── lib
-│   ├── commons-configuration-1.10.jar
-│   └── ...
-└── plugins
-    └── autocmd.sh
-$ gradle clean distZip
-$ unzip -l build/distributions/gdep-0.4.zip
-Archive:  build/distributions/gdep-0.4.zip
-  Length      Date    Time    Name
----------  ---------- -----   ----
-        0  2014-11-19 15:35   gdep-0.4/
-      132  2014-09-29 17:01   gdep-0.4/dep.conf
-        0  2014-11-19 15:20   gdep-0.4/plugins/
-        6  2014-11-19 15:13   gdep-0.4/plugins/autocmd.sh
-        0  2014-11-19 15:35   gdep-0.4/lib/
-     7255  2014-11-19 15:35   gdep-0.4/lib/gdep-0.4.jar
-    76643  2014-08-14 08:40   gdep-0.4/lib/...
-        0  2014-11-19 15:35   gdep-0.4/bin/
-     5369  2014-11-19 15:35   gdep-0.4/bin/gdep
-     2727  2014-11-19 15:35   gdep-0.4/bin/gdep.bat
----------                     -------
-  2180116                     20 files
-</code></pre>
-
-<p>Here the file &ldquo;dep.conf&rdquo; and folder &ldquo;plugins&rdquo; is copied directly from $PROJ_ROOT/src/dist.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-13T11:49:46+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:49 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Dart&rsquo;s pub tool is blocked by GFW. So we have to use it with the help of a proxy.</p>
-
-<p>Modify pubspec.yaml at the root of a Dart project. Then run the following commands at this position:</p>
-
-<pre><code>export http_proxy=http://&lt;username&gt;:&lt;password&gt;@us.jayproxy.net:6000
-export https_proxy=http://&lt;username&gt;:&lt;password&gt;@us.jayproxy.net:6000
-pub get
+<pre><code>$ mkdir ~/docs/tmp/mongodb-repo
+$ cd ~/apps/mongodb-linux-x86_64-2.6.5
+$ bin/mongod --dbpath ~/docs/tmp/mongodb-repo
+// in a new shell
+$ ~/apps/mongodb-linux-x86_64-2.6.5/bin/mongo
 </code></pre>
 </div>
   
@@ -326,7 +563,7 @@ pub get
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/11/07/111321/">Virtualizations Based on XenServer</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/24/174727/">CentOS服务器根目录空间被占满的解决方法</a></h1>
     
     
       <p class="meta">
@@ -335,58 +572,32 @@ pub get
 
 
 
-<time class='entry-date' datetime='2014-11-07T11:13:21+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:13 am</span></time>
+<time class='entry-date' datetime='2014-12-24T17:47:27+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Today I tried to build a vm groups on my PC with XenServer.</p>
+  <div class="entry-content"><p>60和61服务器根目录(/)50G空间全被占满，用<code>du -shx /*</code>查看，非挂载目录的空间加起来远达不到50GB，
+查了一下，怀疑原因是原来挂在/mnt下的data1和data2目录下的两块大容量磁盘由于某种原因没有挂载上，
+但cloudera manager管理的hadoop和hdfs系统仍然在向这两个目录下存放大文件，导致空间被耗光，
+验证方法是用<code>mount</code>命令检查/mnt下是否有挂载，如果有，将它们卸载掉，看/mnt下是否还有文件，
+有的话删除掉就好了。</p>
 
-<h1>Server</h1>
+<p>如果不是这个原因，还可能是被删除的大文件没有释放，用<code>lsof|grep "deleted"</code>检查；</p>
 
-<p>Download XenServer 6.2.0 installation iso (XenServer-6.2.0-install-cd.iso) from <a href="http://xenserver.org/">XenServer.org</a>.
-Use this iso to install on the bare metal OS of VM host.
-Setup network with dhcp.</p>
+<p>参考：</p>
 
-<p>After installation and reboot, the Configuration window of XenServer 6.2 appears.
-Under &ldquo;Network and Management Interface&rdquo;, I got the IP of the host is 10.31.4.89.</p>
+<p><a href="http://serverfault.com/questions/275206/disk-full-du-tells-different-how-to-further-investigate">Disk full, du tells different. How to further investigate?</a></p>
 
-<h1>Client</h1>
+<p><a href="http://serverfault.com/questions/57098/du-vs-df-difference">du vs. df difference</a></p>
 
-<p>So far the linux client is much poor than its Windows couterpart.
-For example, the &ldquo;console&rdquo; tab and context menu (right click menu) can&rsquo;t work properly on OpenXenManager.
-It&rsquo;s recommended to use XenCenter on Windows as GUI tool,
-and <code>xe</code> command on host as CLI tool to perform VM management,
-Use <code>xe help --all</code> to list all available subcommands.
-<code>xl</code> is also a good tool.</p>
+<p><a href="http://serverfault.com/questions/62119/how-do-i-find-out-what-is-using-up-all-the-space-on-my-partition">How do I find out what is using up all the space on my / partition?</a></p>
 
-<h2>Linux Client</h2>
+<p><a href="http://askubuntu.com/questions/266825/what-do-i-do-when-my-root-filesystem-is-full">What do I do when my root filesystem is full?</a></p>
 
-<p>On LinuxMint 17, install <a href="http://sourceforge.net/projects/openxenmanager/">OpenXenManager</a> with <code>sudo aptitude install openxenmanager</code>;</p>
-
-<p>Start it with <code>openxenmanager</code>, create a new server with &ldquo;Hostname&rdquo; 10.31.4.89, &ldquo;User name&rdquo; root, and &ldquo;Password&rdquo; the one set previously.
-Connect to this server.</p>
-
-<p>On my laptop, run following commands to add a new SR (storage repository) to provide guest installation ISO files.</p>
-
-<pre><code>$ ssh root@10.31.4.89
-# mkdir /vms
-# xe sr-create name-label=Local type=iso device-config:legacy_mode=true content-type=iso device-config:location=/vms
-# exit
-$ scp ~/warez/OS/CentOS-6.5-x86_64-minimal.iso root@10.31.4.89:~/vms/
-$ ssh root@10.31.4.89
-# openxenmanager
-</code></pre>
-
-<p>You can use <code>xe sr-detach</code>, then <code>xe sr-forget</code> to remove SR.
-Use <code>lvs</code> to list LVM information about vm&rsquo;s disks.</p>
-
-<h2>Windows Client</h2>
-
-<p>Download XenCenter Windows Management Console (XenServer-6.2.0-XenCenter.msi) from Download page of <a href="http://xenserver.org/">XenServer.org</a>.
-Install and start it.</p>
+<p><a href="http://serverfault.com/questions/513136/centos-dev-root-is-getting-full-cannot-find-disk-space-usage">Centos , /dev/root is getting full. Cannot find disk space usage</a></p>
 </div>
   
   
@@ -399,7 +610,7 @@ Install and start it.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/11/04/145629/">JavaScript Development Environment Setup</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/24/152921/">HTML笔记</a></h1>
     
     
       <p class="meta">
@@ -408,33 +619,59 @@ Install and start it.</p>
 
 
 
-<time class='entry-date' datetime='2014-11-04T14:56:29+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:56 pm</span></time>
+<time class='entry-date' datetime='2014-12-24T15:29:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:29 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>vim</h1>
+  <div class="entry-content"><h1>HTML 布局原理</h1>
 
-<ol>
-<li><p>Install nvm;</p></li>
-<li><p>Install node with nvm;</p></li>
-<li><p>Install jshint with npm, which is a tool in node: <code>npm install -g jshint</code>;</p></li>
-<li><p>Check syntax with <code>jshint myfile.js</code>;</p></li>
-<li><p>Check html syntax with Tidy, which is installed on Ubuntu with <code>apt-get install tidy</code>;</p></li>
-</ol>
+<p>HTML元素分为块级元素(block element)和行内元素(inline element)，
+前者独占一行，也就是元素的头和尾会被自动加上换行符，如<div>, <h1>, <p>, <ul>, <table>等；</p>
 
+<p>后者不会独占一行，如<span>, <b>, <td>, <a>, <img>等；</p>
 
-<p>Ref: <a href="http://stackoverflow.com/questions/473478/vim-jslint">VIM + JSLint?</a></p>
+<p>CSS布局原理：<a href="http://www.w3schools.com/css/css_boxmodel.asp">CSS Box Model</a>.</p>
 
-<h1>Eclipse</h1>
+<p>一个CSS box从外向内分为4部分：margin, border, padding, content.
+除了最内部的内容部分(content)，其他3部分都可以设置宽度，
+其中margin是块级元素边界(border)之外的透明区域；
+border是边界线，默认宽度为0，即不可见；
+padding是内容(content)到边界之间的透明区域；</p>
 
-<p>Eclipse&rsquo;s javascript development tools JSDT is part of WTP (web tools platform),
-which is a built-in plugin of &ldquo;Eclipse JEE&rdquo; (Eclipse for Java EE Developers).</p>
+<p>将下面的代码保存在一个html文件中，可以看到各部分的作用：</p>
 
-<p>Its editor has auto syntax checker. Config it in [Window -> Preferences -> JavaScript -> Editor].
-Config its code style (tab size, for example) at [Window -> Preferences -> JavaScript -> Code Style -> Formatter].</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;style&gt;
+    div {
+        background-color: lightgrey;
+        width: 300px;
+        padding: 15px;
+        border: 5px solid navy;
+        margin: 25px;
+    }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div&gt;Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod.
+    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt.&lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<h1>HTML5</h1>
+
+<p>测试浏览器对HTML5的支持度：用待测浏览器打开<a href="https://html5test.com/">HTML5test</a>，该网页会列出浏览器对HTML5每一项特性支持与否。</p>
+
+<h2>Semantic Element</h2>
+
+<p>Ref: <a href="http://www.w3schools.com/html/html5_semantic_elements.asp">HTML5 Semantic Elements</a></p>
 </div>
   
   
@@ -447,7 +684,7 @@ Config its code style (tab size, for example) at [Window -> Preferences -> JavaS
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/23/180824/">Build Executable Jar in Command Line</a></h1>
     
     
       <p class="meta">
@@ -456,162 +693,98 @@ Config its code style (tab size, for example) at [Window -> Preferences -> JavaS
 
 
 
-<time class='entry-date' datetime='2014-11-03T17:11:08+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
+<time class='entry-date' datetime='2014-12-23T18:08:24+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:08 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin：</p>
+  <div class="entry-content"><p>Build a executable jar file using external jars:</p>
 
-<p>runJobs:</p>
+<pre><code>$ find .
+./Mod1.java
+./mf
+./lib
+./lib/commons-io-2.4.jar
 
-<pre><code>#!/bin/bash
+$ cat Mod1.java
+import org.apache.commons.io.FileUtils;
+import java.io.File;
 
-BMIN_CNT_WEI_LIST='0.5 0.3'
-MIN_SUP_LIST='0.004 0.0002'
+public class Mod1 {
+  public static void main (String[] args) {
+    String[] scriptExt = new String[] { "scala" };
+    System.out.println("List all scala files: " + FileUtils.listFiles(new File("/home/chad/docs/tmp"), scriptExt, false));
+  }
+}
 
-rm -rf {result,script}
-mkdir {result,script}
-origin_job=wfp-origin
-for bmin_cnt_wei in $BMIN_CNT_WEI_LIST; do
-    for min_sup in $MIN_SUP_LIST; do
-        echo MIN_SUP is: $min_sup , Bmin count weight is: $bmin_cnt_wei
-        new_script_name=wfp-bmin-${bmin_cnt_wei}-sup-${min_sup}
-        sed "4s/xxx/$min_sup/" $origin_job &gt; script/tmp
-        sed "11s/xxx/$bmin_cnt_wei/" script/tmp &gt; script/$new_script_name
-        rm script/tmp
-        echo Run shell script/$new_script_name
-        spark-shell -i script/$new_script_name
-        echo ------Calc is over------
-    done
-done
+$ cat mf
+Class-Path: lib/commons-io-2.4.jar
+Main-Class: Mod1
+$ javac -cp lib/* Mod1.java
+$ jar cfm pkg.jar mf Mod1.class
+$ java -jar pkg.jar
+List all scala files: [/home/chad/docs/tmp/sf2.scala, /home/chad/docs/tmp/lookup.scala, /home/chad/docs/tmp/spark-filter.scala, /home/chad/docs/tmp/hw.scala, /home/chad/docs/tmp/newDel.scala, /home/chad/docs/tmp/scalaTime.scala, /home/chad/docs/tmp/sf3.scala]
 </code></pre>
 
-<p>wfp-origin:</p>
+<p>Note that classpath wildcard can&rsquo;t be used in manifest file (here is mf), which means &ldquo;Class-Path: lib/*&rdquo; doesn&rsquo;t work.
+See <a href="http://www.ibm.com/developerworks/library/j-5things6/">5 things you didn&rsquo;t know about &hellip; JARs</a> for explanations.</p>
 
-<pre><code>import Math.ceil
-import scala.io
+<p>The &ldquo;-cp&rdquo; option or &ldquo;CLASSPATH=&hellip;&rdquo; is invalid in <code>java -jar xxx.jar</code>.
+So if you don&rsquo;t want to create manifest file by hand, run java program with <code>java -cp ... MainClass</code>:</p>
 
-val MIN_SUP = xxx
-val MIN_CONF = 0.1
-val MAX_RELATION_ORDER = 3
-val DATA_FILE = "input"
-val SEP = "\001"
-val WEI_IDX = 5
-val MIN_INT_ID_LEN = 5
-val BMIN_CNT_WEI = xxx
+<pre><code>$ tree
+.
+├── com
+│   └── boco
+│       └── example
+│           └── Example.java
+└── lib
+    └── commons-io-2.4.jar
+4 directories, 2 files
 
-val RES_FILE = "result/wfp-result-bmin-" + BMIN_CNT_WEI.toString + "-sup-" + MIN_SUP.toString
+$ cat com/boco/example/Example.java
+package com.boco.example;
 
-val rawData = sc.textFile(DATA_FILE).distinct
-val data = rawData.filter(x =&gt; x.split(SEP)(1).split("_")(0).size &gt; MIN_INT_ID_LEN)   
-val item_count = data.map(_.split(SEP)(1)).map(w =&gt; (w,1)).reduceByKey(_+_)
-val wids = data.map(_.split(SEP)(0))
-val MAX_ITEM = wids.map(w =&gt; (w,1)).reduceByKey(_+_).map(_._2).max
-val T = wids.distinct.count
+import org.apache.commons.io.FileUtils;
+import java.io.File;
+import java.util.Collection;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 
-val weight = data.map(x =&gt; (x.split(SEP)(1), x.split(SEP)(WEI_IDX).toFloat)).distinct
-val rule_sets = weight.top(2000)
-scala.tools.nsc.io.File(RES_FILE).writeAll(rule_sets.map(_.toString).reduce(_ + "\n" + _))
-exit
+public class Example {
+  public static void main (String[] args) {
+    Collection&lt;File&gt; found = FileUtils.listFiles(new File("."), TrueFileFilter.INSTANCE, DirectoryFileFilter.DIRECTORY);
+    System.out.println("List files with apache-commons.FileUtils:");
+    for (File f : found) {
+      System.out.println(f);
+    }
+    System.out.println("--- OVER ---");
+  }
+}
+$ javac -cp lib/commons-io-2.4.jar com/boco/example/Example.java
+$ jar cf example.jar com
+$ mv example.jar lib
+$ tree
+.
+├── com
+│   └── boco
+│       └── example
+│           ├── Example.class
+│           └── Example.java
+└── lib
+    ├── commons-io-2.4.jar
+    └── example.jar
+4 directories, 4 files
+$ java -cp "lib/*" com.boco.example.Example
+List files with apache-commons.FileUtils:
+./com/boco/example/Example.java
+./com/boco/example/Example.class
+./lib/example.jar
+./lib/commons-io-2.4.jar
+--- OVER ---
 </code></pre>
-
-<p>这里的wfp-orgin只是一个示例，根据自己的脚本调整具体内容，但最后一行&#8221;exit&#8221;必须有，否则不能退出spark shell执行后面的任务。</p>
-
-<p>需要修改的参数用空格分开定义在一个字符串里，例如上面的BMIN_CNT_WEI_LIST和MIN_SUP_LIST，
-脚本创建script目录，保存新生成的脚本，以及result目录，保存计算结果。</p>
-
-<p>配合tmux，可以在tmux上运行runJobs.sh，下班时从tmux上detach出来，第二天上班时在attach上去看结果。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/03/134818/">SparkR in Action</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-03T13:48:18+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Getting online manual: > help(map)</p>
-
-<blockquote><p>sc &lt;- sparkR.init(&ldquo;local&rdquo;)
-lines &lt;- textFile(sc, &ldquo;/home/boco/datamine/alarm_bd_05.txt&rdquo;)
-count(lines)
-14/11/03 09:45:43 INFO FileInputFormat: Total input paths to process : 1
-[1] 7963078</p></blockquote>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-31T09:23:40+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>9:23 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I think the default LinuxMint login screen is not cool, need a new backgroud picture.
-How to change this backgroud picture? In LinuxMint 17 this is done by creating a new login &ldquo;Theme&rdquo; and use it.
-According to <a href="http://www.windows-to-linux.com/2014/07/custom-login-screen-background-linux-mint-17/">Custom Login Screen Background On Linux Mint 17</a>
-there is 3 steps to achieve this:</p>
-
-<ol>
-<li><p>Create a new theme based on the default theme;</p></li>
-<li><p>Pack this theme;</p></li>
-<li><p>Set it as the login theme.</p></li>
-</ol>
-
-
-<p>Firstly I choose a picture from Variety&rsquo;s Favorites folder as the new backgroud.
-Then run following commands:</p>
-
-<pre><code>sudo cp -r /usr/share/mdm/html-themes/Mint-X ~/StarWorld
-cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/bg.jpg
-cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/screenshot.jpg
-# modify name &amp; description in ~/StarWorld/theme.info
-tar czf star-world.tar.gz ~/StarWorld
-</code></pre>
-
-<p>Next login to Xfce desktop, startup &ldquo;Login Manager&rdquo;, add a new theme, choose star-world.tar.gz.</p>
-
-<p>Now logout and see the effect.</p>
 </div>
   
   
@@ -634,23 +807,23 @@ tar czf star-world.tar.gz ~/StarWorld
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
+        <a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
+        <a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
+        <a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
+        <a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
+        <a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a>
       </li>
     
   </ul>
@@ -695,7 +868,7 @@ tar czf star-world.tar.gz ~/StarWorld
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - Li Chao -
+  Copyright &copy; 2015 - Li Chao -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

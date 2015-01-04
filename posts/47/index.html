@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Based on Jenkins 1.509 and Checkstyle 5.6. Now we need practising code review, as a step of BVT of course. The ideal solution is based on Sonar and &hellip;">
+  <meta name="description" content="Chapter 8 In road.erl, to demonstrate the process of folding on path tuple, you can add the following sentence after the line OptB2=... in method & &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/05/15/164215/">Auto Code Review Based on Jenkins and Checkstyle</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/05/31/133829/">Note About `Learn You Some Erlang for Great Good`</a></h1>
     
     
       <p class="meta">
@@ -80,545 +80,628 @@
 
 
 
-<time class='entry-date' datetime='2013-05-15T16:42:15+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:42 pm</span></time>
+<time class='entry-date' datetime='2013-05-31T13:38:29+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>1:38 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Based on Jenkins 1.509 and Checkstyle 5.6.</p>
+  <div class="entry-content"><h1>Chapter 8</h1>
 
-<p>Now we need practising code review, as a step of BVT of course. The ideal solution is based on Sonar and its checkstyle plugin. But I am not very familiar with sonar&rsquo;s java runner and other features. So I decided to use some &ldquo;plain&rdquo; method to embed code review into the process of BVT.</p>
+<p>In road.erl, to demonstrate the process of folding on path tuple, you can add the following sentence after the line <code>OptB2=...</code> in method &ldquo;shortest_step&rdquo;:</p>
 
-<h1>Preparations</h1>
-
-<ol>
-<li><p>Install checkstyle plugin of jenkins;</p></li>
-<li><p>copy checkstyle-5.6-all.jar to /opt/checkstyle;</p></li>
-<li><p>create a code review rule file tyRules.xml at /opt/checkstyle:</p></li>
-</ol>
-
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
-
-<p> &lt;!DOCTYPE module PUBLIC &ldquo;-//Puppy Crawl//DTD Check Configuration 1.3//EN&rdquo; &ldquo;<a href="http://www.puppycrawl.com/dtds/configuration_1_3.dtd">http://www.puppycrawl.com/dtds/configuration_1_3.dtd</a>&rdquo;>
- <module name="Checker">
-  <property name="severity" value="warning"/>
-  <module name="TreeWalker">
-  <metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/>
-  <module name="MethodLength">
-   <property name="max" value="200"/>
-  </module>
-  <module name="NestedIfDepth">
-   <property name="max" value="5"/>
-  </module>
-  <module name="CyclomaticComplexity"/>
-  <module name="ParameterNumber">
-   <property name="max" value="6"/>
-  </module>
-  </module>
-  <module name="StrictDuplicateCode">
-  <property name="min" value="75"/>
-  </module>
-  <module name="FileLength">
-  <property name="max" value="1000"/>
-  </module>
- </module></p>
-
-<ol>
-<li><p>Project -> Configuration -> Source Code Management -> Subversion -> Repo URL: svn://localhost/ServerMeter</p></li>
-<li><p>Project -> Configuration -> Post-build Actions -> Publish Checkstyle analysis results: <em>*/codeReview</em>.xml;</p></li>
-<li><p>Project -> Configuration -> Post-build Actions -> E-mail Notification: &hellip;</p></li>
-</ol>
-
-
-<h1>As part of ant build</h1>
-
-<ol>
-<li>add a target &ldquo;checkcode&rdquo; in build.xml:</li>
-</ol>
-
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
- <project name="checkstyleTest" basedir="./" default="checkcode">
-   <taskdef resource="checkstyletask.properties" classpath="/opt/checkstyle/checkstyle-5.6-all.jar"/>
-   <property name="build.dir" value="${basedir}/build" />
-   <target name="init">
-     <delete dir="${build.dir}"/>
-     <mkdir dir="${build.dir}"/>
-   </target>
-   <target name="checkcode" depends="init">
-     <checkstyle config="/opt/checkstyle/tyRules.xml">
-       <fileset dir="src" includes="**/*.java"/>
-       <formatter type="xml" toFile="build/codeReviewResult.xml"/>
-     </checkstyle>
-   </target>
- </project></p>
-
-<ol>
-<li>Jenkins setup: Project -> Configuration -> Build -> Invoke Ant -> Targets: checkcode;</li>
-</ol>
-
-
-<p>PROS: simple config, with the power of ant;</p>
-
-<p>CONS: build scripts of every project have to be modified, which violates the DRY principle;</p>
-
-<h1>As an independent step in build process</h1>
-
-<p>Jenkins setup: Project -> Configuration -> Build -> Execute shell:</p>
-
-<p> rm -rf build
- mkdir build
- find . -depth -name .svn -exec rm -fr {} \;
- java -jar /opt/checkstyle/checkstyle-5.6-all.jar -c /opt/checkstyle/tyRules.xml -r src -f xml -o build/codeReviewResult.xml</p>
-
-<p>PROS: no need to modify any thing in project, do one thing in only ONE place;</p>
-
-<p>CONS: there are some dirty work in shell script, for example you have to delete and create build folder manually (otherwise checkstyle report can not be created correctly), and remove all .svn folder recursively (otherwise checkstyle will find some duplicate codes in normal code file and backup file in .svn folder).</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/14/104011/">Install Jenkins and Plugins by Hand</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-14T10:40:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:40 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Follow instructions on <a href="https://wiki.jenkins-ci.org/display/JENKINS/Plugins">Jenkins wiki</a> section 1.2 &ldquo;By hand&rdquo;.</p>
-
-<ol>
-<li><p>download jenkins.war;</p></li>
-<li><p>Search for the plugin, find if it has any dependency plugin. For example, plugin <a href="https://wiki.jenkins-ci.org/display/JENKINS/Checkstyle+Plugin">checkstyle</a> depends on <a href="https://wiki.jenkins-ci.org/display/JENKINS/Static+Code+Analysis+Plug-ins">analysis-core</a> stated in &ldquo;Dependencies&rdquo; section;</p></li>
-<li><p>Download hpi files in <a href="http://updates.jenkins-ci.org/download/plugins/">Download Site</a>;</p></li>
-<li><p>Copy hpi files downloaded to $HOME/.jenkins/plugins folder and restart Jenkins:</p></li>
-</ol>
-
-
-<p> nohup java -jar jenkins.war 1>jenkins.log 2>jenkins.log &amp;</p>
-
-<p>Verify: Jenkins Dashboard(<a href="http://localhost:8080">http://localhost:8080</a>) -> Manage Jenkins -> Manage Plugins -> Installed:</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/14/081549/">Multiple Terminals Operation on Windows and Ubuntu</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-14T08:15:49+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:15 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Termianl, a.k.a. console or command line, is a great tool to tell computers what to do. It&rsquo;s efficient and cool to type some words in a terminal(of course in full screen mode) and get all things done. But if you have only one terminal on the screen, switching between directories are always disturbing and time-consuming jobs. So to keyboard fans, a terminal enhancement tool is necessary. With the help of workspace(a.k.a. virtual desktop) switching tool and window arrangements shortcuts, a geek&rsquo;s screen is like this:</p>
-
-<ol>
-<li><p>Put all GUI windows in workspace 1;</p></li>
-<li><p>Put terminal windows in workspace 2;</p></li>
-<li><p>In workspace 2, switch multiple terminal tool in full screen mode;</p></li>
-<li><p>Use workspace switching shortcuts to switching between GUI workspace and terminal workspace;</p></li>
-</ol>
-
-
-<h1>Windows: Conemu + VirtuaWin</h1>
-
-<p>Terminal full screen: alt + enter;</p>
-
-<p>Split window: alt + h/v (split horizontal/vertical, defined in [Settings-> Keys &amp; Macros -> duplicate active &lt;<shell>> split to bottom/right]);</p>
-
-<p>Switch between terminal: [ctrl + tab] or [Win + q];</p>
-
-<p>Hide tab bar: Settings -> Features -> Tabs -> Don&rsquo;t show;</p>
-
-<p>Switch workspace: alt + win + Left/Right/Up/Down (defined in Setup -> Hotkeys of VirtuaWin);</p>
-
-<h1>Ubuntu: Teminator</h1>
-
-<p>Auto run command when startup (ssh to a remote server in this case): terminator -x ssh bvt@10.0.2.74;</p>
-
-<p>(use terminator -h for details. xterm and konsole also surppot -e <command> syntax).</p>
-
-<p>Terminal full screen: F11 (defined in [System Settings -> Keyboard -> Shortcuts -> Windows -> Toggle fullscreen mode]);</p>
-
-<p>Split window: alt + h/v (split horizontal/vertical, defined in [Preference -> Keybindings -> split_horiz/split_vert]);</p>
-
-<p>Switch between terminal: alt + Left/Right/Up/Down;</p>
-
-<p>Toggle Window max/normal of one of all terminals: ctrl + shift + z (defined in [Preferences -> Keybindings -> scaled_zoom]);</p>
-
-<p>Make background transparent: [Preferences -> Profiles -> defaults -> Background -> Transparent background: 0.8];</p>
-
-<p>copy on selection: [Preferences -> Profiles -> Copy on selection];</p>
-
-<p>Switch workspace: alt + ctrl + Left/Right/Up/Down (defined in [System Settings -> Keyboard -> Shortcuts -> Navigation -> Move to workspace left/right/above/below]);</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/10/150602/">Start Cygwin in ConEmu With Executor</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-10T15:06:02+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Cygwin is powerful, but its single window interface is inconvenient. So I put it in ConEmu, and invoke it via Executor.</p>
-
-<p>When define keyword in Executor, the command is &ldquo;d:\Apps\ConEmu\ConEmu.exe&rdquo;, parameters are &ldquo;/Single /cmd e:\myDoc\cygwinRoot\Cygwin.bat&rdquo;. Here &ldquo;/cmd&rdquo; can&rsquo;t be ommited, while it can be ommited when there is no &ldquo;/Single&rdquo; option. So the following two forms are valid:</p>
-
-<p> d:\Apps\ConEmu\ConEmu.exe /Single /cmd e:\myDoc\cygwinRoot\Cygwin.bat</p>
-
-<p> d:\Apps\ConEmu\ConEmu.exe e:\myDoc\cygwinRoot\Cygwin.bat</p>
-
-<p>But &ldquo;d:\Apps\ConEmu\ConEmu.exe /Single e:\myDoc\cygwinRoot\Cygwin.bat&rdquo; is malformed, cygwin can&rsquo;t be invoked.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/09/172351/">基于Jenkins+Gradle的自动构建系统搭建笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-09T17:23:51+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:23 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>前期准备：</h1>
-
-<ol>
-<li><p>搭建SVN服务器，参考笔记“ SVN服务器搭建笔记 ”；</p></li>
-<li><p>新建一个基于Gradle的测试项目，参考“ 定制Gradle的项目文件目录结构 ”；</p></li>
-<li><p>将此项目提交到SVN服务器；</p></li>
-<li><p>启动Jenkins服务器：java -jar jenkins.war;</p></li>
-<li><p>安装Gradle插件：在Jenkins管理面板的 [系统管理 -> 管理插件] 中在线安装；</p></li>
-<li><p>指定Gradle位置：[系统管理 -> 系统设置 -> Gradle]中指定服务器上Gradle的安装位置（取消勾选“自动安装”）；</p></li>
-</ol>
-
-
-<h1>搭建过程</h1>
-
-<ol>
-<li><p>New Job -> “构建一个自由风格的软件项目”；</p></li>
-<li><p>配置此项目：</p></li>
-<li><p>项目名称；</p></li>
-<li><p>源码管理 -> Subversion -> Repository URL: svn://localhost/JenkinsGradleTest/quickstart2</p></li>
-<li><p>构建触发器 -> check &ldquo;Build periodically&rdquo; -> 日程表：H/15 * * * * （每15分钟构建一次）</p></li>
-<li><p>构建 -> 增加构建对象 -> Invoke Gradle script -> Tasks: build；</p></li>
-<li><p>构建后操作 -> Add post-build action -> Publish JUnit test result report -> Test report XMLs: <em>*/test-results/</em>Test.xml</p></li>
-<li><p>构建后操作 -> Add post-build action -> Email Notification -> Recipients: <a href="&#x6d;&#97;&#x69;&#108;&#116;&#x6f;&#58;&#x75;&#x73;&#x65;&#x72;&#64;&#99;&#111;&#x6d;&#112;&#97;&#110;&#121;&#x2e;&#99;&#x6f;&#x6d;">&#117;&#x73;&#101;&#114;&#x40;&#99;&#x6f;&#109;&#x70;&#x61;&#x6e;&#x79;&#x2e;&#99;&#111;&#109;</a></p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/09/100304/">定制Gradle的项目文件目录结构</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-09T10:03:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:03 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>参考Gradle文档chapter 23: The Java Plugin, 23.4: Project Layout, 23.4.1: Changing the project layout。
-根据此说明，基于文档自带的$GRADLE-1.5_HOME\samples\java\quickstart进行的一个实验：</p>
-
-<p>首先将原示例的项目文件结构修改为如下形式：</p>
-
-<pre><code>$ tree 
-. 
-|-- build.gradle 
-|-- conf 
-| `-- db.properties 
-|-- src 
-| `-- org 
-|  `-- gradle 
-|   `-- Person.java 
-`-- test 
- `-- org 
-  `-- gradle 
-   `-- PersonTest.java 
+<pre><code>io:format("OptA1=~p, OptA2=~p, OptB1=~p, OptB2=~p~n", [OptA1, OptA2, OptB1, OptB2]),
 </code></pre>
 
-<p>然后在build.gradle中增加如下对sourceSets的定制：</p>
+<p>The last sentence of road.erl in main method could also be <code>erlang:halt().</code>, while in book it&rsquo;s <code>erlang:halt(0).</code>. Both work ok.</p>
 
-<pre><code>... 
-apply plugin: 'eclipse' 
-sourceSets { 
-    main { 
-        java { 
-            srcDir 'src' 
-        } 
-        resources { 
-            srcDir 'conf' 
-        } 
-    } 
-    test { 
-        java { 
-            srcDir 'test' 
-        } 
-    } 
-} 
-sourceCompatibility = 1.5 
-... 
-</code></pre>
-
-<p>然后就可以用gradle build或者gradle uploadArchives执行构建任务了。</p>
-
-<hr />
-
-<p>2014-8-11更新：</p>
-
-<p>基于Grale 2.0，创建一个新Java项目的方法是在一个空文件夹中运行<code>gradle init --type basic</code>，然后修改build.gradle文件，去掉其中的全文注释，添加&#8221;apply plugin: &lsquo;eclipse&rsquo;&ldquo;和目录结构定义，然后运行<code>gradle eclipse</code>，并在Eclipse中导入这个项目。如果是为一个已有(Eclipse)项目增加Gradle管理，则只要在项目根目录下创建build.gradle文件，然后就可以用<code>gradle build</code>等命令构建项目了。</p>
-
-<p>与在Eclipse中安装Gradle插件，然后完全在Eclipse中完成Grale构建相比，这种方法不需要在Eclipse中安装Gradle插件，在命令行中进行项目的构建，Eclipse只是一个代码编写和调试环境，相对更灵活一些。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/08/183307/">Windows命令行中使用代理的方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-08T18:33:07+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:33 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用Gradle做自动构建时，需要从Maven库里获取依赖包，由于网络限制导致获取失败，只能加代理，Windows命令行使用代理需要借助于微软的netsh工具在管理员权限下设置：</p>
-
-<ol>
-<li><p>启动ConEmu，在标题栏上右键 -> Active Console -> Restart as Admin；</p></li>
-<li><p>执行&#8221;netsh winhttp set proxy localhost:8087&#8221;；</p></li>
-</ol>
-
-
-<p>验证代理设置成功：netsh winhttp show proxy。</p>
-
-<p>参考：<a href="http://cclah.com/2013/03/19/more-about-cmd-console-start-delay-and-set-proxy-2/">MORE ABOUT CMD CONSOLE START , DELAY AND SET PROXY</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/07/143223/">从脚本启动图形界面程序</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-07T14:32:23+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:32 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Ubuntu上如果从脚本启动图形界面程序，会有一个终端窗口始终开启，如果在脚本里用nohup启动，就可以关闭这个窗口了，例如下面的脚本演示了启动eclipse程序：</p>
-
-<p> export PATH=$PATH:/opt/jre1.6.0_14/bin</p>
-
-<p> nohup /opt/eclipse/eclipse 1>/dev/null 2>/dev/null</p>
-
-<p>参考： <a href="http://askubuntu.com/questions/10547/how-to-clean-launch-a-gui-app-via-the-terminal-so-it-doesnt-wait-for-terminati">http://askubuntu.com/questions/10547/how-to-clean-launch-a-gui-app-via-the-terminal-so-it-doesnt-wait-for-terminati</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/07/101025/">Environment Variables of Ubuntu GUI Applications</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-07T10:10:25+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:10 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In Ubuntu Desktop you have to modify /etc/environment and ${HOME}/.pam_environment instead of /etc/bash.bashrc and ${HOME}/.bashrc to set environment variables. See <a href="https://help.ubuntu.com/community/EnvironmentVariables">EnvironmentVariables</a> for details.</p>
-
-<p>${HOME}/.pam_environment does not worked, don&rsquo;t know why.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/07/083620/">Frequently Used Shortcuts of Ubuntu</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-07T08:36:20+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:36 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Based on Ubuntu Desktop 12.04 LTS, &ldquo;super&rdquo; key is the windows logo key.</p>
-
-<h1>Shortcuts Definitions</h1>
+<h1>chapter 13</h1>
 
 <ul>
-<li><p>System Settings -> Keyboard -> Shortcuts;</p></li>
-<li><p>Super(press): show system shortcut list;</p></li>
+<li><p>In event.erl and evserv.erl, you can add the following line before every <code>Pid ! Message</code> to trace message flows between processes:</p>
+
+<p>  io:format(&ldquo;~p send msg ~p to ~p~n&rdquo;, [self(), Message, Pid]),</p></li>
+<li><p>In sup.erl, if you modify <code>{'EXIT', _From, shutdown} -&gt;</code> to <code>{'EXIT', _From, shutup} -&gt;</code> in loop/1, you will have to use &ldquo;exit(SupPid, shutup).&rdquo; instead of &ldquo;exit(SupPid, shutdown).&rdquo; to shutdown the sup process. See process_flag/2 and exit/2 for explanations;</p></li>
 </ul>
 
 
-<h1>Shortcuts list</h1>
+<h1>Chapter 14</h1>
 
-<p>Alt + mouse drag: move window (you can drag a window at any position within a window, not only at title bar)</p>
+<ul>
+<li><p>In kitty_server.erl, return_cat/2 put a cat in the shop (actually the list Cats, the parameter of loop/1). While order_cat/4 do 2 things: if shop is empty, create and return a new cat (then you can use return_cat to add this cat to shop), otherwise return the head of Cats. You can use folloing codes to verify(tom and bob are both set free):</p>
 
-<p>Alt + F2: run a application in command line box</p>
+<p>  Pid = kitty_server:start_link().
+  C1 = kitty_server:order_cat(Pid, tom, yellow, &ldquo;shinny&rdquo;).
+  rr(kitty_server).
+  C2 = #cat{name=bob}.
+  kitty_server:return_cat(Pid, C1).
+  kitty_server:return_cat(Pid, C2).
+  kitty_server:close_shop(Pid).</p></li>
+<li><p>monitor technique in above kitty_server.erl: When <code>Ref = erlang:monitor(process, Pid).</code>, the calling process is &ldquo;monitoring&rdquo; Pid, which means 2 things:</p>
 
-<p>Alt + F7: move window via arrow key;</p>
+<ol>
+<li><p> when Pid is down, the calling process will receive a &lsquo;DOWN&rsquo; message;</p></li>
+<li><p> if the monitored target is a naming process, adding the Ref in message can guarantee correctness after target restarted (see &ldquo;Naming Process&rdquo; of chapter 12 for details);</p></li>
+</ol>
+</li>
+<li><p>You can use <code>i().</code> or <code>etop:start().</code> in erlang shell to list all processes; use <code>process_info(Pid)</code> to print detailed information about the Pid; use <code>regs().</code> to list all registered processes;</p></li>
+</ul>
 
-<p>Alt + F8: resize window via arrow key;</p>
 
-<p>Ctrl + Alt + Num(1~9): move window to a position</p>
+<h1>Chapter 15</h1>
 
-<p>Ctrl + Super + D: show/hide desktop (minimize/show all window)</p>
+<p>Use <code>trade_calls:main_ab().</code> to demonstrate the use of trade_fsm;</p>
 
-<p>Super(tap): show Dash Home;</p>
+<h1>Chapter 16</h1>
 
-<p>Super + W: show a window list, you can use arrow key to select a window;</p>
+<p>&ldquo;curling_scoreboard&rdquo; is a callback module (a handler in gen_event context). The return value of its init/1 function is {ok, State} (see erlang doc: gen_event: Module:init/1). So curling_scoreboard store the PID of client in its internal State variable (from ToPid in curling:join_feed/2, which called by <code>curling:join_feed(Pid, self()).</code>). At <code>curling:add_points(Pid, "T1", 2).</code>, <strong>both</strong> registered handlers receive message {add_points, Team, N}). Handler curling_scoreboard prints two message to show points are added. While handler curling_feed send a message it received to client process (the Pid in its handle_event/2 function, see erlang doc gen_event:Module:handle_event/2 for API specification);</p>
 
-<p>Super 1 to 9: same as click on the launcher icon, you can lock a frequently used application on launcher and launch/activate it via these shortcuts;</p>
+<h1>Chapter 21</h1>
+
+<p>On p341, when set target directory as &ldquo;~/docs/erlang/ppool-1.0&rdquo; there is a exception. But when set it as &ldquo;~/docs/erlang&rdquo; everything goes fine:</p>
+
+<pre><code>$ ./erts-5.9.1/bin/erl -boot releases/1.0.0/start -erlcount directory '"/home/lichao/docs/erlang/"' -noshell
+</code></pre>
+
+<p>systools is simple than Reltool, which is much powerful than systools. Rebar can do release job, too. See <a href="http://www.metabrew.com/article/erlang-rebar-tutorial-generating-releases-upgrades">Erlang rebar tutorial: generating releases and upgrades</a> by Richard Jones;</p>
+
+<h1>Chapter 22</h1>
+
+<p>On p361, you have to modify the value of &ldquo;lib_dirs&rdquo; in file processquest-1.0.0.config at the root directory of processquest to the path where your &ldquo;apps&rdquo; directory resides, in my computer it&rsquo;s &ldquo;/home/lichao/docs/erlang/processquest/apps&rdquo; because I copy processquest to /home/lichao/docs/erlang. Then you can execute &ldquo;{ok, Conf} = &hellip; reltool:eval_target_spec&hellip;&rdquo;, and a bunch of files will be created under the &ldquo;rel&rdquo; directory under processquest.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/30/195201/">Multimedia Functions of Mint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-30T19:52:01+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>7:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We can use Calibre to manage e-books, gThumb to Pictures. Only Calibre need to be installed.</p>
+
+<h1>Music</h1>
+
+<p>Use banshee to sync between laptop and ipod. Banshee is a build-in application of Mint 14. It can copy songs on ipod to laptop (default music library on disk is ~/Music). So if you want add some songs to ipod:</p>
+
+<ol>
+<li><p>Plug ipod to USB port of your laptop;</p></li>
+<li><p>Start banshee, you can see your ipod name (&ldquo;chadpod&rdquo; for me) under the &ldquo;Devices&rdquo; on the left column of banshee panel;</p></li>
+<li><p>Make sure all the songs on your ipod have been added to banshee library. If not, drag the songs from ipod to &ldquo;Libraries -> Music&rdquo;;</p></li>
+<li><p>Select your ipod, under &ldquo;Sync Preferences&rdquo;, modify the value of &ldquo;Music&rdquo; from &ldquo;Manage manually&rdquo; to &ldquo;Sync from ???Recently Added???&rdquo;, then click &ldquo;Sync&rdquo; button at the upper-right corner of the panel;</p></li>
+<li><p>Click &ldquo;Disconnect&rdquo; button nearby the &ldquo;Sync&rdquo; button, then unplug the ipod from USB port of your laptop;</p></li>
+</ol>
+
+
+<p>Note: Use &ldquo;EasyTag&rdquo; to modify file tags;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/30/113911/">The Essential of HIght Order Functions</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-30T11:39:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The ordinary function: fun(x, y) = x + y, x * y, &hellip;</p>
+
+<p>High order function： fun(x, y) = x(y), &hellip; (where x is a function)</p>
+
+<p>So the essential power of high order function is combining its parameters in the form: x(y), which is impossible appeared in ordinary functions.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/29/183259/">Code Metrics Management With Sonar</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-29T18:32:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I added coverage test with cobertura and test the demo project built yesterday. Then I add Sonar Ant task in the ant script and saved test result into Sonar database.</p>
+
+<p>The following is a standard build script(add junit-4.*.jar and cobertura.jar to $ANT_HOME/lib, in Ubuntu it is /usr/share/ant/lib):</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
+    &lt;property name="build.dir" value="${basedir}/build" /&gt;
+    &lt;target name="init"&gt;
+        &lt;delete dir="${build.dir}"/&gt;
+        &lt;mkdir dir="${build.dir}"/&gt;
+    &lt;/target&gt;
+
+    &lt;property name="src.dir" value="${basedir}/src" /&gt;
+    &lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+    &lt;target name="compile-src" depends="init"&gt;
+        &lt;mkdir dir="${src.class.dir}"/&gt;
+        &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+    &lt;/target&gt;
+    &lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+    &lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+    &lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+
+    &lt;target name="instrument" depends="compile-src"&gt;
+        &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+        &lt;fileset dir="${src.class.dir}"&gt;
+            &lt;include name="**/*.class" /&gt;
+        &lt;/fileset&gt;
+        &lt;/cobertura-instrument&gt;
+    &lt;/target&gt;
+
+    &lt;property name="test.dir" value="${basedir}/test" /&gt;
+    &lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+    &lt;target name="compile-test" depends="instrument"&gt;
+        &lt;mkdir dir="${test.class.dir}"/&gt;
+        &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+            &lt;classpath&gt;
+                &lt;pathelement location="${instrumented.class.dir}"/&gt;
+                &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;/classpath&gt;
+        &lt;/javac&gt;
+    &lt;/target&gt;
+
+    &lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+    &lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+    &lt;target name="unittest" depends="compile-test"&gt;
+        &lt;mkdir dir="${unittest.report.dir}"/&gt;
+        &lt;junit printsummary="yes" fork="yes"&gt;
+            &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+            &lt;classpath&gt;
+                &lt;pathelement location="${instrumented.class.dir}"/&gt;
+                &lt;pathelement location="${src.class.dir}"/&gt;
+                &lt;pathelement location="${test.class.dir}"/&gt;
+                &lt;pathelement location="${src.dir}"/&gt;
+                &lt;path refid="lib.path"/&gt;
+            &lt;/classpath&gt;
+            &lt;formatter type="xml"/&gt;
+            &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+                &lt;fileset dir="${test.dir}"&gt;
+                    &lt;include name="**/*.java" /&gt;
+                &lt;/fileset&gt;
+            &lt;/batchtest&gt;
+        &lt;/junit&gt;
+    &lt;/target&gt;
+
+    &lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+    &lt;target name="coverage-report" depends="unittest"&gt;
+        &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+    &lt;/target&gt;
+
+    &lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+    &lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+    &lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+    &lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+    &lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+    &lt;property name="sonar.projectVersion" value="2.1" /&gt;
+    &lt;property name="sonar.language" value="java" /&gt;
+    &lt;property name="sonar.sources" value="src" /&gt;
+    &lt;property name="sonar.tests" value="test" /&gt;
+    &lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+    &lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+    &lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+    &lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+    &lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+    &lt;target name="sonar" depends="coverage-report"&gt;
+        &lt;taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"&gt;
+            &lt;classpath path="/usr/share/ant/lib/sonar-ant-task-2.1.jar" /&gt;
+        &lt;/taskdef&gt;
+        &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+    &lt;/target&gt;
+&lt;/project&gt;
+</code></pre>
+
+<p>To run this script successfully:</p>
+
+<ol>
+<li><p>build a demo java project and put this script at project root;</p></li>
+<li><p>copy sonar-ant-task-2.1.jar and junit-4.11.jar to $ANT_HOME/lib;</p></li>
+<li><p>start Sonar server: $SONAR_HOME/bin/sonar.sh console;</p></li>
+<li><p>run this script: ant sonar;</p></li>
+</ol>
+
+
+<p>Note1: you have to add &ldquo;sonar.core.codeCoveragePlugin&rdquo; or coverage result can&rsquo;t be collected by Sonar. This is not mentioned in official documents<a href="http://docs.codehaus.org/display/SONAR/Code+Coverage+by+Unit+Tests+for+Java+Project">Code Coverage by Unit Tests for Java Project</a>;</p>
+
+<p>Note2: take care of the spelling: &ldquo;sonar.surefire.report<strong>s</strong>Path&rdquo; while &ldquo;sonar.cobertura.reportPath&rdquo;;</p>
+
+<p>Note3: the &ldquo;xmlns:sonar=&#8221;antlib:org.sonar.ant&rdquo; in &ldquo;sonar:sonar&rdquo; is necessary or the prefix &ldquo;sonar&rdquo; would be unbound;</p>
+
+<p>Note4: if unit test results can&rsquo;t be collected by Sonar, try to specify &ldquo;sonar.binaries&rdquo; carefully as above shows;</p>
+
+<p>Note5: the value of junit report path &ldquo;sonar.surefire.reportsPath&rdquo; is a <strong>directory</strong>(because there are lots of reports under this folder), while the value of cobertura report is a <strong>file</strong>, if sonar can not get junit or cobertura report, verify these settings;</p>
+
+<p>Note6: if there are &ldquo;class &hellip; is not accessible through the ClassLoader.&rdquo; in output of sonar task, there are two solutions:</p>
+
+<ol>
+<li><p>remove property &ldquo;sonar.binaries&rdquo;, where Sonar will not check bytecode;</p></li>
+<li><p>in case you want Sonar check bytecodes, add property &ldquo;sonar.libraries&rdquo; like follows:</p>
+
+<p> <property name="sonar.libraries" value="src/lib/*.jar,src/lib/dom4j/*.jar"/></p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/29/145502/">Note About Cobertura</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-29T14:55:02+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:55 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Workflow of Unit Test without Cobertura</h1>
+
+<ol>
+<li><p>compile source code;</p></li>
+<li><p>compile test code;</p></li>
+<li><p>run unit test;</p></li>
+</ol>
+
+
+<h1>Workflow of Uniit Test with Cobertura</h1>
+
+<ol>
+<li><p>compile source code;</p></li>
+<li><p>instrument source code;</p></li>
+<li><p>compile test code based on <strong>instrumented</strong> source code(instrumented class file of source code in fact);</p></li>
+<li><p>run unit test;</p></li>
+<li><p>build unit test and coverage report;</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/29/081941/">Goagent 3.0.1 on Mint 14</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-29T08:19:41+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:19 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>download goagent-goagent-v3.0.1-11-gfaa05a1.zip;</p></li>
+<li><p><code>unzip goagent-goagent-v3.0.1-11-gfaa05a1.zip -d apps</code></p></li>
+<li><p><code>cd $GOAGENT_HOME/server; python uploader.zip</code>, you have to enter you app id (ltsc), email address and password;</p></li>
+<li><p><code>vi $GOAGENT_HOME/local/proxy.ini</code>; modify appid;</p></li>
+<li><p><code>python goagent-gtk.py &amp;</code>, then close terminal;</p></li>
+</ol>
+
+
+<p>bingo.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/28/185513/">Unit Test With JUnit and Ant</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-28T18:55:13+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:55 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I put junit-4.11.jar to $ANT_HOME/lib folder(I didn&rsquo;t set ANT_HOME environment virable), then I can use <junit> task in ant script as follows:</p>
+
+<p> <target name="unit_test" depends="compile">
+  <mkdir dir="${test.report.dir}"/>
+  <junit printsummary="yes" fork="yes">
+   <classpath>
+    <pathelement location="${src.class.dir}"/>
+    <pathelement location="${test.class.dir}"/>
+    <pathelement location="${lib.dir}/hamcrest-core-1.3.jar" />
+   </classpath>
+   <formatter type="plain"/>
+   <batchtest todir="${test.report.dir}" haltonerror="no">
+    <fileset dir="${test.dir}">
+      <include name="**/*.java" />
+    </fileset>
+   </batchtest>
+  </junit>
+ </target></p>
+
+<p>A pitfall here is that Junit depends on hamcrest(see junit website), but if you put hamcrest-core-1.3.jar to $ANT_HOME/lib, there will be a &ldquo;Class not found&rdquo; error. It&rsquo;s probably a bug or version matching problem of junit. You have to put hamcrest jar file in &ldquo;classpath&rdquo; element of junit task as above.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/28/113431/">Powerful Application Launcher on Xfce</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-28T11:34:31+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>exo-open</h1>
+
+<p>exo-open is a powerful and build-in command-line launcher in Xfce, like Executor on Windows. You can see <code>man exo-open</code> or <a href="http://docs.xfce.org/xfce/xfce4-appfinder/preferences">http://docs.xfce.org/xfce/xfce4-appfinder/preferences</a> for details. For example, the difference of %s and %S.</p>
+
+<h2>Custom Actions</h2>
+
+<p>You can define some custom actions in Application Finder, then trigger it with &ldquo;Alt + F2&rdquo; and some text.
+Defining custom actions like as follows:</p>
+
+<p>Application Finder(Alt + F3) -> Preferences(A button on Application Finder window) -> Custom Actions:</p>
+
+<h3>search things with web browser</h3>
+
+<p>Type: Prefix
+Pattern: s.
+Command: firefox &lsquo;<a href="http://www.bing.com/search?q=%s">http://www.bing.com/search?q=%s</a>&rsquo;</p>
+
+<p>or:  exo-open &ndash;launch WebBrowser &lsquo;<a href="http://www.google.com.hk/search?q=%s">http://www.google.com.hk/search?q=%s</a>&rsquo;
+note: you can try to start google search from command line by some script, see <a href="http://www.if-not-true-then-false.com/2009/google-search-from-linux-and-unix-command-line/">http://www.if-not-true-then-false.com/2009/google-search-from-linux-and-unix-command-line/</a></p>
+
+<h3>Run a terminal command</h3>
+
+<p>this is a build-in example in Mint 14.
+Type: Prefix
+Pattern: !
+Command: exp-open &ndash;launch TerminalEmulator %s
+note: so you can write a file in vi by this: Alt + F2, !vi</p>
+
+<h3>open a directory</h3>
+
+<p>Type: Prefix
+Pattern: /
+Command: exo-open &ndash;launch FileManager %S
+note1: here if you input &ldquo;/opt/jre-1.6&rdquo;, then the first charactor &ldquo;/&rdquo; is part of your command, so you have to use %S instead of %s.
+note2: you can use keyboard to location folders in <a href="http://docs.xfce.org/xfce/thunar/start">Thunar</a>, the file manager of Xfce.</p>
+
+<h3>Open SVN Repository with rabbitvcs</h3>
+
+<p>Type: Prefix
+Pattern: svn.
+Command: rabbitvcs browser <a href="http://10.0.2.59:8118/svn/%s">http://10.0.2.59:8118/svn/%s</a></p>
+
+<p>Note: you have to install rabbitvcs with apt-get.</p>
+
+<h2>Run a GUI app</h2>
+
+<p>Application Finder(Alt + F3) -> keyboard -> Application Shortcuts:</p>
+
+<ol>
+<li><p>Click &ldquo;Add&rdquo;;</p></li>
+<li><p>Command: &ldquo;exo-open &ndash;launch FileManager /home/chad/apps/eclipse-java-juno-SR2-linux-gtk/eclipse&rdquo;, or &ldquo;exo-open &lsquo;./docs/learn_you_erlang.pdf&rsquo;&rdquo;, or &ldquo;exo-open &ndash;launch TerminalEmulator xfce4-terminal &ndash;fullscreen&rdquo; to open terminal in fullscreen mode, <code>man xfce4-terminal</code> for full launch options;</p></li>
+<li><p>Press &ldquo;OK&rdquo;;</p></li>
+<li><p>Shortcuts: press key combinations you choose;</p></li>
+</ol>
+
+
+<h1>gmrun</h1>
+
+<p>Install it with the name &ldquo;gmrun&rdquo; in Software Manager;</p>
+
+<p>You can use ! to turn on &ldquo;Search&rdquo; mode to search in your command history;</p>
+
+<p>Ctrl+Enter works fine for terminal command (like vi, or you can append &ldquo;read -p somePromp&rdquo; to your command to prevent window vanish);</p>
+
+<h1>verve</h1>
+
+<p>It can be embedded into pannel;</p>
+
+<p>Add a command &ldquo;verve-focus&rdquo; to &ldquo;Keyboard -> Application Shortcuts&rdquo; to focus verve with a keyboard shortcut;</p>
+
+<p>Install it with the name &ldquo;verve&rdquo; in Software Manager (full name is &ldquo;xfce4-verve-plugin);</p>
+
+<p>Ctrl+Enter (run command in terminal) does not work;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/26/110434/">Build Clojure Develop Environment</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-26T11:04:34+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Install <a href="http://chocolatey.org/">chocolatey</a>;</p>
+
+<p> default installation place is C:\, maybe you can change it;</p></li>
+<li><p>Install leiningen: <code>cinst leiningen -Pre</code>;</p></li>
+<li><p>start up clojure REPL with <code>lein repl</code>;</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/25/055757/">Xfce Is a Good Desktop Choice</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-25T05:57:57+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:57 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Try out Mint Xfce(linuxmint-14-xfce-dvd-32bit.iso) in Virtual Box this morning. It&rsquo;s fast(duo to Xfce), beautiful and customizable(convenient than LXDE&rsquo;s openbox). I installed Terminator and erlang from its &ldquo;Software Manager&rdquo;, and shell command &ldquo;tree&rdquo; from apt-get smoothly. Application Finder(Alt + F3) and</p>
+
+<p>Window Manager are also helpful and powerful. Some frequently used shortcuts including(all defined in Window Manager -> Keyboard):</p>
+
+<ul>
+<li><p>Show Desktop: Alt + Ctrl + z (the defaut A-C-d is unconvenient);</p></li>
+<li><p>Minimize Window: Alt + F9;</p></li>
+<li><p>Maximize/Restore Window: Alt+F10;</p></li>
+<li><p>Go to workspace &frac12;/&frac34;: Ctrl + F1/F2/F3/F4;</p></li>
+</ul>
+
+
+<p>I defined a shortcut(Alt + T) for Terminator in Application Finder -> keyboard -> Application Shortcuts.</p>
+
+<h1>Customize Desktop</h1>
+
+<p>right click on panel -> Panel -> Panel Preferences:</p>
+
+<ul>
+<li><p>make panel vertical: Display -> Mode: Vertical;</p></li>
+<li><p>remove time, date and &ldquo;Menu&rdquo; from panel: Items: select time and date item and click remove button on the right side;</p></li>
+<li><p>add desktop clock: see note &ldquo; Use Conky as Desktop Clock on Xfce &rdquo;;</p></li>
+<li><p>only display window icon (no title) on panel: Item -> Window Buttons -> Edit -> Uncheck &ldquo;Show button labels&rdquo;;</p></li>
+<li><p>make panel semi-transparent: Appearance: Background -> Style: Background Image; Opacity -> Enter: 100, Leave: 50; (you have to use &ldquo;AppFinder -> Window Manager Tweaks -> Compositor: Enable display compositing&rdquo; to make Opacity value adjustable. You can also make window semi-transparent when moving by setting &ldquo;Opacity of windows during move&rdquo;, which is a sub-option of &ldquo;Enable display compositing&rdquo;);</p></li>
+<li><p>Get desktop resolution: ~/.config/xfce4/xfconf/xfce-perchannel-xml/displays.xml:</p>
+
+<p>  <property name="Resolution" type="string" value="1366x768"/></p></li>
+</ul>
+
 </div>
   
   
@@ -643,23 +726,23 @@ sourceCompatibility = 1.5
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
+        <a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
+        <a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
+        <a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
+        <a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
+        <a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a>
       </li>
     
   </ul>
@@ -704,7 +787,7 @@ sourceCompatibility = 1.5
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - Li Chao -
+  Copyright &copy; 2015 - Li Chao -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

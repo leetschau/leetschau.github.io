@@ -9,7 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Notepad++(np++) 6.1.3, plugin: TagsView &amp; Light Explorer font: consolas 12 color theme: zenburn hotkey: activate tagview: alt-g; light explorer: &hellip;">
+  <meta name="description" content="下面的程序演示了一个对象被两个线程访问的方法，&#8221;monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在&#8221;MyObject&#8221;的线程里，而不是&#8221;monitor&#8221;线程里。 1
+2
+3
+4
+5 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +75,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/25/092525/">基于Notepad++的Django开发环境</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/07/20/174616/">Java多线程间的数据共享</a></h1>
     
     
       <p class="meta">
@@ -80,22 +84,121 @@
 
 
 
-<time class='entry-date' datetime='2012-05-25T09:25:25+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:25 am</span></time>
+<time class='entry-date' datetime='2012-07-20T17:46:16+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:46 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Notepad++(np++) 6.1.3, plugin: TagsView &amp; Light Explorer</p>
+  <div class="entry-content"><p>下面的程序演示了一个对象被两个线程访问的方法，&#8221;monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在&#8221;MyObject&#8221;的线程里，而不是&#8221;monitor&#8221;线程里。</p>
 
-<p>font: consolas 12</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>BusyWaiting.java:
+</span><span class='line'>
+</span><span class='line'>public class BusyWaiting { 
+</span><span class='line'>    public static void main(String[] args) {
+</span><span class='line'>        Monitor monitor = new Monitor(); 
+</span><span class='line'>        MyObject o = new MyObject(monitor); 
+</span><span class='line'>        new Thread(o, " MyObject ").start(); 
+</span><span class='line'>        new Thread(monitor, " monitor ").start(); 
+</span><span class='line'>        System.out.println("main thread exit..."); 
+</span><span class='line'>    } 
+</span><span class='line'>} 
+</span><span class='line'>
+</span><span class='line'>MyObject.java
+</span><span class='line'>
+</span><span class='line'>import java.util.concurrent.TimeUnit;
+</span><span class='line'>public class MyObject implements Runnable {
+</span><span class='line'>    private final Monitor monitor;
+</span><span class='line'>    public MyObject(Monitor monitor) {
+</span><span class='line'>        this.monitor = monitor;
+</span><span class='line'>    }
+</span><span class='line'>    public void run() {
+</span><span class='line'>        try {
+</span><span class='line'>            TimeUnit.SECONDS.sleep(3);
+</span><span class='line'>            System.out.println("i'm going.");
+</span><span class='line'>            monitor.gotMessage();
+</span><span class='line'>        } catch (InterruptedException e) {
+</span><span class='line'>            e.printStackTrace();
+</span><span class='line'>        }
+</span><span class='line'>    }
+</span><span class='line'>} 
+</span><span class='line'>
+</span><span class='line'> 
+</span><span class='line'>
+</span><span class='line'>Monitor.java
+</span><span class='line'>
+</span><span class='line'>public class Monitor implements Runnable { 
+</span><span class='line'>    private volatile boolean go = false; 
+</span><span class='line'>    public void gotMessage() throws InterruptedException { 
+</span><span class='line'>        go = true; 
+</span><span class='line'>    } 
+</span><span class='line'>    public void watching() { 
+</span><span class='line'>        while (go == false); 
+</span><span class='line'>        System.out.println("He has gone."); 
+</span><span class='line'>    } 
+</span><span class='line'>    public void run() { 
+</span><span class='line'>        watching(); 
+</span><span class='line'>    } 
+</span><span class='line'>} </span></code></pre></td></tr></table></div></figure>
 
-<p>color theme: zenburn</p>
 
-<p>hotkey: activate tagview: alt-g; light explorer: alt-a; editor: not find yet</p>
+<p>另外采用</p>
 
-<p>关于np++的配置系统，参考 NpWiki++ 上的 Notepad++&rsquo;s configuration files 一节。</p>
+<pre><code>MyObject o = new MyObject(monitor); 
+new Thread(o, " thread1 ").start(); 
+new Thread(o, "thread2").start(); 
+</code></pre>
+
+<p>也是一种常用的多个线程共享数据的方式，</p>
 </div>
   
   
@@ -108,7 +211,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/23/084604/">Django Tutorial Note</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/07/20/173358/">测试JDK32位还是64位</a></h1>
     
     
       <p class="meta">
@@ -117,157 +220,21 @@
 
 
 
-<time class='entry-date' datetime='2012-05-23T08:46:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>8:46 am</span></time>
+<time class='entry-date' datetime='2012-07-20T17:33:58+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:33 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>以下是Django官网 Tutorial 的笔记。</p>
+  <div class="entry-content"><p>Main.java:</p>
 
-<p> create project
- E:\MyDoc\DjangoFiles> set PATH=%PATH%;F:\Software\Python27\Scripts
-E:\MyDoc\DjangoFiles> django-admin.py startproject mysite （在命令执行的当前目录下生成polls目录结构）</p>
-
-<p> start project server
-python manage.py runserver （默认绑定8000端口，可用&#8221;python manage.py runserver 8001&#8221;指定其它server端口号）</p>
-
-<p> verify: <a href="http://localhost:8000">http://localhost:8000</a>
- datebase setup
-mysite.settings.py: DATABASES = &hellip;</p>
-
-<p>and TIME_ZONE = &hellip;</p>
-
-<p>manage syncdb （为project级应用建立数据表）</p>
-
-<p> create app
-python manage.py startapp polls （在命令执行的当前目录下生成polls目录结构）</p>
-
-<p> mysite.settings.py: INSTALLED_APPS = ( &hellip;, &lsquo;polls&rsquo;)</p>
-
-<p> 定义数据模型
- polls.models.py: class Poll(models.Model): &hellip;</p>
-
-<p> python manage.py sql polls （显示生成数据库的脚本）</p>
-
-<p> python manage.py syncdb  （执行生成数据库的脚本）</p>
-
-<p>可用python manage.py shell查看数据模型；
- url到python函数的过程
-1. mysite.settings.py: ROOT_URLCONF = &lsquo;mysite.urls&rsquo;</p>
-
-<ol>
-<li><p>mysite.urls.py: urlpatterns = patterns(&lsquo;&rsquo;,</p>
-
-<pre><code>  url(r'^polls/(?P&lt;poll_id&gt;\d+)/$', 'polls.views.detail'),
-
-  ...)
-</code></pre></li>
-<li><p>polls.views.py中的detail（回调）函数，返回一个HttpResponse对象，其中可以指定模板，模板根目录在mysite.settings.py.TEMPLATE_DIRS中设置，polls.views.py中的模板参数是模板文件的相对路径（相对于模板根目录）。</p></li>
-</ol>
-
-
-<p>整体而言，对于一个app来说，其MVC过程是：models -> urls -> views -> templates，当采用generic views的时候，MVC过程变为：models -> urls -> templates。</p>
-
-<p> 设计思想</p>
-
-<ol>
-<li><p>Project由一组配置和一些app组成，二者之间是多对多关系，app可以复用于多个项目；</p></li>
-<li><p>在Django的MVC结构中，model代表数据抽象，处理数据库相关事务，view是展现层；</p></li>
-<li><p>客户端从服务端获取数据用GET，提交数据用POST；</p></li>
-<li><p>MVC in Django: model, template, view</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/19/145826/">Java程序线程死锁分析</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-19T14:58:26+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Linux平台
-jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报：&#8221;The VM does not support the attach mechanism&#8221;错误；</p>
-
-<p>C:\Users\chad> jps 1308 DeadLock
-4780 Jps</p>
-
-<p>C:\Users\chad> F:\Software\jdk1.6.0_27\bin\jstack.exe 1308
-2012-05-19 14:45:29
-Full thread dump Java HotSpot&trade; Client VM (20.2-b06 mixed mode):</p>
-
-<p>&hellip;</p>
-
-<h1>Found one Java-level deadlock : </h1>
-
-<p>&ldquo;Thread-1&rdquo;:
- waiting to lock monitor 0x01adee04 (object 0x03c002d8, a deadlockEx.DeadLock$Friend),
- which is held by &ldquo;Thread-0&rdquo;
-&ldquo;Thread-0&rdquo;:
- waiting to lock monitor 0x01ae0664 (object 0x03c002e8, a deadlockEx.DeadLock$Friend),
- which is held by &ldquo;Thread-1&rdquo;
-&hellip;
-Found 1 deadlock.</p>
-
-<p> 测试样例（来自 Deadlock on Java docs ）：
-package deadlockEx;
-public class DeadLock {
- static class Friend {
-  private final String name;
-  public Friend(String name) {
-   this.name = name;
-  }
-  public String getName() {
-   return this.name;
-  }
-  public synchronized void bow(Friend bower) {
-   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed to me!%n&rdquo;, this.name,
-    bower.getName());
-   bower.bowBack(this);
-  }
-  public synchronized void bowBack(Friend bower) {
-   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed back to me!%n&rdquo;, this.name,
-    bower.getName());
-  }
+<p>public class Main{
+ public static void main(String[] args){
+  String arch = System.getProperty(&ldquo;sun.arch.data.model&rdquo;);
+  System.out.println(arch);
  }
- public static void main(String[] args) {
-  final Friend alphonse = new Friend(&ldquo;Alphonse&rdquo;);
-  final Friend gaston = new Friend(&ldquo;Gaston&rdquo;);
-  new Thread(new Runnable() {
-   public void run() {
-    alphonse.bow(gaston);
-   }
-  }).start();
-  new Thread(new Runnable() {
-   public void run() {
-    gaston.bow(alphonse);
-   }
-  }).start();
- }
-} HP-UX平台</p>
-
-<p>用gcore <pid>（不支持gcore的UX可用gdb <pid>?）生成dump文件，文件名为core.<pid>，用jmap将此文件转为hprof文件，再用visualVM分析；</p>
+}</p>
 </div>
   
   
@@ -280,7 +247,7 @@ public class DeadLock {
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/19/144904/">通过dump文件分析Java程序运行状态</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/07/18/153402/">Wireshark使用笔记</a></h1>
     
     
       <p class="meta">
@@ -289,37 +256,60 @@ public class DeadLock {
 
 
 
-<time class='entry-date' datetime='2012-05-19T14:49:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
+<time class='entry-date' datetime='2012-07-18T15:34:02+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>3:34 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Java程序的快照（dump）分为两种：thread dump, heap dump。前者记录了进程（process）中各线程（Thread）（在CPU中的）运行状态主要用来解决死锁（deadlock）问题，后者记录了Java堆的情况，主要用来分析内存泄露问题。</p>
+  <div class="entry-content"><p>Wireshark的配置主要有两个，分别是capture filter和display filter，前者决定抓哪些包，后者决定在所有抓取的包里显示哪些包，以监控本机和服务器的Telnet交互过程为例，capture filter中配置：host 10.0.2.47，display filter中配置：telnet。这样就只显示telnet包，TCP包会被隐藏起来。</p>
+</div>
+  
+  
 
-<p> 生成堆dump（heapdump）文件方法
-1. 在启动Java程序时添加参数：-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=<my_dump_path>，完整示例见文末；</p>
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/07/12/143712/">使用Eclipse下载CRaSH源代码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-07-12T14:37:12+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Eclipse for Java Developers (Juno)本身有一个eGit组件，通过它可以直接从Git源码库中下载源代码，以下载 CRaSH 为例说明：</p>
 
 <ol>
-<li><p>启动程序；</p></li>
-<li><p>用jps或者ps指令找到此程序pid，例如17992；</p></li>
-<li><p>运行kill -3 <pid>；</p></li>
-<li><p>在my_dump_path下可以找到生成的dump文件，文件名为java_pid<pid>.hprof.&lt;date.time>，例如：java_pid17992.hprof.20120519.141323</p></li>
+<li><p>从主页上的&#8221;Develop: GitHub&#8221;找到 源码页 ，得到此项目的GitHub地址是：<a href="https://github.com/vietj/crash.git%EF%BC%9B">https://github.com/vietj/crash.git%EF%BC%9B</a></p></li>
+<li><p>Eclipse -> Import -> Git -> Projects from Git -> URI -> <a href="https://github.com/vietj/crash.git">https://github.com/vietj/crash.git</a></p></li>
 </ol>
 
 
-<p>启动程序的完整脚本：</p>
+<p>（Host和Repo path是自动解析出来的，下面的所有参数都不变）</p>
 
-<h1>!/bin/sh</h1>
+<ol>
+<li>选好本地的下载位置（不要在Workspace中，因为后面还要导入），一路Next即可。</li>
+</ol>
 
-<p>JARS=&ldquo;&rdquo;
-for i in ./*.jar; do
- JARS=&ldquo;$JARS&rdquo;:$i
-done
-JAVA_OPTS=&ldquo;-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=$HOME/backup&rdquo;
-exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina.echoServer.EchoServer
- 分析dump文件</p>
+
+<p>到这一步只是将源码下载到本地，要在Eclipse里引入此项目，还需要继续下面的导入过程：</p>
+
+<p>Eclipse -> Maven -> Existing maven projects，选择刚才下载的位置，导入即可，</p>
 </div>
   
   
@@ -332,7 +322,7 @@ exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/19/105840/">在Linux系统上查找文件</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/07/11/162523/">用ObjectAid生成Java代码的类图</a></h1>
     
     
       <p class="meta">
@@ -341,123 +331,66 @@ exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina
 
 
 
-<time class='entry-date' datetime='2012-05-19T10:58:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:58 am</span></time>
+<time class='entry-date' datetime='2012-07-11T16:25:23+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:25 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Find命令</h1>
+  <div class="entry-content"><p>ObjectAid是一款比较好用的Java逆向工程工具（类似工具的比较见 自动生成Java类图工具比较 ），以下是使用方法。
+ 创建基于Java代码的类图
+1. 安装objectaid插件：将objectaid-1.0.9.zip解压到$ECLIPSE_HOME/dropins/$OBJECTAID_PLUGIN_NAME下，目录结构如下：</p>
 
-<p>格式：find &lt;指定搜索范围> &lt;指定条件> &lt;指定动作></p>
-
-<p>其中搜索范围是一个目录名，指定条件包括文件名、文件属性（修改时间所属用户等）、所在位置特点（如目录深度等）等；指定动作包括打印（-print）等；</p>
-
-<p>例如：find $HOME -name &ldquo;*.sh&#8221;，查找用户根目录下所有以.sh结尾的文件，除了按文件名查找，find还可以按文件大小、类型、所属用户、用户组、修改时间、是否为空等，还可以指定找到文件后要执行的动作， 例如下面第一个指令是找到文件后运行ls命令，第3个指令是查找文件名中有echo且不属于root的文件（可以用!表示取反）：</p>
-
-<pre><code>[godu@goduserver ~]$ find ./backup/nep -name "*echo*" -ls
-124059671 8 -rwxr-xr-x 1 godu  godu   192 5月 19 10:59 ./backup/nep/echoServerStart.sh
-[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user godu 
-[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user root 
-./backup/nep/echoServerStart.sh
-find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-type l可知此目录下所有文件都为link文件。 
-</code></pre>
-
-<p>详见：<a href="http://blog.csdn.net/ydfok/article/details/1486451">linux查找文件命令find</a></p>
-
-<h2>引号问题</h2>
-
-<p>（2013-9-4更新）</p>
-
-<p>find <dest_path> -name <name_pattern>中<name_pattern>是glob格式，而且只匹配文件名，如果想用正则表达式匹配，则需要匹配完整路径名。</p>
-
-<p>例如有这样一个文件：./CalcServer/src/com/boco/deploy/ConfigLoader.java，用<code>find . -name "Co*.java"</code>可以匹配上，但<code>find . -regex "Co.*java"</code>匹配不上，因为它只匹配了文件名，而不是包括路径的完整路径名，改为<code>find . -regex ".*Co.*java"</code>就ok了。</p>
-
-<p>参考：<a href="http://bbs.chinaunix.net/thread-612012-1-1.html">http://bbs.chinaunix.net/thread-612012-1-1.html</a></p>
-
-<h2>查找条件</h2>
-
-<p>（2013-10-17更新）</p>
-
-<h3>按时间特性查找</h3>
-
-<ul>
-<li><p>find <dest_path> -newerXY <time-expr>: 查找在某个时间点之后修改（更新，生成）的文件，例如：</p>
-
-<p>  find . -newermt &lsquo;2014-01-16 00:00&rsquo; -name &lsquo;*.py&rsquo;</p>
-
-<p>查找所有修改时间晚于1月16日0点的扩展名为py的文件。</p></li>
-<li><p>find <dest_path> -mtime -1: 查找最近一天内被更改过的文件；</p></li>
-<li><p>mtime是按天查询，&#8221;-mtime -7&#8221; 查询修改时间在7天前到现在这段时间内的文件；</p></li>
-<li><p>mmin是按分钟查询，其他与mtime一样；</p></li>
-<li><p>atime, ctime分别是access time和change time（mtime是modification time），其他与mtime一样；</p></li>
-<li><p>find <dest_path> -newer <file_name> 列出所有修改时间晚于<file_name>修改时间的文件；</p></li>
-</ul>
+<ol>
+<li><p>启动Eclipse，File -> New -> Other -> ObjectAid UML Diagram -> Next</p></li>
+<li><p>&ldquo;Folder&#8221;后写上保存类图的位置，&#8221;Name&#8221;后面写类图的名字；</p></li>
+<li><p>下面的选项里勾选上感兴趣的项目，其中&#8221;Relationships&#8221;中各项的含义见后面的说明；</p></li>
+<li><p>&ldquo;Finish&#8221;。</p></li>
+<li><p>打开新生成的类图文件（.ucls），将感兴趣的类文件拖入ucls文件窗口中（详细使用方法见ObjectAid官网上 如何生成类图的说明 ）；
+对Relationships的说明（与标准UML中的术语不尽一致，如何对应以后再细分析，</p></li>
+<li>继承(Generalization)：实线三角，子类/接口（Shell）指向父类/接口（ConnectionListener）；</li>
+</ol>
 
 
-<h3>查找深度限制</h3>
+<p> public interface Shell extends ConnectionListener</p>
 
-<ul>
-<li>-maxdepth <n> 用来指定查询的目录深度，一般作为find的第一个参数；</li>
-</ul>
-
-
-<h3>查找类型限制</h3>
-
-<ul>
-<li>&ldquo;-type f&rdquo; 表示只显示文件，&#8221;-type d&#8221; 表示只查询目录；另外还有l（链接），s(socket)等类型可选；</li>
-</ul>
+<ol>
+<li>实现(Realization)：虚线三角，源类（DummyShell）实现目标接口（Shell）；</li>
+</ol>
 
 
-<h2>指定动作</h2>
+<p> public class DummyShell implements Shell</p>
 
-<ul>
-<li><p>&ldquo;-exec&rdquo;: 格式:</p>
-
-<ul>
-<li><p>find <path> <criterion> -exec <command> {} \;
-上面{}代表被查出来的项目，<command>命令以分号结尾，但为了避免分号在不同系统中的歧义，前面加反斜杠对分号进行转义；</p></li>
-<li><p>find <path> <criterion> -exec <command> {} +
-将所有find找到的条目放在一起，由<command>一次性执行，效率比&#8221;find &hellip; \;&ldquo;版本高很多；</p></li>
-</ul>
-</li>
-<li><p>&ldquo;-print&rdquo;: 主要用来在管道命令中为其他命令传值；</p></li>
-</ul>
+<ol>
+<li>关联(Association)：实线箭头，源类（Connection）的一个field（m_NextShell）的类型是目标类/接口（Shell）；</li>
+</ol>
 
 
-<h1>Locate命令</h1>
+<p> public class Connection {
+ &hellip;
+ private Shell m_NextShell;</p>
 
-<p> 相当于find -name，但速度远快于find，因为Linux维护了一个文件列表数据库（在Ubuntu上，这个数据库文件是/var/lib/mlocate/mlocate.db），locate命令查询这个数据库给出结果。由于数据库每天更新，所以如果查询最近的更改，需要手工更新数据库：</p>
-
-<pre><code>sudo updatedb
-</code></pre>
-
-<p>注意locate的搜索结果是包含路径的，所以用locate &lsquo;abc<em>&#8216;是搜不到文件名以abc开头的文件的，必须写为&#8221;</em>abc*&ldquo;;</p>
-
-<ul>
-<li>文件名部分普通匹配：locate strom；对应Emacs中M-x locate;</li>
-</ul>
+<ol>
+<li>嵌入(Nesting)：如下图，内部类（IACHandler）嵌入到外部类（TelnetIO）中；</li>
+</ol>
 
 
-<p>只有在这种最简形式下，可以将locate &lsquo;<em>strom</em>&#8216;简写为locate storm;</p>
+<p> public class TelnetIO {
+ class IACHandler {
+ &hellip;</p>
 
-<ul>
-<li><p>glob匹配：locate &lsquo;<em>strom</em>.gz&#8217;，搜索所有storm*.gz文件;</p></li>
-<li><p>正则匹配：locate -r &lsquo;.<em>Storm.</em>java&#8217;，或者：locate -r &rsquo;.<em>[Gg]roovy.</em>&lsquo;;</p>
-
-<p>在特定路径下搜索指定扩展名文件：locate -r &lsquo;.<em>warez.</em>[Vv]irtual[Bb]ox.*[rpm|deb]&rsquo;</p>
-
-<p>用正则指定文件扩展名：locate -r &lsquo;Storm.*.java&rsquo;</p></li>
-<li><p>locate+grep效果很好，先用locate进行粗选，然后在grep中细化，如查抄版本号为2.2.0的一个Hadoop安装包：locate 2.2.0|grep hadoop，或者查找所有文件名为Groovy或者groovy的文件：locate -r &lsquo;[Gg]roovy&rsquo;|grep &lsquo;[Gg]roovy&rsquo;</p></li>
-</ul>
+<ol>
+<li>依赖(Dependencies)：虚线箭头，源的方法中出现了目标类对象；</li>
+</ol>
 
 
-<p>Ref:</p>
+<p> public class ShellManager {
+ public Shell getShell(String key) {
+  Shell myShell = null;
+  &hellip;</p>
 
-<p><a href="http://www.kuqin.com/linux/20091009/70532.html">Linux的五个查找命令</a></p>
-
-<p><a href="http://www.linuxhaxor.net/5-ways-to-search-for-files-using-the-terminal-in-linux/">5 Ways To Search For Files Using The Terminal</a></p>
+<p> 以上示例代码来自 Java Telnet daemon (wimpi)。</p>
 </div>
   
   
@@ -470,7 +403,7 @@ find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-t
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/10/112349/">Logback笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/07/10/135952/">CRaSH安装笔记</a></h1>
     
     
       <p class="meta">
@@ -479,24 +412,39 @@ find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-t
 
 
 
-<time class='entry-date' datetime='2012-05-10T11:23:49+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:23 am</span></time>
+<time class='entry-date' datetime='2012-07-10T13:59:52+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>1:59 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ul>
-<li><p>打印logback调试信息：<configuration debug="true"></p></li>
-<li><p>自动感知文件变化：<configuration scan="true" scanPeriod="30 seconds" >，不加scanPeriod的话，默认值是1分钟，一般用默认值就行；</p></li>
-<li><p>不打印第一行格式信息：</p></li>
-<li><p>不打印调试信息：将ch.qos.logback.core.ConsoleAppender包含的<layout>改为<encoder></p></li>
-<li><p>appender的级别设置：在appender里加filter，在filter上附加level；</p></li>
-<li><p>日志中的日期格式：</p>
+  <div class="entry-content"><p>CRaSH 可以作为JMX技术的替代品，它有3种运行模式：Web archive deployment, Standalone &amp; Attach, 第一种是作为一个web app，通过web server(tomcat, jboss)运行，第二种是直接运行$CRASH_HOME\crash\bin\crash.bat，第三种是crash.bat后面加上目标JVM进程的PID，专门用来分析特定的进程。无论哪种方式，都需要jdk版本不低于1.6，在1.5上运行会报错。</p>
 
-<p>  %date{yyyy-MMM-dd;HH:mm:ss.SSS} 2012-五月-14;16:05:44.667 &hellip;
-  %date{yyyy-MM-dd;HH:mm:ss}   2012-05-14;16:05:44</p></li>
-</ul>
+<p>如果以第一种方式运行，步骤如下：</p>
+
+<ol>
+<li><p>将crsh-1.0.0.tar.gz\deploy\gatein\crash.war拷贝到f:\Software\apache-tomcat-6.0.18\webapps下；</p></li>
+<li><p>确定tomcat使用的jdk版本：如果默认jdk版本是1.5，可以在$TOMCAT_HOME\bin\startup.bat中加上</p></li>
+</ol>
+
+
+<p>  set JAVA_HOME=f:\Software\jdk1.6.0_27</p>
+
+<p>  set PATH=%JAVA_HOME%\bin</p>
+
+<ol>
+<li>修改$TOMCAT_HOME\conf\tomcat-users.xml，在 &lt; tomcat-users > </ tomcat-users >之间增加：</li>
+</ol>
+
+
+<p>  &lt; role rolename =&ldquo; manager &rdquo; />
+   &lt; user username =&ldquo; tomcat &rdquo; password =&ldquo; tomcat &rdquo; roles =&ldquo; manager &rdquo; /></p>
+
+<ol>
+<li><p>启动tomcat（运行$TOMCAT_HOME\bin\startup.bat），浏览器中输入：<a href="http://localhost:8080/%EF%BC%8C%E7%82%B9%E5%87%BB">http://localhost:8080/%EF%BC%8C%E7%82%B9%E5%87%BB</a>&#8221; Tomcat Manager &ldquo;，用户名和密码都是tomcat，进入管理页面，如果Applications一节中CRaSH的Running状态是True，说明安装成功：</p></li>
+<li><p>连接CRaSH服务：telnet localhost 5000，出现CRaSH欢迎界面：</p></li>
+</ol>
 
 </div>
   
@@ -510,7 +458,7 @@ find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-t
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/10/100140/">Java程序的两种参数设置方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/07/03/171128/">Eclipse各个版本之间的比较</a></h1>
     
     
       <p class="meta">
@@ -519,38 +467,18 @@ find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-t
 
 
 
-<time class='entry-date' datetime='2012-05-10T10:01:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:01 am</span></time>
+<time class='entry-date' datetime='2012-07-03T17:11:28+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:11 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Java程序有两种参数传递方式，分别是虚拟机参数和程序参数，前者用java命令行参数-D设置，用System.getProperty()方法获取；后者在主类声明后面添加，用main()方法里的args[]获取。下面是演示程序。</p>
+  <div class="entry-content"><p>Eclipse有很多版本（见 下载页面 ）， 彼此之间的比较 表明RCP(227MB)功能最全，MDT(264MB)只有两个功能（且完全被RCP覆盖），尺寸却比RCP大，为什么？</p>
 
-<p> ServiceNameDemo.java</p>
+<p> 第一次还没看明白，后来才发现这个比较表格的行是某项功能，列是不同的package，这样可以发现RCP的那个没有MDT多，所以尺寸也就小一些；</p>
 
-<p> public class ServiceNameDemo {</p>
-
-<p>  public static void main(String[] args) {</p>
-
-<p>   System.out.println(&ldquo;vm param is: &rdquo; + System.getProperty(&ldquo;service_name&rdquo;)</p>
-
-<pre><code> + "\r\nprogram param is: " + args[0] + " and " + args[1]); 
-</code></pre>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p>下面是编译运行结果。</p>
-
-<p>F:> javac ServiceNameDemo.java
-F:> java -cp . -Dservice_name=banana ServiceNameDemo apple melon
-vm param is: banana
-program param is: apple and melon</p>
-
-<p>对应于Eclipse中的设置方法如下：</p>
+<p>根据这张表，由于XML是必须的一项功能，所以Eclipse IDE for Java Developers这个package加上ObjectAid（提供java代码到类图的自动转换）应该是一个不错的组合，如果需要采用设计驱动的开发方式，使用Eclipse Modeling Tools也不错，但没有XML功能。</p>
 </div>
   
   
@@ -563,7 +491,7 @@ program param is: apple and melon</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/09/173738/">Ubuntu上安装gevent</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/07/03/153342/">自动生成Java类图工具比较</a></h1>
     
     
       <p class="meta">
@@ -572,55 +500,20 @@ program param is: apple and melon</p>
 
 
 
-<time class='entry-date' datetime='2012-05-09T17:37:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:37 pm</span></time>
+<time class='entry-date' datetime='2012-07-03T15:33:42+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>3:33 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>安装libevent;</p>
+  <div class="entry-content"><p>ObjectAid : Eclipse插件，免费版只能生成类图，功能不错，可以用dropins方式离线安装（需要预先安装 GEF ）； EssModel : 独立运行，绿色软件，为java和delphi代码自动生成类图，功能还不错，有丢关系的现象； MoDisco : 只能在线安装，没有试用； BOUML : 可以运行在windows和CentOS上，付费软件，未试用； ModelGoon UML4Java : 不支持Eclipse 3.7； Architexa : 付费软件，没有试用； AgileJ : 付费软件，没有试用；</p>
 
-<p>安装greenlet: sudo easy_install gevent (need net access)</p>
+<p> nWire 收费，功能很好</p>
 
-<p>bingo!</p>
+<p>貌似Eclipse的MDT也有这种功能，有待确认；</p>
 
-<p> -> python-dev -> libpython2.7</p>
-
-<p> deb包下载网站 ；</p>
-
-<p>sudo dpkg -i libpython2.7_2.7.2-5ubuntu1_i386.deb</p>
-
-<hr />
-
-<p>2013-02-16：</p>
-
-<p>Ubuntu Server 12.04上自带python 2.7，所以只要安装greenlet, libevent和gevnet就行了，</p>
-
-<p>apt-get install python-pip</p>
-
-<p>apt-get install python-dev(否则安装greenlet报错)</p>
-
-<p>pip install greenlet</p>
-
-<p>pip install gevent</p>
-
-<p>验证：</p>
-
-<p>将下面的代码保存为gex.py，然后用python gex.py运行得到结果，但gevent官网install上所述的repl方式执行失败，原因不明。</p>
-
-<p> import gevent
- from gevent import socket
- urls = [&lsquo;www.google.com&rsquo;, &lsquo;www.example.com&rsquo;, &lsquo;www.python.org&rsquo;]
- jobs = [gevent.spawn(socket.gethostbyname, url) for url in urls]
- gevent.joinall(jobs, timeout=2)
- [job.value for job in jobs]</p>
-
-<p>本地安装方式：</p>
-
-<p>Ubuntu上：下载gevent-0.13.8.tar.gz和greenlet-0.4.0.zip（源码包）编译失败；</p>
-
-<p>Windows上：greenlet和gevent都有安装包，但在windows上安装libevent比较难，放弃；</p>
+<p>Netbeans和IntelliJ也都有生成类图的插件，而不是内置功能，没有试用。</p>
 </div>
   
   
@@ -633,7 +526,7 @@ program param is: apple and melon</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/04/142739/">Eclipse的XML编辑器解决方案</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/06/29/143111/">JDK日志模块使用方法</a></h1>
     
     
       <p class="meta">
@@ -642,22 +535,62 @@ program param is: apple and melon</p>
 
 
 
-<time class='entry-date' datetime='2012-05-04T14:27:39+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:27 pm</span></time>
+<time class='entry-date' datetime='2012-06-29T14:31:11+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:31 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>现在使用的Eclipse SDK 3.7.2里没有XML编辑器，无法进行语法高亮，也没有格式化（按层次控制缩进量）和设计视图，很不方便。对于ant文件，可以用Ant Editor来打开，ivy文件在装了IvyDE后也有自己的编辑器，但对于其他格式的XML文件（例如logback使用的配置文件），如果使用Ant editor打开，有语法高亮和格式化（Ctrl+shift+f），但会报语法错误（因为ant文件的顶层标签必须是project），让人很不爽。所以有了下面这个解决办法：在操作系统中设置用 firstobject XML Editor 打开XML文件，然后在Eclipse中选中要打开的xml文件，右键 -> Open With -> System Editor，如果希望根据具体情况选择编辑器，可以将XML打开程序设为 F4Menu ，再在F4Menu里关联。</p>
+  <div class="entry-content"><p>今天尝试使用JDK自带的日志模块打印日志，过程如下：</p>
 
-<p> firstobject XML Editor中，格式化的快捷键是F8。</p>
+<p>使用类：</p>
 
-<p> 外部编辑器有一个问题是当文件更改后需要手工在Eclipse里刷新才能生效（xml文件才会进入bin目录），所以外部编辑器不是一个理想的解决方案。</p>
+<p> public class LoginTest {
+ Logger logger = Logger.getLogger(this.getClass().getName());
+ @Before
+ public void setup() throws SecurityException, IOException {
+  logger.info(&ldquo;hello logger&rdquo;);
+ }
+ &hellip;
+}</p>
 
-<p> 使用Eclipse for java developers版本自带xml编辑器；</p>
+<p>配置文件(logging.properties)：</p>
 
-<p> NetBeans也可以格式化xml文档。</p>
+<p> handlers= java.util.logging.FileHandler, java.util.logging.ConsoleHandler</p>
+
+<p> .level= INFO</p>
+
+<p> java.util.logging.FileHandler.pattern = ./log/myapp.%g.log</p>
+
+<p> java.util.logging.FileHandler.limit = 50000</p>
+
+<p> java.util.logging.FileHandler.count = 5</p>
+
+<p> java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter</p>
+
+<p> java.util.logging.ConsoleHandler.level = ALL</p>
+
+<p> java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter</p>
+
+<p>运行方法：</p>
+
+<p>$ java -Djava.util.logging.config.file=./conf/logging.properties LoginTest</p>
+
+<p>使用虚拟机参数指定配置文件的位置，这是与其他log框架（e.g. Log4j, logback）用法不同的地方；</p>
+
+<p>另外：上面将日志文件放在log文件夹里，经试验发现，log文件夹 必须预先创建好 ，否则日志文件将不能生成！</p>
+
+<p>也可以在Java代码中指定FileHandler的特性：</p>
+
+<p>FileHandler handler = new FileHandler(&ldquo;myapp.log&rdquo;, 1024, 5, true);
+handler.setFormatter(new SimpleFormatter());
+logger.addHandler(handler);
+logger.info(server.response());</p>
+
+<p>但一般情况下配置文件灵活性更好；</p>
+
+<p>FileHandler.pattern中的特殊符号（e.g. %h, %g, etc）含义可参看 JDK6文档 中FileHandler类的说明；</p>
 </div>
   
   
@@ -670,7 +603,7 @@ program param is: apple and melon</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/04/094939/">简化Windows上的Python运行脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/06/29/105856/">Design Driven Test Notes</a></h1>
     
     
       <p class="meta">
@@ -679,32 +612,14 @@ program param is: apple and melon</p>
 
 
 
-<time class='entry-date' datetime='2012-05-04T09:49:39+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:49 am</span></time>
+<time class='entry-date' datetime='2012-06-29T10:58:56+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:58 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>twisted的测试工具是trial，在 Dave对trial的介绍文章 中，运行测试的脚本是&#8221;trial tests/test_poetry.py&#8221;，在Windows平台上，安装twisted后，只是在$PYTHON_HOME/Scripts下有一个trial.py文件，所以直接运行上面的脚本系统会返回“无法识别的指令”，必须写成&#8221;$PYTHON_HOME/python $PYTHON_HOME/Scripts/trial.py tests/test_poetry.py&#8221;，调试时很麻烦，在$PATH中增加$PYTHON_HOME，就可以简写为&#8221;python $PYTHON_HOME/Scripts/trial.py tests/test_poetry.py&#8221;，如果希望Windows认为py文件是可运行的（类似于Unix平台的脚本中用&#8221;#!/usr/bin/python&#8221;设置执行脚本的文件），可以通过配置$PATHEXT实现，具体方法是在这个环境变量中增加&#8221;.py&#8221;（与$PATH一样也是用分号隔开），就可以直接运行&#8221;trial &hellip;&ldquo;了。</p>
-
-<p>Under the hood</p>
-
-<p>执行assoc和ftype两个命令查看文件关联：</p>
-
-<p>C:\Users\chad> assoc|findstr py
-.py=Python.File
-.pyc=Python.CompiledFile
-.pyo=Python.CompiledFile
-.pyw=Python.NoConFile
-C:\Users\chad> ftype|findstr py
-Python.CompiledFile=&ldquo;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %<em>
-Python.File=&ldquo;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %</em>
-Python.NoConFile=&ldquo;F:\Software\Python27\pythonw.exe&rdquo; &ldquo;%1&rdquo; %*</p>
-
-<p>从上面可以看到，当运行&#8221;trial &hellip;&ldquo;时，系统的处理过程是：$PATH -> $PYTHON_HOME/Scripts -> trial ->trial.py -> .py -> Python.File -> &#8220;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %*，最终将&#8221;trial &hellip;&ldquo;转换为&#8221;F:\Software\Python27\python.exe F:\Software\Python27\Scripts\trial.py &hellip;&#8221;执行。ftype命令的结果来自注册表，例如：HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Python.File\shell\open\command。</p>
-
-<p> Windows的文件关联原理参见“ 玩转Windows 7文件关联 ”，软件 FileTypesMan 管理文件关联很好用。</p>
+  <div class="entry-content"><p>设计驱动测试（DDT）与 ICONIX 过程紧密联系，Doug Rosenberg &amp; Matt Stephens: &ldquo;Use Case Driven Object Modeling with UML: Theory and Practice&#8221;对此过程进行了说明， 作者的网站 还列出了其他几本ICONIX相关书籍以及资料下载。</p>
 </div>
   
   
@@ -729,23 +644,23 @@ Python.NoConFile=&ldquo;F:\Software\Python27\pythonw.exe&rdquo; &ldquo;%1&rdquo;
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a>
+        <a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a>
+        <a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a>
+        <a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a>
+        <a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a>
+        <a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a>
       </li>
     
   </ul>
@@ -790,7 +705,7 @@ Python.NoConFile=&ldquo;F:\Software\Python27\pythonw.exe&rdquo; &ldquo;%1&rdquo;
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - Li Chao -
+  Copyright &copy; 2015 - Li Chao -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

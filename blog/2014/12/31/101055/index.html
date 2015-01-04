@@ -1,0 +1,366 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>将中文字符串转换为拼音首字母串 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如"深圳东莞"的"圳"和"莞"两个字，原因不明。
+需要在vi中用"/\&lt;[A-Z]>搜索这种情况。 实现过程是：首先尝试用unicode, utf8和gbk解码字符串， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2014/12/31/101055">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">将中文字符串转换为拼音首字母串</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-31T10:10:55+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:10 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如"深圳东莞"的"圳"和"莞"两个字，原因不明。
+需要在vi中用"/\&lt;[A-Z]>搜索这种情况。</p>
+
+<p>实现过程是：首先尝试用unicode, utf8和gbk解码字符串，然后用GBK编码字符串，利用GBK汉字是按拼音顺序编码的原理查出其首字母。</p>
+
+<pre><code>#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+def get_word_initial(inp):
+    if isinstance(inp, unicode):
+        unicode_str = inp
+    else:
+        try:
+            unicode_str = inp.decode('utf8')
+        except:
+            try:
+                unicode_str = inp.decode('gbk')
+            except:
+                print 'unknown coding'
+                return
+
+    init_list = [get_char_initial(i) for i in unicode_str]
+    return "".join(init_list)
+
+def get_char_initial(unicode1):
+    gbkStr = unicode1.encode('gbk')
+    try:
+        ord(gbkStr)
+        return gbkStr
+    except:
+        asc = ord(gbkStr[0]) * 256 + ord(gbkStr[1]) - 65536
+        if asc &gt;= -20319 and asc &lt;= -20284:
+            return 'A'
+        if asc &gt;= -20283 and asc &lt;= -19776:
+            return 'B'
+        if asc &gt;= -19775 and asc &lt;= -19219:
+            return 'C'
+        if asc &gt;= -19218 and asc &lt;= -18711:
+            return 'D'
+        if asc &gt;= -18710 and asc &lt;= -18527:
+            return 'E'
+        if asc &gt;= -18526 and asc &lt;= -18240:
+            return 'F'
+        if asc &gt;= -18239 and asc &lt;= -17923:
+            return 'G'
+        if asc &gt;= -17922 and asc &lt;= -17418:
+            return 'H'
+        if asc &gt;= -17417 and asc &lt;= -16475:
+            return 'J'
+        if asc &gt;= -16474 and asc &lt;= -16213:
+            return 'K'
+        if asc &gt;= -16212 and asc &lt;= -15641:
+            return 'L'
+        if asc &gt;= -15640 and asc &lt;= -15166:
+            return 'M'
+        if asc &gt;= -15165 and asc &lt;= -14923:
+            return 'N'
+        if asc &gt;= -14922 and asc &lt;= -14915:
+            return 'O'
+        if asc &gt;= -14914 and asc &lt;= -14631:
+            return 'P'
+        if asc &gt;= -14630 and asc &lt;= -14150:
+            return 'Q'
+        if asc &gt;= -14149 and asc &lt;= -14091:
+            return 'R'
+        if asc &gt;= -14090 and asc &lt;= -13119:
+            return 'S'
+        if asc &gt;= -13118 and asc &lt;= -12839:
+            return 'T'
+        if asc &gt;= -12838 and asc &lt;= -12557:
+            return 'W'
+        if asc &gt;= -12556 and asc &lt;= -11848:
+            return 'X'
+        if asc &gt;= -11847 and asc &lt;= -11056:
+            return 'Y'
+        if asc &gt;= -11055 and asc &lt;= -10247:
+            return 'Z'
+        return ''
+
+if __name__ == "__main__":
+    str_input='广州火车站A2c'
+    print(get_word_initial(str_input))
+</code></pre>
+
+<p>下面是一个完整的使用场景，利用上面的代码为小区的地理位置表添加ID字段。
+首先将上面的代码保存在chnInit.py中，然后相同目录下创建一个addID.py文件：</p>
+
+<pre><code>import chnInit
+import sys
+
+target = sys.argv[1]
+inclID = sys.argv[2]
+with open(target, 'r') as src:
+    with open(inclID, 'w') as dst:
+        for content in src:
+            line = content.strip()
+            cgi = line.split(' ,')[0]
+            node = line.split(' ,')[1].split(' ')[0]
+            city = line.split(' ,')[1].split(' ')[1]
+            nodeID = chnInit.get_word_initial(node)
+            cityID = chnInit.get_word_initial(city)
+            dst.write(cgi + ' ,' + city + ' ' + cityID + ' ' + node + ' ' + nodeID + '\n')
+</code></pre>
+
+<p>相同目录下保存输入文件input.csv，然后运行脚本：</p>
+
+<pre><code>$ head input.csv
+460010973309433 ,白云国际机场 广州
+...
+
+$ python addID.py input.csv loc_map.csv
+$ head loc_map.csv
+460010973309433 ,广州 GZ 白云国际机场 BYGJJC
+...
+</code></pre>
+
+<p>根据Python文档7.2.1节："Methods of File Objects"中的描述：</p>
+
+<blockquote><p>For reading lines from a file, you can loop over the file object.
+This is memory efficient, fast, and leads to simple code:</p></blockquote>
+
+<pre><code>with open(target, 'r') as f:
+    for line in f:
+        ...
+</code></pre>
+
+<p>这种方式比较节省内存，适于处理大文件。
+当处理小文件时，可以用下面的方法将完整内容保存在一个变量中：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    read_data = f.read()
+</code></pre>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-12-31T10:10:55+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:10 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/convert/'>convert</a>, <a class='category' href='/blog/categories/gbk/'>gbk</a>, <a class='category' href='/blog/categories/zhong-wen/'>中文</a>, <a class='category' href='/blog/categories/pin-yin/'>拼音</a>, <a class='category' href='/blog/categories/shou-zi-mu/'>首字母</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2014/12/31/101055/" data-via="" data-counturl="http://leetschau.github.io/blog/2014/12/31/101055/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/12/29/193156/" title="Previous Post: Frequent Used Commands in Mongodb Shell">&laquo; Frequent Used Commands in Mongodb Shell</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

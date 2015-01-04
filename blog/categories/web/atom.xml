@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Web | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/web/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2014-11-28T08:48:37+08:00</updated>
+  <updated>2015-01-04T11:42:13+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,90 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Deploy Web Server on Linode]]></title>
+    <link href="http://leetschau.github.io/blog/2014/12/23/084146/"/>
+    <updated>2014-12-23T08:41:46+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/12/23/084146</id>
+    <content type="html"><![CDATA[<h1>Setup Virtual Host</h1>
+
+<p>Buy a Linode instance on <a href="https://www.linode.com/">linode</a>. Note its IP address on the home page in your user account.
+Install a Linux system and <a href="https://www.linode.com/docs/security/securing-your-server/">secure it</a>.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/getting-started">Getting Started</a> for instructions.</p>
+
+<h1>Connect domain name and IP address</h1>
+
+<p>Here we link multiple Domain names to the same IP address.
+Then direct different domain requests to its corresponding port using nginx.</p>
+
+<p>First register (purchase) a domain name, if you haven’t already.
+Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
+
+<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 -> 把域名指向我的网站 -> 新手设置引导 -> 把域名指向我的网站-添加IP地址&rdquo;,
+add your Linode instance IP address as &ldquo;A&rdquo; record,
+Then wait up to 24 hours for the changes to take effect.
+I waited about 30 minutes to take effect.</p>
+
+<p>Next set your domain name to use Linode’s name servers (&ldquo;ns1.linode.com&rdquo; to &ldquo;ns5.linode.com&rdquo;)
+in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DNS服务器 -> 修改域名DNS&rdquo;.</p>
+
+<p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
+Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
+Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#109;&#x61;&#105;&#x6c;&#116;&#x6f;&#58;&#108;&#99;&#x40;&#x31;&#50;&#54;&#46;&#99;&#x6f;&#109;">&#108;&#x63;&#x40;&#x31;&#x32;&#54;&#x2e;&#99;&#111;&#x6d;</a>&rdquo;.
+Then click &ldquo;Add a Master Zone&rdquo;.</p>
+
+<h2>Setting Reverse DNS</h2>
+
+<p>On linode instance dashboard -> Remote access -> Reverse DNS, enter &ldquo;niufairs.com&rdquo;, and press &ldquo;Look up&rdquo;.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/websites/hosting-a-website">Hosting a website</a>.</p>
+
+<h1>Config Relationship betwwen domain and port</h1>
+
+<p>Fist install nginx.</p>
+
+<p>Edit /etc/nginx/nginx.conf as follows:</p>
+
+<pre><code>events {
+  worker_connections  1024;
+}
+
+http {
+  server {
+    server_name niufairs.cn;
+
+    location / {
+      proxy_pass http://localhost:3000/;
+    }
+  }
+
+  server {
+    server_name niufairs.com;
+
+    location / {
+      proxy_pass http://localhost:4000/;
+    }
+  }
+
+  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+  '$status $body_bytes_sent "$http_referer" '
+  '"$http_user_agent" "$http_x_forwarded_for"';
+
+  access_log  /var/log/nginx/access.log  main;
+}
+</code></pre>
+
+<p>Test if this conf is right: <code>nginx -t</code>;</p>
+
+<p>If test ok, reload conf: <code>nginx -s reload</code>;</p>
+
+<p>Now start 2 meteor app on port 3000 and 4000, and you can use niufairs.cn and niufairs.com to visit them respectively.</p>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/15678224/nginx-proxy-several-domains-to-different-ports">Nginx proxy several domains to different ports</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[A Spark Job Runner in Web Browser]]></title>
