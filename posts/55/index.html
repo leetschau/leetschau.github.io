@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="root@guserver:/home/lichao# tshark -f &ldquo;host 10.0.2.47&rdquo; -i eth0 -c 20 -T fields -e ip.src -e ip.dst 选项： -f: filter设置 -i: 网卡（interface）选择， &hellip;">
+  <meta name="description" content="参考wiki上 Example -> Java部分的Logger实例，这个实现方法比之前我在GODU中的实现更好，因为Logger的实现类只要实现自己对消息的处理即可，完全不必关心其他事情，而我的实现里AuthUnit实现了抽象类AFuncUnit，在其processRequest方法处理处理消息 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/02/22/162847/">Tshark笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/03/20/120246/">关于职责链模式</a></h1>
     
     
       <p class="meta">
@@ -80,30 +80,101 @@
 
 
 
-<time class='entry-date' datetime='2013-02-22T16:28:47+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:28 pm</span></time>
+<time class='entry-date' datetime='2013-03-20T12:02:46+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:02 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>root@guserver:/home/lichao# tshark -f &ldquo;host 10.0.2.47&rdquo; -i eth0 -c 20 -T fields -e ip.src -e ip.dst</p>
+  <div class="entry-content"><p>参考<a href="https://en.wikipedia.org/wiki/Chain-of-responsibility_pattern">wiki</a>上 Example -> Java部分的Logger实例，这个实现方法比之前我在GODU中的实现更好，因为Logger的实现类只要实现自己对消息的处理即可，完全不必关心其他事情，而我的实现里AuthUnit实现了抽象类AFuncUnit，在其processRequest方法处理处理消息，还要加上向后传递的动作：</p>
 
-<p>选项：</p>
+<p> next.writeMessage(msg);</p>
 
-<p> -f: filter设置</p>
+<p>Logger之所以能实现“自动”向后传递，是因为客户处理消息时调用的是Logger.message(msg)方法，而实际处理消息的方法是writeMessage(msg)方法，message(msg)方法分两步：首先是处理消息，然后是向后传递：</p>
 
-<p> -i: 网卡（interface）选择，可以用&#8221;tshark -D&#8221;网卡查看列表，-i后面可以跟序号，例如&#8221;-i 1&#8221;表示使用-D列出的序号为1的网卡</p>
+<p> next.message(msg);</p>
 
-<p> -a: 设置自动退出的规则，例如-a duration:60表示tshark启动60秒后退出</p>
+<p>它使用的是抽象父类的message方法，而不是直接调用next.writeMessage(msg)方法。</p>
 
-<p> -T: 只显示结果的某些部分</p>
+<p>writeMessage被子类实现，所以是abstract protected，而message是对外接口，所以是public。</p>
 
-<p> -e: -T field存在时指定要显示的项目</p>
+<p>完整代码：</p>
 
-<p> -c: 收到多少个包后退出，例如-c 20表示收到20个包后退出tshark</p>
-
-<p> -w: 将监听结果以pcap格式保存在文件里，例如-w myfile，注意root用户只能将文件保存在$HOME（/root）中</p>
+<p> package chainofresp;
+ abstract class Logger {
+  public static int ERR = 3;
+  public static int NOTICE = 5;
+  public static int DEBUG = 7;
+  protected int mask;
+  // The next element in the chain of responsibility
+  protected Logger next;
+  public void setNext(Logger log) {
+   next = log;
+  }
+  public void message(String msg, int priority) {
+   if (priority &lt;= mask) {
+    writeMessage(msg);
+   }
+   if (next != null) {
+    next.message(msg, priority);
+   }
+  }
+  abstract protected void writeMessage(String msg);
+ }
+ class StdoutLogger extends Logger {
+  public StdoutLogger(int mask) {
+   this.mask = mask;
+  }
+  protected void writeMessage(String msg) {
+   System.out.println(&ldquo;Writing to stdout: &rdquo; + msg);
+  }
+ }
+ class EmailLogger extends Logger {
+  public EmailLogger(int mask) {
+   this.mask = mask;
+  }
+  protected void writeMessage(String msg) {
+   System.out.println(&ldquo;Sending via email: &rdquo; + msg);
+  }
+ }
+ class StderrLogger extends Logger {
+  public StderrLogger(int mask) {
+   this.mask = mask;
+  }
+  protected void writeMessage(String msg) {
+   System.err.println(&ldquo;Sending to stderr: &rdquo; + msg);
+  }
+ }
+ public class ChainOfResponsibilityExample {
+  private static Logger createChain() {
+   // Build the chain of responsibility
+   Logger logger = new StdoutLogger(Logger.DEBUG);
+   Logger logger1 = new EmailLogger(Logger.NOTICE);
+   logger.setNext(logger1);
+   Logger logger2 = new StderrLogger(Logger.ERR);<br/>
+   logger1.setNext(logger2);
+   return logger;
+  }
+  public static void main(String[] args) {
+   Logger chain = createChain();
+   // Handled by StdoutLogger (level = 7)
+   chain.message(&ldquo;Entering function y.&rdquo;, Logger.DEBUG);
+   // Handled by StdoutLogger and EmailLogger (level = 5)
+   chain.message(&ldquo;Step1 completed.&rdquo;, Logger.NOTICE);
+   // Handled by all three loggers (level = 3)
+   chain.message(&ldquo;An error has occurred.&rdquo;, Logger.ERR);
+  }
+ }
+ /<em>
+ The output is:
+  Writing to stdout: Entering function y.
+  Writing to stdout: Step1 completed.
+  Sending via e-mail: Step1 completed.
+  Writing to stdout: An error has occurred.
+  Sending via e-mail: An error has occurred.
+  Writing to stderr: An error has occurred.
+ </em>/</p>
 </div>
   
   
@@ -116,7 +187,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/02/21/175453/">网络流量监控工具</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/03/19/115142/">Notes About Jython</a></h1>
     
     
       <p class="meta">
@@ -125,520 +196,265 @@
 
 
 
-<time class='entry-date' datetime='2013-02-21T17:54:53+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>5:54 pm</span></time>
+<time class='entry-date' datetime='2013-03-19T11:51:42+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:51 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>2014-7-14更新：</p>
+  <div class="entry-content"><p>下面的程序（telnetClient.py）登录telnet服务器，执行ls命令然后退出：</p>
 
-<ul>
-<li><p>nethogs: 按进程查看流量占用</p></li>
-<li><p>iptraf: 按连接/端口查看流量</p></li>
-<li><p>ifstat: 按设备查看流量</p></li>
-<li><p>ethtool: 诊断工具</p></li>
-<li><p>tcpdump: 抓包工具</p></li>
-</ul>
+<p> import telnetlib
+ HOST = &ldquo;192.168.1.178&rdquo;
+ #user = raw_input(&ldquo;Enter your remote account: &rdquo;)
+ #password = getpass.getpass()
+ user = &ldquo;user&rdquo;
+ password = &ldquo;000&rdquo;
+ tn = telnetlib.Telnet(HOST)
+ tn.read_until(&ldquo;ogin: &rdquo;)
+ tn.write(user + &ldquo;\n&rdquo;)
+ if password:
+  tn.read_until(&ldquo;assword: &rdquo;)
+  tn.write(password + &ldquo;\n&rdquo;)
+ tn.write(&ldquo;ls\n&rdquo;)
+ tn.write(&ldquo;exit\n&rdquo;)
+ print tn.read_all()</p>
+
+<p>下面是分别用python和jython运行这个脚本的命令：</p>
+
+<p> python telnetClient.py</p>
+
+<p> java -jar f:\warez\dev\Jython\jython-standalone-2.5.3.jar telnetClient.py</p>
+
+<p>在Jython的3个下载包中，jython-standalone-2.5.3.jar是比较portable的，不需要预处理jdk（jython-2.5.3.jar），不需要安装（jython-installer-2.5.3.jar）。</p>
+</div>
+  
+  
 
 
-<hr />
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/19/110903/">Jepp笔记</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>2014-8-25更新：</p>
 
-<p>iptraf-ng用于监测网络流量很好用，在ArchLinux和Mint中可以直接安装。
-其中的&#8221;Ip traffic monitor&#8221;可以监测网卡的实时接收/发送 (RX/TX) 数据，可以显示对端IP地址和端口，本方接收IP地址和端口，但不能显示实时传输速率，
-&ldquo;General interface statistics&rdquo; 可以显示所有网卡实时发送/接收数据的速率，但不能显示对端IP和端口，二者互为补充。
-今天测试在同一网段中的两台机器之间用scp传送大文件，速率稳定在99MB/s，比较靠谱的一个结果，间接说明scp传大文件可以用来检测网络的最大传输速率。</p>
 
-<p>Ref: <a href="http://www.tecmint.com/command-line-tools-to-monitor-linux-performance/">20 Command Line Tools to Monitor Linux Performance</a></p>
 
-<hr />
+<time class='entry-date' datetime='2013-03-19T11:09:03+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:09 am</span></time>
+        
+      </p>
+    
+  </header>
 
-<p>参考：<a href="http://www.dynacont.net/documentation/linux/network_monitoring/">Bandwidth Monitoring Tools For Linux</a></p>
 
-<h1>实时流量监控：pv</h1>
+  <div class="entry-content"><p><a href="http://jepp.sourceforge.net/">jepp</a>产品包在<a href="http://sourceforge.net/projects/jepp/">Java Embedded Python</a>，据作者说可以将python代码嵌入到Java代码中，且效率很高。</p>
 
-<p>OS: Ubuntu Server 12.04.</p>
+<h1>安装</h1>
 
-<h2>netcat &amp; pv</h2>
+<p>官网上下载的是源代码包，需要编译，因此Windows上就不考虑了。</p>
 
-<p>apt-get install pv</p>
+<h2>Ubuntu</h2>
 
-<p>监控端口5555上的实时网络流量：</p>
+<p> pip install jep</p>
 
-<pre><code>nc -l 5555 | pv &gt; /dev/null
+<p>如果提示安装失败，需要设置JAVA_HOME，这样设置：</p>
+
+<p> export JAVA_HOME=/usr/lib/jvm/default-java</p>
+
+<p>在/usr/lib/jvm下可能会有好几个java版本目录，具体使用哪个需要根据实际情况而定。</p>
+
+<h1>使用</h1>
+
+<p>Ubuntu下运行jep提示找不到启动类jep.Run，原因不明。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/16/120857/">Htop笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-16T12:08:57+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:08 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>htop是top指令的增强版，除了top的功能外，还能针对某一进程显示它打开的文件（l键）或者它的trace信息（s键），详细说明在htop指令界面上按h（或F1）键。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/13/074059/">用于在公网环境下测试的Telnet/SSH服务器</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-13T07:40:59+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>7:40 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>google: public telnet server list</p>
+
+<p>for example:</p>
+
+<p>telnet nethack.alt.org</p>
+
+<p>ssh <a href="&#109;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#x6e;&#101;&#116;&#x68;&#97;&#x63;&#x6b;&#x40;&#97;&#x6c;&#x74;&#46;&#111;&#x72;&#x67;">&#x6e;&#x65;&#116;&#104;&#x61;&#99;&#x6b;&#64;&#97;&#x6c;&#x74;&#x2e;&#x6f;&#x72;&#x67;</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/06/203208/">Bluestacks的文件和共享</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-06T20:32:08+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>ghost commander是一个类似于totoal commander的双面板文件管理软件，安装sftp插件后可以连接sftp server；</p>
+
+<p>BlueStacks与Windows Host分享文件的方法是：Host中将要分享的文件拷贝到C:\ProgramData\BlueStacks\UserData\SharedFolder下，这个文件夹对应于Bluestacks中的mnt/sdcard/bstfolder/BstSharedFolder，用文件管理器或者ghost commander打开它即可。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/03/04/171058/">使用脚本下载Gmail邮件附件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-03-04T17:10:58+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:10 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以下脚本连接上我的Gmail帐号，将收件箱中2013年1月份的新语丝邮件的附件保存在当前目录的xys文件夹中。</p>
+
+<pre><code>import imaplib
+import email
+import os
+dir_name = 'archive'
+if not os.path.exists(dir_name):
+    os.mkdir(dir_name)
+save_path = os.path.join(os.getcwd(),dir_name)
+M = imaplib.IMAP4_SSL('imap.gmail.com')
+M.login('leetschau@gmail.com', 'vim72python251')
+M.select() # default value is inbox
+search_criteria = '(From "Shi-min Fang" UNSEEN)'
+# '(From "Shi-min Fang" SINCE "01-Jan-2013" BEFORE "01-FEB-2013")'
+res, search_result = M.search(None, search_criteria)
+for num in search_result[0].split():
+    typ, data = M.fetch(num, '(RFC822)')
+    # print 'Message %s\n%s\n' % (num, data[0][1])
+    email_body = data[0][1]
+    mail = email.message_from_string(email_body)
+    sender = mail['From']
+    subject = mail['Subject']
+    print "["+mail["From"]+"]: " + mail["Subject"]
+    for part in mail.walk():
+        if part.get_content_maintype() == 'multipart':
+            continue
+        if part.get('Content-Disposition') is None:
+            continue
+        filename = subject+'.txt'
+        att_path = os.path.join(save_path, filename)
+        if not os.path.isfile(att_path) :
+            fp = open(att_path, 'wb')
+            fp.write(part.get_payload(decode=True))
+            fp.close()
+M.close()
+M.logout()
 </code></pre>
 
-<p>向服务器113上发送数据：</p>
-
-<pre><code>nc 10.31.1.113 5555
-</code></pre>
-
-<h1>ifstat</h1>
-
-<p>Homepage: <a href="http://gael.roualland.free.fr/ifstat/">http://gael.roualland.free.fr/ifstat/</a></p>
-
-<h2>使用</h2>
-
-<pre><code>ifstat -i eth0 1 5 // 监测网口eth0的流量，每一秒测试一次，共测试5次
-</code></pre>
-
-<p>该工具不需要root权限</p>
-
-<h2>安装</h2>
-
-<p>Ubuntu可以用apt-get直接装，官网上的ifstat-1.1.tar.gz包是源码包，在RedHat上安装需要编译，过程很简单，根据INSTALL文档的说明：</p>
-
-<pre><code>./configure
-make
-make install
-</code></pre>
-
-<h2>atsar</h2>
-
-<p>atsar（Unix的sar指令的Linux移植版，可以用apt-get安装）也有几个选项是用来监控网络情况的，例如每隔2秒显示一次系统当前TCP流量：</p>
-
-<pre><code>atsar -t 2 5
-</code></pre>
-
-<h2>iftop</h2>
-
-<p>Ubuntu: apt-get install iftop.</p>
-
-<p>监控与47的交互：</p>
-
-<pre><code>iftop -n -i eth0 -f "host 10.0.2.47" // 监测47与113的双向传输数据
-iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
-</code></pre>
-
-<p>目前看来iftop显示的信息最全，但需要好好看手册，每个值都是什么意思；使用它需要root权限；</p>
-
-<p>参考：<a href="https://sickbits.net/iftop-finding-traffic-hogs/">https://sickbits.net/iftop-finding-traffic-hogs/</a></p>
-
-<h2>trafshow</h2>
-
-<p>Ubuntu: apt-get install trafshow</p>
-
-<p>监控与47的交互：<code>trafshow -n -i eth0 host 10.0.2.47</code>;</p>
-
-<h1>网络带宽测试：iperf</h1>
-
-<p>又叫bandwidth或者throughput测试，用来测试Server和Client间的最大传输速率。</p>
-
-<p>iperf是命令行工具，还有一个基于Java的图形界面<a href="https://code.google.com/p/xjperf/">jperf</a>可运行在Windows和linux上；</p>
-
-<p>安装：Ubuntu用apt-get install iperf安装，Redhat需要在&#8221;<a href="http://pkgs.repoforge.org/iperf/">http://pkgs.repoforge.org/iperf/</a>&ldquo;上根据操作系统的版本和架构选择一个rpm下载（47服务器系统为Redhat 5.4, x86_64，下载的是iperf-2.0.4-1.el5.rf.x86_64.rpm），然后用rpm -ivh <file_name>安装；</p>
-
-<h2>用法</h2>
+<p>说明：</p>
 
 <ol>
-<li><p>启动服务端：iperf -s；</p></li>
-<li><p>启动客户端：iperf -c 10.0.2.47 -i 1 -f M（-c后面跟服务器IP地址，-i表示发送的时间间隔，-f M表示返回结果以MByte为单位）；</p></li>
+<li><p>附件保存的名字和扩展名是写死的，有兴趣的话可以研究一下怎样获得附件本身的文件名；</p></li>
+<li><p>这个脚本的强大之处在于它不需要任何第三方库，只用python内置的imaplib，只用是支持imap的邮箱都可以用这个方法处理邮件；</p></li>
+<li><p>这里面最有用的是邮件搜索规则（search_criteria），格式是(key1 value1 key2 value2 &hellip;)，每个value上加引号，整个表达式是一个字符串，因此也要加引号。</p></li>
 </ol>
 
 
-<p>或者启动图像客户端jperf，点击&#8221;Run IPerf&#8221;按钮就可以测网络带宽了。给出的结果是笔记本电脑与113服务器之间单向单流（1 stream）带宽为1.8MB/s左右；</p>
-
-<p>iperf作为客户端还有两个比较有用的选项分别是-d和-d -r，前者表示测试同时双向传输的速率，后者表示先进行client to server的单向传输测试，完毕后互换角色，反过来进行server to client的单向传输测试，过程如下：</p>
-
-<p>server: iperf -s</p>
-
-<p>client: iperf -c 10.0.2.47 -i 1 -f M -d（或者iperf -c 10.0.2.47 -i 1 -f M -d -r）</p>
-
-<p>参考：</p>
-
-<p><a href="http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf">http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf</a></p>
-
-<p><a href="http://openmaniak.com/iperf.php">http://openmaniak.com/iperf.php</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/21/165131/">用vim制作大报文传输测试文件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-21T16:51:31+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>4:51 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>这个测试文件用来测试我们开发的应用在传输大报文时的稳定性，是否丢包等，所以这个文件首先要比较大，2MB左右，其次要容易定位，如果传输中间断开，能够容易的知道已经传输了多少报文，根据这些要求，需要制作一个7万多行的文本文件，每行的格式如下：</p>
-
-<p> 73727  abcdefghijklmnopqrstuvwxyz</p>
-
-<p>制作过程分两步，第一步生成不变的部分，也就是abc&hellip;xyz，先手写一行，然后用yy和p命令很容易搞定，第二步要在每行前面生成行号，执行下面这个指令：</p>
-
-<p> :%!cat -n</p>
-
-<p>由于Windows不支持cat指令，这个方法仅能在linux上实现。</p>
-
-<p>参考：<a href="http://stackoverflow.com/questions/252766/add-line-numbers-in-vim">http://stackoverflow.com/questions/252766/add-line-numbers-in-vim</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/17/212030/">Windows上运行gevent的两个示例程序</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-17T21:20:30+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:20 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>gevent从1.0rc1开始将底层依赖的libevent改为libv，并打入了发布包中，降低了部署的难度，在Windows上只要先安装greenlet再装gevent就可以运行了，pypi上可以下到二者的windows安装包（我试用的是gevent-1.0rc2.win32-py2.7.exe和greenlet-0.4.0.win32-py2.7.exe），运行了<a href="https://github.com/SiteSupport/gevent/tree/master/examples">官网示例程序</a>中的回显服务（echoServer）和端口转发（portForwarder）两个示例，将来可以作为erlang版对应的python版实现。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/14/213106/">Erlang学习笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-14T21:31:06+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>安装</h1>
-
-<p> Ubuntu Server上： sudo apt-get install erlang</p>
-
-<p> 如果安装时下载 太慢，可手工下载deb包（ esl-erlang_16.a-rc1_ubuntu_precise_i386.deb ），下完deb文件后，ftp到虚拟机上，用dpkg -i &lt;.deb file>安装（需要首先安装JRE）；Ubuntu Server不能更改屏幕大小，也不能copy/paste文本，所以用kitty ssh过去操作比较好；</p>
-
-<h1>erlang 语法</h1>
-
-<p>代码中逗号，分号，句号的用法：逗号是表达式的分隔符（可以理解为AND），分号是条件分支的分隔符（可以理解为OR），句号是函数结束符（可以理解为END）；</p>
-
-<p>参考&#8221;<a href="http://stackoverflow.com/questions/1110601/in-erlang-when-do-i-use-or-or">http://stackoverflow.com/questions/1110601/in-erlang-when-do-i-use-or-or</a>&#8220;；</p>
-
-<h1>erlang文档</h1>
-
-<ul>
-<li><p>在线版（增量式查找，效果比离线版好）：<a href="http://www.erlang.org/erldoc">http://www.erlang.org/erldoc</a></p></li>
-<li><p>离线版：otp_doc_html_R16A_RELEASE_CANDIDATE.tar.gz</p></li>
-</ul>
-
-
-<p>在<a href="http://www.erlang.org/download.html">erlang官网下载页</a>上下载<a href="http://www.erlang.org/download/otp_doc_html_R16A_RELEASE_CANDIDATE.tar.gz">Erlang/OTP R16A HTML Documentation File</a>，解压到DOC_HOME下，tr_server中用到的gen_server:start_link/4函数可以在$DOC_HOME\lib\stdlib-1.19\doc下找到html和pdf版的api说明；erlang用到的各个库的api文档都在.\lib文件夹下；erlang用户手册在.\doc目录下，erlang运行时（ERTS）在.\erts-5.10下；</p>
-
-<p>erlang内置函数（BIF）文档在$DOC_HOME\erts-5.10\doc\html\erlang.html中可以查到（或者是对应的pdf文档：$DOC_HOME\erts-5.10\doc\pdf\erts-5.10.pdf的Reference Manual -> erlang部分中），例如apply, list_to_atom等；</p>
-
-<h1>erlang编译器</h1>
-
-<p>Windows上的erlc居然不支持文件通配符，运行&#8221;F:\tcp_rpc>&ldquo;C:\Program Files\erl5.10\bin\erlc.exe&rdquo; -o ./ebin ./src/*.erl&#8221;提示IO错误，只能用&#8221;F:\tcp_rpc>&ldquo;C:\Program Files\erl5.10\bin\erlc.exe&rdquo; -o ./ebin ./src/tr_sup.erl&#8221;的办法分别编译3个erl源文件；</p>
-
-<h1>IDE</h1>
-
-<h2>erlide</h2>
-
-<p>在Eclipse for java developers 4.2中，用 eclipse market搜索erlide并安装成功；（2013-05-13）</p>
-
-<p>See <a href="https://github.com/erlide/erlide/wiki/Tutorial-Quick-Start">https://github.com/erlide/erlide/wiki/Tutorial-Quick-Start</a> for using this plugin to build a HelloWord erlang program.</p>
-
-<h1>其他</h1>
-
-<p>erlang发音：elan（哦兰）；</p>
-
-<h1>多台机器上的erlang节点互相连接</h1>
-
-<p>使用erl -name name@ip -setcookie cookiename启动erlang节点，启动后用net_adm:ping(&lsquo;name@ip&rsquo;)进行连接，上午在笔记本和两台服务器上创建3个节点并互联成功，其中笔记本是Win7（IP为10.31.1.30），两个服务器是Ubuntu Server 12.04（IP是10.31.1.113和10.0.7.47），每个节点的-name参数是自己的名字和IP地址，互联的各节点的cookiename需一致；另外Win7可能要关闭防火墙；ip必须是节点的真实IP，如果是hostname，需要有效的DNS，否则无法连接；</p>
-
-<h1>Remote shell</h1>
-
-<p>113服务器：$ erl -name <a href="&#x6d;&#x61;&#105;&#x6c;&#x74;&#x6f;&#58;&#108;&#99;&#x40;&#49;&#x30;&#x2e;&#51;&#x31;&#x2e;&#49;&#x2e;&#x31;&#49;&#51;">&#x6c;&#x63;&#x40;&#49;&#x30;&#x2e;&#x33;&#x31;&#46;&#49;&#46;&#x31;&#x31;&#x33;</a> -setcookie test</p>
-
-<p>47服务器：$ erl -name <a href="&#x6d;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#108;&#99;&#64;&#x31;&#48;&#46;&#48;&#x2e;&#55;&#46;&#x34;&#x37;">&#108;&#x63;&#x40;&#x31;&#x30;&#46;&#x30;&#x2e;&#55;&#x2e;&#52;&#x37;</a> -setcookie test</p>
-
-<p>在113上远程连接47：Ctrl + G，然后用r指令，例如：</p>
-
-<p> (<a href="&#109;&#97;&#x69;&#x6c;&#x74;&#111;&#x3a;&#x6c;&#x63;&#64;&#49;&#x30;&#46;&#51;&#49;&#x2e;&#49;&#x2e;&#49;&#49;&#x33;">&#x6c;&#99;&#64;&#x31;&#x30;&#x2e;&#x33;&#49;&#46;&#x31;&#46;&#49;&#49;&#51;</a>)1>
- User switch command
-  &ndash;> r &lsquo;<a href="&#x6d;&#x61;&#x69;&#108;&#116;&#x6f;&#58;&#x6c;&#99;&#64;&#x31;&#x30;&#x2e;&#x30;&#x2e;&#x37;&#46;&#x34;&#x37;">&#108;&#99;&#x40;&#x31;&#48;&#x2e;&#x30;&#x2e;&#55;&#46;&#x34;&#55;</a>&rsquo;
-  &ndash;> j
-  1 {shell,start,[init]}
-  2* {&lsquo;<a href="&#x6d;&#97;&#x69;&#108;&#116;&#x6f;&#58;&#x6c;&#x63;&#x40;&#x31;&#48;&#46;&#48;&#x2e;&#x37;&#46;&#52;&#x37;">&#108;&#x63;&#64;&#x31;&#x30;&#x2e;&#x30;&#46;&#x37;&#x2e;&#x34;&#x37;</a>&rsquo;,shell,start,[]}
-  &ndash;> c
- Eshell V5.8.5 (abort with ^G)
- (<a href="&#109;&#97;&#x69;&#108;&#116;&#111;&#x3a;&#108;&#x63;&#64;&#x31;&#x30;&#46;&#x30;&#46;&#x37;&#x2e;&#x34;&#55;">&#x6c;&#99;&#64;&#49;&#x30;&#46;&#x30;&#x2e;&#x37;&#46;&#52;&#x37;</a>)1></p>
-
-<p>更多细节：</p>
-
-<p>发起和目标节点上的erl shell都必须已经启动，不需要首先用net_adm:ping建立连接，在113上连接上47后，不能关闭47上的节点，否则remote shell也会随之断开；</p>
-
-<p>113要切换到local shell用&#8221;Ctrl+G, j, c <job id>&ldquo;方式；</p>
-
-<p>113要退出本地erlang环境用&#8221;Ctrl+G, Ctrl+C, A&#8221;方式（Linux下）；</p>
-
-<p>113要关闭47上的节点用&#8221;q().&ldquo;命令；</p>
-
-<p>113要关闭连接47的Remote Shell用&#8221;Ctrl+G, j, k <job id>&ldquo;方式；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/12/215055/">VirtualBox中虚拟机在NAT和Host-only方式间切换</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-12T21:50:55+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:50 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>NAT模式下虚拟机可以访问互联网，Host-only模式下主机可以通过SSH访问虚拟机，所以这两种方式经常要互相切换，开始是用重启虚拟机的方法，后来感觉这样太慢了，可以先将虚拟机的网络设置改过去，然后用下面的命令重启网卡：</p>
-
-<p>sudo ifdown eth0</p>
-
-<p>sudo ifup eth0</p>
-
-<hr />
-
-<p>2013-02-17</p>
-
-<p>Win7: 网络和共享中心 -> 无线网络连接 -> 属性 -> 共享 -> “允许其他网络用户……”：VirtualBox Host-only Network；</p>
-
-<p>用ipconfig查到无线网卡的DNS服务器地址：</p>
-
-<p>VirtualBox全局设置 -> 网络 -></p>
-
-<p>Ubuntu虚拟机中配置静态IP地址和DNS服务器：</p>
-
-<p>貌似DNS Server不设也行；</p>
-
-<hr />
-
-<p>2014-01-27</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/10/135439/">Libevent安装过程</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-10T13:54:39+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>1:54 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>下载<a href="https://github.com/downloads/libevent/libevent/libevent-2.0.21-stable.tar.gz">libevent-2.0.21-stable.tar.gz</a></p></li>
-<li><p>tar -xzvf libevent-2.0.21-stable.tar.gz</p></li>
-<li><p>查看README文件，运行第一步./configure</p></li>
-<li><p>报错，原因是没有找到C编译器；</p></li>
-<li><p>安装C编译器；sudo apt-get install gcc</p></li>
-<li><p>重新运行./configure，配置完成；</p></li>
-<li><p>运行make，报make未安装，安装后再次执行；</p></li>
-<li><p>$ make verify</p></li>
-<li><p>sudo make install</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/10/114625/">Multi-thread Echo Server: Python Version</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-10T11:46:25+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:46 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>源代码（mulThrServ.py）：</p>
-
-<p> import socket
- import threading
- import SocketServer
- class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
-  def handle(self):
-   data = self.request.recv(1024)
-   cur_thread = threading.current_thread()
-   print &ldquo;cur_thread: &rdquo; + cur_thread.name
-   print &ldquo;data: &rdquo; + data
-   response = &ldquo;{}: {}&rdquo;.format(cur_thread.name, data)
-   self.request.sendall(response)
- class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-  pass
- def client(ip, port, message):
-  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  sock.connect((ip, port))
-  try:
-   sock.sendall(message)
-   response = sock.recv(1024)
-   print &ldquo;Received: {}&rdquo;.format(response)
-  finally:
-   sock.close()
- if <strong>name</strong> == &ldquo;<strong>main</strong>&rdquo;:
-  # Port 0 means to select an arbitrary unused port
-  HOST, PORT = &ldquo;localhost&rdquo;, 0
-  server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
-  ip, port = server.server_address
- # Start a thread with the server &ndash; that thread will then start one
-  # more thread for each request
-  server_thread = threading.Thread(target=server.serve_forever)
-  # Exit the server thread when the main thread terminates
-  server_thread.daemon = True
-  server_thread.start()
-  print &ldquo;Server loop running in thread:&rdquo;, server_thread.name
-  client(ip, port, &ldquo;Hello World 1&rdquo;)
-  client(ip, port, &ldquo;Hello World 2&rdquo;)
-  client(ip, port, &ldquo;Hello World 3&rdquo;)
-  server.shutdown()</p>
-
-<p>运行（Ubuntu Server 12.04）：</p>
-
-<p>$ python mulThrServ.py</p>
-
-<p>Server loop running in thread: Thread-1</p>
-
-<p>Received: Thread-2: Hello World 1</p>
-
-<p>Received: Thread-3: Hello World 2</p>
-
-<p>Received: Thread-4: Hello World 3</p>
-
-<p>可以看到对客户端的每次连接，服务端都启动了新的线程进行处理。此程序在python 2.7上运行完成，在python 2.6上运行时字符串的format函数写法与2.7不同，需要修改。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/09/111232/">Ubuntu Server安装telnet服务时`Unable to Locate Package Telnetd`解决方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-09T11:12:32+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>装好Ubuntu Server 12.04后，用apt-get安装telnetd报&#8221;E: Unable to locate package telnetd&#8221;，解决方法如下：</p>
+<p>key除了这里的收件人、起始/终止日期，还有ALL（全部邮件），UNSEEN（未读邮件），DELETED（已删除邮件）等，key-value对之间可以随意组合；</p>
 
 <ol>
-<li><p>虚拟机采用NAT方式与主机连接；</p></li>
-<li><p>sudo apt-get update（更新apt-get的软件源）</p></li>
-<li><p>sudo apt-get install telnetd</p></li>
-<li><p>sudo /etc/init.d/openbsd-inetd restart</p></li>
+<li>M的select方法默认值是收件箱，可以指定其他信箱，完整格式是：IMAP4.select([mailbox[, readonly]])；</li>
 </ol>
 
 
-<p>验证：</p>
+<p>参考1：<a href="http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib">http://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib</a></p>
 
-<p>ps -ef|grep telnetd</p>
-
-<p>&ldquo;openbsd-inetd restart&#8221;指令执行完后需要几秒钟才能启动telnetd服务；</p>
-
-<p>注意，安装软件（或者其他连接互联网的动作只能在NAT模式下运行，而主机用telnet/ssh方式连接虚拟机只能在Host-only模式下，所以当连接失败时注意检查是否模式没设置对。</p>
+<p>参考2：Python 2.7.3 chapter 20.10 imaplib -> 20.10.2: IMAP4 Example</p>
 </div>
   
   
@@ -651,7 +467,7 @@ iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/02/06/233852/">用VirtualBox搭建虚拟局域网</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/03/02/105214/">用Autohotkey模拟两台客户机的并发访问事件</a></h1>
     
     
       <p class="meta">
@@ -660,21 +476,186 @@ iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
 
 
 
-<time class='entry-date' datetime='2013-02-06T23:38:52+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:38 pm</span></time>
+<time class='entry-date' datetime='2013-03-02T10:52:14+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:52 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ol>
-<li><p>用 Oracle VM VirtualBox 安装虚拟机，我在Windows 7上安装了ubuntu 11.10和xubuntu12.04两个虚拟机；</p></li>
-<li><p>将这两个虚拟机的“网络”属性设为“仅主机（Host-Only）适配器”；在win7的“网络和共享中心”中出现了一个“VirtualBox Host Only Network”，用ipconfig可以看到这个适配器的IP地址是192.168.56.101；</p></li>
-<li><p>启动这两个虚拟机，用ifconfig可以查看各自的ip地址，可以看到默认网卡eth0的IP地址是192.168.56.102和103；</p></li>
-<li><p>用apt-get安装sshd和telnetd服务；</p></li>
-<li><p>现在就可以互相ping其他两个机器了，win7上可以（用kitty）telnet/ssh连接ubuntu，但ubuntu无法连接win7上的GODU服务，原因不明；</p></li>
+  <div class="entry-content"><p>现在需要从主机113和747上同时向服务器47发送指令&#8221;cat bigMsg&#8221;，以观察47对并发请求的处理能力以及网络传输带宽，可以在pc上分别登录到113和747上，然后分别输入该指令，但手工顺序输入毕竟时间间隔比较大，如果bigMsg不够大，手工操作在47上就变成顺序执行了，如果对开始时间点的要求不那么严格，可以用Autohotkey脚本实现模拟的并发访问，下面演示了用ahk脚本实现的在两台主机上同时运行top指令，8秒后分别发送q退出top界面，以证明ahk脚本确实能够起到“非阻塞发送两条指令”的效果。</p>
+
+<ol>
+<li><p>类似于手工操作，用Kitty登录113和747，假设两个窗口的标题分别为&#8221;lichao@pwm&#8221;和&#8221;godu@goduserver&#8221;；</p></li>
+<li><p>建立ahk脚本（分别在两个主机上运行）：</p></li>
 </ol>
 
+
+<p> SetTitleMatchMode, 2
+ WinActivate, godu
+ SendInput, top{enter}
+ WinActivate, lichao
+ SendInput, top{enter}
+ Sleep, 8000
+ WinActivate, godu
+ SendInput, q
+ WinActivate, lichao
+ SendInput, q
+1. 在vim窗口里运行&#8221;:silent !%&ldquo;执行这个脚本，与直接运行&rdquo;!%&ldquo;相比，silent指令不会出现一个dos窗口，然后要求用户看回车返回vim窗口（参考<a href="http://vim.wikia.com/wiki/Avoiding_the_%22Hit_ENTER_to_continue%22_prompts%EF%BC%89%E3%80%82">http://vim.wikia.com/wiki/Avoiding_the_%22Hit_ENTER_to_continue%22_prompts%EF%BC%89%E3%80%82</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/28/210122/">基于字节比对的KMP字符串搜索算法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-28T21:01:22+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>package kmpclient;
+import java.io.UnsupportedEncodingException;
+import java.util.LinkedList;
+public class ByteKMP {
+ private static final int R = 255;
+ private static final String DEFAULT_CHARSET = &ldquo;UTF-8&rdquo;;
+ private final int[][] dfa;
+ private final int patLen;
+ private int curMatchPos = 0;
+ public ByteKMP(byte[] pat) throws UnsupportedEncodingException {
+  patLen = pat.length;
+  // build DFA from pattern
+  int M = pat.length;
+  dfa = new int[R][M];
+  dfa[pat[0] &amp; 0xff][0] = 1;
+  for (int X = 0, j = 1; j &lt; M; j++) {
+   for (int c = 0; c &lt; R; c++)
+    dfa[c][j] = dfa[c][X]; // Copy mismatch cases.
+   dfa[pat[j] &amp; 0xff][j] = j + 1; // Set match case.
+   X = dfa[pat[j] &amp; 0xff][X]; // Update restart state.
+  }
+ }
+ public int search(byte[] msg) {
+  int M = patLen;
+  int N = msg.length;
+  int i, j;
+  for (i = 0, j = curMatchPos; i &lt; N &amp;&amp; j &lt; M; i++) {
+   j = dfa[msg[i] &amp; 0xff][j];
+  }
+  if (j == M) {
+   curMatchPos = 0;
+   return i - M; // found
+  }
+  curMatchPos = j;
+  return N; // not found
+ }
+ public static void main(String[] args) throws UnsupportedEncodingException {
+  int a = -27 % 255;
+  testEnglishStr();
+  testChineseStr();
+ }
+ private static void testChineseStr() throws UnsupportedEncodingException {
+  LinkedList&lt;byte[]> msgs = new LinkedList&lt;byte[]>();
+  msgs.offer(&ldquo;今天是个好日子&rdquo;.getBytes(DEFAULT_CHARSET));
+  msgs.offer(&ldquo;厉害不?子= KM= KMP = 真厉害！&rdquo;.getBytes(DEFAULT_CHARSET));
+  // msgs.offer(&ldquo;= KMP = 真厉害！&rdquo;.getBytes(DEFAULT_CHARSET));
+  String pat = &ldquo;子= KM&rdquo;;
+  // e5, ad, 90, &hellip; [-27, -83, -112, 61, 32, 75, 77]
+  ByteKMP bkmp = new ByteKMP(pat.getBytes(DEFAULT_CHARSET));
+  int pos = 9999;
+  byte[] target = msgs.poll();
+  while (target != null) {
+   pos = bkmp.search(target);
+   if (pos &lt; target.length) {
+    break;
+   }
+   target = msgs.poll();
+  }
+  if (target == null) {
+   System.out.println(&ldquo;cannot find &rdquo; + pat + &ldquo; in msgs.&rdquo;);
+  } else {
+   System.out.println(&ldquo;find pat at &rdquo; + pos + &ldquo; in &lt;&rdquo;
+    + new String(target) + &ldquo;>&rdquo;);
+  }
+ }
+ private static void testEnglishStr() throws UnsupportedEncodingException {
+  LinkedList&lt;byte[]> msgs = new LinkedList&lt;byte[]>();
+  msgs.offer(&ldquo;welcome lonely logoout&rdquo;.getBytes(DEFAULT_CHARSET));
+  msgs.offer(&ldquo;to flog&rdquo;.getBytes(DEFAULT_CHARSET));
+  msgs.offer(&ldquo;into a fog&rdquo;.getBytes(DEFAULT_CHARSET));
+  String pat = &ldquo;a f&rdquo;;
+  ByteKMP bkmp = new ByteKMP(pat.getBytes(DEFAULT_CHARSET));
+  int pos = 9999;
+  byte[] target = msgs.poll();
+  while (target != null) {
+   pos = bkmp.search(target);
+   if (pos &lt; target.length) {
+    break;
+   }
+   target = msgs.poll();
+  }
+  if (target == null) {
+   System.out.println(&ldquo;cannot find &rdquo; + pat + &ldquo; in msgs.&rdquo;);
+  } else {
+   System.out.println(&ldquo;find pat at &rdquo; + pos + &ldquo; in &lt;&rdquo;
+    + new String(target) + &ldquo;>&rdquo;);
+  }
+ }
+}</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/28/200614/">使用Wireshark为无线网卡抓包</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-28T20:06:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:06 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在Wireshark的网卡列表里，无线网卡的名字不是Windows无线网络连接当中的设备名，需要用下面的方法确定列表中哪个是无线网卡：</p>
+
+<p>方法1： Wireshark -> Capture -> Interface：</p>
+
+<p>可以看到上图中第3个（一般都被命名为Microsoft）有明显的数据传输，是无线网卡的可能性最大；</p>
+
+<p>方法2： Wireshark -> Capture -> Options，列表中有各个网卡的IP地址，很明显第3个网卡就是无线网卡，双击它在&#8221;Capture Filter&#8221;里写上过滤规则就可以抓包了。</p>
+
+<p>以上基于Wireshark 1.8.5版本。</p>
 </div>
   
   
@@ -699,23 +680,23 @@ iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a>
+        <a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a>
+        <a href="/blog/2015/01/18/142454/">A Simple Search Homepage</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a>
+        <a href="/blog/2015/01/18/121145/">Bootstrap 3的栅格系统</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a>
+        <a href="/blog/2015/01/18/020909/">基于Bootstrap 3的页眉页脚控制</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a>
+        <a href="/blog/2015/01/14/160455/">创建简单的网站Logo</a>
       </li>
     
   </ul>

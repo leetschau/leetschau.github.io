@@ -9,11 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="打印logback调试信息：
-自动感知文件变化：，不加scanPeriod的话，默认值是1分钟，一般用默认值就行；
-不打印第一行格式信息：
-不打印调试信息：将ch.qos.logback.core.ConsoleAppender包含的改为
-appender的级别设置： &hellip;">
+  <meta name="description" content="使用两台windows机器做集群节点，其中一台同时作为代理服务器（集群入口），搭建过程如下： 根据笔记 GODU as Web Service 的 SimpleHTTPServer + Ajax实现 在10.31.1.71和10.31.1.190两台机器上分别搭建HTTP Server， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -75,7 +71,7 @@ appender的级别设置： &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/05/10/112349/">Logback笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/06/14/173536/">nginx+SimpleHTTPServer on Windows集群搭建</a></h1>
     
     
       <p class="meta">
@@ -84,320 +80,63 @@ appender的级别设置： &hellip;">
 
 
 
-<time class='entry-date' datetime='2012-05-10T11:23:49+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:23 am</span></time>
+<time class='entry-date' datetime='2012-06-14T17:35:36+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:35 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ul>
-<li><p>打印logback调试信息：<configuration debug="true"></p></li>
-<li><p>自动感知文件变化：<configuration scan="true" scanPeriod="30 seconds" >，不加scanPeriod的话，默认值是1分钟，一般用默认值就行；</p></li>
-<li><p>不打印第一行格式信息：</p></li>
-<li><p>不打印调试信息：将ch.qos.logback.core.ConsoleAppender包含的<layout>改为<encoder></p></li>
-<li><p>appender的级别设置：在appender里加filter，在filter上附加level；</p></li>
-<li><p>日志中的日期格式：</p>
+  <div class="entry-content"><p>使用两台windows机器做集群节点，其中一台同时作为代理服务器（集群入口），搭建过程如下：</p>
 
-<p>  %date{yyyy-MMM-dd;HH:mm:ss.SSS} 2012-五月-14;16:05:44.667 &hellip;
-  %date{yyyy-MM-dd;HH:mm:ss}   2012-05-14;16:05:44</p></li>
-</ul>
-
-</div>
-  
-  
+<ol>
+<li><p>根据笔记 GODU as Web Service 的 SimpleHTTPServer + Ajax实现 在10.31.1.71和10.31.1.190两台机器上分别搭建HTTP Server，将入口html文件命名为index.html；</p></li>
+<li><p>解压nginx for windows 安装包（ nginx-1.3.1.zip ），修改conf/nginx.conf文件（需要手工配置的地方用粗体标出）：</p></li>
+</ol>
 
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/10/100140/">Java程序的两种参数设置方法</a></h1>
-    
-    
-      <p class="meta">
-        
+<p> http {</p>
 
+<p>  &hellip;</p>
 
+<p>  keepalive_timeout 65;</p>
 
+<p>  upstream leechau.org {</p>
 
-<time class='entry-date' datetime='2012-05-10T10:01:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:01 am</span></time>
-        
-      </p>
-    
-  </header>
+<p>   server 10.31.1.190:8080;
+  server 10.31.1.71:8080;
+ }</p>
 
+<p>  &hellip;</p>
 
-  <div class="entry-content"><p>Java程序有两种参数传递方式，分别是虚拟机参数和程序参数，前者用java命令行参数-D设置，用System.getProperty()方法获取；后者在主类声明后面添加，用main()方法里的args[]获取。下面是演示程序。</p>
+<p>  server {
+  listen  8123 ;
+  server_name localhost;
+  #charset koi8-r;
+  #access_log logs/host.access.log main;
+  location / {
+   root html;
+   index index.html index.htm;
+    proxy_pass <a href="http://leechau.org;">http://leechau.org;</a>
+   proxy_redirect default;
+  }</p>
 
-<p> ServiceNameDemo.java</p>
-
-<p> public class ServiceNameDemo {</p>
-
-<p>  public static void main(String[] args) {</p>
-
-<p>   System.out.println(&ldquo;vm param is: &rdquo; + System.getProperty(&ldquo;service_name&rdquo;)</p>
-
-<pre><code> + "\r\nprogram param is: " + args[0] + " and " + args[1]); 
-</code></pre>
+<p>   &hellip;</p>
 
 <p>  }</p>
 
 <p> }</p>
 
-<p>下面是编译运行结果。</p>
-
-<p>F:> javac ServiceNameDemo.java
-F:> java -cp . -Dservice_name=banana ServiceNameDemo apple melon
-vm param is: banana
-program param is: apple and melon</p>
-
-<p>对应于Eclipse中的设置方法如下：</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/09/173738/">Ubuntu上安装gevent</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-09T17:37:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:37 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>安装libevent;</p>
-
-<p>安装greenlet: sudo easy_install gevent (need net access)</p>
-
-<p>bingo!</p>
-
-<p> -> python-dev -> libpython2.7</p>
-
-<p> deb包下载网站 ；</p>
-
-<p>sudo dpkg -i libpython2.7_2.7.2-5ubuntu1_i386.deb</p>
-
-<hr />
-
-<p>2013-02-16：</p>
-
-<p>Ubuntu Server 12.04上自带python 2.7，所以只要安装greenlet, libevent和gevnet就行了，</p>
-
-<p>apt-get install python-pip</p>
-
-<p>apt-get install python-dev(否则安装greenlet报错)</p>
-
-<p>pip install greenlet</p>
-
-<p>pip install gevent</p>
-
-<p>验证：</p>
-
-<p>将下面的代码保存为gex.py，然后用python gex.py运行得到结果，但gevent官网install上所述的repl方式执行失败，原因不明。</p>
-
-<p> import gevent
- from gevent import socket
- urls = [&lsquo;www.google.com&rsquo;, &lsquo;www.example.com&rsquo;, &lsquo;www.python.org&rsquo;]
- jobs = [gevent.spawn(socket.gethostbyname, url) for url in urls]
- gevent.joinall(jobs, timeout=2)
- [job.value for job in jobs]</p>
-
-<p>本地安装方式：</p>
-
-<p>Ubuntu上：下载gevent-0.13.8.tar.gz和greenlet-0.4.0.zip（源码包）编译失败；</p>
-
-<p>Windows上：greenlet和gevent都有安装包，但在windows上安装libevent比较难，放弃；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/04/142739/">Eclipse的XML编辑器解决方案</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-04T14:27:39+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>现在使用的Eclipse SDK 3.7.2里没有XML编辑器，无法进行语法高亮，也没有格式化（按层次控制缩进量）和设计视图，很不方便。对于ant文件，可以用Ant Editor来打开，ivy文件在装了IvyDE后也有自己的编辑器，但对于其他格式的XML文件（例如logback使用的配置文件），如果使用Ant editor打开，有语法高亮和格式化（Ctrl+shift+f），但会报语法错误（因为ant文件的顶层标签必须是project），让人很不爽。所以有了下面这个解决办法：在操作系统中设置用 firstobject XML Editor 打开XML文件，然后在Eclipse中选中要打开的xml文件，右键 -> Open With -> System Editor，如果希望根据具体情况选择编辑器，可以将XML打开程序设为 F4Menu ，再在F4Menu里关联。</p>
-
-<p> firstobject XML Editor中，格式化的快捷键是F8。</p>
-
-<p> 外部编辑器有一个问题是当文件更改后需要手工在Eclipse里刷新才能生效（xml文件才会进入bin目录），所以外部编辑器不是一个理想的解决方案。</p>
-
-<p> 使用Eclipse for java developers版本自带xml编辑器；</p>
-
-<p> NetBeans也可以格式化xml文档。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/04/094939/">简化Windows上的Python运行脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-04T09:49:39+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:49 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>twisted的测试工具是trial，在 Dave对trial的介绍文章 中，运行测试的脚本是&#8221;trial tests/test_poetry.py&#8221;，在Windows平台上，安装twisted后，只是在$PYTHON_HOME/Scripts下有一个trial.py文件，所以直接运行上面的脚本系统会返回“无法识别的指令”，必须写成&#8221;$PYTHON_HOME/python $PYTHON_HOME/Scripts/trial.py tests/test_poetry.py&#8221;，调试时很麻烦，在$PATH中增加$PYTHON_HOME，就可以简写为&#8221;python $PYTHON_HOME/Scripts/trial.py tests/test_poetry.py&#8221;，如果希望Windows认为py文件是可运行的（类似于Unix平台的脚本中用&#8221;#!/usr/bin/python&#8221;设置执行脚本的文件），可以通过配置$PATHEXT实现，具体方法是在这个环境变量中增加&#8221;.py&#8221;（与$PATH一样也是用分号隔开），就可以直接运行&#8221;trial &hellip;&ldquo;了。</p>
-
-<p>Under the hood</p>
-
-<p>执行assoc和ftype两个命令查看文件关联：</p>
-
-<p>C:\Users\chad> assoc|findstr py
-.py=Python.File
-.pyc=Python.CompiledFile
-.pyo=Python.CompiledFile
-.pyw=Python.NoConFile
-C:\Users\chad> ftype|findstr py
-Python.CompiledFile=&ldquo;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %<em>
-Python.File=&ldquo;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %</em>
-Python.NoConFile=&ldquo;F:\Software\Python27\pythonw.exe&rdquo; &ldquo;%1&rdquo; %*</p>
-
-<p>从上面可以看到，当运行&#8221;trial &hellip;&ldquo;时，系统的处理过程是：$PATH -> $PYTHON_HOME/Scripts -> trial ->trial.py -> .py -> Python.File -> &#8220;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %*，最终将&#8221;trial &hellip;&ldquo;转换为&#8221;F:\Software\Python27\python.exe F:\Software\Python27\Scripts\trial.py &hellip;&#8221;执行。ftype命令的结果来自注册表，例如：HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Python.File\shell\open\command。</p>
-
-<p> Windows的文件关联原理参见“ 玩转Windows 7文件关联 ”，软件 FileTypesMan 管理文件关联很好用。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/30/092136/">Flex学习笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-30T09:21:36+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:21 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>flex helloworld ;
-解压flex sdk,
-E:\Docs\flexFiles>set PATH=d:\Apps\flex_sdk_4.6\bin
-E:\Docs\flexFiles>mxmlc hello.mxml
-安装flash builder不需要改hosts文件
-blazeds hello world:
-<a href="http://blog.sina.com.cn/s/blog_4c4a24db0100gu3i.html">http://blog.sina.com.cn/s/blog_4c4a24db0100gu3i.html</a>
-要求预先安装flash builder</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/30/085537/">基于Eclipse+MinGW的C开发环境</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-30T08:55:37+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下载Eclipse IDE for C/C++ Developers(CDT)和 mingw离线安装包 ；
-安装mingw，将$MINGW_DIR/bin加入到$PATH中；（实验一下）
-解压Eclipse，新建一个C project，Toolchains选择“MinGW GCC”；
-bingo!</p>
-
-<p>参考 Eclipse+CDT+MinGW开发环境配置 ；</p>
-
-<p>另外还有一个 lcc ，界面太老土，居然不能调整界面字体大小，不用了。</p>
-
-<p>2012-12-11更新：</p>
-
-<p>运行一个C HelloWorld程序需要以下步骤：</p>
+<p>上面upstream中配的是节点的IP和端口，location中的proxy_pass和proxy_redirect表明nginx用作代理服务器，如果节点的html入口不是index.html，可以在location->index后面配置；</p>
 
 <ol>
-<li><p>解压MinGW，并将$MINGW_DIR/bin加入到$PATH中；</p></li>
-<li><p>启动Eclipse CDT；</p></li>
-<li><p>新建一个C项目（Package Explorer的项目文件夹下出现&#8221;Includes&#8221;文件夹，证明MinGW被Eclipse找到了），在项目属性的&#8221;C/C++ Build -> Tool Chain Editor&#8221;里选MinGW；</p></li>
-<li><p>写源代码；</p></li>
-<li><p>项目上右键 -> Build Configuration -> build all，正确编译后Package Explorer的项目文件夹下应该有一个&#8221;Binaries&#8221;文件夹，里面有build生成的exe文件；</p></li>
-<li><p>项目上右键 -> Run as -> Local C/C++ Application；</p></li>
+<li>启动nginx；</li>
 </ol>
 
 
-<p>存在问题：由于MinGW中不包括gdb.exe，所以只能运行程序，不能调试程序，实用价值不大，尝试codeblocks；</p>
+<p>连接<a href="http://127.0.0.1:8123%E5%8F%AF%E4%BB%A5%E7%9C%8B%E5%88%B0%E4%B8%8D%E6%96%AD%E8%BD%AE%E6%B5%81%E5%8A%A0%E8%BD%BD%E4%B8%A4%E4%B8%AA%E9%A1%B5%E9%9D%A2%E7%9A%84%EF%BC%8C%E8%A1%A8%E6%98%8E%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E6%88%90%E5%8A%9F%EF%BC%8Cupstream%E5%92%8Cproxy_pass%E5%90%8E%E9%9D%A2%E7%9A%84leechau.org%E6%B2%A1%E6%9C%89%E8%B5%B7%E4%BD%9C%E7%94%A8%EF%BC%8C%E4%BC%B0%E8%AE%A1%E6%98%AF%E6%B2%A1%E6%9C%89%E9%85%8DDNS%E3%80%82">http://127.0.0.1:8123%E5%8F%AF%E4%BB%A5%E7%9C%8B%E5%88%B0%E4%B8%8D%E6%96%AD%E8%BD%AE%E6%B5%81%E5%8A%A0%E8%BD%BD%E4%B8%A4%E4%B8%AA%E9%A1%B5%E9%9D%A2%E7%9A%84%EF%BC%8C%E8%A1%A8%E6%98%8E%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E6%88%90%E5%8A%9F%EF%BC%8Cupstream%E5%92%8Cproxy_pass%E5%90%8E%E9%9D%A2%E7%9A%84leechau.org%E6%B2%A1%E6%9C%89%E8%B5%B7%E4%BD%9C%E7%94%A8%EF%BC%8C%E4%BC%B0%E8%AE%A1%E6%98%AF%E6%B2%A1%E6%9C%89%E9%85%8DDNS%E3%80%82</a></p>
+
+<p>参考： Windows上搭个Nginx集群环境玩玩</p>
 </div>
   
   
@@ -410,7 +149,7 @@ bingo!</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/04/25/101848/">RMI运行实例</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/06/13/110213/">一个logback文件为多个应用配置日志的方法</a></h1>
     
     
       <p class="meta">
@@ -419,187 +158,225 @@ bingo!</p>
 
 
 
-<time class='entry-date' datetime='2012-04-25T10:18:48+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:18 am</span></time>
+<time class='entry-date' datetime='2012-06-13T11:02:13+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:02 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>计算机的远程通信有很多种方法， RPC 的设计目标是让一台主机（客户端）上的程序能够引用另一台主机（服务端）上对象，并运行它的方法，也就是“跨地址空间的进程间通信”， RMI 是RPC的Java语言实现。</p>
+  <div class="entry-content"><p>开发产品时一个进程对应一个开发项目，一个项目对应一个日志配置，这是best practice，但有时一个（Eclipse中的）开发项目中包含了多个应用（分别多个进程运行），共享一个配置文件，但生成的日志要分开放在不同的文件里，应该怎么办？假设项目中包括A和B两个应用，B的代码都在com.foo包及子包（com.foo开头的包，如com.foo.bar）中。</p>
 
-<p>本实例包含5个文件：</p>
+<p>方式1：完全分开</p>
 
-<p>// ================= Hello.java ====================</p>
+<pre><code>&lt;configuration&gt; 
+    &lt;appender name="CONSOLE" .../&gt; 
+    &lt;appender name="APP_A" .../&gt; 
+    &lt;appender name="APP_B" .../&gt; 
+    &lt;logger name="com.foo" additivity="false" level="INFO"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_B" /&gt; 
+    &lt;/logger&gt; 
+    &lt;root level="DEBUG"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_A"/&gt; 
+    &lt;/root&gt; 
+&lt;/configuration&gt; 
+</code></pre>
 
-<p>package test.rmi;</p>
+<p>方式2 ：A包含B</p>
 
-<p>import java.rmi.Remote;</p>
+<pre><code>&lt;configuration&gt; 
+    &lt;appender name="CONSOLE" .../&gt; 
+    &lt;appender name="APP_A" .../&gt; 
+    &lt;appender name="APP_B" .../&gt; 
+    &lt;logger name="com.foo" additivity="true" level="INFO"&gt; 
+        &lt;appender-ref ref="APP_B" /&gt; 
+    &lt;/logger&gt; 
+    &lt;root level="DEBUG"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_A"/&gt; 
+    &lt;/root&gt; 
+&lt;/configuration&gt; 
+</code></pre>
 
-<p>import java.rmi.RemoteException;</p>
-
-<p>/**</p>
-
-<ul>
-<li><p>远程方法调用接口，定义远程调用方法</p></li>
-</ul>
+<p>方式2与方式1相比，屏幕输出（即CONSOLE的行为）完全一样，各自输出各自的，但APP_A关联的日志文件中将包含A和B所有的日志。</p>
+</div>
+  
+  
 
 
-<p> */</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/13/100135/">How to Name a Slf4j Logger</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>public interface Hello extends Remote {</p>
 
-<p> String sayHello() throws RemoteException;</p>
 
-<p>}</p>
 
-<p> //=================  HelloServer.java =============================
- package test.rmi;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
-/<strong>
- <em><p>服务器端，实现了Hello接口中的方法，用于实现远程调用方法的具体业务逻辑</p>
- </em>/
-public class HelloServer extends UnicastRemoteObject implements Hello {
-  private static final long serialVersionUID = 1L;
-  String name;
-  public HelloServer(String s) throws RemoteException {
-   super();
-   name = s;
-  }
-  public String sayHello() throws RemoteException {
-   return &ldquo;Hello from lc!&rdquo;;
-  }
-  public static void main(String[] args) {
-   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
-   * 并且在命令行中使用如下格式
-   * java -Djava.security.policy=java.policy test.rmi.HelloServer
-   <em>/
-   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
-   Registry registry = null;
-   try {
-    /**启动注册服务器，使用了这个语句就不再需要在命令行环境中
-    </em>启动registry服务了
-    <em>/
-    registry = LocateRegistry.getRegistry();
-    /</em> 若没有获得连接，则此句会抛出异常，后面在捕获后进行相关处理 */
-    registry.list();
-    System.out.println(&ldquo;Register the exist server!&rdquo;); //$NON-NLS-1$
-   } catch (RemoteException re) {
-    try {
-     int port = Integer.parseInt(Configur
-        .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;)); //$NON-NLS-1$
-     registry = LocateRegistry.createRegistry(port);
-     System.out.println(&ldquo;Create Registry Server!&rdquo;); //$NON-NLS-1$
-    } catch (Exception e) {
-     e.printStackTrace();
-    }
+<time class='entry-date' datetime='2012-06-13T10:01:35+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:01 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li>Use logger in a non-static context:</li>
+</ol>
+
+
+<p> Logger logger = LoggerFactory.getLogger(this.getClass().getName());</p>
+
+<ol>
+<li>Use logger in a static context(for example in main() method):</li>
+</ol>
+
+
+<p> static Logger logger = LoggerFactory.getLogger(TheWrapperClassName.class);</p>
+
+<p>Method 1 is prefered, because it has no hard-coding for class name.</p>
+
+<p><a href="http://stackoverflow.com/questions/936684/getting-the-class-name-from-a-static-method-in-java">static final Logger logger = Logger.getLogger(new Throwable() .getStackTrace()[0].getClassName());</a> maybe a solution, but may slown down the app.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/13/090430/">Eclipse项目中JDK的版本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-13T09:04:30+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>JDK6编译出来的class文件不能运行在JDK5的虚拟机上，因此用Eclipse开发/运行/打包项目时要注意Java编译器的版本，有3个位置（范围从大到小）会影响Java编译器的版本：</p>
+
+<ol>
+<li><p>Eclipse级全局JRE：Window->Preferences->Java->Installed JREs;</p></li>
+<li><p>项目级JRE：Project->Properties下的：</p></li>
+<li><p>Build Path -> Libraries -> JRE System Library;</p></li>
+<li><p>Java Compiler -> JDK Compliance;</p></li>
+<li><p>Run/Debug Configuration级JRE: 在这个Configuration的&#8221;JRE&#8221;标签页中设置；</p></li>
+</ol>
+
+
+<p>确定class文件版本的方法是查看class文件的第7个字节： 0x31-> JDK5, 0x32 ->JDK6, 0x33 ->JDK7;</p>
+
+<p> class文件格式的详细介绍见 Java class file .</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/30/135345/">PHP开发环境搭建</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-30T13:53:45+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>1:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Web Server
+ 首先试用了 EasyPHP ，在台式机上安装后出现异常退出，似乎是C编译器版本不匹配所致，又试用了 WampServer ，启动后报“403 Forbidden”错误，没有访问权限，解决的话自己要配perl，这产品太牛叉了，最后试用了 xampp ，不需要安装，解压后即可运行，开始报443端口被占用，将$XAMPP_DIR\apache\conf\extra\httpd-ssl.conf中Listen 443改为4430，$XAMPP_DIR\apache\conf/httpd.conf中Listen 80改为8000后运行$XAMPP_DIR\xampp_start.exe（80端口似乎被占用了，启动总不成功），连接localhost:8000成功，启动Apache实际上是运行$XAMPP_DIR\apache\bin\httpd.exe，启动MySql实际上是运行$XAMPP_DIR\mysql\bin\mysqld.exe，通过Windows任务管理器可以分别看到这两个进程；
+ HelloWorld
+ 在$XAMPP_DIR/htdocs下建立文件夹phpEx，下面建立文件helloworld.php，内容如下：
+  <html>
+  <head><title>Yes I Do!</title></head>
+  <body>
+   &lt;? echo &ldquo;Hello lord&rdquo;; ?><br>
+   <b>&lt;? echo &ldquo;Hello World!&rdquo; ?></b><br>
+   <i>&lt;? echo &ldquo;Hello World!&rdquo; ?></i><br>
+   <u>&lt;? echo &ldquo;Hello World!&rdquo; ?></u><br>
+   <font color=FF0000>&lt;? echo &ldquo;Hello World!&rdquo; ?></font><br>
+   <font color=00FF00>&lt;? echo &ldquo;Hello World!&rdquo; ?></font><br>
+   <font color=0000FF>&lt;? echo &ldquo;Hello World!&rdquo; ?></font><br>
+  </body>
+ </html></p>
+
+<p> 浏览器中输入：<a href="http://localhost:8000/phpEx/helloworld.php%EF%BC%8C%E7%9C%8B%E5%88%B0%E5%A6%82%E4%B8%8B%E6%95%88%E6%9E%9C%EF%BC%9A">http://localhost:8000/phpEx/helloworld.php%EF%BC%8C%E7%9C%8B%E5%88%B0%E5%A6%82%E4%B8%8B%E6%95%88%E6%9E%9C%EF%BC%9A</a></p>
+
+<p> 参考 Start writing PHP code using XAMPP
+ IDE
+ Netbeans 6.9.1 with PHP plugin
+ 安装调试器xdebug 安装 xdebug ，安装方法见xdebug 官网的 documentation , Install 一节，下载哪个dll可以在线查询，很方便，安装完后用“ F:\Software\xampp\php> php -m ”验证，如果最后面有如下输出说明安装成功：</p>
+
+<p> [Zend Modules]</p>
+
+<p> Xdebug</p>
+
+<p>在helloworld.php中加入下面的代码：</p>
+
+<p>   &lt;?php
+   function fix_string($a)
+   {
+    echo &ldquo;Called @ &rdquo;.
+     xdebug_call_file().
+     &ldquo;:&rdquo;.
+     xdebug_call_line().
+     &ldquo; from &rdquo;.
+     xdebug_call_function();
    }
-   try {
-    HelloServer helloServer = new HelloServer(&ldquo;Hello&rdquo;);
-    registry.rebind(
-       Configur.getString(&ldquo;HelloServer.HelloServerName&rdquo;), helloServer); //$NON-NLS-1$
-    System.out.println(&ldquo;HelloServer server start!&rdquo;); //$NON-NLS-1$
-   } catch (Exception e) {
-    e.printStackTrace();
-   }
-  }
-}</p>
+   $ret = fix_string(array(&lsquo;Derick&rsquo;));
+   header( &ldquo;X-Test&rdquo;, &ldquo;Testing&rdquo; );
+   setcookie( &ldquo;TestCookie&rdquo;, &ldquo;test-value&rdquo; );
+   var_dump( xdebug_get_headers() );
+  ?></p>
 
-<p>//==================  HelloClient.java ============================
- package test.rmi;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-/<strong>
- * <p>客户端，需要注册服务器并使用jndi</p>
- */
-public class HelloClient {
-  public static void main(String[] args) {
-   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
-   * 并且在命令行中使用如下格式
-   * java -Djava.security.policy=java.policy test.rmi.HelloServer
-   <em>/
-   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
-   try {
-    /</em> 注册服务器 */
-    String hostName = Configur
-       .getString(&ldquo;HelloServer.RegistryServerName&rdquo;);
-    int port = Integer.parseInt(Configur
-       .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;));
-    Registry registry = LocateRegistry.getRegistry(hostName, port);
-    Hello hello = (Hello) registry.lookup(Configur
-       .getString(&ldquo;HelloServer.HelloServerName&rdquo;));
-    String message = hello.sayHello();
-    System.out.println(message);
-   } catch (Exception e) {
-    e.printStackTrace();
-   }
-  }
-}</p>
+<p>刷新<a href="http://localhost:8000/phpEx/helloworld.php%EF%BC%8C%E7%BB%93%E6%9E%9C%E5%A6%82%E4%B8%8B%EF%BC%9A">http://localhost:8000/phpEx/helloworld.php%EF%BC%8C%E7%BB%93%E6%9E%9C%E5%A6%82%E4%B8%8B%EF%BC%9A</a></p>
 
-<p>//================= Configur.java =============================
- package test.rmi;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
-/<em>*
- * <p>获取系统运行所需要的配置信息，对应的配置文件名称为config.properties</p>
- </em>/
-public class Configur {
- private static final String BUNDLE_NAME = &ldquo;test.rmi.config&rdquo;;
- private static final ResourceBundle RESOURCE_BUNDLE = ResourceBundle
-   .getBundle(BUNDLE_NAME);
- private Configur() {
- }</p>
+<p>修改php文件后直接刷新页面即可看到效果，无需重启web server。</p>
 
-<p> /<em>*
-  * <p>通过key名称获得配置文件的相关信息</p>
-  * @param key key名称
-  * @return String 配置文件信息
-  </em>/
- public static String getString(String key) {
-  try {
-   return RESOURCE_BUNDLE.getString(key);
-  } catch (MissingResourceException e) {
-   return &lsquo;!&rsquo; + key + &lsquo;!&rsquo;;
-  }
- }
-}</p>
+<p> 在NetBeans中调试
+NetBeans调试PHP的方式是：只要一个php文件里加入了断点，且NetBeans处于运行状态，在浏览器里打开这个页面时NetBeans会自动激活进入调试窗口。</p>
 
-<p>//================= config.properties =============================
- HelloServer.RegistryServerPort=1111
-HelloServer.HelloServerName=HelloServer
-HelloServer.RegistryServerName=10.31.1.71</p>
+<p> Debugging PHP Source Code in the NetBeans IDE 给出了详细说明，断点行用红色标出，当前运行行用绿色标出，变量（Variable）窗口里显示了当前变量：</p>
 
-<p> 源代码目录是e:\MyDoc\JEx\Ex1\src，Eclipse自动生成的class文件在e:\MyDoc\JEx\Ex1\bin（以及包目录）下。 运行方法：</p>
+<p> Customize NetBeans
+界面改为英文：在netbeans.conf的netbeans_default_options的值后面追加&#8221;-J-Duser.language=zh -J-Duser.country=US&#8221;，第一个参数要求netbeans支持中文字符，第二个选项将界面语言改为英文（参考 Netbeans 6.0 设置为英文界面 ）；</p>
 
-<ol>
-<li>E:\MyDoc\JEx\Ex1\bin> rmic test.rmi.HelloServer  （rmic.exe是$JAVA_HOME/bin里的文件）</li>
-</ol>
+<p>代码格式化：Main Menu -> Source -> Format；</p>
 
-
-<p> 生成e:\MyDoc\JEx\Ex1\bin\test\rmi\HelloServer_Stub.class文件（没有生成skeleton文件）</p>
-
-<ol>
-<li>E:\MyDoc\JEx\Ex1\bin> java test.rmi.HelloServer</li>
-</ol>
-
-
-<p> Create Registry Server!
- HelloServer server start!</p>
-
-<ol>
-<li><p>关闭本机的Windows防火墙；</p></li>
-<li><p>copy HelloClient.class, HelloServer_Stub.class, Hello.class, Configur.class, config.properties到另一台机器，运行 java test.rmi.HelloClient ，返回&#8221;Hello from lc!&ldquo;。</p></li>
-</ol>
-
-
-<p>要运行Server只需要Hello.class, HelloServer.class, Configur.class, config.properties 4个文件，HelloServer_Stub.class只在客户端需要。</p>
-
-<p>可以看到客户端新建了一个Hello类型的对象，然后调用了这个对象的方法sayHello，而这个对象和方法的定义在另一台主机上。</p>
-
-<p>RMI是一种同步调用方式，也就是说代码运行到&#8221;String message = hello.sayHello()&ldquo;是会阻塞（block），直到服务端返回sayHello的结果，与此相对， JMS 是异步发送消息，客户端发送完消息后不等待结果返回，运行后面的代码。</p>
+<p>界面字体和字号：Main Menu -> Tools -> Options -> Fonts &amp; Colors;</p>
 </div>
   
   
@@ -612,7 +389,7 @@ HelloServer.RegistryServerName=10.31.1.71</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/04/20/094834/">动态和静态类型语言中实现回调的方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/05/29/181042/">Windows中删除文件关联</a></h1>
     
     
       <p class="meta">
@@ -621,50 +398,18 @@ HelloServer.RegistryServerName=10.31.1.71</p>
 
 
 
-<time class='entry-date' datetime='2012-04-20T09:48:34+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:48 am</span></time>
+<time class='entry-date' datetime='2012-05-29T18:10:42+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>6:10 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>静态语言实现回调的方法有待后续补充；</p>
+  <div class="entry-content"><p>使用TotalCMD查看jar文件内容很方便，但安装了java后安装程序将jar的文件关联改成了java，导致双击jar文件后不是进入jar文件内部，而是用java.exe运行这个jar，想要查看内容还得用7zip打开，很麻烦，解决方法是删除jar文件与java.exe的关联，最简单的方法是在命令行里输入：</p>
 
-<p> Twisted Introduction from KRONDO by Dave Peticolas, Part6中使用的源代码twisted-client-3\get-poetry.py很好的阐述了python中实现回调（call back）的方法，下面是get-poetry.py的简化版：
- from twisted.internet.protocol import Protocol, ClientFactory</p>
+<p> assoc .jar=</p>
 
-<p> class PoetryProtocol(Protocol):
-  poem = &lsquo;&rsquo;
-  def dataReceived(self, data):
-   self.poem += data
-  def connectionLost(self, reason):
-   self.poemReceived(self.poem)
-  def poemReceived(self, poem):
-   self.factory.poem_finished(poem)</p>
-
-<p> class PoetryClientFactory(ClientFactory):
-  protocol = PoetryProtocol</p>
-
-<p>  def <strong>init</strong>(self, callback):
-   self.callback = callback  # 将回调函数作为属性写入facotry对象中</p>
-
-<p>  def poem_finished(self, poem):
-   self. callback (poem)   # 神奇的是这个“属性”可以当方法用，只要在后面直接加括号和参数就OK了
- def get_poetry(host, port, callback ):
-  from twisted.internet import reactor
-  factory = PoetryClientFactory(callback)
-  reactor.connectTCP(host, port, factory)</p>
-
-<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:
-  def got_poem (poem):
-   poems.append(poem)
-   if len(poems) == len(addresses):
-    reactor.stop()
-  for address in addresses:
-   host, port = address
-   get_poetry(host, port, got_poem ) # 将回调方法方法作为参数传给factory对象</p>
-
-<p> 回调方法的本质是：从服务器下载诗句，当下载完成时做某件事，如何做这件事（做这件事的步骤）就定义在回调函数get_poem中。同步方式下，下载完成等同于下载诗句的函数返回，异步方式下不能这么办，只能由感知到事件发生的对象运行回调函数这种方法达到目的。本例中，服务器在诗句下载完成后关闭与客户端的连接，所以客户端的protocol对象的 connectionLost方法（也是一个call back函数）首先感知到下载完成，然后调用自己对应的factory对象的poem_finished方法，在poem_finished方法中使用get_poem方法处理下载完的poem。这里的关键是我们用写入属性的方法将回调函数赋给factory对象，factory就可以在接到（来自于protocol对象的）通知的时候运行这个“属性方法”。Part 6的Figure 11很好的图示了上述过程。</p>
+<p>如果要删除扩展名为abc的关联，执行&#8221;assoc .abc=&ldquo;即可，在Win7上验证通过。`</p>
 </div>
   
   
@@ -677,7 +422,7 @@ HelloServer.RegistryServerName=10.31.1.71</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/04/20/083747/">Bat脚本的非阻塞调用</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/05/29/142752/">基于Eclipse+Pydev的Python开发环境</a></h1>
     
     
       <p class="meta">
@@ -686,22 +431,155 @@ HelloServer.RegistryServerName=10.31.1.71</p>
 
 
 
-<time class='entry-date' datetime='2012-04-20T08:37:47+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:37 am</span></time>
+<time class='entry-date' datetime='2012-05-29T14:27:52+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:27 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>例如现在要启动3个Server，每个都监听一个端口，因此需要在调用脚本之外的进程里运行，这就需要start命令：</p>
+  <div class="entry-content"><p>Django开发
+安装Pydev后可以新建Django项目，Ctrl+2+dj运行django项目；运行python module快捷键：F9，运行unittest快捷键：Ctrl+F9；</p>
+</div>
+  
+  
 
-<p> start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10000 poetry/ecstasy.txt &ndash;num-bytes 30
-start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10001 poetry/fascination.txt
-start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10002 poetry/science.txt</p>
 
-<p>如果用call取代start，脚本会阻塞在第一个调用中，直到第一个调用返回才启动第二个。</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/28/100022/">Apache Commons-io的字符串编解码问题</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>使用set为变量赋值时，注意等号左右不要留空格，否则变量名和变量值会包括这些空格。</p>
+
+
+
+<time class='entry-date' datetime='2012-05-28T10:00:22+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:00 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>用Apache org.apache.commons.io.input.Tailer监控日志文件变化很方便，但如果文件中有中文，回调函数TailerListener.handle中参数line是乱码，原因是目前的Tailer是按“西欧语言”（ISO8859-1）对日志文件进行解码的，而日志文件一般是用GBK或者UTF-8编码。解决方法是对line用ISO8859-1再进行一次编码得到原始的字节数组，然后用日志文件的格式进行解码，这样最终得到的字符串就OK了。实现方法如下：</p>
+
+<p>服务类：</p>
+
+<p> &hellip;</p>
+
+<p> LogMonitorListener lml = new LogMonitorListener();</p>
+
+<p> Tailer lmt = new Tailer(logfile, lml, 3000);</p>
+
+<p> &hellip;</p>
+
+<p> lmt.run();</p>
+
+<p>监听器类：</p>
+
+<p>public class LogMonitorListener extends TailerListenerAdapter {</p>
+
+<p> &hellip;</p>
+
+<p> @Override</p>
+
+<p> public void handle(String line) {</p>
+
+<p>  msg = new String(line.getBytes(&ldquo;ISO8859-1&rdquo;), &ldquo;GBK&rdquo;) ; //用来处理GBK格式的日志</p>
+
+<p>   msg = new String(line.getBytes(&ldquo;ISO8859-1&rdquo;), &ldquo;UTF-8&rdquo;) ; //用来处理UTF-8格式的日志</p>
+
+<p>  &hellip;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/25/174816/">Django报`ascii Codec Can't Decode Byte ... Ordinal Not in Range 128`错误解决方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-25T17:48:16+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:48 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下午在Django里连接telnet服务器，总报&#8221;ascii codec can&rsquo;t decode byte &hellip; ordinal not in range 128&#8221;错误，参考，发现是由于Python2.x telnetlib的连接参数要求是str类型，但Django里所有的字符串都是unicode，二者不兼容导致上述错误，解决方法是用Django提供的smart_str()方法将unicode转换为str：</p>
+
+<p>from neconnector.models import Channel
+from django.utils.encoding import smart_str
+import telnetlib
+def translate_str(input):</p>
+
+<p> return smart_str(input, encoding=&lsquo;utf-8&rsquo;, strings_only=False, errors=&lsquo;strict&rsquo;)</p>
+
+<p>ch = get_object_or_404(Channel, pk=conn_id) #从数据库里取出unicode类型对象</p>
+
+<p>ip = translate_str(ch.ip) # 转换为str</p>
+
+<p>tn = telnetlib.Telnet(ip)</p>
+
+<p>&hellip;</p>
+
+<p>同理，写入数据库时需要用smart_unicode方法做逆向转换。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/25/092525/">基于Notepad++的Django开发环境</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-25T09:25:25+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:25 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Notepad++(np++) 6.1.3, plugin: TagsView &amp; Light Explorer</p>
+
+<p>font: consolas 12</p>
+
+<p>color theme: zenburn</p>
+
+<p>hotkey: activate tagview: alt-g; light explorer: alt-a; editor: not find yet</p>
+
+<p>关于np++的配置系统，参考 NpWiki++ 上的 Notepad++&rsquo;s configuration files 一节。</p>
 </div>
   
   
@@ -726,23 +604,23 @@ start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a>
+        <a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a>
+        <a href="/blog/2015/01/18/142454/">A Simple Search Homepage</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a>
+        <a href="/blog/2015/01/18/121145/">Bootstrap 3的栅格系统</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a>
+        <a href="/blog/2015/01/18/020909/">基于Bootstrap 3的页眉页脚控制</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a>
+        <a href="/blog/2015/01/14/160455/">创建简单的网站Logo</a>
       </li>
     
   </ul>

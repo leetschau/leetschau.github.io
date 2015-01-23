@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Sed | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/sed/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-01-04T11:42:13+08:00</updated>
+  <updated>2015-01-23T11:15:02+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,53 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Compare Users in 2 Days With Spark]]></title>
+    <link href="http://leetschau.github.io/blog/2015/01/04/173843/"/>
+    <updated>2015-01-04T17:38:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/01/04/173843</id>
+    <content type="html"><![CDATA[<p>We have 2 log files. One contains logs created in 2014.11.22, the other all in 2014.11.23.
+Each have about 240 million logs in it, with file size 30GB.</p>
+
+<p>The log in these files are like this:</p>
+
+<blockquote><p>&ldquo;460015482006002&rdquo;,&ldquo;深圳市&rdquo;,&ldquo;广东省&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;42705&rdquo;,&ldquo;16111&rdquo;,&ldquo;460014270516111&rdquo;,&ldquo;MAP&rdquo;</p></blockquote>
+
+<p>The number in the first column &ldquo;460015482006002&rdquo; represents a unique user, which is called &ldquo;IMSI&rdquo;.
+We need to find all IMSI number <strong>only</strong> exists in 2014.11.22.</p>
+
+<p>Given the huge size of log files, we compute with Apache Spark.</p>
+
+<p>Create only22.scala:</p>
+
+<pre><code>import java.util.Date
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
+
+val SIG_DATA1 = "datamine/drawdata_20141122_cs.utf8.csv"
+val SIG_DATA2 = "datamine/drawdata_20141123_cs.utf8.csv"
+val USER_ID_POS = 1
+
+def get_users(data: String): Set[String] = {
+  val raw_data = sc.textFile(data).map(_.split("\"").toList)
+  val raw_sig_map = raw_data.filter(x =&gt; x.size &gt; 17)
+  val users = raw_sig_map.map(_(USER_ID_POS)).distinct
+  return users.toArray.toSet
+}
+
+val u1 = get_users(SIG_DATA1)
+val u2 = get_users(SIG_DATA2)
+val only22 = u1 -- u2
+scala.tools.nsc.io.File("only22.txt").writeAll(only22.toString)
+</code></pre>
+
+<p>Run it: <code>spark-shell --master spark://cloud142:7077 --driver-memory 6g --driver-cores 5 --total-executor-cores 28 --executor-memory 20g -i only22.scala</code></p>
+
+<p>In file only22.txt, all elements in the set are written in one line.
+So we have to replace all &ldquo;,&rdquo; with newline character: <code>sed -i 's/,/\n/g' only22.txt</code>;</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Sed Notes]]></title>

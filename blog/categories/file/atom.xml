@@ -4,7 +4,7 @@
   <title><![CDATA[Category: File | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/file/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-01-04T11:42:13+08:00</updated>
+  <updated>2015-01-23T11:15:02+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,53 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Compare Users in 2 Days With Spark]]></title>
+    <link href="http://leetschau.github.io/blog/2015/01/04/173843/"/>
+    <updated>2015-01-04T17:38:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/01/04/173843</id>
+    <content type="html"><![CDATA[<p>We have 2 log files. One contains logs created in 2014.11.22, the other all in 2014.11.23.
+Each have about 240 million logs in it, with file size 30GB.</p>
+
+<p>The log in these files are like this:</p>
+
+<blockquote><p>&ldquo;460015482006002&rdquo;,&ldquo;深圳市&rdquo;,&ldquo;广东省&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;42705&rdquo;,&ldquo;16111&rdquo;,&ldquo;460014270516111&rdquo;,&ldquo;MAP&rdquo;</p></blockquote>
+
+<p>The number in the first column &ldquo;460015482006002&rdquo; represents a unique user, which is called &ldquo;IMSI&rdquo;.
+We need to find all IMSI number <strong>only</strong> exists in 2014.11.22.</p>
+
+<p>Given the huge size of log files, we compute with Apache Spark.</p>
+
+<p>Create only22.scala:</p>
+
+<pre><code>import java.util.Date
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
+
+val SIG_DATA1 = "datamine/drawdata_20141122_cs.utf8.csv"
+val SIG_DATA2 = "datamine/drawdata_20141123_cs.utf8.csv"
+val USER_ID_POS = 1
+
+def get_users(data: String): Set[String] = {
+  val raw_data = sc.textFile(data).map(_.split("\"").toList)
+  val raw_sig_map = raw_data.filter(x =&gt; x.size &gt; 17)
+  val users = raw_sig_map.map(_(USER_ID_POS)).distinct
+  return users.toArray.toSet
+}
+
+val u1 = get_users(SIG_DATA1)
+val u2 = get_users(SIG_DATA2)
+val only22 = u1 -- u2
+scala.tools.nsc.io.File("only22.txt").writeAll(only22.toString)
+</code></pre>
+
+<p>Run it: <code>spark-shell --master spark://cloud142:7077 --driver-memory 6g --driver-cores 5 --total-executor-cores 28 --executor-memory 20g -i only22.scala</code></p>
+
+<p>In file only22.txt, all elements in the set are written in one line.
+So we have to replace all &ldquo;,&rdquo; with newline character: <code>sed -i 's/,/\n/g' only22.txt</code>;</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Debug Binary File Reading C++ Codes With Gdb]]></title>
@@ -236,26 +283,6 @@ print(type(readgbk))  # &lt;type 'unicode'&gt;
 <p>This bug will be fixed in next release of catfish. By default catfish will not search files in hidden directories. So you have to use &ldquo;find&rdquo; command if you want getting all results including those in hidden directories.</p>
 
 <p>Some Window Manager like Konqueror, Dolphin have filename search function, but they are too slow.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Groovy文件与类的关系]]></title>
-    <link href="http://leetschau.github.io/blog/2011/05/31/172859/"/>
-    <updated>2011-05-31T17:28:59+08:00</updated>
-    <id>http://leetschau.github.io/blog/2011/05/31/172859</id>
-    <content type="html"><![CDATA[<p>Python中，文件是一个模块，可以包含多个类、函数或者普通语句，但Groovy采用了与Java一样的机制，即一个文件对应一个类，</p>
-
-<p>具体的实现机制如下：（主要参考了 Groovy in Action : page:190）</p>
-
-<p>在Groovy中类和文件的对应关系并不像Java中那么固定(Java中一个文件只能有一个声明为public的类和其他一些非公共的类和内嵌类) 。在同一个groovy文件中可以包含多个public的类定义。具体规则如下：</p>
-
-<ol>
-<li><p>纯脚本：如果在一个groovy文件中没有任何类定义，它将被当做script来处理，也就意味着这个文件将被透明的转换为一个Script类型的类，这个类的类名是脚本的文件名（不含扩展名和包名，在default包中）。groovy文件的内容被打包进run方法，另外在新产生的类中被加入一个main方法使外部代码可以执行该脚本；</p></li>
-<li><p>纯类（类名是文件名）：如果在groovy文件正好有一个类的定义，并且该类的名字与文件名称相同，那么这就和java中的类与文件的一一对应关系相同。在一个groovy文件中可以包含多个不同可见性的类定义，并且没有强制性的要求其中有一个类的类名与文件名相同。groovyc编译器会很乐于把该文件中定义的所有的类都编译成*.class文件。如果你希望能够直接调用这个groovy script，比如说在使用groovy命令行或者在某个IDE中执行，那么你应该在该文件中的第一个类中定义一个main方法；</p></li>
-<li><p>脚本/类混合：在一个groovy文件中可以混合类的定义和脚本定义。在这种情况下，那些脚本代码将会放入默认存在的主类（文件名类）的run方法，所以在这种情况下你不应该再定义一个和文件同名的类，否则会出现“类重复定义”错误。反过来说，如果显式地定义了主类，则主类之外，除了定义其他类，不能有任何其他脚本代码（包括语句和函数）；</p></li>
-</ol>
-
 ]]></content>
   </entry>
   
