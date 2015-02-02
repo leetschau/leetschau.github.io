@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Linux | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/linux/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-01-23T11:15:02+08:00</updated>
+  <updated>2015-02-02T16:10:00+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,128 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Git-flow Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2015/01/29/141348/"/>
+    <updated>2015-01-29T14:13:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/01/29/141348</id>
+    <content type="html"><![CDATA[<p>git is a powerful version control tool, while its large amount of commands and options make it hard to use.</p>
+
+<p>So <a href="https://github.com/nvie/gitflow">git-flow</a> was created to make git mush convenient. It&rsquo;s a high level branching tools for git.</p>
+
+<p>Fist install it with <code>apt-get install git-flow</code> on Debian-family distros.</p>
+
+<h1>Usage</h1>
+
+<h2>Workflow on a single feature</h2>
+
+<p>The following paragraphs is from [Why aren&rsquo;t you using git-flow?}(<a href="http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/">http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/</a>).</p>
+
+<p>Branch &ldquo;master&rdquo; is always &ldquo;production ready&rdquo; code. Commits are never made directly to master. Rather, code on master only gets there after a production release branch is created and &ldquo;finished&rdquo; (more on that in a sec). Thus the code on master is always able to be released to production. Also, master is always in a predictable state, so you never need to worry if master (and thus production) has changes one of your other branches doesn&rsquo;t.</p>
+
+<p>&ldquo;develop&rdquo; is the branch you&rsquo;ll be doing most of your work off of; it&rsquo;s also the branch that represents the code to be deployed in the next release. feature branches represent non-trivial features and fixes that have not yet been deployed (a completed feature branch is merged back into develop). Updating master is done through the creation of a release.</p>
+
+<p>Most of your work is done on the develop branch. This branch contains all of the completed features and bug fixes yet to be released; nightly builds or continuous integration servers should target develop, as it represents the code that will be included in the next release. For one-off commits, feel free to commit to develop directly.</p>
+
+<p>Use <code>git flow help</code> or <code>git flow feature help</code> to list all available commands.</p>
+
+<pre><code>$ git flow init  // Convert an existing git repo to git-flow style:
+
+$ git flow feature start &lt;feature-name&gt;
+
+$ git commit -m "now finish this feature"
+
+// if you want cancel this feature:
+$ git flow feature  // list the current feature name, here is "searchSource"
+$ git flow feature delete searchSource
+// or do it manually
+$ git checkout develop  // switch to "develop" branch
+$ git branch  // list current branches
+$ git branch -d feature/&lt;feature-name&gt;   // "feature/" is the default prefix of all feature branches
+$ git branch  // verify the feature is deleted
+
+// push feature to remote repository
+$ git flow feature publish
+
+// get feature commit from remote repository
+$ git flow feature pull
+
+// after the feature is finished and tested
+$ git flow feature finish &lt;feature-name&gt;
+</code></pre>
+
+<p>Note that do not add &ldquo;feature/&rdquo; prefix before feature name.
+This command merge feature branch back into develop branch, so the feature branch disappear from now on.
+If you don&rsquo;t want save your feature branch into remote repo, push to remote AFTER you finish your feature with this &ldquo;finish&rdquo; command.
+There is a corresponding &ldquo;release&rdquo; command:</p>
+
+<pre><code>$ git flow release start v0.1.0
+$ git flow release finish v0.1.0
+</code></pre>
+
+<p>See <a href="http://danielkummer.github.io/git-flow-cheatsheet/">git-flow cheatsheet</a> for details of git-flow.</p>
+
+<h2>Switching between multiple features</h2>
+
+<p>Say you now have finished version 1.0 and tag it with &ldquo;1.0&rdquo;.
+Next you will add function A to the product.
+You have two methods to achieve function A, &ldquo;search source&rdquo; and &ldquo;full text&rdquo;.
+You want to experiment them one by one, so create the first test branch with <code>git flow feature start searchSource</code>,
+After some commits, now you want to evaluate the second.</p>
+
+<p>You can&rsquo;t <code>git flow feature finish searchSource</code> for two reasons:</p>
+
+<p>First you may switching back to this feature in the future.
+If you finish this feature, this branch disappeared.</p>
+
+<p>Second you need experiment &ldquo;full text&rdquo; based on version 1.0.
+But if you &ldquo;finish&rdquo; feature &ldquo;search source&rdquo;, the modifications will be added to branch develop.
+If you <code>git flow feature start fullText</code>, the codes won&rsquo;t be that in version 1.0.</p>
+
+<p>So what you want is working on multiple branches simultaneously:</p>
+
+<pre><code>$ git flow feature start searchSource
+... // some developments on branch searchSource
+$ git commit -m "finish a milestone by method search source"
+$ git flow feature start fullText
+... // some developments on branch fullText
+$ git commit -m "finish a milestone by method full text"
+$ git flow feature list
+$ git flow feature checkout searchSource
+... // some developments on branch searchSource
+$ git commit -m "finish the 2nd milestone by method search source"
+$ git flow feature checkout fullText
+... // some developments on branch fullText
+$ git commit -m "finish the 2nd milestone by method full text"
+</code></pre>
+
+<p>If you have some casual modifications which you don&rsquo;t want to commit, use <code>git stash</code> instead of <code>git commit</code>.
+Use <code>git stash list</code> to list all stashed changes, and <code>git stash pop</code> to take the stashed codes out.
+Or <code>git stash apply</code> to take codes out without removing saved stash record.</p>
+
+<p>Finally you choose &ldquo;full text&rdquo; to achieve function A.
+So add it to your develop code base: <code>git flow feature finish fullText</code>.
+And leave the branch &ldquo;search source&rdquo; alone.</p>
+
+<p>If you are sure &ldquo;search source&rdquo; are useless any more,
+print all existing features with <code>git flow feature list</code>,
+then remove it with <code>git flow feature delete searchSource</code>.</p>
+
+<p>There is a GUI tool called gitk, which can be installed with <code>apt-get install gitk</code>.
+However I don&rsquo;t recommend it for its non-termial nature.</p>
+
+<p>There is also a <a href="https://github.com/bobthecow/git-flow-completion">git-flow-completion</a> tool for zsh.
+Install it if you like.</p>
+
+<ol>
+<li><p>Download <a href="http://sourceforge.net/p/zsh/code/ci/master/tree/Completion/Unix/Command/_git?format=raw">_git</a> and replace /usr/share/zsh/functions/Completion/Unix/_git;</p></li>
+<li><p>Download <a href="https://raw2.github.com/bobthecow/git-flow-completion/master/git-flow-completion.zsh">git-flow-completion.zsh</a>, save it as ~/.git-flow-completion.zsh;</p></li>
+<li><p>Add &ldquo;source ~/.git-flow-completion.zsh&rdquo; into ~/.zshrc;</p></li>
+</ol>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Using Windows VM in Linux Mint I3wm]]></title>
@@ -145,74 +267,6 @@ So here we use function.</p>
 After cropped, the page index information is lost.
 And page size vary with the text area.
 So it&rsquo;s not recommended.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Manipulating CSV Files in Command Line]]></title>
-    <link href="http://leetschau.github.io/blog/2015/01/05/183154/"/>
-    <updated>2015-01-05T18:31:54+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/01/05/183154</id>
-    <content type="html"><![CDATA[<h1>csvkit</h1>
-
-<p>Here we manipulate csv files with <a href="https://github.com/onyxfish/csvkit">csvkit</a>.
-It&rsquo;s developed with Python. So install it with <code>sudo pip install csvkit</code>;</p>
-
-<p>Convert xls, xlsx file into csv file: <code>in2csv input.xlsx &gt; data.csv</code>;</p>
-
-<p>List column titles of a csv file: <code>csvcut -n data.csv</code>;</p>
-
-<p>Print statistic information for each columns in a csv file: <code>csvstat data.csv</code>;</p>
-
-<p>Print the first, second, 11th, 16th column of first 9 records (another one for headline): <code>csvcut -c 1,2,11,16 data.csv|head</code>;</p>
-
-<p>If there are newline characters in records, add &ldquo;-l&rdquo; option to make it clear: <code>csvcut -l -c 1,2,11,16 data.csv|head</code>;</p>
-
-<p>Convert to json file with csvjson: <code>csvcut -c 1,2,11,16 fairData150104.csv|head|csvjson -i 4</code>, &ldquo;-i&rdquo; specify how many indent spaces, default is no indent.</p>
-
-<h1>csvtool</h1>
-
-<p>Install: <code>sudo aptitude install csvtool</code>;</p>
-
-<ul>
-<li><p>csvtool sub <n1> <n2> <n3> <n4> data.csv:</p>
-
-<p>  Take a square subset of the CSV, top left at row <n1>, column <n2>,
-  which is <n3> deep and <n4> wide.
-  <n1> and <n2> count from 1, or from 0 if -z option is given.</p>
-
-<p>  Example: <code>csvtool sub 1 16 1 1 data.csv</code></p></li>
-<li><p>csvtool take <n> data.csv: take first <n> rows of the csv, like &ldquo;head&rdquo; in shell;</p></li>
-<li><p>csvtool drop <n> data.csv: drop the first <n> rows and return the rest (if any).</p></li>
-</ul>
-
-
-<p>See <code>csvtool -h</code> for details.</p>
-
-<p>To print the <em>n</em>th record easily, add the following function into ~/.bash_alias file:</p>
-
-<pre><code>function ctls(){
-  if test $# -eq 3; then
-    csvtool drop $2 $1 | csvtool take $3 -
-  else
-    echo ctls: csvtool list specified record
-    echo Synopsis: ctls '&lt;filename&gt; &lt;startNo&gt; &lt;count&gt;'
-  fi
-}
-</code></pre>
-
-<p>Now print the 3rd record of data.csv with <code>ctls data.csv 3 1</code>.</p>
-
-<p>The &ldquo;-&rdquo; in &ldquo;csvtool take&rdquo; means &ldquo;get input from stdin instead of a file&rdquo;.</p>
-
-<h1>Put them together</h1>
-
-<ul>
-<li><p>Count the number of records which the 7th field is empty: <code>csvgrep -c 7 -r "^$" data.csv | csvtool height -</code>;</p></li>
-<li><p>Count the number of records which the 7th field is NOT empty: <code>csvgrep -c 7 -r "^.+$" data.csv | csvtool height -</code>;</p></li>
-<li><p>Print data on screen without line wrap: <code>less -S &lt;filename&gt;</code>;</p></li>
-</ul>
-
 ]]></content>
   </entry>
   

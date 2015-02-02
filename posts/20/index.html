@@ -9,8 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Ref: 9 uses for cURL worth knowing
-">
+  <meta name="description" content="Process Install common software in provision script, such as JDK, Ant;
+Write a shell script for a given build task;
+Run this script in Jenkins; Use &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +67,348 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/22/122449/">BVT Environment Based on Vagrant</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-22T12:24:49+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>12:24 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Process</h1>
+
+<ol>
+<li><p>Install common software in provision script, such as JDK, Ant;</p></li>
+<li><p>Write a shell script for a given build task;</p></li>
+<li><p>Run this script in Jenkins;</p></li>
+</ol>
+
+
+<h1>Use Case</h1>
+
+<h2>Vagrantfile</h2>
+
+<pre><code>config.vm.box = "precise64"
+config.vm.define "bs" do |bvtserver|
+  bvtserver.vm.hostname = "bvt-server"
+  bvtserver.vm.network "private_network", ip: "192.168.50.3",
+      virtualbox__intnet: "gcptest-network"
+  bvtserver.vm.provider :virtualbox do |vbox|
+    vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+  end 
+  bvtserver.vm.provision :shell, path: "bvtprov.sh", privileged: false
+end 
+</code></pre>
+
+<h2>bvtprov.sh</h2>
+
+<p>This script install Subversion, zip, JDK and Ant on this VM.</p>
+
+<pre><code>#!/bin/sh
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+sudo dpkg -i /vagrant/packages/svn_amd64_ubuntu12.04/*.deb
+sudo dpkg -i /vagrant/packages/zip_3.0-4_amd64.deb
+mkdir /home/vagrant/apps
+cd /home/vagrant/apps
+chmod 755 /vagrant/packages/jdk-6u45-linux-x64.bin
+sh /vagrant/packages/jdk-6u45-linux-x64.bin
+tar jxf /vagrant/packages/apache-ant-1.9.3-bin.tar.bz2
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+</code></pre>
+
+<h2>A build task: build-gcp-web-6.1_P2_GZ.sh</h2>
+
+<p>This script checkout codes from Subersion server and compile, make zip for a specific project.</p>
+
+<pre><code>export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+
+projname="GCP6.1_P2_GZ"
+
+svnprefix='svn co --non-interactive --no-auth-cache --username bvt --password mypwd'
+svnroot='http://10.0.2.59:8118/svn/gcp/Development-Area'
+$svnprefix ${svnroot}/7-Tools/deployment/packages/pubs /vagrant/packages
+$svnprefix ${svnroot}/3-SCL/Branch/$projname /vagrant/codes/$projname
+
+rm -rf /vagrant/codes/*.zip
+
+web_build=/vagrant/codes/web_build
+rm -rf $web_build;  mkdir $web_build
+tar zxf /vagrant/packages/apache-tomcat-6.0.39.tar.gz -C $web_build/
+mv $web_build/apache-tomcat-6.0.39 $web_build/web_server
+cp -r /vagrant/codes/$projname/WebRoot $web_build/web_server/webapps/$projname
+src_dir=/vagrant/codes/$projname/src
+class_dir=$web_build/web_server/webapps/$projname/WEB-INF/classes
+lib_dir=/vagrant/codes/$projname/WebRoot/WEB-INF/lib
+find $src_dir -type f -name "*.java" -exec javac -cp "$lib_dir/*:$src_dir" -d $class_dir {} \;
+rsync -auC --exclude='*.java' $src_dir/ $class_dir/
+
+cd /vagrant/codes/web_build;  zip -q ../$projname.zip -r web_server -x "*/.svn/*"
+
+pkg_prefix=/vagrant/codes/${projname}-
+rm -rf ${pkg_prefix}*
+pkgs=${pkg_prefix}$(date +%Y%m%dT%H%M)
+mkdir $pkgs
+cp /vagrant/codes/*.zip $pkgs
+</code></pre>
+
+<h2>Run this task on Jenkins</h2>
+
+<p>Add the following shell commands in the &ldquo;GCP-Web-6.1_P2_GZ&rdquo; project in Jenkins:</p>
+
+<pre><code>cd ~/docs/bvtvm
+vagrant ssh [vm-name] -c 'sh /vagrant/build-gcp-web-6.1_P2_GZ.sh'
+</code></pre>
+
+<p>The [vm-name] is the VM you want ssh to, &ldquo;bs&rdquo; in this case. If you have only one vm defined in Vagrantfile, you can omit the it, or you can get the value of it via <code>vagrant status</code>;</p>
+
+<p>Note: Try to avoid usage of relative path in scripts. If you have to(sush as make a tar file), use &lsquo;cd -&rsquo; to jump back after operations.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/21/163107/">openSUSE Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-21T16:31:07+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>4:31 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install Vagrant and VirtualBox on openSUSE GNOME 13.1</h1>
+
+<ol>
+<li><p>Download VirtualBox-4.3.10-93012-Linux_amd64.run from VirtualBox website;</p></li>
+<li><p>Update zypper: $ zypper update;</p></li>
+<li><p>Install components to compile VirtualBox: $ zypper in gcc kernel-devel kernel-desktop kernel-desktop-devel</p></li>
+<li><h1>reboot</h1></li>
+<li><p>Run the downloaded .run file to install VirtualBox;</p></li>
+<li><p>Download vagrant_1.4.3_x86_64.rpm from Vagrant website;</p></li>
+<li><p>Install it with <code>rpm -ivh vagrant_1.4.3_x86_64.rpm</code>;</p></li>
+</ol>
+
+
+<h1>Other issues</h1>
+
+<ul>
+<li><p>You need start network service manually at system startup in openSUSE GNOME 13.1: <code>service NetworkManager start</code>;</p></li>
+<li><p>Enable SSH Server on openSUSE: YaST -> Firewall, add SSH Server to &ldquo;Allowed Services&rdquo;.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/21/160442/">Package Management on openSUSE 13.1</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-21T16:04:42+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>4:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Add zypper proxy:
+Add http and https proxy in file /etc/sysconfig/proxy;</p>
+
+<p>YaST:</p>
+
+<p>Find a fast repo:
+<a href="http://mirrors.opensuse.org/">http://mirrors.opensuse.org/</a>
+<a href="http://mirrors.hust.edu.cn/opensuse/">http://mirrors.hust.edu.cn/opensuse/</a> ->  <a href="http://mirrors.hust.edu.cn/opensuse/update/13.1/">http://mirrors.hust.edu.cn/opensuse/update/13.1/</a></p>
+
+<p>add repo:
+zypper ar -c <a href="http://mirrors.ustc.edu.cn/opensuse/update/13.1/">http://mirrors.ustc.edu.cn/opensuse/update/13.1/</a> ustc</p>
+
+<p>list repo with priority:
+zypper lr -p</p>
+
+<p>modify repo priority:
+zypper mr -p 100 ustc
+zypper mr &ndash;help</p>
+
+<p>Refresh repo:
+zypper ref ustc</p>
+
+<p>Update or install from a specific repo:
+zypper up -r ustc
+Average 200KB/s.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/16/185522/">System Benchmark Utility on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-16T18:55:22+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:55 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>sysbench</h1>
+
+<p>Install: <code>yum install sysbench</code> or <code>apt-get install sysbench</code>;</p>
+
+<h2>Usage</h2>
+
+<pre><code>$ man sysbench
+$ sysbench --help
+$ sysbench --test=cpu --cpu-max-prime=20000 run
+$ sysbench --test=memory help
+$ sysbench --test=memory run
+$ sysbench --test=fileio --file-total-size=150G prepare
+</code></pre>
+
+<h1>Phoronix Test Suite</h1>
+
+<h2>Installation</h2>
+
+<ol>
+<li><p>Download phoronix-test-suite-5.0.0.tar.gz from its <a href="http://www.phoronix-test-suite.com/">homepage</a></p></li>
+<li><p>Unzip it and run &ldquo;install-sh&rdquo; in it;</p></li>
+<li><p>It will prompt you install php-cli and php-xml (on CentOS 6.4) if you haven&rsquo;t install them.</p></li>
+</ol>
+
+
+<h2>Usage</h2>
+
+<pre><code>$ phoronix-test-suite --help
+$ phoronix-test-suite list-tests
+$ phoronix-test-suite list-tests | grep '[Mm]emory'
+$ phoronix-test-suite install pts/ramspeed
+$ phoronix-test-suite run pts/ramspeed
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://www.howtoforge.com/how-to-benchmark-your-system-cpu-file-io-mysql-with-sysbench">How To Benchmark Your System (CPU, File IO, MySQL) With sysbench</a></p>
+
+<p><a href="http://code.google.com/p/byte-unixbench/">UnixBench</a></p>
+
+<p><a href="http://stackoverflow.com/questions/368472/linux-benchmarking-tools">Linux benchmarking tools</a></p>
+
+<p><a href="http://www.interworx.com/community/benchmarking-tools-for-linux-servers/">Benchmarking Tools For Linux Servers</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/16/182303/">Find Out Linux Version You Are Running</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-16T18:23:03+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:23 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Find the &ldquo;release&rdquo; file and print its content:</p>
+
+<pre><code>$ ls -ld /etc/*release
+$ cat ... # the *-release file
+</code></pre>
+
+<p>This is valid for most Linux distros, such as CentOS, Debian, Gentoo, Fedora, Ubuntu, Mint &hellip;</p>
+
+<p>Or get the information from the login screen:</p>
+
+<pre><code>$ cat /etc/issue
+</code></pre>
+
+<p>For Debian family distros, like Ubuntu, Mint:</p>
+
+<pre><code>$ ls -ld /etc/*version
+$ cat ...
+</code></pre>
+
+<p>The final solution is lsb command, but not all distros support it.</p>
+
+<pre><code>$ lsb_release -a
+</code></pre>
+
+<p>Ref: <a href="http://superuser.com/questions/11008/how-do-i-find-out-what-version-of-linux-im-running">How do I find out what version of Linux I&rsquo;m running?</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -293,310 +636,6 @@ PCS主页是<a href="http://developer.baidu.com/wiki/index.php?title=docs/pcs%E3
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/10/173432/">Disable Certain Package Updates Using YUM in CentOS</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-10T17:34:32+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:34 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Get the Exclusion List</h1>
-
-<pre><code># yum update
-</code></pre>
-
-<p>yum list all updates, choose which you don&rsquo;t want update.</p>
-
-<h1>Update without some packages</h1>
-
-<h2>In command line</h2>
-
-<pre><code># yum --exclude=firefox\* --exclude=thunderbird\* update
-</code></pre>
-
-<p>or:</p>
-
-<pre><code># yum -x 'firefox*' -x 'thunderbird*' update
-</code></pre>
-
-<h2>Disable them permanently</h2>
-
-<p>Add the following line into /etc/yum.conf:</p>
-
-<pre><code>exclude=firefox* thunderbird*
-</code></pre>
-
-<p>Ref:</p>
-
-<ol>
-<li><p><a href="http://www.tecmint.com/disable-certain-package-updates-using-yum-in-rhel-centos-fedora/">Disable Certain Package Updates using YUM in RHEL / CentOS / Fedora</a></p></li>
-<li><p><a href="http://www.cyberciti.biz/faq/yum-update-except-kernel-package-command/">RHEL/CentOS: yum Update All Packages Except the Linux Kernel</a></p></li>
-<li><p><a href="http://www.cyberciti.biz/faq/redhat-centos-linux-yum-update-exclude-packages/">Force yum update Command To Exclude Certain Packages</a></p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/10/095838/">Awk Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-10T09:58:38+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Print the last line: awk &lsquo;END{print $0}&rsquo;</p></li>
-<li><p>Print the second last field: awk &lsquo;{print $(NF-1)}&rsquo;</p></li>
-<li><p>Print the second last field of last line: awk &lsquo;END{print $(NF-1)}&rsquo;</p></li>
-<li><p>Set a complex delimiter: awk -F &lsquo;, &rsquo; &lsquo;END{print $(NF-1)}&rsquo;</p></li>
-</ul>
-
-
-<p>Note: You can&rsquo;t use double quotes instead of single quotes, or an error raises.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/09/153003/">Use Apt Fast to Speedup Apt-get</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-09T15:30:03+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:30 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install</h1>
-
-<pre><code># apt-get install axel aria2
-# apt-get install python-software-properties
-# add-apt-repository ppa:apt-fast/stable
-# apt-get update
-# apt-get install apt-fast
-# apt-fast update
-</code></pre>
-
-<h1>Usage</h1>
-
-<pre><code># apt-fast python-dev
-</code></pre>
-
-<p>Not very fast.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/08/170400/">Linux Benchmarking</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-08T17:04:00+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:04 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Some Theory</h1>
-
-<ul>
-<li><p><a href="http://stackoverflow.com/questions/368472/linux-benchmarking-tools">http://stackoverflow.com/questions/368472/linux-benchmarking-tools</a></p></li>
-<li><p><a href="http://tldp.org/HOWTO/Benchmarking-HOWTO.html">Linux Benchmarking HOWTO</a>.</p></li>
-</ul>
-
-
-<h1>Tools</h1>
-
-<h2>Disk IO Benchmark</h2>
-
-<h3>Writing Speed</h3>
-
-<pre><code>$ dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync
-</code></pre>
-
-<p>from <a href="http://systembash.com/content/simple-disk-benchmarking-in-linux-using-dd/">Simple Disk Benchmarking in Linux Using &lsquo;dd&rsquo;</a></p>
-
-<h3>Reading Speed</h3>
-
-<pre><code>$ hdparm -tT $(df $HOME|awk 'FNR == 2 {print $1}')
-</code></pre>
-
-<p>where &ldquo;df $HOME|awk &lsquo;FNR == 2 {print $1}&rsquo;&rdquo; get the disk name of the $HOME folder. For example, on my laptop it is /dev/sda1, on 49 server it is /dev/mapper/vg_bocoty49-lv_root. In awk command, &ldquo;FNR == 2&rdquo; means the second line.
-This is the &ldquo;origin&rdquo; version:</p>
-
-<pre><code>$ hdparm -tT /dev/sda
-</code></pre>
-
-<p>from <a href="http://www.lostsaloon.com/technology/how-to-test-the-read-and-write-speeds-of-a-hard-disk-in-linux/">How to Test the Read and Write Speeds of a Hard Disk in Linux</a>.</p>
-
-<p>Another reference: <a href="https://wiki.archlinux.org/index.php/Hdparm">https://wiki.archlinux.org/index.php/Hdparm</a></p>
-
-<h2>Network Throughput Benchmark</h2>
-
-<p>Run the following command on the &ldquo;server&rdquo; host, not the &ldquo;client&rdquo; host which is testd.</p>
-
-<pre><code>$ cat testspeed.sh
-
-filesize=$3
-dd bs=1M count=$filesize if=/dev/zero of=test
-timeres=$(/usr/bin/time -p scp test $1@$2:/home/$1/ 2&gt;&amp;1 &gt;/dev/null)
-echo timeres: $timeres
-duration=$(echo $timeres|awk 'FNR == 1 {print $2}')
-echo duration: $duration
-speed=$(echo "scale=2; $filesize / $duration" | bc -l)
-echo $speed MB/s
-</code></pre>
-
-<p>The output format of &ldquo;time&rdquo; and &ldquo;bc&rdquo; command varies depending on distro of OS, so I only implements above on my OS: Linux Mint 14.
-The &ldquo;-p&rdquo; options give a better output format of this command.
-The output of &ldquo;scp&rdquo; is in stdout, while that of &ldquo;time&rdquo; in stderr, so I hide stdout and redirect stderr to stdout, so the output can be processed by the following &ldquo;awk&rdquo;.
-&ldquo;bc -l&rdquo; do a float division instead of a integer division.
-&ldquo;scale=2&rdquo; set the division scale (precision) to 2 digits after the period.</p>
-
-<p>Run this scprit with a 64MB test file:</p>
-
-<pre><code>$ ./speed.sh chad 10.0.2.49 64
-</code></pre>
-
-<p>Now with a 128MB test file:</p>
-
-<pre><code>$ ./testspeed.sh 128
-</code></pre>
-
-<p>Note: iperf is network throughput tool, but it has to be installed. So it&rsquo;s a little complicated.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/04/120436/">Ruby on Rails Note</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-04T12:04:36+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:04 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<h2>Install Javascript runtime</h2>
-
-<p>Install <a href="https://github.com/creationix/nvm">nvm</a>, then add a node.js version:</p>
-
-<pre><code>$ nvm install 0.10.26
-$ nvm use 0.10.26
-</code></pre>
-
-<h2>Install Ruby environment</h2>
-
-<p>Install <a href="https://rvm.io/">rvm</a>, then add a ruby version:</p>
-
-<pre><code>$ rvm install 2.1.0
-$ rvm use 2.1.0
-</code></pre>
-
-<h2>Install Ruby on rails</h2>
-
-<pre><code>$ gem install rails
-$ rails new first_app
-</code></pre>
-
-<h1>Start RoR server</h1>
-
-<pre><code>$ cd first_app; rails server
-</code></pre>
-
-<p>Note:</p>
-
-<ol>
-<li><p>You will need to <code>apt-get -f install; apt-get install apt-get install libsqlite3-dev</code> on Linux Mint to create RoR project.</p></li>
-<li><p>If you didn&rsquo;t install javascript runtime, or didn&rsquo;t add it to current session with <code>nvm use ...</code>, you will get the following error when starting rails server:</p>
-
-<p> rails server autodetect could not find a javascript runtime&hellip;</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/21">&larr; Older</a>
@@ -614,23 +653,23 @@ $ rails new first_app
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a>
+        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/142454/">A Simple Search Homepage</a>
+        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/121145/">Bootstrap 3的栅格系统</a>
+        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/020909/">基于Bootstrap 3的页眉页脚控制</a>
+        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/14/160455/">创建简单的网站Logo</a>
+        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
       </li>
     
   </ul>

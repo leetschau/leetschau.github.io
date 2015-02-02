@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Search-source | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/search-source/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-02-02T16:10:00+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[基于Search Source的简单查询实现方法]]></title>
+    <link href="http://leetschau.github.io/blog/2015/01/30/183509/"/>
+    <updated>2015-01-30T18:35:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/01/30/183509</id>
+    <content type="html"><![CDATA[<p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
+通过<code>meteor add meteorhacks:search-source</code>添加到meteor中，
+代码参照了<a href="https://github.com/meteorhacks-samples/meteor-instant-search-demo">meteor-instant-search-demo</a>.</p>
+
+<h1>准备数据源</h1>
+
+<h2>导入数据</h2>
+
+<ol>
+<li><p>下载<a href="http://media.mongodb.org/zips.json">zips.json</a>；
+参考<a href="http://stackoverflow.com/questions/5723896/is-there-a-sample-mongodb-database-along-the-lines-of-world-for-mysql">Is there a sample MongoDB Database along the lines of world for MySql?</a>.</p></li>
+<li><p>导入Meteor数据库中：启动meteor服务，然后在另一个shell里运行：
+<code>~/apps/mongodb-linux-x86_64-2.6.5/bin/mongoimport -h localhost:3001 --db meteor --collection zips --type json --file zips.json</code>;</p></li>
+<li><p>增加搜索字段：由于简单搜索要求输入可能匹配任意字段，
+能达到这个要求的唯一方法就是将被查询的字段连接成一个完整的“搜索”字符串，
+输入的各项可以以任何顺序出现在这个搜索字符串（这里这一项名为&#8221;forsearch&#8221;）中，下面增加这一项：</p>
+
+<pre><code> db.zips.find().forEach(function(elem) {
+     db.zips.update(
+       {_id: elem._id},
+       { $set: {forsearch: elem.city + ' ' + elem.state}}
+     );
+ });
+</code></pre>
+
+<p> 参考<a href="http://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field">Update MongoDB field using value of another field</a>.</p></li>
+</ol>
+
+
+<h1>搜索逻辑</h1>
+
+<p>下面&#8221;/&ldquo;都指项目根目录。</p>
+
+<h2>数据集定义</h2>
+
+<p>在/collections.js中定义数据集和索引：</p>
+
+<pre><code>Zips = new Mongo.Collection('zips');
+if(Meteor.isServer) {
+  Zips._ensureIndex({city: 1, state: 1});
+}
+</code></pre>
+
+<h2>服务端</h2>
+
+<p>在/server/server.js中定义：</p>
+
+<pre><code>SearchSource.defineSource('zips', function(searchText, options) {
+  var options = {sort: {isoScore: -1}, limit: 20};
+
+  if(searchText) {
+    var regExp = buildRegExp(searchText);
+    var selector =  {forsearch: regExp};
+    return Zips.find(selector, options).fetch();
+  } else {
+    return Zips.find({}, options).fetch();
+  }
+});
+
+function buildRegExp(searchText) {
+  var parts = searchText.trim().split(/[ \-\:]+/);
+  for (i=0; i&lt;parts.length; ++i) {
+    parts[i] = "(?=.*" + parts[i] + ")";
+  }
+  var res = new RegExp("(" + parts.join("") + ")", "i");
+  return res;
+}
+</code></pre>
+
+<p>buildRegExp函数中的正则表达式<code>(?=.*A)(?=.*B)</code>可以实现对A和B任意顺序的匹配，
+即既能匹配A.<em>B，又能匹配B.</em>A，
+参考<a href="http://stackoverflow.com/questions/19896324/match-string-in-any-word-order-regex">match string in any word order regex</a>.</p>
+
+<h2>客户端：搜索输入框框即时响应</h2>
+
+<p>搜索框是通用控件，所以定义在了/client/comTemp.js中，定义了对框中keyup事件的响应：</p>
+
+<pre><code>Template.Header.events({
+  "keyup #search-input": _.throttle(function(e) {
+    var text = $(e.target).val().trim();
+    ZipSearch.search(text);
+  }, 200)
+});
+</code></pre>
+
+<h2>客户端：搜索结果展示页面</h2>
+
+<p>定义在/client/results.html中。</p>
+
+<pre><code>&lt;template name="SearchResults"&gt;
+  &lt;div id="search-result" class="container content"&gt;
+    &lt;div id="search-meta"&gt;
+      
+        searching ...
+      
+    &lt;/div&gt;
+
+    
+      &lt;div class="package"&gt;
+        &lt;h4 class="name"&gt;
+          }
+        &lt;/h4&gt;
+        &lt;div class="description"&gt;
+          }, }
+        &lt;/div&gt;
+      &lt;/div&gt;
+    
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+
+<h2>客户端：搜索结果的数据控制</h2>
+
+<p>定义在/client/results.js中。</p>
+
+<pre><code>var options = {
+  keepHistory: 1000 * 60 * 5,
+  localSearch: true
+};
+var fields = ['forsearch'];     // 这里定义要搜索的字段
+
+ZipSearch = new SearchSource('zips', fields, options);
+// 这里的zips要与服务端SearchSource.defineSource中定义的名字一致
+
+Template.SearchResults.helpers({
+  getZips: function() {
+    return ZipSearch.getData({
+      transform: function(matchText, regExp) {
+        console.log("matchText: " + matchText);
+        console.log("regExp: " + regExp);
+        var res = matchText.replace(regExp, "&lt;b&gt;$&amp;&lt;/b&gt;");
+        console.log("res is: " + res);
+        return res;
+      },
+      sort: {isoScore: -1}
+    });
+  },
+
+  isLoading: function() {
+    return ZipSearch.getStatus().loading;
+  }
+});
+
+Template.SearchResults.rendered = function() {
+  ZipSearch.search('');
+};
+</code></pre>
+]]></content>
+  </entry>
+  
+</feed>

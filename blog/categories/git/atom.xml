@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Git | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/git/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-01-23T11:15:02+08:00</updated>
+  <updated>2015-02-02T16:10:00+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,128 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Git-flow Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2015/01/29/141348/"/>
+    <updated>2015-01-29T14:13:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/01/29/141348</id>
+    <content type="html"><![CDATA[<p>git is a powerful version control tool, while its large amount of commands and options make it hard to use.</p>
+
+<p>So <a href="https://github.com/nvie/gitflow">git-flow</a> was created to make git mush convenient. It&rsquo;s a high level branching tools for git.</p>
+
+<p>Fist install it with <code>apt-get install git-flow</code> on Debian-family distros.</p>
+
+<h1>Usage</h1>
+
+<h2>Workflow on a single feature</h2>
+
+<p>The following paragraphs is from [Why aren&rsquo;t you using git-flow?}(<a href="http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/">http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/</a>).</p>
+
+<p>Branch &ldquo;master&rdquo; is always &ldquo;production ready&rdquo; code. Commits are never made directly to master. Rather, code on master only gets there after a production release branch is created and &ldquo;finished&rdquo; (more on that in a sec). Thus the code on master is always able to be released to production. Also, master is always in a predictable state, so you never need to worry if master (and thus production) has changes one of your other branches doesn&rsquo;t.</p>
+
+<p>&ldquo;develop&rdquo; is the branch you&rsquo;ll be doing most of your work off of; it&rsquo;s also the branch that represents the code to be deployed in the next release. feature branches represent non-trivial features and fixes that have not yet been deployed (a completed feature branch is merged back into develop). Updating master is done through the creation of a release.</p>
+
+<p>Most of your work is done on the develop branch. This branch contains all of the completed features and bug fixes yet to be released; nightly builds or continuous integration servers should target develop, as it represents the code that will be included in the next release. For one-off commits, feel free to commit to develop directly.</p>
+
+<p>Use <code>git flow help</code> or <code>git flow feature help</code> to list all available commands.</p>
+
+<pre><code>$ git flow init  // Convert an existing git repo to git-flow style:
+
+$ git flow feature start &lt;feature-name&gt;
+
+$ git commit -m "now finish this feature"
+
+// if you want cancel this feature:
+$ git flow feature  // list the current feature name, here is "searchSource"
+$ git flow feature delete searchSource
+// or do it manually
+$ git checkout develop  // switch to "develop" branch
+$ git branch  // list current branches
+$ git branch -d feature/&lt;feature-name&gt;   // "feature/" is the default prefix of all feature branches
+$ git branch  // verify the feature is deleted
+
+// push feature to remote repository
+$ git flow feature publish
+
+// get feature commit from remote repository
+$ git flow feature pull
+
+// after the feature is finished and tested
+$ git flow feature finish &lt;feature-name&gt;
+</code></pre>
+
+<p>Note that do not add &ldquo;feature/&rdquo; prefix before feature name.
+This command merge feature branch back into develop branch, so the feature branch disappear from now on.
+If you don&rsquo;t want save your feature branch into remote repo, push to remote AFTER you finish your feature with this &ldquo;finish&rdquo; command.
+There is a corresponding &ldquo;release&rdquo; command:</p>
+
+<pre><code>$ git flow release start v0.1.0
+$ git flow release finish v0.1.0
+</code></pre>
+
+<p>See <a href="http://danielkummer.github.io/git-flow-cheatsheet/">git-flow cheatsheet</a> for details of git-flow.</p>
+
+<h2>Switching between multiple features</h2>
+
+<p>Say you now have finished version 1.0 and tag it with &ldquo;1.0&rdquo;.
+Next you will add function A to the product.
+You have two methods to achieve function A, &ldquo;search source&rdquo; and &ldquo;full text&rdquo;.
+You want to experiment them one by one, so create the first test branch with <code>git flow feature start searchSource</code>,
+After some commits, now you want to evaluate the second.</p>
+
+<p>You can&rsquo;t <code>git flow feature finish searchSource</code> for two reasons:</p>
+
+<p>First you may switching back to this feature in the future.
+If you finish this feature, this branch disappeared.</p>
+
+<p>Second you need experiment &ldquo;full text&rdquo; based on version 1.0.
+But if you &ldquo;finish&rdquo; feature &ldquo;search source&rdquo;, the modifications will be added to branch develop.
+If you <code>git flow feature start fullText</code>, the codes won&rsquo;t be that in version 1.0.</p>
+
+<p>So what you want is working on multiple branches simultaneously:</p>
+
+<pre><code>$ git flow feature start searchSource
+... // some developments on branch searchSource
+$ git commit -m "finish a milestone by method search source"
+$ git flow feature start fullText
+... // some developments on branch fullText
+$ git commit -m "finish a milestone by method full text"
+$ git flow feature list
+$ git flow feature checkout searchSource
+... // some developments on branch searchSource
+$ git commit -m "finish the 2nd milestone by method search source"
+$ git flow feature checkout fullText
+... // some developments on branch fullText
+$ git commit -m "finish the 2nd milestone by method full text"
+</code></pre>
+
+<p>If you have some casual modifications which you don&rsquo;t want to commit, use <code>git stash</code> instead of <code>git commit</code>.
+Use <code>git stash list</code> to list all stashed changes, and <code>git stash pop</code> to take the stashed codes out.
+Or <code>git stash apply</code> to take codes out without removing saved stash record.</p>
+
+<p>Finally you choose &ldquo;full text&rdquo; to achieve function A.
+So add it to your develop code base: <code>git flow feature finish fullText</code>.
+And leave the branch &ldquo;search source&rdquo; alone.</p>
+
+<p>If you are sure &ldquo;search source&rdquo; are useless any more,
+print all existing features with <code>git flow feature list</code>,
+then remove it with <code>git flow feature delete searchSource</code>.</p>
+
+<p>There is a GUI tool called gitk, which can be installed with <code>apt-get install gitk</code>.
+However I don&rsquo;t recommend it for its non-termial nature.</p>
+
+<p>There is also a <a href="https://github.com/bobthecow/git-flow-completion">git-flow-completion</a> tool for zsh.
+Install it if you like.</p>
+
+<ol>
+<li><p>Download <a href="http://sourceforge.net/p/zsh/code/ci/master/tree/Completion/Unix/Command/_git?format=raw">_git</a> and replace /usr/share/zsh/functions/Completion/Unix/_git;</p></li>
+<li><p>Download <a href="https://raw2.github.com/bobthecow/git-flow-completion/master/git-flow-completion.zsh">git-flow-completion.zsh</a>, save it as ~/.git-flow-completion.zsh;</p></li>
+<li><p>Add &ldquo;source ~/.git-flow-completion.zsh&rdquo; into ~/.zshrc;</p></li>
+</ol>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Build Java Project With Eclipse, Gradle and Git]]></title>
@@ -205,7 +327,7 @@ gradle
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Git Commands]]></title>
+    <title type="html"><![CDATA[Git Commands and Configurations]]></title>
     <link href="http://leetschau.github.io/blog/2013/11/25/144450/"/>
     <updated>2013-11-25T14:44:50+08:00</updated>
     <id>http://leetschau.github.io/blog/2013/11/25/144450</id>
@@ -276,12 +398,9 @@ In the following texts, &ldquo;a47c3&rdquo; and &ldquo;b325c&rdquo; are both sam
 
 <p><code>git commit</code>: commit all files in stage area;</p>
 
-<pre><code>git config --global alias.ci "commit -s"   # this is user-wide, or use "--system" to config system-wide (in /etc/gitconfig)
-git config --global user.name "leetschau"
-git config --global user.email "leetschau@gmail.com"
-</code></pre>
+<p><code>git config</code>: see section &ldquo;git config&rdquo; below. list all configs: <code>git config --list</code>;</p>
 
-<p><code>git diff</code></p>
+<p><code>git diff</code>: compare file contents;</p>
 
 <p><code>git init</code>: initialize local repository;</p>
 
@@ -338,106 +457,27 @@ $ git commit -c ORIG_HEAD
 
 <h1>Git config</h1>
 
-<h2>User Config (global)</h2>
-
-<p>~/.gitconfig</p>
+<p>Add the following lines into user level config file ~/.gitconfig, or system level config file /etc/gitconfig:</p>
 
 <pre><code>[user]
     name = leetschau
     email = leetschau@gmail.com
 [alias]
     ci = commit -s
-</code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Work on Remote Git Repository]]></title>
-    <link href="http://leetschau.github.io/blog/2013/11/19/101234/"/>
-    <updated>2013-11-19T10:12:34+08:00</updated>
-    <id>http://leetschau.github.io/blog/2013/11/19/101234</id>
-    <content type="html"><![CDATA[<h1>Create New Branch</h1>
-
-<pre><code>$ git clone https://github.com/hackrole/pyevernote.git
-$ cd pyevernote
-$ git branch    // list all existing branches
-$ git checkout -b leetschau     // create new branch "leetschau" and checkout it
+    co = checkout
+    br = branch
+    lg = log --stat --graph --decorate --all
 </code></pre>
 
-<h1>Push to remote repository</h1>
+<p>Here in <code>git log</code>, &ndash;stat prints file changed info, &ndash;all print all branches instead of current branch,
+&ndash;decorate print branch/tag info, &ndash;graph print hierarchical relation lines between commits.</p>
 
-<p><code>$ git push origin leetschau</code>, where &ldquo;origin&rdquo; is repository name, &ldquo;leetschau&rdquo; is branch name.</p>
+<p>Or change configs in command line:</p>
 
-<p>When you push your branch the first time, add &ldquo;-u&rdquo; to specify that the current branch is associated with the remote branch.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/6089294/why-do-i-need-to-do-set-upstream-all-the-time.">http://stackoverflow.com/questions/6089294/why-do-i-need-to-do-set-upstream-all-the-time.</a></p>
-
-<h1>Push all branches to remote repository</h1>
-
-<p><code>$ git push origin --all</code>.</p>
-
-<h1>Discard local changes</h1>
-
-<p>We need discard all local changes and keep the same with remote repository. Provided that you want sync with &ldquo;master&rdquo; branch in remote repository &ldquo;origin&rdquo;:</p>
-
-<pre><code>$ git fetch orgin
-$ git reset --hard origin/master
+<pre><code>git config --global alias.ci "commit -s"
+git config --global user.name "leetschau"
+git config --global user.email "leetschau@gmail.com"
 </code></pre>
-
-<p>Note that files not in stage area (not been &ldquo;add&rdquo;) will remains, while files in stage area or committed will be removed.</p>
-
-<h1>Remove Existing Branch</h1>
-
-<pre><code>$ git push origin :leetchao
-</code></pre>
-
-<h1>Create, query and remove remote repository alias</h1>
-
-<pre><code>$ git remote add pyevernote-repo https://github.com/hackrole/pyevernote.git
-$ git remote -v
-$ git remote rm pyevernote-repo
-</code></pre>
-
-<h1>Checkout from a existing repository and branch</h1>
-
-<pre><code>$ git clone https://github.com/hackrole/pyevernote.git
-$ cd pyevernote
-$ git branch -r
-  origin/leetschau
-  ...
-$ git checkout leetschau      // or "git checkout -b leetschau origin/leetschau" for old version git
-</code></pre>
-
-<p>For verification, you can find &lsquo;remote=origin &hellip; under [branch &ldquo;leetschau&rdquo;]&rsquo; in file .git/config.</p>
-
-<h1>Update from remote repository</h1>
-
-<pre><code>$ git fetch origin
-$ git status
-  Your branch is **behind** 'origin/develop' by 3 commits... (which means your local branch need to be updated with remote one)
-$ git merge origin/develop
-</code></pre>
-
-<p>Note: Do not use &ldquo;git pull&rdquo; for &ldquo;pull&rdquo; is too &ldquo;smart&rdquo;.
-<a href="http://longair.net/blog/2009/04/16/git-fetch-and-merge/">git: fetch and merge, donât pull</a> gives the reason and provides an excellent explanation of what is &ldquo;branch&rdquo;.</p>
-
-<h1>Move a git repository from Bitbucket to Github</h1>
-
-<p>Based on <a href="http://www.blackdogfoundry.com/blog/moving-repository-from-bitbucket-to-github/">Moving Repository from Bitbucket to GitHub</a>.</p>
-
-<pre><code>cd $DSNOTE_HOME
-git remote rename origin bitbucket
-// create a new repository "dsnote" on Github
-git remote add origin https://github.com/leetschau/dsnote.git
-git push -u origin master
-git remote -v
-git branch -r
-</code></pre>
-
-<h1>Other</h1>
-
-<p>Always use <code>git status</code> to get current status, such as the difference between CWD and stage area, difference between stage area and local repository, and difference between local repository and remote repository.
-Use <code>git log</code> to show commit history.</p>
 ]]></content>
   </entry>
   

@@ -9,11 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="下载libevent-2.0.21-stable.tar.gz
-tar -xzvf libevent-2.0.21-stable.tar.gz
-查看README文件，运行第一步./configure
-报错，原因是没有找到C编译器；
-安装C编译器；sudo apt-get install gcc &hellip;">
+  <meta name="description" content="2014-7-14更新： nethogs: 按进程查看流量占用
+iptraf: 按连接/端口查看流量
+ifstat: 按设备查看流量
+ethtool: 诊断工具
+tcpdump: 抓包工具 2014-8-25更新： iptraf-ng用于监测网络流量很好用， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +69,374 @@ tar -xzvf libevent-2.0.21-stable.tar.gz
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/21/175453/">网络流量监控工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-21T17:54:53+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>5:54 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>2014-7-14更新：</p>
+
+<ul>
+<li><p>nethogs: 按进程查看流量占用</p></li>
+<li><p>iptraf: 按连接/端口查看流量</p></li>
+<li><p>ifstat: 按设备查看流量</p></li>
+<li><p>ethtool: 诊断工具</p></li>
+<li><p>tcpdump: 抓包工具</p></li>
+</ul>
+
+
+<hr />
+
+<p>2014-8-25更新：</p>
+
+<p>iptraf-ng用于监测网络流量很好用，在ArchLinux和Mint中可以直接安装。
+其中的&#8221;Ip traffic monitor&#8221;可以监测网卡的实时接收/发送 (RX/TX) 数据，可以显示对端IP地址和端口，本方接收IP地址和端口，但不能显示实时传输速率，
+&ldquo;General interface statistics&rdquo; 可以显示所有网卡实时发送/接收数据的速率，但不能显示对端IP和端口，二者互为补充。
+今天测试在同一网段中的两台机器之间用scp传送大文件，速率稳定在99MB/s，比较靠谱的一个结果，间接说明scp传大文件可以用来检测网络的最大传输速率。</p>
+
+<p>Ref: <a href="http://www.tecmint.com/command-line-tools-to-monitor-linux-performance/">20 Command Line Tools to Monitor Linux Performance</a></p>
+
+<hr />
+
+<p>参考：<a href="http://www.dynacont.net/documentation/linux/network_monitoring/">Bandwidth Monitoring Tools For Linux</a></p>
+
+<h1>实时流量监控：pv</h1>
+
+<p>OS: Ubuntu Server 12.04.</p>
+
+<h2>netcat &amp; pv</h2>
+
+<p>apt-get install pv</p>
+
+<p>监控端口5555上的实时网络流量：</p>
+
+<pre><code>nc -l 5555 | pv &gt; /dev/null
+</code></pre>
+
+<p>向服务器113上发送数据：</p>
+
+<pre><code>nc 10.31.1.113 5555
+</code></pre>
+
+<h1>ifstat</h1>
+
+<p>Homepage: <a href="http://gael.roualland.free.fr/ifstat/">http://gael.roualland.free.fr/ifstat/</a></p>
+
+<h2>使用</h2>
+
+<pre><code>ifstat -i eth0 1 5 // 监测网口eth0的流量，每一秒测试一次，共测试5次
+</code></pre>
+
+<p>该工具不需要root权限</p>
+
+<h2>安装</h2>
+
+<p>Ubuntu可以用apt-get直接装，官网上的ifstat-1.1.tar.gz包是源码包，在RedHat上安装需要编译，过程很简单，根据INSTALL文档的说明：</p>
+
+<pre><code>./configure
+make
+make install
+</code></pre>
+
+<h2>atsar</h2>
+
+<p>atsar（Unix的sar指令的Linux移植版，可以用apt-get安装）也有几个选项是用来监控网络情况的，例如每隔2秒显示一次系统当前TCP流量：</p>
+
+<pre><code>atsar -t 2 5
+</code></pre>
+
+<h2>iftop</h2>
+
+<p>Ubuntu: apt-get install iftop.</p>
+
+<p>监控与47的交互：</p>
+
+<pre><code>iftop -n -i eth0 -f "host 10.0.2.47" // 监测47与113的双向传输数据
+iftop -n -i eth0 -f "src 10.0.2.47" // 只监测47流向113的数据
+</code></pre>
+
+<p>目前看来iftop显示的信息最全，但需要好好看手册，每个值都是什么意思；使用它需要root权限；</p>
+
+<p>参考：<a href="https://sickbits.net/iftop-finding-traffic-hogs/">https://sickbits.net/iftop-finding-traffic-hogs/</a></p>
+
+<h2>trafshow</h2>
+
+<p>Ubuntu: apt-get install trafshow</p>
+
+<p>监控与47的交互：<code>trafshow -n -i eth0 host 10.0.2.47</code>;</p>
+
+<h1>网络带宽测试：iperf</h1>
+
+<p>又叫bandwidth或者throughput测试，用来测试Server和Client间的最大传输速率。</p>
+
+<p>iperf是命令行工具，还有一个基于Java的图形界面<a href="https://code.google.com/p/xjperf/">jperf</a>可运行在Windows和linux上；</p>
+
+<p>安装：Ubuntu用apt-get install iperf安装，Redhat需要在&#8221;<a href="http://pkgs.repoforge.org/iperf/">http://pkgs.repoforge.org/iperf/</a>&ldquo;上根据操作系统的版本和架构选择一个rpm下载（47服务器系统为Redhat 5.4, x86_64，下载的是iperf-2.0.4-1.el5.rf.x86_64.rpm），然后用rpm -ivh <file_name>安装；</p>
+
+<h2>用法</h2>
+
+<ol>
+<li><p>启动服务端：iperf -s；</p></li>
+<li><p>启动客户端：iperf -c 10.0.2.47 -i 1 -f M（-c后面跟服务器IP地址，-i表示发送的时间间隔，-f M表示返回结果以MByte为单位）；</p></li>
+</ol>
+
+
+<p>或者启动图像客户端jperf，点击&#8221;Run IPerf&#8221;按钮就可以测网络带宽了。给出的结果是笔记本电脑与113服务器之间单向单流（1 stream）带宽为1.8MB/s左右；</p>
+
+<p>iperf作为客户端还有两个比较有用的选项分别是-d和-d -r，前者表示测试同时双向传输的速率，后者表示先进行client to server的单向传输测试，完毕后互换角色，反过来进行server to client的单向传输测试，过程如下：</p>
+
+<p>server: iperf -s</p>
+
+<p>client: iperf -c 10.0.2.47 -i 1 -f M -d（或者iperf -c 10.0.2.47 -i 1 -f M -d -r）</p>
+
+<p>参考：</p>
+
+<p><a href="http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf">http://www.smallnetbuilder.com/lanwan/lanwan-howto/30408-measuring-network-performance-jperf</a></p>
+
+<p><a href="http://openmaniak.com/iperf.php">http://openmaniak.com/iperf.php</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/21/165131/">用vim制作大报文传输测试文件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-21T16:51:31+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>4:51 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这个测试文件用来测试我们开发的应用在传输大报文时的稳定性，是否丢包等，所以这个文件首先要比较大，2MB左右，其次要容易定位，如果传输中间断开，能够容易的知道已经传输了多少报文，根据这些要求，需要制作一个7万多行的文本文件，每行的格式如下：</p>
+
+<p> 73727  abcdefghijklmnopqrstuvwxyz</p>
+
+<p>制作过程分两步，第一步生成不变的部分，也就是abc&hellip;xyz，先手写一行，然后用yy和p命令很容易搞定，第二步要在每行前面生成行号，执行下面这个指令：</p>
+
+<p> :%!cat -n</p>
+
+<p>由于Windows不支持cat指令，这个方法仅能在linux上实现。</p>
+
+<p>参考：<a href="http://stackoverflow.com/questions/252766/add-line-numbers-in-vim">http://stackoverflow.com/questions/252766/add-line-numbers-in-vim</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/17/212030/">Windows上运行gevent的两个示例程序</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-17T21:20:30+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:20 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>gevent从1.0rc1开始将底层依赖的libevent改为libv，并打入了发布包中，降低了部署的难度，在Windows上只要先安装greenlet再装gevent就可以运行了，pypi上可以下到二者的windows安装包（我试用的是gevent-1.0rc2.win32-py2.7.exe和greenlet-0.4.0.win32-py2.7.exe），运行了<a href="https://github.com/SiteSupport/gevent/tree/master/examples">官网示例程序</a>中的回显服务（echoServer）和端口转发（portForwarder）两个示例，将来可以作为erlang版对应的python版实现。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/14/213106/">Erlang学习笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-14T21:31:06+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:31 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>安装</h1>
+
+<p> Ubuntu Server上： sudo apt-get install erlang</p>
+
+<p> 如果安装时下载 太慢，可手工下载deb包（ esl-erlang_16.a-rc1_ubuntu_precise_i386.deb ），下完deb文件后，ftp到虚拟机上，用dpkg -i &lt;.deb file>安装（需要首先安装JRE）；Ubuntu Server不能更改屏幕大小，也不能copy/paste文本，所以用kitty ssh过去操作比较好；</p>
+
+<h1>erlang 语法</h1>
+
+<p>代码中逗号，分号，句号的用法：逗号是表达式的分隔符（可以理解为AND），分号是条件分支的分隔符（可以理解为OR），句号是函数结束符（可以理解为END）；</p>
+
+<p>参考&#8221;<a href="http://stackoverflow.com/questions/1110601/in-erlang-when-do-i-use-or-or">http://stackoverflow.com/questions/1110601/in-erlang-when-do-i-use-or-or</a>&#8220;；</p>
+
+<h1>erlang文档</h1>
+
+<ul>
+<li><p>在线版（增量式查找，效果比离线版好）：<a href="http://www.erlang.org/erldoc">http://www.erlang.org/erldoc</a></p></li>
+<li><p>离线版：otp_doc_html_R16A_RELEASE_CANDIDATE.tar.gz</p></li>
+</ul>
+
+
+<p>在<a href="http://www.erlang.org/download.html">erlang官网下载页</a>上下载<a href="http://www.erlang.org/download/otp_doc_html_R16A_RELEASE_CANDIDATE.tar.gz">Erlang/OTP R16A HTML Documentation File</a>，解压到DOC_HOME下，tr_server中用到的gen_server:start_link/4函数可以在$DOC_HOME\lib\stdlib-1.19\doc下找到html和pdf版的api说明；erlang用到的各个库的api文档都在.\lib文件夹下；erlang用户手册在.\doc目录下，erlang运行时（ERTS）在.\erts-5.10下；</p>
+
+<p>erlang内置函数（BIF）文档在$DOC_HOME\erts-5.10\doc\html\erlang.html中可以查到（或者是对应的pdf文档：$DOC_HOME\erts-5.10\doc\pdf\erts-5.10.pdf的Reference Manual -> erlang部分中），例如apply, list_to_atom等；</p>
+
+<h1>erlang编译器</h1>
+
+<p>Windows上的erlc居然不支持文件通配符，运行&#8221;F:\tcp_rpc>&ldquo;C:\Program Files\erl5.10\bin\erlc.exe&rdquo; -o ./ebin ./src/*.erl&#8221;提示IO错误，只能用&#8221;F:\tcp_rpc>&ldquo;C:\Program Files\erl5.10\bin\erlc.exe&rdquo; -o ./ebin ./src/tr_sup.erl&#8221;的办法分别编译3个erl源文件；</p>
+
+<h1>IDE</h1>
+
+<h2>erlide</h2>
+
+<p>在Eclipse for java developers 4.2中，用 eclipse market搜索erlide并安装成功；（2013-05-13）</p>
+
+<p>See <a href="https://github.com/erlide/erlide/wiki/Tutorial-Quick-Start">https://github.com/erlide/erlide/wiki/Tutorial-Quick-Start</a> for using this plugin to build a HelloWord erlang program.</p>
+
+<h1>其他</h1>
+
+<p>erlang发音：elan（哦兰）；</p>
+
+<h1>多台机器上的erlang节点互相连接</h1>
+
+<p>使用erl -name name@ip -setcookie cookiename启动erlang节点，启动后用net_adm:ping(&lsquo;name@ip&rsquo;)进行连接，上午在笔记本和两台服务器上创建3个节点并互联成功，其中笔记本是Win7（IP为10.31.1.30），两个服务器是Ubuntu Server 12.04（IP是10.31.1.113和10.0.7.47），每个节点的-name参数是自己的名字和IP地址，互联的各节点的cookiename需一致；另外Win7可能要关闭防火墙；ip必须是节点的真实IP，如果是hostname，需要有效的DNS，否则无法连接；</p>
+
+<h1>Remote shell</h1>
+
+<p>113服务器：$ erl -name <a href="&#109;&#97;&#x69;&#x6c;&#116;&#111;&#58;&#x6c;&#99;&#x40;&#x31;&#x30;&#x2e;&#x33;&#x31;&#x2e;&#x31;&#x2e;&#x31;&#x31;&#51;">&#x6c;&#99;&#x40;&#x31;&#x30;&#x2e;&#x33;&#49;&#46;&#x31;&#46;&#x31;&#x31;&#x33;</a> -setcookie test</p>
+
+<p>47服务器：$ erl -name <a href="&#x6d;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#108;&#99;&#x40;&#49;&#x30;&#46;&#x30;&#46;&#x37;&#x2e;&#x34;&#55;">&#108;&#99;&#x40;&#x31;&#48;&#46;&#48;&#x2e;&#55;&#x2e;&#52;&#55;</a> -setcookie test</p>
+
+<p>在113上远程连接47：Ctrl + G，然后用r指令，例如：</p>
+
+<p> (<a href="&#109;&#x61;&#x69;&#108;&#116;&#111;&#58;&#x6c;&#99;&#x40;&#x31;&#x30;&#x2e;&#51;&#x31;&#x2e;&#x31;&#46;&#x31;&#x31;&#51;">&#108;&#x63;&#64;&#49;&#x30;&#46;&#x33;&#49;&#46;&#x31;&#46;&#49;&#49;&#51;</a>)1>
+ User switch command
+  &ndash;> r &lsquo;<a href="&#109;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#x6c;&#x63;&#64;&#49;&#48;&#x2e;&#48;&#x2e;&#x37;&#x2e;&#x34;&#55;">&#x6c;&#99;&#x40;&#x31;&#x30;&#x2e;&#48;&#46;&#x37;&#46;&#52;&#x37;</a>&rsquo;
+  &ndash;> j
+  1 {shell,start,[init]}
+  2* {&lsquo;<a href="&#109;&#x61;&#105;&#108;&#x74;&#x6f;&#58;&#x6c;&#99;&#x40;&#x31;&#48;&#46;&#48;&#x2e;&#x37;&#x2e;&#x34;&#x37;">&#108;&#x63;&#64;&#49;&#48;&#x2e;&#48;&#46;&#55;&#46;&#52;&#55;</a>&rsquo;,shell,start,[]}
+  &ndash;> c
+ Eshell V5.8.5 (abort with ^G)
+ (<a href="&#109;&#x61;&#105;&#108;&#x74;&#x6f;&#x3a;&#108;&#99;&#64;&#x31;&#48;&#46;&#x30;&#46;&#55;&#46;&#x34;&#x37;">&#x6c;&#99;&#64;&#x31;&#48;&#x2e;&#x30;&#46;&#55;&#x2e;&#52;&#55;</a>)1></p>
+
+<p>更多细节：</p>
+
+<p>发起和目标节点上的erl shell都必须已经启动，不需要首先用net_adm:ping建立连接，在113上连接上47后，不能关闭47上的节点，否则remote shell也会随之断开；</p>
+
+<p>113要切换到local shell用&#8221;Ctrl+G, j, c <job id>&ldquo;方式；</p>
+
+<p>113要退出本地erlang环境用&#8221;Ctrl+G, Ctrl+C, A&#8221;方式（Linux下）；</p>
+
+<p>113要关闭47上的节点用&#8221;q().&ldquo;命令；</p>
+
+<p>113要关闭连接47的Remote Shell用&#8221;Ctrl+G, j, k <job id>&ldquo;方式；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/12/215055/">VirtualBox中虚拟机在NAT和Host-only方式间切换</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-12T21:50:55+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:50 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>NAT模式下虚拟机可以访问互联网，Host-only模式下主机可以通过SSH访问虚拟机，所以这两种方式经常要互相切换，开始是用重启虚拟机的方法，后来感觉这样太慢了，可以先将虚拟机的网络设置改过去，然后用下面的命令重启网卡：</p>
+
+<p>sudo ifdown eth0</p>
+
+<p>sudo ifup eth0</p>
+
+<hr />
+
+<p>2013-02-17</p>
+
+<p>Win7: 网络和共享中心 -> 无线网络连接 -> 属性 -> 共享 -> “允许其他网络用户……”：VirtualBox Host-only Network；</p>
+
+<p>用ipconfig查到无线网卡的DNS服务器地址：</p>
+
+<p>VirtualBox全局设置 -> 网络 -></p>
+
+<p>Ubuntu虚拟机中配置静态IP地址和DNS服务器：</p>
+
+<p>貌似DNS Server不设也行；</p>
+
+<hr />
+
+<p>2014-01-27</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -306,380 +674,6 @@ tar -xzvf libevent-2.0.21-stable.tar.gz
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/05/160056/">Expect编程参考资源</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-05T16:00:56+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>expect</h1>
-
-<p> <a href="http://ubuntuforums.org/showthread.php?t=220139">http://ubuntuforums.org/showthread.php?t=220139</a>
- <a href="http://www.chinaunix.net/old_jh/24/594417.html">http://www.chinaunix.net/old_jh/24/594417.html</a></p>
-
-<p> <a href="http://kahimyang.info/kauswagan/howto_blogs/704-using_expect_script_to_automate_ssh_logins_and_do_routine_tasks_accross_multiple_hosts">http://kahimyang.info/kauswagan/howto_blogs/704-using_expect_script_to_automate_ssh_logins_and_do_routine_tasks_accross_multiple_hosts</a></p>
-
-<h1>pexpect</h1>
-
-<p> <a href="http://www.noah.org/wiki/pexpect">http://www.noah.org/wiki/pexpect</a></p>
-
-<p>尝试了pexpect example的sshls脚本，不知道为什么比同样的expect脚本慢了很多；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/04/151243/">ConcurrentLinkedQueue vs LinkedBlockingQueue</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-04T15:12:43+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>根据LinkedBlockingQueue实现的接口BlockingQueue的文档，BlockingQueue及其所有实现类都是线程安全的，且可用于多个Producer/Consumer的场景，它的主要用途是Producer-Consumer模型，它提供了4种出/入队列的方法，分别是抛异常、特殊值、阻塞和超时。</p>
-
-<p>LinkedBlockingQueue初始化时可以设置容量，所以BlockingQueue具备一种“流量平衡”能力，即当消费过快以至于队列空时，出队列（消费）操作将阻塞；生产过快以至于队列满时，入队列（生产）操作将阻塞。</p>
-
-<p>BlockingQueue的take()方法在阻塞状态下是不消耗CPU的。</p>
-
-<p>ConcurrentLinkedQueue是一个&#8221;wait-free&#8221; algorithm（见文档），它的使用场景目前还不清楚。</p>
-
-<p>参考：</p>
-
-<p> <a href="http://stackoverflow.com/questions/1426754/linkedblockingqueue-vs-concurrentlinkedqueue">http://stackoverflow.com/questions/1426754/linkedblockingqueue-vs-concurrentlinkedqueue</a></p>
-
-<p> <a href="http://stackoverflow.com/questions/1426342/need-a-queue-that-can-support-multiple-readers/1426375#1426375">http://stackoverflow.com/questions/1426342/need-a-queue-that-can-support-multiple-readers/1426375#1426375</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/01/160330/">用expect做自动运行脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-02-01T16:03:30+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>4:03 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的脚本演示了在Ubuntu上安装expect，写一个切换用户的expect脚本，并运行脚本看到效果的过程。</p>
-
-<p> root@guserver:~# apt-get install expect
- godu@guserver:~$ cat su.exp
- #!/usr/bin/expect
- set timeout 20
- set user [lindex $argv 0]
- set password [lindex $argv 1]
- spawn su $user
- expect &ldquo;Password:&rdquo;
- send &ldquo;$password\r&rdquo;;
- interact
- godu@guserver:~$ ./su.exp chad mypwd
- spawn su chad
- Password:
- chad@guserver:/home/godu$</p>
-
-<p>参考：<a href="http://www.thegeekstuff.com/2010/10/expect-examples/">6 Expect Script Examples to Expect the Unexpected (With Hello World)</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/28/182753/">ConEmu笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-28T18:27:53+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>所有console都关闭后是否在托盘区保留ConEmu图标：Settings -> Main -> Task bar -> When last console is closed: check &ldquo;Close ConEmu window&rdquo;;</p></li>
-<li><p>单个窗口时隐藏tab页：Settings -> Features -> Tabs -> Tabs: check &ldquo;Auto show&rdquo;;</p></li>
-</ul>
-
-
-<h1>常用快捷键</h1>
-
-<p>Win+Q: 下一个tab页；</p>
-
-<p>Win+X: 新建一个tab页；</p>
-
-<p>Win+Delete: 关闭当前tab页；</p>
-
-<p>Ctrl + PgUp/PgDown: 向前/后翻页</p>
-
-<p>Win+Alt+P: 打开设置窗体</p>
-
-<h1>在TotalCmd中启动ConEmu等外部程序</h1>
-
-<p>TotalCmd的Ctrl+G（Start DOS）可以在当前路径下启动命令行，但命令行窗口的字体太丑了，需要以ConEmu（命令行增强工具）代替它，不用Autohotkey或者Executor启动ConEmu的原因在于，我们需要ConEmu启动后的当前目录是TotalCmd的当前目录，这个值每次都不同，不可能配到这些全局性的程序里，只能从TotalCmd里拿到当前目录然后启动ConEmu，实现方法如下：</p>
-
-<ol>
-<li><p>定义用户指令：主菜单 -> Commands -> Browse Internal Commands，&#8221;Category&#8221;选usercmd.ini，新建一个名为em_ConEmu的指令，&#8221;Command&#8221;和&#8221;Icon file&#8221;都填&#8221;d:\Apps\ConEmu\ConEmu.exe&#8221;，&#8221;Parameters&#8221;写&#8221;/Single&#8221;（大小写敏感，新创建的窗口作为已有ConEmu窗口的tab，而不是新开一个窗口），&#8221;Start path&#8221;留空，因为留空意味着以当前目录为起始目录；</p></li>
-<li><p>为该指令指定快捷键：主菜单 -> Configuration -> Misc -> Redefine hotkeys，快捷键设为Alt + G，Command设为em_ConEmu。</p></li>
-</ol>
-
-
-<p>这样就可以用Alt + G启动增强的命令行了，同样的方法可以启动其他任何需要获得TotalCmd当前路径的可执行程序；</p>
-
-<p>要查看已经定义的快捷键，点击&#8221;Hotkey&#8221;单选框后面的小三角按钮，就会列出所有已定义的快捷键。</p>
-
-<p> -></p>
-
-<h1>其他</h1>
-
-<ul>
-<li>用ConEmu取代cmd.exe作为默认的Console程序环境：Settings -> Features -> Integration:</li>
-</ul>
-
-
-<p> Check &ldquo;Force ConEmu as default terminal for console applications&rdquo; &amp; &ldquo;Register on OS startup&rdquo;;</p>
-
-<ul>
-<li>ConEmu还有其他很多有用的命令行参数，使用ConEmu.exe /help查看。</li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/27/132736/">计算成本图像演示方法的改进</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-27T13:27:36+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>1:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>本文在笔记 BinarySearchST计算成本的测试代码 的基础上，尝试将成本计算和图像演示等功能封装在一个单独的类中，尽量降低对被测试类的改动。</p>
-
-<h1>测试方法</h1>
-
-<ol>
-<li><p>在被测类中增加一个成员及其getter；</p></li>
-<li><p>在FrequencyCounter类中增加：st.getVisitTimes().drawCostCurve();</p></li>
-</ol>
-
-
-<h1>两个实例</h1>
-
-<h2>BinarySearchST</h2>
-
-<p> public class BinarySearchST<Key extends Comparable<Key>, Value> {
-  private final VisitTimeCounter vtc = new VisitTimeCounter();
-  public VisitTimeCounter getVisitTimes() {
-   return vtc;
-  }
-  public int rank(Key key) {
-   int lo = 0, hi = N - 1;
-   while (lo &lt;= hi) {
-    int m = lo + (hi - lo) / 2;
-    vtc.addVisitTimes();
-    int cmp = key.compareTo(keys[m]);
-    if (cmp &lt; 0)
-     hi = m - 1;
-    else if (cmp > 0)
-     lo = m + 1;
-    else
-     return m;
-   }
-   return lo;
-  }
-  public void put(Key key, Value val) {
-   if (val == null) {
-    delete(key);
-    return;
-   }
-   int i = rank(key);
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0) {
-    vtc.putComplete();
-    vals[i] = val;
-    return;
-   }
-   if (N == keys.length)
-    resize(2 * keys.length);
-   for (int j = N; j > i; j&ndash;) {
-    keys[j] = keys[j - 1];
-    vals[j] = vals[j - 1];
-    vtc.addVisitTimes();
-   }
-   keys[i] = key;
-   vals[i] = val;
-   N++;
-   vtc.putComplete();
-   assert check();
-  }
- }</p>
-
-<p>对原版BinarySearchST类的修改包括增加了一个成员（vtc）和它的getter，在rank和put中各加了一个vtc.addVisitTimes()表示查询和插入操作中对数组的访问，以及put中两处vtc.putComplete()，表示在命中和未命中两种情况下将本次put的访问次数存入数组记录中。</p>
-
-<p>下面是VisitTimeCounter类：</p>
-
-<p> public class VisitTimeCounter {
-  private int visitTimesInsidePut = 0; // 一次put操作当中的数组访问次数
-  private final List<Integer> visitTimesInAllPut = new ArrayList<Integer>(); // 各次put的访问次数汇总保存在这里
-  public void addVisitTimes() {
-   visitTimesInsidePut++;
-  }
-  public void putComplete() {
-   visitTimesInAllPut.add(visitTimesInsidePut);
-   visitTimesInsidePut = 0;
-  }
-  public void drawCostCurve() {
-   int maxComp = 0;
-   for (Integer i : visitTimesInAllPut) {
-    if (i > maxComp) {
-     maxComp = i;
-    }
-   }
-   StdOut.println(&ldquo;matrix scale: &rdquo; + visitTimesInAllPut.size() + &ldquo;, &rdquo;
-     + maxComp);
-   VisualAccumulator va = new VisualAccumulator(visitTimesInAllPut.size(),
-     maxComp);
-   for (int t = 0; t &lt; visitTimesInAllPut.size(); t++) {
-    va.addDataValue(visitTimesInAllPut.get(t));
-   }
-  }
- }</p>
-
-<p>FrequencyCounter类中演示成本只需要一条语句：</p>
-
-<p> BinarySearchST&lt;String, Integer> st = new BinarySearchST&lt;String, Integer>(); // copy from original codes</p>
-
-<p> st.getVisitTimes().drawCostCurve();</p>
-
-<h2>BST</h2>
-
-<p>即二叉查找树（binary search tree），原版代码见algs4-package.jar的BST.java类。</p>
-
-<p> public class BST<Key extends Comparable<Key>, Value> {
-  private final VisitTimeCounter vtc = new VisitTimeCounter();
-  public VisitTimeCounter getVisitTimes() {
-   return vtc;
-  }
-  public void put(Key key, Value val) {
-   if (val == null) {
-    delete(key);
-    return;
-   }
-   root = put(root, key, val);
-   vtc.putComplete();
-   assert check();
-  }
-  private Node put(Node x, Key key, Value val) {
-   if (x == null)
-    return new Node(key, val, 1);
-   int cmp = key.compareTo(x.key);
-   vtc.addVisitTimes();
-   if (cmp &lt; 0)
-    x.left = put(x.left, key, val);
-   else if (cmp > 0)
-    x.right = put(x.right, key, val);
-   else
-    x.val = val;
-   x.N = 1 + size(x.left) + size(x.right);
-   return x;
-  }
-  private int rank(Key key, Node x) {
-   if (x == null)
-    return 0;
-   int cmp = key.compareTo(x.key);
-   vtc.addVisitTimes();
-   if (cmp &lt; 0)
-    return rank(key, x.left);
-   else if (cmp > 0)
-    return 1 + size(x.left) + rank(key, x.right);
-   else
-    return size(x.left);
-  }
- }</p>
-
-<p>查找成本体现在rank方法中，插入时每次访问的记录体现在private Node put方法中，总次数的记录体现在public void put方法中。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/58">&larr; Older</a>
@@ -697,23 +691,23 @@ tar -xzvf libevent-2.0.21-stable.tar.gz
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a>
+        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/142454/">A Simple Search Homepage</a>
+        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/121145/">Bootstrap 3的栅格系统</a>
+        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/020909/">基于Bootstrap 3的页眉页脚控制</a>
+        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/14/160455/">创建简单的网站Logo</a>
+        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
       </li>
     
   </ul>

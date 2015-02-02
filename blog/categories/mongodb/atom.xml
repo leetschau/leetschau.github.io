@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Mongodb | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/mongodb/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-01-23T11:15:02+08:00</updated>
+  <updated>2015-02-02T16:10:00+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,161 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[基于Search Source的简单查询实现方法]]></title>
+    <link href="http://leetschau.github.io/blog/2015/01/30/183509/"/>
+    <updated>2015-01-30T18:35:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/01/30/183509</id>
+    <content type="html"><![CDATA[<p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
+通过<code>meteor add meteorhacks:search-source</code>添加到meteor中，
+代码参照了<a href="https://github.com/meteorhacks-samples/meteor-instant-search-demo">meteor-instant-search-demo</a>.</p>
+
+<h1>准备数据源</h1>
+
+<h2>导入数据</h2>
+
+<ol>
+<li><p>下载<a href="http://media.mongodb.org/zips.json">zips.json</a>；
+参考<a href="http://stackoverflow.com/questions/5723896/is-there-a-sample-mongodb-database-along-the-lines-of-world-for-mysql">Is there a sample MongoDB Database along the lines of world for MySql?</a>.</p></li>
+<li><p>导入Meteor数据库中：启动meteor服务，然后在另一个shell里运行：
+<code>~/apps/mongodb-linux-x86_64-2.6.5/bin/mongoimport -h localhost:3001 --db meteor --collection zips --type json --file zips.json</code>;</p></li>
+<li><p>增加搜索字段：由于简单搜索要求输入可能匹配任意字段，
+能达到这个要求的唯一方法就是将被查询的字段连接成一个完整的“搜索”字符串，
+输入的各项可以以任何顺序出现在这个搜索字符串（这里这一项名为&#8221;forsearch&#8221;）中，下面增加这一项：</p>
+
+<pre><code> db.zips.find().forEach(function(elem) {
+     db.zips.update(
+       {_id: elem._id},
+       { $set: {forsearch: elem.city + ' ' + elem.state}}
+     );
+ });
+</code></pre>
+
+<p> 参考<a href="http://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field">Update MongoDB field using value of another field</a>.</p></li>
+</ol>
+
+
+<h1>搜索逻辑</h1>
+
+<p>下面&#8221;/&ldquo;都指项目根目录。</p>
+
+<h2>数据集定义</h2>
+
+<p>在/collections.js中定义数据集和索引：</p>
+
+<pre><code>Zips = new Mongo.Collection('zips');
+if(Meteor.isServer) {
+  Zips._ensureIndex({city: 1, state: 1});
+}
+</code></pre>
+
+<h2>服务端</h2>
+
+<p>在/server/server.js中定义：</p>
+
+<pre><code>SearchSource.defineSource('zips', function(searchText, options) {
+  var options = {sort: {isoScore: -1}, limit: 20};
+
+  if(searchText) {
+    var regExp = buildRegExp(searchText);
+    var selector =  {forsearch: regExp};
+    return Zips.find(selector, options).fetch();
+  } else {
+    return Zips.find({}, options).fetch();
+  }
+});
+
+function buildRegExp(searchText) {
+  var parts = searchText.trim().split(/[ \-\:]+/);
+  for (i=0; i&lt;parts.length; ++i) {
+    parts[i] = "(?=.*" + parts[i] + ")";
+  }
+  var res = new RegExp("(" + parts.join("") + ")", "i");
+  return res;
+}
+</code></pre>
+
+<p>buildRegExp函数中的正则表达式<code>(?=.*A)(?=.*B)</code>可以实现对A和B任意顺序的匹配，
+即既能匹配A.<em>B，又能匹配B.</em>A，
+参考<a href="http://stackoverflow.com/questions/19896324/match-string-in-any-word-order-regex">match string in any word order regex</a>.</p>
+
+<h2>客户端：搜索输入框框即时响应</h2>
+
+<p>搜索框是通用控件，所以定义在了/client/comTemp.js中，定义了对框中keyup事件的响应：</p>
+
+<pre><code>Template.Header.events({
+  "keyup #search-input": _.throttle(function(e) {
+    var text = $(e.target).val().trim();
+    ZipSearch.search(text);
+  }, 200)
+});
+</code></pre>
+
+<h2>客户端：搜索结果展示页面</h2>
+
+<p>定义在/client/results.html中。</p>
+
+<pre><code>&lt;template name="SearchResults"&gt;
+  &lt;div id="search-result" class="container content"&gt;
+    &lt;div id="search-meta"&gt;
+      
+        searching ...
+      
+    &lt;/div&gt;
+
+    
+      &lt;div class="package"&gt;
+        &lt;h4 class="name"&gt;
+          }
+        &lt;/h4&gt;
+        &lt;div class="description"&gt;
+          }, }
+        &lt;/div&gt;
+      &lt;/div&gt;
+    
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+
+<h2>客户端：搜索结果的数据控制</h2>
+
+<p>定义在/client/results.js中。</p>
+
+<pre><code>var options = {
+  keepHistory: 1000 * 60 * 5,
+  localSearch: true
+};
+var fields = ['forsearch'];     // 这里定义要搜索的字段
+
+ZipSearch = new SearchSource('zips', fields, options);
+// 这里的zips要与服务端SearchSource.defineSource中定义的名字一致
+
+Template.SearchResults.helpers({
+  getZips: function() {
+    return ZipSearch.getData({
+      transform: function(matchText, regExp) {
+        console.log("matchText: " + matchText);
+        console.log("regExp: " + regExp);
+        var res = matchText.replace(regExp, "&lt;b&gt;$&amp;&lt;/b&gt;");
+        console.log("res is: " + res);
+        return res;
+      },
+      sort: {isoScore: -1}
+    });
+  },
+
+  isLoading: function() {
+    return ZipSearch.getStatus().loading;
+  }
+});
+
+Template.SearchResults.rendered = function() {
+  ZipSearch.search('');
+};
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Frequent Used Commands in Mongodb Shell]]></title>
@@ -74,6 +229,26 @@ fi
 </code></pre>
 
 <p>Now we can start mongo server and client anywhere in a shell.</p>
+
+<h1>Database Management</h1>
+
+<p>First start mongo server <code>mongod</code>. Then start the client with <code>mongo</code>.
+All the following commands is running in mongo shell, whose prompt is &lsquo;> &rsquo;.</p>
+
+<p>List all existing database: <code>show dbs</code>;</p>
+
+<p>Create a new database &ldquo;meteor&rdquo; and switch to it: <code>use meteor</code>;</p>
+
+<p>Remove database &ldquo;mydb&rdquo;: <code>use mydb</code>, then <code>db.dropDatabase()</code>;</p>
+
+<h1>Backup and Restore</h1>
+
+<ul>
+<li><p>Backup a database: <code>mongodump -d &lt;db_name&gt;</code>;</p></li>
+<li><p>Backup a collection: <code>mongodump -d &lt;db_name&gt; -c &lt;collection_name&gt;</code>;</p></li>
+<li><p>Restore a collection: <code>mongorestore -d &lt;target_db_name&gt; -c &lt;target_collection_name&gt;.bson</code>;</p></li>
+</ul>
+
 ]]></content>
   </entry>
   
@@ -97,22 +272,27 @@ fi
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Load Data From Csv File Into Meteor Mongodb]]></title>
+    <title type="html"><![CDATA[Import Data From Files Into Mongodb]]></title>
     <link href="http://leetschau.github.io/blog/2014/12/08/114328/"/>
     <updated>2014-12-08T11:43:28+08:00</updated>
     <id>http://leetschau.github.io/blog/2014/12/08/114328</id>
-    <content type="html"><![CDATA[<p>Here I use mongoDB&rsquo;s mongoimport tool to import csv file into Meteor app&rsquo;s Mongodb.</p>
+    <content type="html"><![CDATA[<h1>From CSV File</h1>
+
+<p>Here I use mongoDB&rsquo;s mongoimport tool to import csv file into Meteor app&rsquo;s Mongodb.</p>
 
 <p>First download mongodb package (mongodb-linux-x86_64-2.6.5.tgz) from <a href="http://www.mongodb.org/">mongoDB</a>, extract it into ~/apps folder.</p>
 
-<p>Next start the Meteor app. When the server listening on port 3000, it&rsquo;s mongoDB server listening on port 3001.</p>
+<p>Next start the Meteor app. Open a new terminal window, in project root folder, run <code>meteor mongo</code>.
+You can see something like &ldquo;connecting to: 127.0.0.1:3001/meteor&rdquo;.
+This tells us database server is listening on port 3001, and database name is &ldquo;meteor&rdquo;.</p>
 
 <p>Save the following codes into app&rsquo;s $HOME/private folder as importdb.sh:</p>
 
-<pre><code>~/apps/mongodb-linux-x86_64-2.6.5/bin/mongoimport -h localhost:3001 --db meteor --collection fairs --type csv --file fairs.csv --headerline
+<pre><code>mongoimport -h localhost:3001 --db meteor --collection fairs --type csv --file fairs.csv --headerline
 </code></pre>
 
-<p>Here the source csv file is saved in file private/fairs.csv.</p>
+<p>Here &ldquo;-d&rdquo; equals to &ldquo;&ndash;db&rdquo;, &ldquo;-c&rdquo; equals to &ldquo;&ndash;collection&rdquo;.
+And the source csv file is saved in file private/fairs.csv.</p>
 
 <p>It&rsquo;s headerline (first line of csv file) is also comma-seperated:</p>
 
@@ -123,29 +303,47 @@ Tom, 28, Coder
 </code></pre>
 
 <p>Now in the Meteor app, add <code>Fairs = new Meteor.Collection("fairs");</code> into js file to use the data.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[MEAN Devlopment on Linux]]></title>
-    <link href="http://leetschau.github.io/blog/2014/10/20/171325/"/>
-    <updated>2014-10-20T17:13:25+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/10/20/171325</id>
-    <content type="html"><![CDATA[<h1>ArchLinux</h1>
 
-<pre><code>sudo pacman -S nodejs mongodb
-sudo systemctl enable mongodb.service
-sudo systemctl start mongodb.service
-// verify with command "mongo"
-sudo npm install -g meanio
-sudo npm install -g bower
-sudo npm install -g grunt-cli
-mean init myApp
-cd myApp &amp;&amp; npm install
-grunt
+<h1>From JSON File</h1>
+
+<h2>Json Lint</h2>
+
+<p>Validate the json file with <a href="https://github.com/zaach/jsonlint">jsonlint</a>.</p>
+
+<p>You need install node.js, then install jsonlint with <code>npm install jsonlint -g</code>.
+Next check the json file with <code>jsonlint myfile.json</code>.</p>
+
+<h2>Import from Json File</h2>
+
+<p>Use the following commands to import json objects from a file:</p>
+
+<pre><code>mongoimport -h localhost:3001 -d meteor -c fairs --type json --jsonArray --file demo.json
 </code></pre>
 
-<p>Now browse <a href="http://localhost:3000.">http://localhost:3000.</a></p>
+<p>Or if your mongod is running on localhost, use the following line to import (don&rsquo;t create the target database and collection before import):</p>
+
+<pre><code>mongoimport -d meteor -c fairs --type json --file first31.json --jsonArray
+</code></pre>
+
+<p>This is a sample of the imported json file:</p>
+
+<pre><code>[
+  { name: "Widget 1",
+    desc: "This is Widget 1"
+  },
+  { name: "Widget 2",
+    desc: "This is Widget 2"
+  }
+]
+</code></pre>
+
+<p>If the &ldquo;&ndash;jsonArray&rdquo; option is omitted, the json file have to keep each object in one line, like this:</p>
+
+<pre><code>{ name: "Widget 1", desc: "This is Widget 1" }
+{ name: "Widget 2", desc: "This is Widget 2" }
+</code></pre>
+
+<p>See <code>mongoimport --help</code> for details.</p>
 ]]></content>
   </entry>
   

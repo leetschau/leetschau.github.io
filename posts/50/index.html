@@ -9,7 +9,14 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="jdk1.6.0_35/src.zip, only java package is reviewd(full package review caused a OutofMemory on java heap size). Checkstyle Review tyRules.xml: &lt;? &hellip;">
+  <meta name="description" content="Verified on Ubuntu 12.04 Desktop. Assume debugged method is add2/2 in fordebug module as follows: 1
+2
+3
+4
+5
+6
+7
+-module(fordebug). -export([add/3]). &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +72,314 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/24/104534/">Debug Erlang Program</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-24T10:45:34+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:45 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Verified on Ubuntu 12.04 Desktop.</p>
+
+<p>Assume debugged method is add2/2 in fordebug module as follows:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>-module(fordebug). 
+</span><span class='line'>-export([add/3]). 
+</span><span class='line'>add(A1, A2, A3) when is_integer(A1), is_integer(A2), is_integer(A3) -&gt; 
+</span><span class='line'>    add(A1, A2) * 100 + A3; 
+</span><span class='line'>add(_, _, _) -&gt; error. 
+</span><span class='line'>add(A1, A2) when A1 &gt;= 0, A2 &gt;= 0 -&gt; A1 + A2; 
+</span><span class='line'>add(_, _) -&gt; -1. </span></code></pre></td></tr></table></div></figure>
+
+
+<h1>GUI Debugger</h1>
+
+<ol>
+<li><p>Compile source files with &ldquo;debug_info&rdquo; flag: in erlang REPL window, <code>c(fordebug, debug_info).</code>;</p></li>
+<li><p>Start GUI debugger: <code>debugger:start().</code>, then &ldquo;Monitor&rdquo; window appears;</p></li>
+<li><p>Config source file breakpoint:</p>
+
+<ol type="a">
+<li><p>[Module -> Interpret], choose the source file to be debuged(in Monitor window);</p></li>
+<li><p>in Monitor window, double click fordebug, then the &ldquo;View Module&rdquo; window appears, set breakpoint here;</p></li>
+</ol>
+</li>
+<li><p>begin debug: in erlang REPL window, <code>fordebug:add(3,4,5).</code>, in Monitor window you can see a row under &ldquo;PID&rdquo;, double click it, the &ldquo;Attach Process&rdquo; window appears, you can see source code at the top pannel, step, continue program execution by bottons at the center, see values of variables in the bottom-right pannel, and evaluate variables at the bottom-left pannel;</p></li>
+</ol>
+
+
+<h1>GUI debugger with the help of i module</h1>
+
+<p>use ih(). to show help messages of i module.Repeat above procedure:</p>
+
+<p>c(fordebug, debug_info).</p>
+
+<p>im(). % start Monitor window</p>
+
+<p>ii(fordebug). % add mySrcFile to Monitor,</p>
+
+<p>%% use iq(mySrcFile) to remove mySrcFile from Monitor</p>
+
+<p>%% use il(). showing all interpreted modules</p>
+
+<p>ib(fordebug, add, 2).  % add breakpoint to at the first line of every clause of add/2</p>
+
+<p>%% ir(). % clear all breakpoints</p>
+
+<p>%% ipb().  % print all breakpoints</p>
+
+<p>iaa([init]). % attach to a debugger process automatically</p>
+
+<p>fordebug:add(4,6,8). % now Attach Process window appears, you can debug code in it</p>
+
+<p>NOTE: when doing this in sublime text, erlang shell hangs after debug process ends. So it&rsquo;s recommended to debug in console.</p>
+
+<h1>Command-line Debugger(not complete)</h1>
+
+<p>dbg:start().</p>
+
+<p>dbg:tracer().</p>
+
+<p>dbg:tp(mySrcFile,</p>
+
+<p>bingo.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/23/155951/">On Tail Recursion</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-23T15:59:51+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>3:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The essential advantage of tail recursion comparing with ordinary recursion is the efficiency. Why time &amp; space cost of tail recursion is linear while ordinary recursion is more? Chapter 5 of &ldquo;Learn You Some Erlang for Great Good&rdquo; by Fred Hebert gives a very concise and intuitive answer: tail recursion is &ldquo;alone&rdquo;. Following is an example of factorial algorithms to show the difference between these two.</p>
+
+<p>Ordinary Recursion:</p>
+
+<p> fac(N) when N > 0 -> N * fac(N-1).</p>
+
+<p>Tail Recursion:</p>
+
+<p> tail_fac(N, Acc) when N > 0 -> tail_fac(N-1, N*Acc).</p>
+
+<p>So you see, ordinary recursion is &ldquo;func(state N) -> do something transformation of func(state N-1)&rdquo;, while tail recursion is &ldquo;func(state N) -> func(state N-1)&rdquo;. This is exact meaning of &ldquo;alone&rdquo; above.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/22/183331/">归并目录的Python实现</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-22T18:33:31+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>6:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>待分析项目是OSGi结构，源代码目录src散布在多个模块目录下（如origin目录所示），现在需要分析整个项目的源代码，要将各个src目录下的所有内容合并到一起，</p>
+
+<p>origin
+├── mod1
+│ ├── conf
+│ │ └── app.conf
+│ ├── lib
+│ │ └── dep.jar
+│ └── src
+│  └── com
+│   └── boco
+│    └── d21.java
+├── mod2
+│ ├── conf
+│ │ └── app.conf
+│ ├── lib
+│ │ └── dep.jar
+│ └── src
+│  └── com
+│   └── boco
+│    └── d22.java
+└── build.xml</p>
+
+<p>合并后的目录结构如下：</p>
+
+<p>final
+├── mod1
+│ ├── conf
+│ │ └── app.conf
+│ └── lib
+│  └── dep.jar
+├── mod2
+│ ├── conf
+│ │ └── app.conf
+│ └── lib
+│  └── dep.jar
+├── build.xml
+└── src
+ └── com
+  └── boco
+   ├── d21.java
+   └── d22.java</p>
+
+<p>Python实现如下：</p>
+
+<p> import os
+ import distutils.dir_util
+ basedir = &lsquo;/home/chad/tmp/final&rsquo;
+ src_name = &lsquo;src&rsquo;
+ for root, dirs, files in os.walk(basedir):
+  print &lsquo;root = &rsquo;, root
+  if root.endswith(src_name):
+   dst = basedir+&lsquo;/&rsquo;+src_name
+   distutils.dir_util.copy_tree(root, dst)
+   distutils.dir_util.remove_tree(root)
+   print &lsquo;move &rsquo;, root, &lsquo; to &rsquo;, dst</p>
+
+<p>可以注释掉remove_tree一行，从而验证拷贝过程中是否丢失了文件。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/22/155605/">Change a File's Default Open Application</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-22T15:56:05+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>3:56 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I want open download_jnlp.jsp by java web start. It is associtated to another app by system. Now I have to change the app to This is achieved by 2 steps:</p>
+
+<h1>Add new application to [Open With -> Other Application]</h1>
+
+<p>Create a file named jsw.desktop in ~/.local/share/applications:</p>
+
+<p> [Desktop Entry]
+ Categories=;
+ Comment=Open file with java web start
+ Exec=/opt/jre1.6.0_14/bin/javaws %f
+ GenericName=Process Viewer
+ Hidden=false
+ Icon=jws
+ Name=jws
+ Terminal=false
+ Type=Application
+ Version=1.0</p>
+
+<p>See <a href="http://ubuntutechnical.wordpress.com/2012/02/01/add-new-application-to-open-with-other-application/">Add new application to Open With Other Application…</a> for details.</p>
+
+<h1>Make jws the default app to open this file</h1>
+
+<p>right click download_jnlp.jsp -> Properties -> Open With: select &ldquo;jws&rdquo; and click &ldquo;Set as default&rdquo;;</p>
+
+<p>Bingo!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/22/150921/">Cancel System Tray Auto-hide on Ubuntu 12.04</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-22T15:09:21+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>3:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>gsettings set com.canonical.Unity.Panel systray-whitelist &ldquo;[&lsquo;all&rsquo;]&rdquo;</p>
+
+<p>See <a href="http://blog.ubuntusoft.com/solve-the-ubuntu-unity-system-tray-does-not-display-images-that-are-part-of-the-program.html">http://blog.ubuntusoft.com/solve-the-ubuntu-unity-system-tray-does-not-display-images-that-are-part-of-the-program.html</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -415,339 +730,6 @@ Invoke Standalone Sonar Analysis
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/19/153646/">Erlang IDE Setup</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-19T15:36:46+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:36 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Windows Console</h1>
-
-<ol>
-<li><p>add erl.exe and vim.exe to %PATH%;</p></li>
-<li><p>start ConEmu, split window vertically (see note &ldquo; Multiple terminals operation on Windows and Ubuntu &rdquo; for spliting window detail);</p></li>
-<li><p>start erlang shell with <code>erl.exe</code> at left and <code>vim erlSrc.erl</code> at the right window;</p></li>
-</ol>
-
-
-<h1>Ubuntu Console</h1>
-
-<ol>
-<li><p>start Terminator and split window;</p></li>
-<li><p><code>erl</code> at left and <code>vi erlSrc.erl</code> at right;</p></li>
-</ol>
-
-
-<h1>IDE based on Sublime Text 2</h1>
-
-<p>Use package control install two package: SublimErl and SublimeREPL.</p>
-
-<p>Run erlang REPL: Sublime Text Menu / Tools / SublimeREPL / Erlang. If you got a error message, it&rsquo;s most probably caused by not adding werl.exe in $PATH. So Sublime Text Menu / Preferences / Package Settings / SublimeREPL / Settings-User, add <code>{ "default_extend_env": {"PATH": "{PATH};C:/Program Files/erl5.10/bin"} }</code>.</p>
-
-<p>alt+shift+2(shortcut in View / Layout): split window with 2 column;</p>
-
-<p>key shortcuts defs in sublime text 2:</p>
-
-<p><a href="http://docs.sublimetext.info/en/latest/reference/keyboard_shortcuts_win.html#">http://docs.sublimetext.info/en/latest/reference/keyboard_shortcuts_win.html#</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/17/094431/">去掉文件中的^M</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-17T09:44:31+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>一般情况下用:set ff=unix就可以解决问题，如果无效，用下面的方法手工完成：</p>
-
-<pre><code>:%s/[ctrl+v] [ctrl+m]//g
-</code></pre>
-
-<p>ctrl+v表示按住Ctrl键再按下v键。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/17/084555/">Analyze Java Code With Sonar on Ubuntu</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-17T08:45:55+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:45 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install Sonar Service</h1>
-
-<ol>
-<li><p><code>set JAVA_HOME=/usr/lib/jvm/default-java</code>(optional);</p></li>
-<li><p>install database: <code>apt-get install mysql-server</code>;</p></li>
-<li><p>download sonar-3.5.1.zip and extract to /opt/sonar-server;</p></li>
-<li><p>test startup: <code>$SONAR_HOME/bin/linux-x86-32/sonar.sh console</code>, web browser: <a href="http://localhost:9000;">http://localhost:9000;</a></p></li>
-<li><p>build database: root@chadpc56:/opt/sonar-server/sonar-3.5.1/extras/database/mysql# <code>mysql -u root -p &lt; create_database.sql</code>;</p></li>
-<li><p>modify db config: comment out &ldquo;sonar.jdbc.url: jdbc:h2&hellip;&rdquo;, uncomment &ldquo;sonar.jdbc.url: jdbc:mysql&hellip;&rdquo; in $SONAR_SERVER/conf/sonar.properties;</p></li>
-<li><p>verify db operations: <code>$SONAR_HOME/bin/linux-x86-32/sonar.sh console</code>, you can see many tables are created in mysql db, then <code>mysqlshow sonar -u sonar -p</code>, with password &ldquo;sonar&rdquo;, you can see a list of tables created;</p></li>
-<li><p>start sonar service: <code>nohup $SONAR_HOME/bin/linux-x86-32/sonar.sh start 1&gt;/dev/null &amp;</code>, you can monitor its startup via <code>tail -f $SONAR_HOME/logs/sonar.log</code>;</p></li>
-</ol>
-
-
-<p>Note: If using zsh, you have to add <code>disown %1</code> to detach background job from current shell, or your background jobs will be killed when you logged out, even it was nohupped. (or you can add &ldquo;setopt nohup&rdquo; in .zshrc to the same effect).</p>
-
-<h1>First Login Configuration</h1>
-
-<ol>
-<li>login <a href="http://localhost:9000">http://localhost:9000</a> with admin/admin;</li>
-</ol>
-
-
-<h1>Analyse Java Project with Sonar Runner</h1>
-
-<ol>
-<li><p><a href="http://docs.codehaus.org/display/SONAR/Installing+and+Configuring+Sonar+Runner">Installing and Configuring Sonar Runner</a>: download, extract, set environment variables, add to path, modify config file, verify (sonar-runner -h);</p></li>
-<li><p><a href="http://docs.codehaus.org/display/SONAR/Analyzing+with+Sonar+Runner">Analyzing with Sonar Runner</a>: create sonar-project.properties under project root folder, run sonar runner at project root folder (sonar-runner), see result in sonar dashboard;</p></li>
-</ol>
-
-
-<p>Note: add sonar.login &amp; sonar.password in sonar-project.properties;</p>
-
-<h1>Analyse Java Project with Ant Task</h1>
-
-<h2>Build a Demo Java Project</h2>
-
-<ol>
-<li><p>apt-get install ant;</p></li>
-<li><p>copy junit-4.11.jar and hamcrest-core-1.3.jar to lib folder of ant(/usr/share/ant/lib);</p></li>
-<li><p>create build.xml:</p></li>
-</ol>
-
-
-<h2>Run Sonar</h2>
-
-<ol>
-<li><p>Download sonar-ant-task-2.1.jar;</p></li>
-<li><p>Add sonar tasks into above build.xml;</p></li>
-<li><p>Run sonar with <code>ant sonar</code>;</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/16/091955/">Customize Window Buttons Position on Ubuntu</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-16T09:19:55+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:19 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Verified on Ubuntu Desktop 12.04.</p>
-
-<p>Move window buttons to upper-right corner:</p>
-
-<p>gconftool -s /apps/metacity/general/button_layout -t string menu:minimize,maximize,close</p>
-
-<p>Move window buttons to upper-left corner:</p>
-
-<p>gconftool -s /apps/metacity/general/button_layout -t string close,minimize,maximize</p>
-
-<p>Only show close and minimize buttons at upper-left corner:</p>
-
-<p>gconftool -s /apps/metacity/general/button_layout -t string close,minimize</p>
-
-<p>(You can maximize window by double-clicking title-bar)</p>
-
-<p>You have to use current user to run this command, or you will get &ldquo;No D-BUS daemon running&rdquo; error. For example, if you login desktop as user &ldquo;john&rdquo;, you will find a .dbus folder owned by john in $HOME of user john.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/15/164215/">Auto Code Review Based on Jenkins and Checkstyle</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-15T16:42:15+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:42 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Based on Jenkins 1.509 and Checkstyle 5.6.</p>
-
-<p>Now we need practising code review, as a step of BVT of course. The ideal solution is based on Sonar and its checkstyle plugin. But I am not very familiar with sonar&rsquo;s java runner and other features. So I decided to use some &ldquo;plain&rdquo; method to embed code review into the process of BVT.</p>
-
-<h1>Preparations</h1>
-
-<ol>
-<li><p>Install checkstyle plugin of jenkins;</p></li>
-<li><p>copy checkstyle-5.6-all.jar to /opt/checkstyle;</p></li>
-<li><p>create a code review rule file tyRules.xml at /opt/checkstyle:</p></li>
-</ol>
-
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
-
-<p> &lt;!DOCTYPE module PUBLIC &ldquo;-//Puppy Crawl//DTD Check Configuration 1.3//EN&rdquo; &ldquo;<a href="http://www.puppycrawl.com/dtds/configuration_1_3.dtd">http://www.puppycrawl.com/dtds/configuration_1_3.dtd</a>&rdquo;>
- <module name="Checker">
-  <property name="severity" value="warning"/>
-  <module name="TreeWalker">
-  <metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/>
-  <module name="MethodLength">
-   <property name="max" value="200"/>
-  </module>
-  <module name="NestedIfDepth">
-   <property name="max" value="5"/>
-  </module>
-  <module name="CyclomaticComplexity"/>
-  <module name="ParameterNumber">
-   <property name="max" value="6"/>
-  </module>
-  </module>
-  <module name="StrictDuplicateCode">
-  <property name="min" value="75"/>
-  </module>
-  <module name="FileLength">
-  <property name="max" value="1000"/>
-  </module>
- </module></p>
-
-<ol>
-<li><p>Project -> Configuration -> Source Code Management -> Subversion -> Repo URL: svn://localhost/ServerMeter</p></li>
-<li><p>Project -> Configuration -> Post-build Actions -> Publish Checkstyle analysis results: <em>*/codeReview</em>.xml;</p></li>
-<li><p>Project -> Configuration -> Post-build Actions -> E-mail Notification: &hellip;</p></li>
-</ol>
-
-
-<h1>As part of ant build</h1>
-
-<ol>
-<li>add a target &ldquo;checkcode&rdquo; in build.xml:</li>
-</ol>
-
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
- <project name="checkstyleTest" basedir="./" default="checkcode">
-   <taskdef resource="checkstyletask.properties" classpath="/opt/checkstyle/checkstyle-5.6-all.jar"/>
-   <property name="build.dir" value="${basedir}/build" />
-   <target name="init">
-     <delete dir="${build.dir}"/>
-     <mkdir dir="${build.dir}"/>
-   </target>
-   <target name="checkcode" depends="init">
-     <checkstyle config="/opt/checkstyle/tyRules.xml">
-       <fileset dir="src" includes="**/*.java"/>
-       <formatter type="xml" toFile="build/codeReviewResult.xml"/>
-     </checkstyle>
-   </target>
- </project></p>
-
-<ol>
-<li>Jenkins setup: Project -> Configuration -> Build -> Invoke Ant -> Targets: checkcode;</li>
-</ol>
-
-
-<p>PROS: simple config, with the power of ant;</p>
-
-<p>CONS: build scripts of every project have to be modified, which violates the DRY principle;</p>
-
-<h1>As an independent step in build process</h1>
-
-<p>Jenkins setup: Project -> Configuration -> Build -> Execute shell:</p>
-
-<p> rm -rf build
- mkdir build
- find . -depth -name .svn -exec rm -fr {} \;
- java -jar /opt/checkstyle/checkstyle-5.6-all.jar -c /opt/checkstyle/tyRules.xml -r src -f xml -o build/codeReviewResult.xml</p>
-
-<p>PROS: no need to modify any thing in project, do one thing in only ONE place;</p>
-
-<p>CONS: there are some dirty work in shell script, for example you have to delete and create build folder manually (otherwise checkstyle report can not be created correctly), and remove all .svn folder recursively (otherwise checkstyle will find some duplicate codes in normal code file and backup file in .svn folder).</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/51">&larr; Older</a>
@@ -765,23 +747,23 @@ Invoke Standalone Sonar Analysis
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a>
+        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/142454/">A Simple Search Homepage</a>
+        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/121145/">Bootstrap 3的栅格系统</a>
+        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/020909/">基于Bootstrap 3的页眉页脚控制</a>
+        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/14/160455/">创建简单的网站Logo</a>
+        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
       </li>
     
   </ul>

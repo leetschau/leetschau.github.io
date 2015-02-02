@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Follow the instructions at 2.6. Generic installation, upgrade and downgrade method: via tarball of Phusion Passenger users guide, Apache version &hellip;">
+  <meta name="description" content="The 3 numbers after the distro name is: used memory, free memory and used percent(= used/(used + free)). Scientific Linux Gnome 64bit: 286 1560 15.49 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,258 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/28/085154/">System Memory Cost of Several Linux Distros</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T08:51:54+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:51 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The 3 numbers after the distro name is: used memory, free memory and used percent(= used/(used + free)).</p>
+
+<p>Scientific Linux Gnome 64bit:   286 1560 15.49
+CentOS 6.4 Gnome 64bit:         281 1565 15.22
+Mint 14 Xfce 64bit:             249 1596 13.50
+openSUSE13 Gnome 64bit :        454 1392 24.59
+openSUSE12 KDE 64bit:           404 1442 21.89</p>
+
+<p>You can see Mint Xfce has smallest memory cost, while openSUSE has biggest.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/27/120107/">A Python Environment Detector</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-27T12:01:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
+
+<p>The application module, detapp.py:</p>
+
+<pre><code>import logging
+from envdet import rcmd
+
+logger = logging.getLogger('DetectApp')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('detect.log')
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+logger.addHandler(ch)
+logger.addHandler(fh)
+
+
+def isOracleJDK(str):
+    return 'Java(TM)' in str
+
+res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
+logger.info('Check result:%s' % res)
+</code></pre>
+
+<p>The environment detection module, envdet.py:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+import signal
+import logging
+
+logger = logging.getLogger('DetectApp.envdet')
+
+def handler(signum, frame):
+    logger.error('Signal handler called with signal: %d' % signum)
+    raise IOError("Command execution timeout!")
+
+def rcmd(user, host, cmd, check_handler, timeout=10):
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+
+    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
+
+    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+    fullres = line = ''
+    while p.poll() is None:
+        out = p.stdout.read(1)
+        fullres = fullres + out
+        if out=='\n':
+            logger.debug(line)
+            line = ''
+        else:
+            line = line + out
+    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
+    return check_handler(fullres)
+</code></pre>
+
+<p>The technical points here are:</p>
+
+<ul>
+<li><p>Run shell command in Python and retrieve output and return code;</p></li>
+<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
+<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/27/115808/">Run Script on Remote Host via SSH</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-27T11:58:08+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>user=&lsquo;bvt&rsquo;
+host=&lsquo;10.0.2.47&rsquo;
+ssh $user@$host &lsquo;bash&rsquo; &lt;&lt;EOF
+source /etc/profile
+java -version
+hostname
+EOF</p>
+
+<p>You need copy your ssh pub key to target host before hand, or you will have to enter the password at runtime.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/26/184711/">Install Fabric 1.8.3 Manually on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-26T18:47:11+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Ubuntu 12.04</h1>
+
+<p>When you install Fabric with <code>apt-get install fabric</code>, you get a fabric with version 1.3.x, which is too old. So we need install it manually:</p>
+
+<pre><code># apt-get install -y python-dev
+# apt-get install -y python-pip
+# pip install fabric
+</code></pre>
+
+<p>That&rsquo;s it. If you want to speed up the installation process, download Fabric-1.8.3.tar.gz and paramiko-1.12.3.tar.gz from PYPI. Then install them with:</p>
+
+<pre><code># pip install paramiko-1.12.3.tar.gz
+# pip install Fabric-1.8.3.tar.gz
+</code></pre>
+
+<p>Note: when install from source (tar.gz file), python-dev is necessary, or you will get a compile error.</p>
+
+<h1>CentOS 6.4</h1>
+
+<pre><code># yum install -y python-devel
+# yum install -y python-pip
+# pip install fabric
+</code></pre>
+
+<p>In a new OS, you should run <code>apt-get update</code> or <code>yum update</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/26/144843/">Delete Trailing Spaces With Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-26T14:48:43+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:48 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>:%s/\s+$</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -374,322 +626,6 @@ service iptables stop</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/18/085501/">Publish Blogs on Cnblogs.com</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-18T08:55:01+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Some frequently used action about post on cnblogs:</p>
-
-<pre><code>import xmlrpclib
-
-serviceUrl, appKey = 'http://www.cnblogs.com/yourusername/services/metaweblog.aspx', 'yourusername'
-username, password = 'yourusername', 'yourpassword'
-server = xmlrpclib.ServerProxy(serviceUrl)
-
-res = server.metaWeblog.getRecentPosts('', username, password, 10)
-print('no of posts: %d' % len(res))
-print('list posts: %s' %res)
-
-cat = server.metaWeblog.getCategories('', username, password)
-print('no of categories: %d' %len(cat))
-print('list categories: %s' %cat)
-
-post = {'title':'My 4th Post', 'description':'some test text here\na new line', 'mt_keywords': 'test, demo'}
-postid = server.metaWeblog.newPost('', username, password, post, True)
-print('postid is: %s' % postid)
-
-post = server.metaWeblog.getPost('3604635', username, password)
-print('Get Post: %s' % post)
-</code></pre>
-
-<p>When publish new post, we often meet this error:</p>
-
-<pre><code>Traceback (most recent call last):
-  File "config.py", line 18, in &lt;module&gt;
-    postid = server.metaWeblog.newPost('', usr, passwd, post, True)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1224, in __call__
-    return self.__send(self.__name, args)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1578, in __request
-    verbose=self.__verbose
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1264, in request
-    return self.single_request(host, handler, request_body, verbose)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1297, in single_request
-    return self.parse_response(response)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1473, in parse_response
-    return u.close()
-  File "/usr/lib/python2.7/xmlrpclib.py", line 793, in close
-    raise Fault(**self._stack[0])
-xmlrpclib.Fault: &lt;Fault 500: u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01'&gt;
-</code></pre>
-
-<p>To see the error information, open a python shell, run following code</p>
-
-<pre><code>print(u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01')
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>抱歉！已超过当日博文发布数量100篇限制！今天无法继续发布！
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/17/163640/">基于gVim的暗色调Puppet书籍翻译写作环境</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-17T16:36:40+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:36 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>翻译环境包括两个部分，写作部分和电子书，前者用gVim，后者Windows上用SumatraPDF，Linux Mint就用自带的evince。</p>
-
-<h1>Linux</h1>
-
-<p>配置gVim字体和颜色：</p>
-
-<p>$ cat ~/.gvimrc
-set go=
-set guifont=Monospace\ 12
-colo koehler
-set et
-set ts=2
-set sw=2
-set cc=0
-set wrap</p>
-
-<p>开始写作：gvim <filename></p>
-
-<p>gVim比vim好的地方是按<ESC>切换到标准状态下时，输入法会自动关闭。</p>
-
-<p>evince用Ctrl-i即可切换到黑底白字，用F11切换全屏。</p>
-
-<p>注：不写&#8221;set keymap=pinyin&#8221;，也能在<ESC>时自动退出中文输入法。</p>
-
-<h1>Windows</h1>
-
-<h2>gVim</h2>
-
-<p>全屏需要使用一个叫做<a href="http://www.vim.org/scripts/script.php?script_id=2596">gvimfullscreen_win32</a>的工具，下载安装包，把gvimfullscreen.dll解压到gvim.exe所在目录下（d:\Apps\Vim\vim72\），然后在_vimrc中加一行：</p>
-
-<p>map <F11> <Esc>:call libcallnr(&ldquo;gvimfullscreen.dll&rdquo;, &ldquo;ToggleFullScreen&rdquo;, 0)<CR></p>
-
-<p>试用后发现全屏状态下输入法和其他提示窗口都不能显示，基本不可用。</p>
-
-<p>最终$MYVIMRC（d:\Apps\Vim_vimrc）的设置是：</p>
-
-<pre><code>set encoding=utf-8
-language messages zh_CN.utf-8
-map &lt;Right&gt; :bn&lt;CR&gt;
-map &lt;F2&gt; :set wrap!&lt;CR&gt;
-set go=
-colo evening
-set noswapfile
-set nobackup
-set ts=2
-set sw=2
-set et
-set ai
-set nu
-set clipboard+=unnamed
-set guifont=Consolas:h13
-cd e:/docs/translate/propuppet
-</code></pre>
-
-<p>其中&#8221;set encoding&#8221;解决打开UTF-8 without BOM格式编码文件时中文字符乱码问题；</p>
-
-<p>language解决提示信息中的中文乱码问题；</p>
-
-<p>set ts=2是专门为Puppet代码格式设置的。</p>
-
-<p>Windows上的gVim不论插入模式和标志模式默认都支持C-s保存文件。</p>
-
-<h2>SumatraPDF</h2>
-
-<p>主菜单 -> 设置 -> 高级选项，在打开的配置文件里将FixedPageUI中TextColor值和BackgroundColor值互换，就实现了黑底白字的效果。</p>
-
-<p>全屏用 [查看 -> 全屏]，快捷键C-S-l。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/12/175101/">Convert a Private Project on bitbucket.com to a Github Public Project</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-12T17:51:01+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:51 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Create a public repo on github, you can add README or License files on the master branch, suppose the url is:</p>
-
-<p> <a href="https://github.com/leetschau/don4.git">https://github.com/leetschau/don4.git</a></p></li>
-<li><p>Get the private repo:</p>
-
-<p> $ git clone <a href="https://leechau@bitbucket.org/leechau/donno.git">https://leechau@bitbucket.org/leechau/donno.git</a>
- $ cd donno
- $ git branch -v -a   (list all remote branches for checkout)
- $ git checkout -b develop origin/develop   (copy remote branch to local repo and update working directory)</p></li>
-<li><p>Publish to github, you have 2 choices:</p>
-
-<ol type="a">
-<li><p>Publish selected branches:</p>
-
-<p> $ git remote add don4 <a href="https://github.com/leetschau/don4.git">https://github.com/leetschau/don4.git</a>
- $ git push -u don4 master
- $ git push -u don4 develop</p></li>
-</ol>
-
-
-<p>   or you can push your &ldquo;master&rdquo; branch to remote as &ldquo;init&rdquo; branch for avoid confliction with master branch created on github:</p>
-
-<pre><code> $ git push don4 master:init
-</code></pre>
-
-<ol type="a">
-<li><p>Publish all branches:</p>
-
-<p> $ git push &ndash;mirror <a href="https://github.com/leetschau/don4.git">https://github.com/leetschau/don4.git</a></p>
-
-<p>In this case you can&rsquo;t create README or License files when creating github project, to avoid conflict on master branch.</p></li>
-</ol>
-</li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/11/095843/">Fix Jenkins Startup and Access Failure on CentOS</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-11T09:58:43+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Today I install Jenkins on CentOS 6. When start the service with &ldquo;java -jar jenkins.war &ndash;httpPort=8088&rdquo;, it raised a &ldquo;java.net.unknownhostexception: Temporary failure in name resolution&rdquo; error.</p>
-
-<p>Resolution: add hostname (&ldquo;tybvt&rdquo; here) into &ldquo;127.0.0.1&rdquo; name of /etc/hosts, from:</p>
-
-<pre><code>127.0.0.1  localhost.localdomain localhost
-</code></pre>
-
-<p>to:</p>
-
-<pre><code>127.0.0.1  tybvt localhost.localdomain localhost
-</code></pre>
-
-<p>When Jenkins start successfully, only can access from &ldquo;localhost:8088&rdquo;, &ldquo;10.0.2.47:8088&rdquo; is rejected. It&rsquo;s because the firewall &ldquo;iptables&rdquo; service. So we need to add a rule into iptables configuration. Add:</p>
-
-<pre><code>-A INPUT -i eth0 -p tcp --dport 8088 -j ACCEPT
-</code></pre>
-
-<p><strong>right after</strong> the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo; in file /etc/sysconfig/iptables.
-Or simply stop the service with &ldquo;service iptables stop&rdquo; if security is not a concern.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/10/182629/">Configure Hosts With Puppet</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-10T18:26:29+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:26 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>According to &ldquo;Pro Puppet&rdquo; 2nd edition, Chapter 2, &ldquo;Creating a Module to Manage SSH&rdquo;.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/23">&larr; Older</a>
@@ -707,23 +643,23 @@ Or simply stop the service with &ldquo;service iptables stop&rdquo; if security 
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a>
+        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/142454/">A Simple Search Homepage</a>
+        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/121145/">Bootstrap 3的栅格系统</a>
+        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/18/020909/">基于Bootstrap 3的页眉页脚控制</a>
+        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/14/160455/">创建简单的网站Logo</a>
+        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
       </li>
     
   </ul>

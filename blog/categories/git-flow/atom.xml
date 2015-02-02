@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Git-flow | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/git-flow/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-02-02T16:10:00+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    <email><![CDATA[leetschau@gmail.com]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Git-flow Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2015/01/29/141348/"/>
+    <updated>2015-01-29T14:13:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/01/29/141348</id>
+    <content type="html"><![CDATA[<p>git is a powerful version control tool, while its large amount of commands and options make it hard to use.</p>
+
+<p>So <a href="https://github.com/nvie/gitflow">git-flow</a> was created to make git mush convenient. It&rsquo;s a high level branching tools for git.</p>
+
+<p>Fist install it with <code>apt-get install git-flow</code> on Debian-family distros.</p>
+
+<h1>Usage</h1>
+
+<h2>Workflow on a single feature</h2>
+
+<p>The following paragraphs is from [Why aren&rsquo;t you using git-flow?}(<a href="http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/">http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/</a>).</p>
+
+<p>Branch &ldquo;master&rdquo; is always &ldquo;production ready&rdquo; code. Commits are never made directly to master. Rather, code on master only gets there after a production release branch is created and &ldquo;finished&rdquo; (more on that in a sec). Thus the code on master is always able to be released to production. Also, master is always in a predictable state, so you never need to worry if master (and thus production) has changes one of your other branches doesn&rsquo;t.</p>
+
+<p>&ldquo;develop&rdquo; is the branch you&rsquo;ll be doing most of your work off of; it&rsquo;s also the branch that represents the code to be deployed in the next release. feature branches represent non-trivial features and fixes that have not yet been deployed (a completed feature branch is merged back into develop). Updating master is done through the creation of a release.</p>
+
+<p>Most of your work is done on the develop branch. This branch contains all of the completed features and bug fixes yet to be released; nightly builds or continuous integration servers should target develop, as it represents the code that will be included in the next release. For one-off commits, feel free to commit to develop directly.</p>
+
+<p>Use <code>git flow help</code> or <code>git flow feature help</code> to list all available commands.</p>
+
+<pre><code>$ git flow init  // Convert an existing git repo to git-flow style:
+
+$ git flow feature start &lt;feature-name&gt;
+
+$ git commit -m "now finish this feature"
+
+// if you want cancel this feature:
+$ git flow feature  // list the current feature name, here is "searchSource"
+$ git flow feature delete searchSource
+// or do it manually
+$ git checkout develop  // switch to "develop" branch
+$ git branch  // list current branches
+$ git branch -d feature/&lt;feature-name&gt;   // "feature/" is the default prefix of all feature branches
+$ git branch  // verify the feature is deleted
+
+// push feature to remote repository
+$ git flow feature publish
+
+// get feature commit from remote repository
+$ git flow feature pull
+
+// after the feature is finished and tested
+$ git flow feature finish &lt;feature-name&gt;
+</code></pre>
+
+<p>Note that do not add &ldquo;feature/&rdquo; prefix before feature name.
+This command merge feature branch back into develop branch, so the feature branch disappear from now on.
+If you don&rsquo;t want save your feature branch into remote repo, push to remote AFTER you finish your feature with this &ldquo;finish&rdquo; command.
+There is a corresponding &ldquo;release&rdquo; command:</p>
+
+<pre><code>$ git flow release start v0.1.0
+$ git flow release finish v0.1.0
+</code></pre>
+
+<p>See <a href="http://danielkummer.github.io/git-flow-cheatsheet/">git-flow cheatsheet</a> for details of git-flow.</p>
+
+<h2>Switching between multiple features</h2>
+
+<p>Say you now have finished version 1.0 and tag it with &ldquo;1.0&rdquo;.
+Next you will add function A to the product.
+You have two methods to achieve function A, &ldquo;search source&rdquo; and &ldquo;full text&rdquo;.
+You want to experiment them one by one, so create the first test branch with <code>git flow feature start searchSource</code>,
+After some commits, now you want to evaluate the second.</p>
+
+<p>You can&rsquo;t <code>git flow feature finish searchSource</code> for two reasons:</p>
+
+<p>First you may switching back to this feature in the future.
+If you finish this feature, this branch disappeared.</p>
+
+<p>Second you need experiment &ldquo;full text&rdquo; based on version 1.0.
+But if you &ldquo;finish&rdquo; feature &ldquo;search source&rdquo;, the modifications will be added to branch develop.
+If you <code>git flow feature start fullText</code>, the codes won&rsquo;t be that in version 1.0.</p>
+
+<p>So what you want is working on multiple branches simultaneously:</p>
+
+<pre><code>$ git flow feature start searchSource
+... // some developments on branch searchSource
+$ git commit -m "finish a milestone by method search source"
+$ git flow feature start fullText
+... // some developments on branch fullText
+$ git commit -m "finish a milestone by method full text"
+$ git flow feature list
+$ git flow feature checkout searchSource
+... // some developments on branch searchSource
+$ git commit -m "finish the 2nd milestone by method search source"
+$ git flow feature checkout fullText
+... // some developments on branch fullText
+$ git commit -m "finish the 2nd milestone by method full text"
+</code></pre>
+
+<p>If you have some casual modifications which you don&rsquo;t want to commit, use <code>git stash</code> instead of <code>git commit</code>.
+Use <code>git stash list</code> to list all stashed changes, and <code>git stash pop</code> to take the stashed codes out.
+Or <code>git stash apply</code> to take codes out without removing saved stash record.</p>
+
+<p>Finally you choose &ldquo;full text&rdquo; to achieve function A.
+So add it to your develop code base: <code>git flow feature finish fullText</code>.
+And leave the branch &ldquo;search source&rdquo; alone.</p>
+
+<p>If you are sure &ldquo;search source&rdquo; are useless any more,
+print all existing features with <code>git flow feature list</code>,
+then remove it with <code>git flow feature delete searchSource</code>.</p>
+
+<p>There is a GUI tool called gitk, which can be installed with <code>apt-get install gitk</code>.
+However I don&rsquo;t recommend it for its non-termial nature.</p>
+
+<p>There is also a <a href="https://github.com/bobthecow/git-flow-completion">git-flow-completion</a> tool for zsh.
+Install it if you like.</p>
+
+<ol>
+<li><p>Download <a href="http://sourceforge.net/p/zsh/code/ci/master/tree/Completion/Unix/Command/_git?format=raw">_git</a> and replace /usr/share/zsh/functions/Completion/Unix/_git;</p></li>
+<li><p>Download <a href="https://raw2.github.com/bobthecow/git-flow-completion/master/git-flow-completion.zsh">git-flow-completion.zsh</a>, save it as ~/.git-flow-completion.zsh;</p></li>
+<li><p>Add &ldquo;source ~/.git-flow-completion.zsh&rdquo; into ~/.zshrc;</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Python Development Workflow]]></title>
+    <link href="http://leetschau.github.io/blog/2014/01/09/105408/"/>
+    <updated>2014-01-09T10:54:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/01/09/105408</id>
+    <content type="html"><![CDATA[<p>Based on <a href="http://www.jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/">http://www.jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/</a></p>
+
+<h1>Workflow</h1>
+
+<p>The first release(v0.1): see Publish and Install Applications via PyPI for how to commit to PyPI;</p>
+
+<p>After uploading your first release to PyPI, the basic workflow is:</p>
+
+<ol>
+<li><p>Do some work on your package (i.e. fix bugs, add features, etc);</p></li>
+<li><p>Make sure the tests pass;</p></li>
+<li><p>&ldquo;Freeze&rdquo; your code by creating a release branch in git-flow;</p></li>
+<li><p>Update the <strong>version</strong> number in your package&rsquo;s <strong>init</strong>.py file;</p></li>
+<li><p>Run &ldquo;python setup.py sdist upload&rdquo; to upload the new version of your package to PyPI;</p></li>
+</ol>
+
+
+<p>For usage of git-flow, see note &ldquo;git-flow Notes&rdquo;.</p>
+
+<h1>virtualenv and virtualenvwrapper</h1>
+
+<p>See Note about virturalenvwrapper.</p>
+
+<h1>Publish a Python Application</h1>
+
+<p>Add a &ldquo;command_line.py&rdquo; in <project-name> module, and &ldquo;entry_points&rdquo; in setup.py. See the 4th step &ldquo;Command Line Scripts&rdquo; in <a href="http://www.scotttorborg.com/python-packaging/index.html">How To Package Your Python Code</a> for details.</p>
+
+<h2>Necessary Files</h2>
+
+<h3>setup.py</h3>
+
+<p>Some necessary parameters:</p>
+
+<ul>
+<li><p>entry_points: for defind executables;</p></li>
+<li><p>install_requires: for defining dependencies, get this from &ldquo;pip freeze&rdquo; command (exculde the application itself);</p></li>
+</ul>
+
+
+<h3>MANIFEST.in</h3>
+
+<p>  Add &ldquo;inculde README.md&rdquo; (and other necessary files for installation) in this file, or README.md will note be packaged into installer, and in installation a &ldquo;README.md not found&rdquo; error raises because you read this file in setup.py.
+  (see <a href="https://wiki.python.org/moin/Distutils/Tutorial">https://wiki.python.org/moin/Distutils/Tutorial</a> for explanation)</p>
+
+<h2>All available classifiers</h2>
+
+<pre><code>https://pypi.python.org/pypi?%3Aaction=list_classifiers
+</code></pre>
+
+<h2>Create requirements automatically</h2>
+
+<pre><code>$ pip freeze &gt; requirements.txt
+</code></pre>
+]]></content>
+  </entry>
+  
+</feed>
