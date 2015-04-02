@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Add following items into /var/lib/locales/supported.d/local: zh_CN.GBK GBK zh_CN.GB2312 GB2312
-$ sudo dpkg-reconfigure &ndash;force locales (or &hellip;">
+  <meta name="description" content="I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +71,7 @@ $ sudo dpkg-reconfigure &ndash;force locales (or &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/02/27/181853/">Add GBK Charset on Ubuntu Server</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/03/28/182817/">Task Management in Fabric</a></h1>
     
     
       <p class="meta">
@@ -81,32 +80,126 @@ $ sudo dpkg-reconfigure &ndash;force locales (or &hellip;">
 
 
 
-<time class='entry-date' datetime='2014-02-27T18:18:53+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:18 pm</span></time>
+<time class='entry-date' datetime='2014-03-28T18:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ol>
-<li><p>Add following items into /var/lib/locales/supported.d/local:</p>
+  <div class="entry-content"><p>I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. So there are 2 strategies:</p>
 
-<p> zh_CN.GBK GBK
- zh_CN.GB2312 GB2312</p></li>
-<li><p>$ sudo dpkg-reconfigure &ndash;force locales</p></li>
-</ol>
+<ul>
+<li><p>Define global hosts, when detections over, modify the hosts to none, so report and send email will only run once;</p></li>
+<li><p>Use &ldquo;report&rdquo; as entrance, invoke detection within &ldquo;report&rdquo; task.</p></li>
+</ul>
 
 
-<p>(or simple use <code>sudo locale-gen zh_CN</code>?)</p>
+<h1>Global hosts style</h1>
 
-<p>Verify: <code>locale -a</code>, you can see &ldquo;zh_CN.gb2312&rdquo; and &ldquo;zh_CN.gbk&rdquo; in lists.</p>
+<p>fabfile.py:</p>
+
+<pre><code>from fabric.api import run, env, hosts
+import re
+
+env.hosts = ['Chad@10.0.2.47', 'chad@10.0.2.49']
+env.password = 'abaqus67'
+env['report'] = {}
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    env['report'][env.host] = host_report
+    env.hosts = []    # make following tasks run once
+
+def report():
+    print('Test Report:')
+    print(env.report)
+
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab --hide=everything detect report sendmail
+Test Report:
+{'10.0.2.49': {'os': 'Linux', 'jdk': True}, '10.0.2.47': {'os': 'Linux', 'jdk': False}}
+send mail...
+</code></pre>
+
+<h1>&ldquo;execute&rdquo; style</h1>
+
+<p>fab2.py:</p>
+
+<pre><code>from fabric.api import run, env, task, execute
+import re
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    env.password = env.loginfo[env.host_string]
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    return host_report
+
+@task
+def report():
+    env.hosts= ['gcp@10.0.2.48', 'gcp@10.0.2.49', 'gcp@10.0.7.141', 'gcp@10.0.7.142', 'gcp@10.0.7.143:22']
+    pwds = ['gcp', 'gcp', 'gcp@123', 'gcp@123', 'gcp@123']
+    env.loginfo = dict(zip(env.hosts, pwds))
+    res = execute(detect, hosts=host_list)
+    print('Test Report:')
+    print(res)
+
+@task
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab -f fab2.py --hide=everything report sendmail
+Test Report:
+{'gcp@10.0.2.47': {'os': 'Linux', 'jdk': False}, 'gcp@10.0.2.49': {'os': 'Linux', 'jdk': True}, ... }
+send mail...
+</code></pre>
+
+<p>You can see there is no definition and modification of global hosts, no need to maintain global variable env[&lsquo;report&rsquo;] manually in &ldquo;report&rdquo; style, and the &ldquo;detect&rdquo; function is hide from &ldquo;fab&rdquo; command line with the help of &ldquo;@task&rdquo; decorator. If you run &ldquo;fab detect&rdquo;, it will complain &ldquo;Command(s) not found&rdquo;, which provides more accurate visibility control. So I think it&rsquo;s better than the &ldquo;global hosts&rdquo; style.</p>
+
+<p>Notes:</p>
 
 <ol>
-<li>sudo update-locale LANG=zh_CN</li>
+<li><p>Yuo can add attributes to &ldquo;env&rdquo; directly like &ldquo;env.loginfo = &hellip;&rdquo; above. And use this attribute with &ldquo;env.loginfo[&hellip;]&rdquo;;</p></li>
+<li><p>The format of host string is &ldquo;user@ip:port&rdquo;, or &ldquo;user@ip&rdquo; if port is 22;</p></li>
+<li><p>The function &ldquo;execute&rdquo; returns a dict, the key is the host_string, the value is the return value of the function executed (&ldquo;detect&rdquo; in this case). The return value of &ldquo;detect&rdquo; is a dict, so the &ldquo;execute&rdquo; function returns a nested dict.</p></li>
+<li><p>the return value of &ldquo;run&rdquo; is the stdout and stderr of the remote command.</p></li>
 </ol>
 
-
-<p>That&rsquo;s it.</p>
 </div>
   
   
@@ -119,7 +212,7 @@ $ sudo dpkg-reconfigure &ndash;force locales (or &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/02/27/163511/">Svn检出文件名中含中文文件失败问题解决方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/03/28/085154/">System Memory Cost of Several Linux Distros</a></h1>
     
     
       <p class="meta">
@@ -128,68 +221,22 @@ $ sudo dpkg-reconfigure &ndash;force locales (or &hellip;">
 
 
 
-<time class='entry-date' datetime='2014-02-27T16:35:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:35 pm</span></time>
+<time class='entry-date' datetime='2014-03-28T08:51:54+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:51 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>有时使用svn检出时遇到这样的错误：</p>
+  <div class="entry-content"><p>The 3 numbers after the distro name is: used memory, free memory and used percent(= used/(used + free)).</p>
 
-<p>svn: Can&rsquo;t convert string from &lsquo;UTF-8&rsquo; to native encoding: &hellip;</p>
+<p>Scientific Linux Gnome 64bit:   286 1560 15.49
+CentOS 6.4 Gnome 64bit:         281 1565 15.22
+Mint 14 Xfce 64bit:             249 1596 13.50
+openSUSE13 Gnome 64bit :        454 1392 24.59
+openSUSE12 KDE 64bit:           404 1442 21.89</p>
 
-<p>这是可能是由于svn所在主机的当前字符集不支持Unicode造成的，确认方法是：运行&#8221;locale&#8221;指令，输出为：</p>
-
-<pre><code>LANG=en_US.UTF-8
-LANGUAGE=
-LC_CTYPE="en_US"
-LC_NUMERIC="en_US"
-LC_TIME="en_US"
-LC_COLLATE="en_US"
-LC_MONETARY="en_US"
-LC_MESSAGES="en_US"
-LC_PAPER="en_US"
-LC_NAME="en_US"
-LC_ADDRESS="en_US"
-LC_TELEPHONE="en_US"
-LC_MEASUREMENT="en_US"
-LC_IDENTIFICATION="en_US"
-LC_ALL=en_US
-</code></pre>
-
-<p>&ldquo;en_US&#8221;后面没有&rdquo;.UTF-8&#8221;，/etc/default/locale文件的内容是：</p>
-
-<pre><code>LC_ALL="en_US"
-</code></pre>
-
-<p>也没有&#8221;.UTF-8&#8221;，解决方法很简单，在后面加上&#8221;.UTF-8&#8221;，变为</p>
-
-<pre><code>LC_ALL="en_US.UTF-8"
-</code></pre>
-
-<p>这时再运行locale命令，结果如下：</p>
-
-<pre><code>LANG=en_US.UTF-8
-LANGUAGE=
-LC_CTYPE="en_US.UTF-8"
-LC_NUMERIC="en_US.UTF-8"
-LC_TIME="en_US.UTF-8"
-LC_COLLATE="en_US.UTF-8"
-LC_MONETARY="en_US.UTF-8"
-LC_MESSAGES="en_US.UTF-8"
-LC_PAPER="en_US.UTF-8"
-LC_NAME="en_US.UTF-8"
-LC_ADDRESS="en_US.UTF-8"
-LC_TELEPHONE="en_US.UTF-8"
-LC_MEASUREMENT="en_US.UTF-8"
-LC_IDENTIFICATION="en_US.UTF-8"
-LC_ALL=en_US.UTF-8
-</code></pre>
-
-<p>这时再检出中文文件名文件就不报错了。</p>
-
-<p>在CentOS上，对应的locale文件是/etc/sysconfig/i18n。</p>
+<p>You can see Mint Xfce has smallest memory cost, while openSUSE has biggest.</p>
 </div>
   
   
@@ -202,7 +249,7 @@ LC_ALL=en_US.UTF-8
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/02/27/142307/">Change IP Address of NAT NIC in Vagrant VM</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/03/27/120107/">A Python Environment Detector</a></h1>
     
     
       <p class="meta">
@@ -211,28 +258,272 @@ LC_ALL=en_US.UTF-8
 
 
 
-<time class='entry-date' datetime='2014-02-27T14:23:07+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:23 pm</span></time>
+<time class='entry-date' datetime='2014-03-27T12:01:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:01 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>The default IP address of Vagrant VM is 10.0.2.15. So you can&rsquo;t connect to a host with IP in range &ldquo;10.0.2.*&rdquo;. If you do want, you must change the IP address of NAT NIC (network interface card) via the modifyvm command of VBoxManage:</p>
+  <div class="entry-content"><p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
 
-<pre><code>VBoxManage modifyvm &lt;vm-name&gt; --natnet1 "10.3/16"
+<p>The application module, detapp.py:</p>
+
+<pre><code>import logging
+from envdet import rcmd
+
+logger = logging.getLogger('DetectApp')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('detect.log')
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+logger.addHandler(ch)
+logger.addHandler(fh)
+
+
+def isOracleJDK(str):
+    return 'Java(TM)' in str
+
+res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
+logger.info('Check result:%s' % res)
 </code></pre>
 
-<p>The <vm-name> here can be listed by command &ldquo;VBoxManage list vms&rdquo;.</p>
+<p>The environment detection module, envdet.py:</p>
 
-<p>In vagrant we can achieve this by adding &ldquo;config.customize [&#8220;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, <ip-range>]&ldquo; into your vm config of Vagrantfile, for example, the following config will change the IP address of NAT NIC to &#8220;10.3.0.15&rdquo;:</p>
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+import signal
+import logging
 
-<pre><code>config.vm.define "bs" do |bvtserver|
-  bvtserver.vm.hostname = "bvt-server"
-  bvtserver.vm.network "private_network", ip: "192.168.50.3",
-      virtualbox__intnet: "gcptest-network"
-  bvtserver.vm.provider :virtualbox do |vbox|
-    vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+logger = logging.getLogger('DetectApp.envdet')
+
+def handler(signum, frame):
+    logger.error('Signal handler called with signal: %d' % signum)
+    raise IOError("Command execution timeout!")
+
+def rcmd(user, host, cmd, check_handler, timeout=10):
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+
+    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
+
+    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+    fullres = line = ''
+    while p.poll() is None:
+        out = p.stdout.read(1)
+        fullres = fullres + out
+        if out=='\n':
+            logger.debug(line)
+            line = ''
+        else:
+            line = line + out
+    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
+    return check_handler(fullres)
+</code></pre>
+
+<p>The technical points here are:</p>
+
+<ul>
+<li><p>Run shell command in Python and retrieve output and return code;</p></li>
+<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
+<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/27/115808/">Run Script on Remote Host via SSH</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-27T11:58:08+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>user=&lsquo;bvt&rsquo;
+host=&lsquo;10.0.2.47&rsquo;
+ssh $user@$host &lsquo;bash&rsquo; &lt;&lt;EOF
+source /etc/profile
+java -version
+hostname
+EOF</p>
+
+<p>You need copy your ssh pub key to target host before hand, or you will have to enter the password at runtime.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/26/184711/">Install Fabric 1.8.3 Manually on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-26T18:47:11+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Ubuntu 12.04</h1>
+
+<p>When you install Fabric with <code>apt-get install fabric</code>, you get a fabric with version 1.3.x, which is too old. So we need install it manually:</p>
+
+<pre><code># apt-get install -y python-dev
+# apt-get install -y python-pip
+# pip install fabric
+</code></pre>
+
+<p>That&rsquo;s it. If you want to speed up the installation process, download Fabric-1.8.3.tar.gz and paramiko-1.12.3.tar.gz from PYPI. Then install them with:</p>
+
+<pre><code># pip install paramiko-1.12.3.tar.gz
+# pip install Fabric-1.8.3.tar.gz
+</code></pre>
+
+<p>Note: when install from source (tar.gz file), python-dev is necessary, or you will get a compile error.</p>
+
+<h1>CentOS 6.4</h1>
+
+<pre><code># yum install -y python-devel
+# yum install -y python-pip
+# pip install fabric
+</code></pre>
+
+<p>In a new OS, you should run <code>apt-get update</code> or <code>yum update</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/26/144843/">Delete Trailing Spaces With Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-26T14:48:43+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:48 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>:%s/\s+$</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/26/143445/">Build Web Server With Apache and Passenger</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-26T14:34:45+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:34 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Follow the instructions at <a href="http://www.modrails.com/documentation/Users%20guide%20Apache.html">2.6. Generic installation, upgrade and downgrade method: via tarball of Phusion Passenger users guide, Apache version</a></p>
+
+<p>Build web server on a precise64 Ubuntu virtual machine with vagrant. First download the tar file from this website, then create a vagrant file:</p>
+
+<pre><code>$ pwd
+/home/chad/docs/passenger
+
+$ ls
+passenger-4.0.40.tar.gz  Vagrantfile
+
+$ cat Vagrantfile
+# -*- mode: ruby -*-                                                            
+# vi: set ft=ruby :                                                             
+
+$script = &lt;&lt;EOF
+echo 'Acquire::http::Proxy "http://10.21.3.31:8087";' &gt; /etc/apt/apt.conf
+apt-get update
+apt-get install rake
+apt-get install libcurl4-openssl-dev
+apt-get install apache2-mpm-worker
+apt-get install apache2-threaded-dev
+/usr/bin/gem install rack
+apt-get install libapr1-dev
+apt-get install libaprutil1-dev
+mkdir /opt/passenger
+cd /opt/passenger
+tar zxvf /vagrant/passenger-4.0.40.tar.gz
+#cd passenger-4.0.40
+#./bin/passenger-install-apache2-module
+EOF
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "precise64"
+
+  config.vm.define "svr" do |server|
+    server.vm.hostname = "www.httpserver.com"
+    server.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+      vbox.customize ["modifyvm", :id, "--memory", 1000]
+    end
+    server.vm.network "forwarded_port", guest: 80, host: 8765
+    config.vm.provision "shell", inline: $script
   end
 end
 </code></pre>
@@ -248,7 +539,7 @@ end
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/02/26/162411/">IBus Chinese Pinyin IM on Linux Mint</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/03/25/200006/">Secure Shell基于密钥的连接过程</a></h1>
     
     
       <p class="meta">
@@ -257,43 +548,34 @@ end
 
 
 
-<time class='entry-date' datetime='2014-02-26T16:24:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:24 pm</span></time>
+<time class='entry-date' datetime='2014-03-25T20:00:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:00 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Following <a href="http://code.google.com/p/ibus/wiki/PinYinUserGuideCN">this</a>:</p>
+  <div class="entry-content"><p>客户端&copy;连接服务端(S)时，会在自己的~/.ssh/known_hosts中记录S名称的Hash（如果希望在known_hosts文件中使用原服务端名称，在/etc/ssh/ssh_config中去掉&#8221;HashKnownHosts yes&#8221;，或者在~/.ssh/config中增加&#8221;HashKnownHosts no&#8221;）以及一个很长的特征串，当有人伪装成S骗取密码，或者S操作系统重装之后，由于后面这个特征串发生了变化，所以ssh会发出警告，只有从~/.ssh/known_hosts中删掉要连接的S那一行才能重新连接。</p>
+
+<p>使用密钥而不是密码登录S的好处是不需要每次输入密码，且能够避免“中间人攻击”，基于密钥的配置过程是：</p>
 
 <ol>
-<li><p>Install ibus-pinyin:</p>
-
-<p> $ sudo apt-get install ibus ibus-clutter ibus-gtk ibus-gtk3 ibus-qt4
- $ sudo apt-get install ibus-pinyin
- $ im-switch -s ibus</p></li>
-<li><p>Restart machine;</p></li>
-<li><p>Right-click the ibus-pinyin icon in system tray, select &ldquo;Preference&rdquo;, then &ldquo;IBus Preferences&rdquo; panel open;</p></li>
-<li><p>On this panel, under tag &ldquo;Input Method&rdquo;, check &ldquo;Customize active input methods&rdquo;, select &ldquo;Pinyin&rdquo;, then click &ldquo;Add&rdquo; button;</p></li>
+<li><p>C创建自己的公钥和私钥(ssh-keygen命令）；</p></li>
+<li><p>C将自己的公钥保存到S（ssh-copy-id命令，实际上是加自己的公钥加入了S的~/.ssh/authorized_keys文件中）；</p></li>
 </ol>
 
 
-<p>Now use Ctrl-Space to swtich between IBus-Pinyin and english input method.</p>
-
-<p>The pro of ibus-pinyin is no need to modify system-wide configurations.</p>
-
-<hr />
-
-<p>2014-7-22:</p>
+<p>这样就配置好了，以后当客户端需要登录服务端时，连接过程是：</p>
 
 <ol>
-<li><p><code>sudo apt-get install ibus-pinyin ibus-gtk</code>;</p></li>
-<li><p><code>ibus-setup</code>, add &ldquo;PinYin&rdquo; to the System;</p></li>
-<li><p>Logout and login;</p></li>
+<li><p>C与S首先进行Diffie–Hellman key exchange（参考<a href="http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange">http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange</a> 其中的插图对这种算法为什么是安全的解释的很清楚：密钥的混合类似于颜色的混合，反向操作几乎是不可能的，因此将混合后的密钥在网络上传输是安全的），最终生成本次会话的密钥；</p></li>
+<li><p>后续的报文基于上面生成的密钥进行对称加密传输（也就是加密和解密使用同一个密钥）。</p></li>
 </ol>
 
 
-<p>Bingo.</p>
+<p>网上有写SSH登录过程使用非对称加密传输（及公钥加密、私钥解密，见<a href="http://en.wikipedia.org/wiki/Public-key_cryptography%EF%BC%89%EF%BC%8C%E8%BF%99%E6%98%AFSSH">http://en.wikipedia.org/wiki/Public-key_cryptography%EF%BC%89%EF%BC%8C%E8%BF%99%E6%98%AFSSH</a> v1的加密方式。</p>
+
+<p>详细的连接过程参考man sshd.</p>
 </div>
   
   
@@ -306,7 +588,7 @@ end
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/02/26/102908/">Build Chinese Writing Environment Without Local IME on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/03/25/114442/">Join Two Files Line to Line in Each Row</a></h1>
     
     
       <p class="meta">
@@ -315,23 +597,50 @@ end
 
 
 
-<time class='entry-date' datetime='2014-02-26T10:29:08+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:29 am</span></time>
+<time class='entry-date' datetime='2014-03-25T11:44:42+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:44 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Writing</h1>
+  <div class="entry-content"><p>TY-HD-01-001
+TY-HD-01-002
+TY-HD-01-003
+TY-HD-01-004
+TY-HD-01-005
+TY-HD-01-006
+TY-HD-01-007
+TY-HD-01-008
+TY-HD-01-009
+TY-HD-01-010</p>
 
-<p>Writing Chinese on <a href="http://shurufa.baidu.com/online.html">Baidu IME online</a>.</p>
+<p>$ head tail.txt
+fa_cg_nb_c_000157
+fa_cg_nb_d_001571
+fa_cg_nb_d_000432
+fa_cg_nb_d_001796
+fa_cg_nb_d_001675
+fa_cg_nb_d_001198
+fa_cg_nb_d_001768
+fa_cg_nb_d_001445
+fa_cg_nb_d_000703
+fa_cg_nb_d_001563</p>
 
-<h2>Auto-save</h2>
+<p>$ paste -d &lsquo;-&rsquo; head.txt tail.txt > all.txt
+$ head all.txt
+TY-HD-01-001-fa_cg_nb_c_000157
+TY-HD-01-002-fa_cg_nb_d_001571
+TY-HD-01-003-fa_cg_nb_d_000432
+TY-HD-01-004-fa_cg_nb_d_001796
+TY-HD-01-005-fa_cg_nb_d_001675
+TY-HD-01-006-fa_cg_nb_d_001198
+TY-HD-01-007-fa_cg_nb_d_001768
+TY-HD-01-008-fa_cg_nb_d_001445
+TY-HD-01-009-fa_cg_nb_d_000703
+TY-HD-01-010-fa_cg_nb_d_001563</p>
 
-<p>Install parcellite and enable its &ldquo;copy on selection&rdquo; feature.
-Now every time select all text in Baidu Web IM with Ctrl-a, the text is stored in system clipboard.</p>
-
-<p>Save text in <a href="http://notepad.im">notepad.im</a> for temperary storage.</p>
+<p>Note: The EOL(end of line) must be Unix style. If it&rsquo;s Windows style, the &ldquo;paste&rdquo; command will produce wrong results.</p>
 </div>
   
   
@@ -344,7 +653,7 @@ Now every time select all text in Baidu Web IM with Ctrl-a, the text is stored i
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/02/26/100347/">Build VM Cluster on CentOS Host</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/03/19/171117/">Text Expansion in Vim</a></h1>
     
     
       <p class="meta">
@@ -353,292 +662,26 @@ Now every time select all text in Baidu Web IM with Ctrl-a, the text is stored i
 
 
 
-<time class='entry-date' datetime='2014-02-26T10:03:47+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:03 am</span></time>
+<time class='entry-date' datetime='2014-03-19T17:11:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Host Machine</h1>
+  <div class="entry-content"><p>You have 2 options: imap and abbr. Use &ldquo;pt&rdquo; for abbreviation of &ldquo;Puppet&rdquo; for example, first open your vim or gVim:</p>
 
-<p>[root@bocoty49 ~]# lsb_release -a
-LSB Version:    :base-4.0-amd64:base-4.0-noarch:core-4.0-amd64:core-4.0-noarch:graphics-4.0-amd64:graphics-4.0-noarch:printing-4.0-amd64:printing-4.0-noarch
-Distributor ID: CentOS
-Description:    CentOS release 6.4 (Final)
-Release:    6.4
-Codename:   Final</p>
-
-<h1>VirtualBox</h1>
-
-<p>AMD64 version of &ldquo;Oracle Linux 6(&#8220;OL6&rdquo;)/Red Hat Enterprise Linux 6(&ldquo;RHEL6&rdquo;)/CentOS 6&#8221; on <a href="https://www.virtualbox.org/wiki/Linux_Downloads">download page of VirtualBox website</a>
-File name: VirtualBox-4.3-4.3.8_92456_el6-1.x86_64.rpm</p>
-
-<h1>Vagrant</h1>
-
-<p>CentOS/RedHat/Fedora 64-bit Vagrant Installer on <a href="http://www.vagrantup.com/downloads.html">Vagrant download page</a>
-File name: vagrant_1.4.3_x86_64.rpm</p>
-
-<h1>Usage</h1>
-
-<ol>
-<li><p>Install Virtualbox and vagrant;</p></li>
-<li><p>When &lsquo;vagrant up&rsquo;, a &ldquo;vboxdrv kernel module is not loaded&rdquo; error raise,</p></li>
-</ol>
-
-
-<p>The &ldquo;Release&rdquo; of <code>yum info kernel-headers</code> is &ldquo;431.5.1.el6&rdquo;, which mismatched the result of <code>uname -r</code>(2.6.32-358.23.2.el6.x86_64), so kernel-headers package is unavailable to the current kernel. The solution is update the kernel release to match the packages:</p>
-
-<pre><code># yum update    (this will install kernel-2.6.32-431.5.1.el6.x86_64)
-# reboot (after reboot `uname -r` returns "2.6.32-431.5.1.el6.x86_64", too)
-# yum install gcc
-# yum install kernel-devel
-# /etc/init.d/vboxdrv setup  (Recompiling VirtualBox kernel modules)
-</code></pre>
-
-<ol>
-<li><p><code>vagrant up</code> again.
-The network for the VM is &ldquo;bvtserver.vm.network :public_network&rdquo;, which is suspent when configuring the network. I change the type of network to &ldquo;host-only&rdquo;:</p>
-
-<p> production.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.5&rdquo;,
-     virtualbox__intnet: &ldquo;gcptest-network&rdquo;</p></li>
-</ol>
-
-
-<p>Now you can use ssh between each other via host-only NIC, and use apt-get to install packages via NAT NIC, so cool!</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/25/103906/">Awesome Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-25T10:39:06+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install</h1>
-
-<pre><code>$ sudo aptitude install awesome
-</code></pre>
-
-<h2>Build from source</h2>
-
-<pre><code>$ aria2c -s 5 http://awesome.naquadah.org/download/awesome-3.5.2.tar.bz2
-$ tar jxf awesome-3.5.2.tar.bz2
-$ cd awesome-3.5.2
-$ sudo aptitude install cmake
-$ make
-</code></pre>
-
-<p>Some failed information at this step.</p>
-
-<h1>Usage</h1>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/24/115822/">Change CWD in Python</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-24T11:58:22+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following script demonstrate that in Python, &ldquo;os.chdir()&rdquo; will change CWD globally, while run shell &ldquo;cd&rdquo; command with subprocess module is a &ldquo;local&rdquo; action. If you run &ldquo;cd dst;touch aaa&rdquo;, the file &ldquo;aaa&rdquo; will be created under folder dst, but after this sentence, the CWD won&rsquo;t remian in aaa.</p>
-
-<pre><code>$ cat chdirtest.py
-import subprocess, os
-
-def runsh(cmd):
-    return subprocess.check_output(cmd, shell=True)
-
-def svn_checkout(src, dst, keepfolder=True):
-    print('in svn_checkout before: ' + os.getcwd())
-    print('in svn_checkout shell before: ' + runsh('pwd'))
-    os.makedirs(dst)
-    #os.chdir(dst)
-    print('run cd and pwd: ' + runsh('cd ' + dst + ';pwd'))
-    print('in svn_checkout after: ' + os.getcwd())
-    print('in svn_checkout shell after: ' + runsh('pwd'))
-
-def download():
-    print('in download before: ' + os.getcwd())
-    print('in download shell before: ' + runsh('pwd'))
-    src = '7-Tools/deployment'
-    svn_checkout(src, CODE_FOLDER)
-    print('in download after: ' + os.getcwd())
-    print('in download shell after: ' + runsh('pwd'))
-
-if __name__ == '__main__':
-    FOLDER_NAME = 'test'
-    if not os.path.exists(FOLDER_NAME):
-        os.makedirs(FOLDER_NAME)
-    print('in main before: ' + os.getcwd())
-    print('in main shell before: ' + runsh('pwd'))
-    os.chdir(FOLDER_NAME)
-    print('in main after: ' + os.getcwd())
-    print('in main shell after: ' + runsh('pwd'))
-    PKG_FOLDER = 'packages'
-    CODE_FOLDER = 'codes'
-    download()
-
-$ python chdirtest.py
-in main before: /home/chad/docs/gcp-deploy
-in main shell before: /home/chad/docs/gcp-deploy
-
-in main after: /home/chad/docs/gcp-deploy/test
-in main shell after: /home/chad/docs/gcp-deploy/test
-
-in download before: /home/chad/docs/gcp-deploy/test
-in download shell before: /home/chad/docs/gcp-deploy/test
-
-in svn_checkout before: /home/chad/docs/gcp-deploy/test
-in svn_checkout shell before: /home/chad/docs/gcp-deploy/test
-
-run cd and pwd: /home/chad/docs/gcp-deploy/test/codes
-
-in svn_checkout after: /home/chad/docs/gcp-deploy/test
-in svn_checkout shell after: /home/chad/docs/gcp-deploy/test
-
-in download after: /home/chad/docs/gcp-deploy/test
-in download shell after: /home/chad/docs/gcp-deploy/test
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/21/163736/">Redmine Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-21T16:37:36+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>4:37 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Mandatory authenticaion: login as Administrator, Settings -> Authentication -> Check &ldquo;Authentication required&rdquo;, set &ldquo;Autologin&rdquo; as &ldquo;disabled&rdquo;;</p></li>
-<li><p>Hide Bitnami landing page: modify the <body> of file $REDMINE_HOME/apache2/htdocs/index.html as:</p>
-
-<p>  &lt;!DOCTYPE  &hellip;>
-  <html>
-      <body onLoad = "parent.location = 'http://123.124.236.183/redmine/'">
-          Redirection &hellip;
-      </body>
-  </html></p>
-
-<p>Modify &ldquo;parent.location&rdquo; as your redmine location.</p></li>
-<li><p>Modify Web UI font size: /opt/redmine-2.4.3-0/apps/redmine/htdocs/public/stylesheets/application.css, the 2nd line:</p>
-
-<p>  body { &hellip; font-size: &hellip; }</p></li>
+<ul>
+<li><p>imap: &ldquo;:imap pt Puppet&rdquo;;</p></li>
+<li><p>abbr: &ldquo;:ab pt Puppet&rdquo;;</p></li>
 </ul>
 
 
-<h1>Add Email Notification</h1>
-
-<p>Edit file: /opt/redmine-2.4.3-0/apps/redmine/htdocs/config/configuration.yml</p>
-
-<pre><code># default configuration options for all environments
-default:
-  # Outgoing emails configuration (see examples above)
-  email_delivery:
-   delivery_method: :smtp
-   smtp_settings:
-
-     address: 123.124.236.199
-     port: 25
-     domain: boco.com.cn
-     authentication: :login
-     user_name: lichao1@boco.com.cn
-     password: abaqus67
-</code></pre>
-
-<p>then restart services: /opt/redmine-2.4.3-0/ctlscript.sh restart</p>
-
-<p>Change host path as Administrator: [Administration -> Settings -> General -> Host name and path: 123&hellip;/redmine]
-Note there is no &ldquo;<a href="http://">http://</a>&rdquo; before the string and no &ldquo;/&rdquo; after it, too.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/21/081656/">Speed Up Downloading Files on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-21T08:16:56+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>8:16 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Compared aria2c, axel and wget, aria2c is the best. It support multi-thread download (with &ldquo;-s <num>&rdquo;) and resume partially downloaded files automatically (you have to use &ldquo;-c&rdquo; in wget for this function). Synopsis:</p>
-
-<pre><code>$ aria2c -s 10 &lt;URL&gt;
-</code></pre>
+<p>The difference is, imap will expand text right after you press &ldquo;t&rdquo;,
+while for abbr, you have to type a space or tab or enter after the &ldquo;t&rdquo; to perform text expansion.
+So when writing English, use &ldquo;abbr&rdquo; for it&rsquo;s the &ldquo;normal&rdquo; way.
+If you write Chinese with English, imap is the better way,
+because there is probably no space after the expanded words.</p>
 </div>
   
   
@@ -663,23 +706,23 @@ Note there is no &ldquo;<a href="http://">http://</a>&rdquo; before the string a
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
+        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
+        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
+        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
+        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
+        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

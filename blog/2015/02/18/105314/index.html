@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>超链接中data-toggle属性使用新的Session - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="如果在超链接中将"data-toggle"属性设为"modal"，如下所示，则超链接所指向的窗体将使用新的Seesion。 &lt;a href="/register" data-toggle="modal"&gt;注册新帐号&lt;/a&gt; &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2015/02/18/105314">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A note repository aims at Data Mining, Spark, Linux, Python.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:leetschau.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">超链接中data-toggle属性使用新的Session</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-18T10:53:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:53 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>如果在超链接中将"data-toggle"属性设为"modal"，如下所示，则超链接所指向的窗体将使用新的Seesion。</p>
+
+<pre><code>&lt;a href="/register" data-toggle="modal"&gt;注册新帐号&lt;/a&gt;
+</code></pre>
+
+<p>比如我们想在每次跳转后将当前url记录在Session变量"currentUrl"中，
+但是在url以"login"和"register"结尾时不更新"currentUrl"：</p>
+
+<pre><code>Router.onAfterAction(function(){
+  if (! (Router.current() &amp;&amp; Router.current().url) ) {
+    return;
+  }
+  var currentUrl = Router.current().url;
+  if ( (currentUrl.indexOf('login') &lt; 0 ) &amp;&amp;
+        currentUrl.indexOf("register") &lt; 0 ) {
+    Session.set("currentUrl", currentUrl);
+  }
+});
+</code></pre>
+
+<p>然后在登录或者注册成功后取出这个缓存的变量，利用callback函数跳转回之前的页面：</p>
+
+<pre><code>Accounts.createUser({
+  email: t.find("#userEmail").value,
+  password: t.find("#userPwd").value,
+  profile: {
+    nickname: t.find("#userNickname").value,
+    role: userRole.value,
+    gender: gender.value,
+    desc: userDesc
+  }
+}, function(error) {
+  if (error) {
+    alert("something wrong, registration failed.");
+  } else {
+    alert("注册并登录成功！");
+    var currentUrl = Session.get("currentUrl");
+    var tmp = document.createElement('a');
+    tmp.href = currentUrl;
+    var currentPath = tmp.pathname + tmp.search;
+    Router.go(currentPath);
+  }
+});
+</code></pre>
+
+<p>那么当点击上面的超链接时，所有Session对象都被清空，"currentUrl"值变为"undefined"，
+如果用<code>Session.setDefault("currentUrl", "aabb");</code>设置默认值，
+则点击上面的超链接后"currentUrl"值变为"aabb"，
+然后再执行Router.onAfterAction中的callback函数。</p>
+
+<p>这样前面利用缓存变量跳转回原来页面的设计就失效了，页面跳转到"/undefined"页面，
+解决办法很简单：去掉超链接中的data-toggle属性，变为一个普通超链接：</p>
+
+<pre><code>&lt;a href="/register"&gt;注册新帐号&lt;/a&gt;
+</code></pre>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2015-02-18T10:53:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:53 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/html/'>html</a>, <a class='category' href='/blog/categories/meteor/'>meteor</a>, <a class='category' href='/blog/categories/session/'>session</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2015/02/18/105314/" data-via="" data-counturl="http://leetschau.github.io/blog/2015/02/18/105314/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/02/13/153724/" title="Previous Post: 使用星星图标获取用户评分">&laquo; 使用星星图标获取用户评分</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2015/02/20/194901/" title="Next Post: Import Data for Newfairs.com">Import Data for Newfairs.com &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

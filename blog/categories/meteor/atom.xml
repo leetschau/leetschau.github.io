@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Meteor | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/meteor/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-02-02T16:10:00+08:00</updated>
+  <updated>2015-04-02T09:35:25+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -14,467 +14,318 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Full Text Search for Meteor App]]></title>
-    <link href="http://leetschau.github.io/blog/2015/02/01/134829/"/>
-    <updated>2015-02-01T13:48:29+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/02/01/134829</id>
-    <content type="html"><![CDATA[<p>For Meteor 1.0.3, the built-in database is mongodb 2.4, which is not support full text search by default.
-So we need install a stand-alone MongoDB 2.6, create a &ldquo;meteor&rdquo; database, and let Meteor to use it as backend database:</p>
+    <title type="html"><![CDATA[Deploy Meteor Application Manually]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/26/203002/"/>
+    <updated>2015-03-26T20:30:02+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/26/203002</id>
+    <content type="html"><![CDATA[<p>首先在<a href="http://www.aliyun.com/">阿里云</a>上购买一台&#8221;云服务器ECS&#8221;，
+然后进入通过SSH连接VPS。</p>
 
-<p>First start MongoDB server: <code>mongod --dbpath ~/docs/mongodb-repo</code>;</p>
+<p>作为Meteor应用的生产环境，只需要安装mongoDB和Node.js就可以了，不需要安装Meteor.
+通过aptitude安装的mongoDB虽然版本比较老(2.4)，但不接受本机以外的连接，
+安全性有保障。</p>
 
-<p>Then create a new database &ldquo;meteor&rdquo; for Meteor app backend:</p>
-
-<pre><code>$ mongo
-&gt; show dbs
-&gt; use meteor
+<pre><code># aptitude update
+# aptitude install mongodb-server
+# aptitude install software-properties-common
+# add-apt-repository ppa:chris-lea/node.js
+# aptitude update
+# aptitude install nodejs
 </code></pre>
 
-<p>Next start Meteor server and connect it with the Mongodb server:</p>
+<p>Then create a start script &ldquo;startMeteor&rdquo;:</p>
 
-<pre><code>$ MONGO_URL="mongodb://localhost:27017/meteor" meteor
-&gt; db.zips.getIndexes()
-&gt; db.zips.dropIndex("forsearch_text")
-&gt; db.zips.ensureIndex( {city: "text", state: "text"} )
-&gt; db.zips.find( {$text: {$search: "lee ma"}} ).count()
-488
+<pre><code>#!/bin/bash
+
+export PORT=80
+export MONGO_URL=mongodb://localhost:27017/newfairs
+export ROOT_URL=http://www.newfairs.biz
+node /root/bundle/main.js &gt; /root/meteorApp.log
 </code></pre>
 
-<p>Here <code>use meteor</code> create a new database in MongoDB (if it doesn&rsquo;t exists yet)
-and use it as the current database.
-Use <code>db</code> to get the current database name.</p>
+<p>Now build Meteor application package on developing computer,
+and transfer it to production machine:</p>
 
-<p>Ref:</p>
+<pre><code>cd /path/to/meteorProjectRoot
+meteor build .
+scp newfairsweb.tar.gz alivps:~/
+</code></pre>
 
-<p><a href="http://docs.mongodb.org/manual/tutorial/getting-started/">Getting Started with MongoDB</a></p>
+<p>On production machine, extract Meteor package and install it as a node app:</p>
 
-<p><a href="http://docs.mongodb.org/manual/administration/indexes-text/">Text Search Tutorials of MongoDB 2.6.7</a>;</p>
+<pre><code>cd /root
+tar zxf newfairsweb.tar.gz
+cd bundle/programs/server
+npm install
+</code></pre>
 
-<p><a href="http://docs.mongodb.org/manual/reference/operator/query/text/">$text query operator of MongoDB 2.6.7</a></p>
-
-<p><a href="http://stackoverflow.com/questions/10610131/checking-if-a-field-contains-a-string">Checking if a field contains a string</a></p>
+<p>将VPS恢复到初始状态的方法是：在云服务器ECS主页的&#8221;实例&#8221;页下，
+对应主机最右边，&#8221;管理 升级 续费 更多&#8221;中点击&#8221;更多&#8221;，
+首先点击&#8221;停止&#8221;来停止实例运行，然后点击&#8221;重新初始化磁盘&#8221;，
+将系统盘和数据盘都初始化。</p>
 ]]></content>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[基于Search Source的简单查询实现方法]]></title>
-    <link href="http://leetschau.github.io/blog/2015/01/30/183509/"/>
-    <updated>2015-01-30T18:35:09+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/01/30/183509</id>
-    <content type="html"><![CDATA[<p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
-通过<code>meteor add meteorhacks:search-source</code>添加到meteor中，
-代码参照了<a href="https://github.com/meteorhacks-samples/meteor-instant-search-demo">meteor-instant-search-demo</a>.</p>
+    <title type="html"><![CDATA[Deploy Meteor App With MUP]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/25/195307/"/>
+    <updated>2015-03-25T19:53:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/25/195307</id>
+    <content type="html"><![CDATA[<h1>Create VPS</h1>
 
-<h1>准备数据源</h1>
+<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
+Get its root password in you email.
+Add the following section into ~/.ssh/config:</p>
 
-<h2>导入数据</h2>
-
-<ol>
-<li><p>下载<a href="http://media.mongodb.org/zips.json">zips.json</a>；
-参考<a href="http://stackoverflow.com/questions/5723896/is-there-a-sample-mongodb-database-along-the-lines-of-world-for-mysql">Is there a sample MongoDB Database along the lines of world for MySql?</a>.</p></li>
-<li><p>导入Meteor数据库中：启动meteor服务，然后在另一个shell里运行：
-<code>~/apps/mongodb-linux-x86_64-2.6.5/bin/mongoimport -h localhost:3001 --db meteor --collection zips --type json --file zips.json</code>;</p></li>
-<li><p>增加搜索字段：由于简单搜索要求输入可能匹配任意字段，
-能达到这个要求的唯一方法就是将被查询的字段连接成一个完整的“搜索”字符串，
-输入的各项可以以任何顺序出现在这个搜索字符串（这里这一项名为&#8221;forsearch&#8221;）中，下面增加这一项：</p>
-
-<pre><code> db.zips.find().forEach(function(elem) {
-     db.zips.update(
-       {_id: elem._id},
-       { $set: {forsearch: elem.city + ' ' + elem.state}}
-     );
- });
+<pre><code>Host do
+Hostname 128.199.72.206
+User root
 </code></pre>
 
-<p> 参考<a href="http://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field">Update MongoDB field using value of another field</a>.</p></li>
+<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
+
+<h1>Publish Meteor App</h1>
+
+<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
+
+<p>Create a mup project:</p>
+
+<pre><code>cd ~/docs/tmp
+mkdir nfDeploy
+cd nfDeploy
+mup init
+</code></pre>
+
+<p>Now you can see a mup.json file, edit it as follows:</p>
+
+<pre><code>{
+  "servers": [
+    {
+      "host": "128.199.72.xxx",
+      "username": "root",
+      "pem": "~/.ssh/id_rsa"
+    }
+  ],
+
+  "setupMongo": true,
+  "setupNode": true,
+  "nodeVersion": "0.10.36",
+  "setupPhantom": true,
+  "appName": "newfairs",
+
+  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
+
+  "env": {
+    "PORT": 80,
+    "ROOT_URL": "http://niufairs.biz"
+  },
+
+  "deployCheckWaitTime": 15
+}
+</code></pre>
+
+<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
+&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
+mup will bundle codes in it, and publish them to host on vps.</p>
+
+<p>You can only use key authentication.
+If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
+
+<p>Setup production environment: <code>mup setup</code>;
+Delpoy app: <code>mup deploy</code>;</p>
+
+<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
+
+<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
+</code></pre>
+
+<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
+
+<h1>Import Data</h1>
+
+<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
+
+<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
+scp -r mynf do:~/
+ssh do
+cd mynf
+mongorestore -d newfairs meteor
+</code></pre>
+
+<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Add Database Authentication for Meteor App]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/06/090609/"/>
+    <updated>2015-03-06T09:06:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/06/090609</id>
+    <content type="html"><![CDATA[<p>MongoDB version: 3.0.</p>
+
+<ol>
+<li><p>Start mongod without auth: <code>mongod</code>;</p></li>
+<li><p>Connect to server with <code>mongo</code>;</p></li>
+<li><p>Create admin and database owners:</p></li>
+<li><p>Start mongod with <code>mongod --auth</code>;</p></li>
+<li><p>Start Meteor app with <code>MONGO_URL="mongodb://chad:123@localhost:27017/test" meteor</code>.</p></li>
 </ol>
 
 
-<h1>搜索逻辑</h1>
+<p>Ref:</p>
 
-<p>下面&#8221;/&ldquo;都指项目根目录。</p>
+<p><a href="http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb">http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb</a></p>
 
-<h2>数据集定义</h2>
+<h1>MMS</h1>
 
-<p>在/collections.js中定义数据集和索引：</p>
-
-<pre><code>Zips = new Mongo.Collection('zips');
-if(Meteor.isServer) {
-  Zips._ensureIndex({city: 1, state: 1});
-}
-</code></pre>
-
-<h2>服务端</h2>
-
-<p>在/server/server.js中定义：</p>
-
-<pre><code>SearchSource.defineSource('zips', function(searchText, options) {
-  var options = {sort: {isoScore: -1}, limit: 20};
-
-  if(searchText) {
-    var regExp = buildRegExp(searchText);
-    var selector =  {forsearch: regExp};
-    return Zips.find(selector, options).fetch();
-  } else {
-    return Zips.find({}, options).fetch();
-  }
-});
-
-function buildRegExp(searchText) {
-  var parts = searchText.trim().split(/[ \-\:]+/);
-  for (i=0; i&lt;parts.length; ++i) {
-    parts[i] = "(?=.*" + parts[i] + ")";
-  }
-  var res = new RegExp("(" + parts.join("") + ")", "i");
-  return res;
-}
-</code></pre>
-
-<p>buildRegExp函数中的正则表达式<code>(?=.*A)(?=.*B)</code>可以实现对A和B任意顺序的匹配，
-即既能匹配A.<em>B，又能匹配B.</em>A，
-参考<a href="http://stackoverflow.com/questions/19896324/match-string-in-any-word-order-regex">match string in any word order regex</a>.</p>
-
-<h2>客户端：搜索输入框框即时响应</h2>
-
-<p>搜索框是通用控件，所以定义在了/client/comTemp.js中，定义了对框中keyup事件的响应：</p>
-
-<pre><code>Template.Header.events({
-  "keyup #search-input": _.throttle(function(e) {
-    var text = $(e.target).val().trim();
-    ZipSearch.search(text);
-  }, 200)
-});
-</code></pre>
-
-<h2>客户端：搜索结果展示页面</h2>
-
-<p>定义在/client/results.html中。</p>
-
-<pre><code>&lt;template name="SearchResults"&gt;
-  &lt;div id="search-result" class="container content"&gt;
-    &lt;div id="search-meta"&gt;
-      
-        searching ...
-      
-    &lt;/div&gt;
-
-    
-      &lt;div class="package"&gt;
-        &lt;h4 class="name"&gt;
-          }
-        &lt;/h4&gt;
-        &lt;div class="description"&gt;
-          }, }
-        &lt;/div&gt;
-      &lt;/div&gt;
-    
-  &lt;/div&gt;
-&lt;/template&gt;
-</code></pre>
-
-<h2>客户端：搜索结果的数据控制</h2>
-
-<p>定义在/client/results.js中。</p>
-
-<pre><code>var options = {
-  keepHistory: 1000 * 60 * 5,
-  localSearch: true
-};
-var fields = ['forsearch'];     // 这里定义要搜索的字段
-
-ZipSearch = new SearchSource('zips', fields, options);
-// 这里的zips要与服务端SearchSource.defineSource中定义的名字一致
-
-Template.SearchResults.helpers({
-  getZips: function() {
-    return ZipSearch.getData({
-      transform: function(matchText, regExp) {
-        console.log("matchText: " + matchText);
-        console.log("regExp: " + regExp);
-        var res = matchText.replace(regExp, "&lt;b&gt;$&amp;&lt;/b&gt;");
-        console.log("res is: " + res);
-        return res;
-      },
-      sort: {isoScore: -1}
-    });
-  },
-
-  isLoading: function() {
-    return ZipSearch.getStatus().loading;
-  }
-});
-
-Template.SearchResults.rendered = function() {
-  ZipSearch.search('');
-};
-</code></pre>
+<p>Connect mongodb server without authentication: <code>mongo &lt;ip&gt;:&lt;port&gt;</code>;</p>
 ]]></content>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Meteor Development Styles]]></title>
-    <link href="http://leetschau.github.io/blog/2015/01/26/174649/"/>
-    <updated>2015-01-26T17:46:49+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/01/26/174649</id>
-    <content type="html"><![CDATA[<h1>Naming Styles</h1>
+    <title type="html"><![CDATA[Website Monitor for Meteor Application]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/28/152115/"/>
+    <updated>2015-02-28T15:21:15+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/28/152115</id>
+    <content type="html"><![CDATA[<h1>Google Analytics</h1>
 
-<ul>
-<li><p>Template, class, enum name use BigCamelCase;</p></li>
-<li><p>File, identifier, function name use smallCamelCase;</p></li>
-<li><p>CSS class name: css-class-name;</p></li>
-<li><p>Constant value name: CONSTANT_VALUES_LIKE_THIS;</p></li>
-</ul>
+<p>Add tracking code (<script>&hellip;</script>) into the &ldquo;<head>&hellip;</head>&rdquo; (commonly in head.html) of your meteor app.</p>
 
+<p>You can find your tracking codes at Admin -> User Management -> Tracking Info -> Tracking Code.</p>
 
-<p>Ref:</p>
+<p>Get real-time data (such as on-site user number) at Reporting -> Real-Time -> Overview.</p>
 
-<p><a href="https://github.com/meteor/meteor/wiki/Meteor-Style-Guide">Meteor Style Guide</a></p>
+<h1>Kadira</h1>
 
-<p><a href="https://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml#Naming">Googe JavaScript Naming rules</a>:
-use functionNamesLikeThis, variableNamesLikeThis, ClassNamesLikeThis, EnumNamesLikeThis, methodNamesLikeThis, CONSTANT_VALUES_LIKE_THIS, foo.namespaceNamesLikeThis.bar, and filenameslikethis.js.</p>
+<pre><code>meteor add meteorhacks:kadira
+</code></pre>
 
-<p><a href="https://github.com/airbnb/javascript">Airbnb JavaScript Style Guide</a></p>
+<p>Add the following codes into server/kadira.js:</p>
 
-<h1>Small Project Structure with Iron Router</h1>
+<pre><code>Kadira.connect('&lt;App ID&gt;', '&lt;App Secret&gt;');
+</code></pre>
 
-<p>The following is the file structure of small meteor app,
-which put all files into root folder, to simplify file editing and browsing.</p>
+<p>get your AppID and App secret at <a href="https://kadira.io/">Kadira</a> -> [Your App] -> Settings.</p>
 
-<ul>
-<li><p>head.html: contains &ldquo;<head> &hellip; </head>&rdquo;;</p></li>
-<li><p>layout.html: defines layouts of the app, each in a &ldquo;<template>&rdquo;, you can put multiple layouts in this file;</p></li>
-<li><p>router.js: defines all routes and layouts. Put all javascript codes starting with &ldquo;Router.&rdquo; (such as Router.route, Router.configure) into this file;</p></li>
-<li><p>collections.js: define persistent collections, or models of application;</p></li>
-<li><p>style.css: defines global css styles here;</p></li>
-<li><p>comTemp.html: defines global common templates here;</p></li>
-<li><p>page triad: consists of a view (html), a controller (js) and a formatter (css).
-  So the home page triad consists of home.html, home.js and home.css;</p></li>
-</ul>
-
-
-<h1>Large Project Structures</h1>
-
-<p><a href="https://github.com/DiscoverMeteor/Microscope">Microscope</a> of <a href="https://www.discovermeteor.com/">Discover Meteor</a> is a good example:</p>
-
-<p>$ git clone <a href="https://github.com/DiscoverMeteor/Microscope.git">https://github.com/DiscoverMeteor/Microscope.git</a>
-$ cd Microscope
-$ tree -L 3
-.
-├── client
-│   ├── helpers
-│   │   ├── config.js
-│   │   ├── errors.js
-│   │   └── handlebars.js
-│   ├── main.html
-│   ├── main.js
-│   ├── stylesheets
-│   │   └── style.css
-│   └── templates
-│       ├── application
-│       ├── comments
-│       ├── includes
-│       ├── notifications
-│       └── posts
-├── lib
-│   ├── collections
-│   │   ├── comments.js
-│   │   ├── notifications.js
-│   │   └── posts.js
-│   ├── permissions.js
-│   └── router.js
-├── LICENSE.txt
-├── README.markdown
-├── README.nitrous.md
-└── server
-    ├── fixtures.js
-    └── publications.js</p>
-
-<p>Ref:</p>
-
-<p><a href="http://docs.meteor.com/#/full/structuringyourapp">Structuring your application in Meteor Docs</a></p>
-
-<p><a href="https://github.com/EventedMind/iron-router/blob/devel/Guide.md">iron-router official guide</a></p>
-
-<p>google &ldquo;iron router layout&rdquo;;</p>
-
-<p><a href="http://www.manuel-schoebel.com/blog/iron-router-tutorial">Iron-Router Tutorial</a></p>
-
-<p><a href="http://stackoverflow.com/questions/21824045/meteor-iron-router-layout-template">Meteor Iron Router layout template</a></p>
-
-<p><a href="http://stackoverflow.com/questions/19909945/meteor-iron-router-layout-rendering">Meteor Iron-Router Layout Rendering</a></p>
-
-<p><a href="http://robertdickert.com/blog/2014/05/09/set-up-navigation-with-iron-router-and-bootstrap/">Set Up Navigation With Iron Router and Bootstrap</a></p>
-
-<p><a href="http://meteortips.com/tutorial/iron-router-part-1/">A Beginner’s Guide to Iron Router, Part 1</a> on <a href="http://meteortips.com/">Meteor Tips</a></p>
+<p>Then see read-time statistics on its dashboard.</p>
 ]]></content>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[A Simple Search Homepage]]></title>
-    <link href="http://leetschau.github.io/blog/2015/01/18/142454/"/>
-    <updated>2015-01-18T14:24:54+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/01/18/142454</id>
-    <content type="html"><![CDATA[<p>The key points in this web page is:</p>
+    <title type="html"><![CDATA[The Algorithm of Related Fairs]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/25/141712/"/>
+    <updated>2015-02-25T14:17:12+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/25/141712</id>
+    <content type="html"><![CDATA[<p>For a given fair A, it&rsquo;s <em>major category</em> are a set of its cat.major subdocuments.</p>
 
-<ul>
-<li><p>How to position a <div> absolute centering with CSS;</p></li>
-<li><p>How to add a footer sticky to page bottom: add <code>background-image: none;</code> into navbar&rsquo;s CSS definitions;</p></li>
-<li><p>How to align text centering in a row: <code>text-align: center;</code>;</p></li>
-<li><p>How to specify font properties, including font-family, font-size and font-weight;</p></li>
-<li><p>How to add a image;</p></li>
-</ul>
+<p>For example, for the fair:</p>
 
+<pre><code>{ cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] }
+</code></pre>
 
-<p>Now build this page:</p>
+<p>its major categories are set [&ldquo;abc, &#8220;xyz&rdquo;].
+Here we say the major categories of fair X is <code>majorCat(X)</code>.</p>
 
-<pre><code>$ meteor create searchHome
-$ cd searchHome
-$ ln -s ../client
-$ tree
-.
-├── searchHome.css
-├── searchHome.html
-├── searchHome.js
-├── client -&gt; ../client
-└── public
-    └── logo.png
-$ tree client
-client
-├── css
-│   └── bootstrap.min.css
-└── lib
-    └── bootstrap.min.js
+<p>If the intersection of set <code>majorCat(X)</code> and <code>majorCat(Y)</code> are not empty,
+we say fair X and Y are <em>related</em>.</p>
 
-$ cat &lt;&lt; EOF &gt; searchHome.html
-&lt;head&gt;
-  &lt;title&gt;NewFairs&lt;/title&gt;
+<p>So for a given fair X, how to find all its related fairs in a collection?</p>
+
+<p>Here is the demonstration:</p>
+
+<p>In mongodb, create a test collection with the following codes:</p>
+
+<pre><code>db.cats.insert( { cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] } );
+db.cats.insert( { cat: [ { major: "abcd", minor: [ 1,23,3] }, { major: "xyzu", minor: [ 87, 987, 343]} ] } );
+db.cats.insert( { cat: [ { major: "bcd", minor: [ 1,23,3] }, { major: "abc", minor: [ 3, 23, 876]} ] } );
+db.cats.insert( { cat: [ { major: "xyz", minor: [ 8,83,5] }, { major: "axc", minor: [ 34, 3, 76]} ] } );
+</code></pre>
+
+<p>Create a new Meteor app with <code>meteor create relatedFairs</code>, and its files:</p>
+
+<p>relatedFairs.html</p>
+
+<pre><code>&lt;head&gt;
+  &lt;title&gt;relatedFairs&lt;/title&gt;
 &lt;/head&gt;
 
 &lt;body&gt;
-  &lt;div class="container"&gt;
-    
-    
-  &lt;/div&gt;
-
-  &lt;div id="content" class="container"&gt;
-    
-  &lt;/div&gt;
-
-  &lt;div id="footer"&gt;
-    &lt;nav class="navbar navbar-fixed-bottom"&gt;
-      &lt;div class="container" &gt;Here is the Footer&lt;/div&gt;
-    &lt;/nav&gt;
-  &lt;/div&gt;
+  &lt;h1&gt;Find related fairs&lt;/h1&gt;
+  
 &lt;/body&gt;
 
-&lt;template name="header"&gt;
-  &lt;div class="header" align="right"&gt;
-    
-    &lt;div class="btn-group"&gt;
-      &lt;button type="button" class="btn btn-default"&gt;Action&lt;/button&gt;
-      &lt;button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"&gt;
-        &lt;span class="caret"&gt;&lt;/span&gt;
-        &lt;span class="sr-only"&gt;Toggle Dropdown&lt;/span&gt;
-      &lt;/button&gt;
-      &lt;ul class="dropdown-menu" role="menu"&gt;
-        &lt;li&gt;&lt;a href="#"&gt;汉语&lt;/a&gt;&lt;/li&gt;
-        &lt;li&gt;&lt;a href="#"&gt;English&lt;/a&gt;&lt;/li&gt;
-      &lt;/ul&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/template&gt;
-
-&lt;template name="simpleSearchBox"&gt;
-  &lt;div class="fixed-search-form"&gt;
-    &lt;div class="row logo"&gt;
-      &lt;img src="http://leetschau.github.io/logo.png" alt="logo" /&gt;
-      牛展网
-    &lt;/div&gt;
-    &lt;div class="row"&gt;
-      &lt;input type="text"&gt;
-      &lt;button&gt;搜索&lt;/button&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/template&gt;
-
 &lt;template name="hello"&gt;
-  &lt;button id="addline"&gt;Add a line&lt;/button&gt;
-  &lt;button id="rmline"&gt;Remove a line&lt;/button&gt;
-  &lt;div&gt;
+  &lt;ul&gt;
     
-      &lt;li&gt;Item No: &lt;/li&gt;
+      &lt;li&gt; 
+        &lt;b&gt;:&lt;/b&gt;
+        
+          ,
+        
+      &lt;/li&gt;
     
-  &lt;/div&gt;
+  &lt;/ul&gt;
+  
+    &lt;p&gt;Related fairs of the first fair &lt;/p&gt;
+    &lt;ul&gt;
+      
+        &lt;li&gt;
+          &lt;b&gt;:&lt;/b&gt;
+          
+            ,
+          
+        &lt;/li&gt;
+      
+    &lt;/ul&gt;
+  
 &lt;/template&gt;
-EOF
-
-$ cat &lt;&lt; EOF &gt; searchHome.css
-html {
-  position: relative;
-  min-height: 100%;
-}
-
-#content { padding-bottom: 70px; }
-
-.fixed-search-form {
-  margin: auto;
-  position: absolute;
-  top:0; left:0; bottom:0; right:0;
-  height: 60%;
-  width: 60%;
-  text-align: center;
-  font-size: x-large;
-  font-family: Verdana,
-               "Microsoft YaHei", "微软雅黑",
-               "WenQuanYi Micro Hei";
-}
-
-.search-form .logo {
-  font-size: 200%;
-  font-weight: bold;
-}
-
-#footer .navbar {
-  position: absolute;
-  background-image: none;
-}
-EOF
 </code></pre>
 
-<p>Note1: the website logo image logo.png is created online, and download to local disk.
-See note &ldquo;创建简单的网站Logo&rdquo; for details.</p>
+<p>relatedFairs.js:</p>
 
-<p>Note2: in &ldquo;font-family&rdquo;, &ldquo;Verdana&rdquo; is english font, &ldquo;Microsoft YaHei&rdquo; is Chinese font for Windows platform, &ldquo;WenQuanYi Micro Hei&rdquo; for Linux platform.
-search and show this font with <code>aptitude search wqy</code>, <code>aptitude show fonts-wqy-microhei</code>.
-See note &ldquo;Build Working Environment with i3 and Mint&rdquo; for details of this font on Linux.</p>
+<pre><code>Fairs = new Mongo.Collection("cats");
 
-<p>Refs:</p>
+if (Meteor.isClient) {
+  Template.hello.helpers({
+    allFairs: function () {
+      return Fairs.find();
+    },
+    related: function () {
+      var theXrd = 0,
+          theFair = Fairs.findOne( {}, {skip: theXrd } );
+      if (! theFair) {
+        return null;
+      }
+      var majors = _.map(theFair.cat, function(i) { return i.major; } );
+      var rels = Fairs.find( { cat: { $elemMatch: { major: { $in: majors } } },
+                               _id: { $ne: theFair._id } } );
+      return {firstID: theFair._id._str, relatedFairs: rels };
+    }
+  });
+}
+</code></pre>
 
-<ul>
-<li><p><a href="http://stackoverflow.com/questions/396145/how-to-vertically-center-a-div-for-all-browsers">How to vertically center a div for all browsers?</a></p></li>
-<li><p><a href="http://www.ruanyifeng.com/blog/2014/07/chinese_fonts.html">中文字体网页开发指南</a></p></li>
-<li><p><a href="http://www.ruanyifeng.com/blog/2008/06/typography_notes.html">字体笔记</a></p></li>
-</ul>
+<p>Here we use <a href="http://underscorejs.org/">Underscore.js</a>,
+so install this package with <code>meteor add underscore</code> to run our demo app
+(with <code>MONGO_URL="mongodb://localhost:27017/test" meteor</code> in project root folder).</p>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Meteor MongoDB Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2014/12/20/230618/"/>
-    <updated>2014-12-20T23:06:18+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/12/20/230618</id>
-    <content type="html"><![CDATA[<ul>
-<li><p>Connect to a mongodb of a Meteor app: run <code>meteor</code> at the project root. Start another shell, go to this folder, and run <code>meteor mongo</code>;</p></li>
-<li><p>List all available commands: <code>help</code>;</p></li>
-<li><p>List DB operation methods: <code>db.help()</code>;</p></li>
-<li><p>List all existing collection names: <code>show collections</code>;</p></li>
-<li><p>List all available commands of a collection: <code>db.&lt;collection-name&gt;.help()</code>;</p></li>
-<li><p>Show collection information: <code>db.&lt;collection-name&gt;.stats()</code>;</p></li>
-<li><p>Print all &ldquo;name&rdquo; field of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {name_chn: 1})</code>;</p></li>
-<li><p>Print all fields except &ldquo;name_chn&rdquo; of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {products: 0})</code>;</p></li>
-</ul>
+<p>Modify the value of &ldquo;theXrd&rdquo; above, you can see the related fairs of each fair.</p>
 
+<p>To make a demo in a production collection,
+in fair &ldquo;A&rdquo; we find a major category called &ldquo;垃圾车与运输车&#8221;，
+then choose a fair B, whose id is &#8220;54e71a5642fb549b1389ae6f&rdquo;.</p>
+
+<p>Let&rsquo;s add the major cateory to fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a5642fb549b1389ae6f") }, { $push: {category: {major: "垃圾车与运输车"}} } );
+</code></pre>
+
+<p>Now fair A and B is related. Test them on your web site.
+If the test is past, remove the test data from fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a6642fb549b1389ae6f") }, { $pop: { category: 1 } } );
+</code></pre>
 ]]></content>
   </entry>
   

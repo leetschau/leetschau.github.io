@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="类似于BVT这样的脚本一般都运行在服务器上，在本机调试好再移动到服务器上比较麻烦，理想方法是在服务器上直接调试python源代码，这就需要有IDE支持，下面说明了在48服务器上使用绿色版PyScripter的完整过程。 以用户名 ser2 登录48服务器（地址：10.0.2.48）； &hellip;">
+  <meta name="description" content="GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。 测试用例： public &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/26/092619/">在48服务器上安装并使用PyScripter编辑的方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/07/26/091657/">GAPI的同步返回实现方法</a></h1>
     
     
       <p class="meta">
@@ -80,36 +80,435 @@
 
 
 
-<time class='entry-date' datetime='2011-05-26T09:26:19+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:26 am</span></time>
+<time class='entry-date' datetime='2011-07-26T09:16:57+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:16 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>类似于BVT这样的脚本一般都运行在服务器上，在本机调试好再移动到服务器上比较麻烦，理想方法是在服务器上直接调试python源代码，这就需要有IDE支持，下面说明了在48服务器上使用绿色版PyScripter的完整过程。</p>
+  <div class="entry-content"><p>GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。</p>
+
+<p>测试用例：</p>
+
+<p> public class SimpleExpScriptTest {</p>
+
+<p>   private IConnection conn;</p>
+
+<p>  @Test</p>
+
+<p>  public void testPWD() throws Exception {</p>
+
+<p>   conn = ConnFactory.getInstance().getConnection(Constants.PORT_CONNECT_GODU_DATA);</p>
+
+<p>   conn.setSyncType(Constants.TYPE_DATA_CMD_SYNC);</p>
+
+<p>   if (conn.getConnection(&ldquo;<aa><7001><administrator><autocmd>&rdquo;, &ldquo;goduapp&rdquo;, &ldquo;10.0.2.47&rdquo;, 1234, 100)) {</p>
+
+<pre><code>System.out.println("Connect GODU OK!"); 
+</code></pre>
+
+<p>   }</p>
+
+<p>   conn.sendGoduCmd(&ldquo;settelnetcodec switch=y&rdquo;);</p>
+
+<p>   conn.set_script_timeout(500);</p>
+
+<p>   Map&lt;String, Object> params = new HashMap&lt;String, Object>();</p>
+
+<p>   params.put(&ldquo;user_name&rdquo;, &ldquo;test&rdquo;);</p>
+
+<p>   params.put(&ldquo;old_pwd&rdquo;, &ldquo;godu123&rdquo;);</p>
+
+<p>   params.put(&ldquo;new_pwd&rdquo;, &ldquo;testgodu&rdquo;);</p>
+
+<p>   IResult result = conn. execScript (&ldquo;-1200187081&rdquo;, &ldquo;script/PWD&rdquo;, &ldquo;&rdquo;, params);</p>
+
+<p>   System.out.println(&ldquo;***result is:\n&rdquo; + result.getString());</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> execScript 方法：</p>
+
+<p> package com.boco.godu.gapi.conn;</p>
+
+<p> import &hellip;</p>
+
+<p> public class GoduDataConnection extends AbstractConnection {</p>
+
+<p>  private static final GapiLogger logger = LogUtils.getLogger(this.getClass().getName());</p>
+
+<p>  private final Object lock = new Object(); //对象锁</p>
+
+<p>  public IResult execScript(String ne_id, String scriptPath, String name, Map&lt;String, Object> params) throws &hellip; {</p>
+
+<p>   // check if connected GODU successfully</p>
+
+<p>   &hellip;</p>
+
+<p>   // parse script file</p>
+
+<p>   GoduScript gs = new GoduScript(scriptPath, script_buffer_size, params);</p>
+
+<p>   // add execute_script filter</p>
+
+<p>   session.getFilterChain().addBefore(&hellip;);</p>
+
+<p>   // open NE</p>
+
+<p>   &hellip;</p>
+
+<p>   // 在执行完脚本或者超时之前阻止代码继续运行，在ExecScriptFilter.messageReceived方法中解锁</p>
+
+<p>   GapiIosessionUtils. lockSession (session, lock , script_timeout );</p>
+
+<p>   GoduReturnResult res = new GoduReturnResult();</p>
+
+<p>   String script_result = (String) session.getAttribute(</p>
+
+<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RESULT, ""); 
+</code></pre>
+
+<p>   res.setArrays(script_result.getBytes());</p>
+
+<p>   int return_status = (Integer) session.getAttribute(</p>
+
+<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RETURN_STATUS, 0); 
+</code></pre>
+
+<p>   res.setReturnStatus(return_status);</p>
+
+<p>   return res;</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> 这样代码运行到lockSession时暂停，直到超时时间到，或者被其他线程上持有同一个锁的“唤醒”方法唤醒，这实现了同步方式的前一半：下面是同步方式的后一半：filter执行脚本完毕后唤醒主线程继续运行：</p>
+
+<p> package com.boco.godu.gapi.mina.filter.data;</p>
+
+<p> import &hellip;</p>
+
+<p> public class ExecScriptFilter extends AGapiFilter {</p>
+
+<p>  @Override</p>
+
+<p>  public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+
+<pre><code>     Object message) throws Exception { 
+</code></pre>
+
+<p>   &hellip;</p>
+
+<p>   if (&hellip;) { // 如果脚本执行完毕：</p>
+
+<pre><code>... 
+
+GapiIosessionUtils. unlockSession (session); 
+
+return; 
+</code></pre>
+
+<p>   }</p>
+
+<p>   &hellip;</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p>那么 lockSession 和 unlockSession 方法又是如何实现的呢，继续往下看：</p>
+
+<p> public class GapiIosessionUtils {</p>
+
+<p>  public static void lockSession(final IoSession session, final Object lock , final int timeout ) throws &hellip; {</p>
+
+<p>   try {</p>
+
+<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
+
+ long beforeLockTime = System.currentTimeMillis(); 
+
+ session.setAttribute(GoduFilterConstants. GODU_DATA_LOCK , lock ); 
+
+ session.getConfig().setBothIdleTime(timeout); 
+
+ ThreadUtil. waitIt ( lock , timeout * 1000 + 1000); 
+
+ long afterLockTime = System.currentTimeMillis(); 
+
+ logger.debug("lockTime=" + (afterLockTime - beforeLockTime) + "ms"); 
+
+} 
+</code></pre>
+
+<p>   } catch (Exception e) {</p>
+
+<pre><code>e.printStackTrace(); 
+
+logger.error("lockSession exception: ", e); 
+
+throw new GapiException(e); 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p>  public static void unlockSession(final IoSession session) throws &hellip; {</p>
+
+<p>   try {</p>
+
+<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
+
+ Object status = session.getAttribute(GoduFilterConstants. GODU_DATA_LOCK ); 
+
+ ThreadUtil.notifyIt(status); 
+
+} 
+</code></pre>
+
+<p>   } catch (Exception e) {</p>
+
+<pre><code>... 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> 可以看到加锁的时候将锁（lock对象）放在了session的一个attribute上，解锁的时候从这个attribute上取出这个锁，然后解锁。这里用到的 冻结线程的 waitIt 方法以及唤醒线程的 notifyIt 方法实现如下：</p>
+
+<p> package com.boco.godu.common.util;</p>
+
+<p> public class ThreadUtil {</p>
+
+<p>  public static void  waitIt  (final Object o, final long time) {</p>
+
+<p>   synchronized (o) {</p>
+
+<pre><code>try { 
+
+ if (time == -1) { 
+
+  o.wait(); 
+
+ } else { 
+
+  o.wait(time); 
+
+ } 
+
+} catch (InterruptedException iex) { 
+
+ iex.printStackTrace(); 
+
+} 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p>   public static void  notifyIt (final Object o) {</p>
+
+<p>   synchronized (o) {</p>
+
+<pre><code> o.notifyAll(); 
+</code></pre>
+
+<p>   }</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> 当代码到 o.wait(time); 时进入阻塞状态（停止运行，实际上是java.lang.Object.wait()方法），直到下列情况之一出现：</p>
 
 <ol>
-<li><p>以用户名 ser2 登录48服务器（地址：10.0.2.48）；</p></li>
-<li><p>将PyScripter_confs_on48.zip解压到C:\Documents and Settings\ serv2 \Application Data下，即PyScripter.ini的绝对路径为：</p></li>
+<li><p>超时时间time到；</p></li>
+<li><p>被唤醒，也就是调用同一个对象的notifyAll方法（即java.lang.Object.notifyAll()方法）。</p></li>
 </ol>
 
+</div>
+  
+  
 
-<p> C:\Documents and Settings\serv2\Application Data\PyScripter\PyScripter.ini</p>
 
-<ol>
-<li><p>解压PyScripter-v2.4.1.zip到任意位置，运行其中的PyScripter.exe启动PyScripter；</p></li>
-<li><p>从SVN上下载源代码；</p></li>
-</ol>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/07/23/103345/">Groovy正则表达式复杂逻辑判断实例</a></h1>
+    
+    
+      <p class="meta">
+        
 
+
+
+
+<time class='entry-date' datetime='2011-07-23T10:33:45+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>10:33 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的两个pattern（p1和p2）分别代表了(A or B) and (C or D)和(A and B) or (C and D)的跨行匹配结果，当然还可以用正则表达式构建更复杂的pattern，但这个实例证明了Groovy具备跨行匹配复杂逻辑表达式的能力。</p>
+
+<p> 值得注意的是，多行匹配文本时需要在匹配字符串前加“(?ms)”。</p>
+
+<p> 该实例同时演示了Groovy闭包的使用方法。
+ 源代码</p>
+
+<p> msg1 = &lsquo;&rsquo;&lsquo;one two three four</p>
+
+<p> five six&#8217;&lsquo;&rsquo;</p>
+
+<p> msg2 = &lsquo;&rsquo;&lsquo;Jan Feb Mar</p>
+
+<p> Apr May Jun&#8217;&lsquo;&rsquo;</p>
+
+<p> msg3 = &lsquo;&rsquo;&lsquo;one two three</p>
+
+<p> Apr May Jun&#8217;&lsquo;&rsquo;</p>
+
+<p> msg4 = &lsquo;&rsquo;&lsquo;Jan Feb Mar</p>
+
+<p> four five six&#8217;&lsquo;&rsquo;</p>
+
+<p> p1 = / (?ms) (two|Feb).*(five|May)/</p>
+
+<p> p2 = / (?ms) (two.<em>five)|(Feb.</em>May)/</p>
+
+<p> msgs = [msg1, msg2, msg3, msg4]</p>
+
+<p> patterns = [p1, p2]</p>
+
+<p> patterns.each { pattern-></p>
+
+<p> println &lsquo;pattern is: &rsquo;+pattern</p>
+
+<p> msgs.each { msg-></p>
+
+<p> println &lsquo;msg is: &rsquo;+msg</p>
+
+<p> println &lsquo;match result is:&rsquo;</p>
+
+<p> matcher = msg =~ pattern</p>
+
+<p> if (matcher)</p>
+
+<p> println &ldquo;true&rdquo;</p>
+
+<p> else</p>
+
+<p> println &ldquo;false&rdquo;</p>
+
+<p> println &lsquo;&mdash;&rsquo;</p>
+
+<p> }</p>
+
+<p> println &lsquo;===&rsquo;</p>
+
+<p> }
+ 运行结果
+ pattern is: (?ms)(two|Feb).*(five|May)</p>
+
+<p> msg is: one two three four</p>
+
+<p> five six</p>
+
+<p> match result is:</p>
+
+<p> true</p>
 
 <hr />
 
-<p>注1：第2步的目的是将PyScripter常用的设置（如字号大小，背景颜色，快捷键等）一次性设置好，这些设置都保存在前述的</p>
+<p> msg is: Jan Feb Mar</p>
 
-<p>&ldquo; C:\Documents and Settings\serv2\Application Data\PyScripter\PyScripter.ini &#8220;文件中。</p>
+<p> Apr May Jun</p>
 
-<p>注2：第1步中的登录用户名要与第2步中的路径名一致（这里都是serv2），否则当前用户没有其他用户目录的写权限，不可能解压文件；</p>
+<p> match result is:</p>
+
+<p> true</p>
+
+<hr />
+
+<p> msg is: one two three</p>
+
+<p> Apr May Jun</p>
+
+<p> match result is:</p>
+
+<p> true</p>
+
+<hr />
+
+<p> msg is: Jan Feb Mar</p>
+
+<p> four five six</p>
+
+<p> match result is:</p>
+
+<p> true</p>
+
+<hr />
+
+<hr />
+
+<p> pattern is: (?ms)(two.<em>five)|(Feb.</em>May)</p>
+
+<p> msg is: one two three four</p>
+
+<p> five six</p>
+
+<p> match result is:</p>
+
+<p> true</p>
+
+<hr />
+
+<p> msg is: Jan Feb Mar</p>
+
+<p> Apr May Jun</p>
+
+<p> match result is:</p>
+
+<p> true</p>
+
+<hr />
+
+<p> msg is: one two three</p>
+
+<p> Apr May Jun</p>
+
+<p> match result is:</p>
+
+<p> false</p>
+
+<hr />
+
+<p> msg is: Jan Feb Mar</p>
+
+<p> four five six</p>
+
+<p> match result is:</p>
+
+<p> false</p>
+
+<hr />
+
+<hr />
 </div>
   
   
@@ -122,7 +521,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/25/123121/">Ivy可以在ant中直接使用的变量</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/07/21/154602/">基于Tcc的C语言编译器</a></h1>
     
     
       <p class="meta">
@@ -131,398 +530,162 @@
 
 
 
-<time class='entry-date' datetime='2011-05-25T12:31:21+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>12:31 pm</span></time>
+<time class='entry-date' datetime='2011-07-21T15:46:02+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>3:46 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在 ant 文件中使用&lt;ivy:resolve/>进行解析后，可以使用如下变量：</p>
+  <div class="entry-content"><p><a href="http://bellard.org/tcc">TCC: Tiny C Compiler</a>是一款Windows平台上的迷你型C编译器，适合于学习算法时编译、演示一些简单的C语言程序，下面分别是基于vim和Notepad++的两种开发环境搭建方法。</p>
 
-<p>ivy.organisation</p>
+<h1>安装TCC</h1>
 
-<p>ivy.module</p>
+<p>TCC是绿色软件，下载软件包（tcc-0.9.25-win32-bin.zip）后解压即可运行，假设解压到&#8221;d:\apps\tcc&#8221;目录下。</p>
 
-<p>ivy.revision</p>
-
-<p>ivy.resolved.configurations</p>
-
-<p>例如如下代码：
-   <target  name= "UT_junit"  depends=  "cleanForZip" >
-   <mkdir dir="${junit.test.result}"/>
-     <javac  srcdir= "${test.src.dir}"  destdir= "${test.class.dir}"  encoding= "GBK" >
-      <classpath>
-       <pathelement  location= "${build.dist.dir}/${ ivy.module }-${ ivy.revision }.jar" />
-       <path  refid= "lib.path" />
-       <path  refid= "test.lib.path" />
-      </classpath>
-     </javac>
- 需要注意的是由于这些变量仅在 &lt;ivy:resolve/>后才生成，因此不要用<property name="..." value="${ivy.module}" />将它们的赋给一个变量，因为所有的变量赋值都是在任务（target）之前进行的（不论赋值的位置是否在包含&lt;ivy:resolve/>的target之后），因此变量肯定是得不到上述变量的值的。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/19/094133/">射手网字幕编码修改笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-05-19T09:41:33+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>用射手播放器自动下载的视频用文本编辑器打开后经常是乱码，实验后发现主要是由于这些文件使用Big5编码格式，用Notepad2就可以进行编码转换，但Notepad2没有中文繁简体转换的功能，用Word进行转换是一种比较完整的解决方案，下面是详细操作过程：</p>
-
-<p>用Word打开这个srt文件，Word会自动侦测其编码格式；</p>
-
-<p>打开文件后，选中所有文本后用【审阅->繁转简】转为简体并保存：在【是否保存为这种格式】对话框里选“否”，然后在保存对话框中将【保存类型】选为【纯文本(*.txt)】，文件名框中将扩展名改为srt，在随后出现的编码对话框里【文本编码】选【其他编码】，在编码列表里选【Unicode (UTF-8)】，确定即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/16/162950/">CD管理和检索软件比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-05-16T16:29:50+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:29 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>之前一直用EverCD+，考虑到鸡蛋不能放在一个篮子里，又找了几款功能类似的进行了比较，主要考察一下几个功能：</p>
-
-<p> 多个镜像：一个数据文件可以包含多个目录的镜像，便于数据管理和搜索； 目录更新：目录内容发生变化后，更新其在管理软件中的镜像（对于一次性写光盘不存在更新问题）； 多种搜索类型：除了按名称搜索，还能按大小、日期等搜索； 导出、导入为通用数据文件：如csv、xml文件等；</p>
-
-<p> 备选软件
- WhereIsIt：商业软件，暂未找到破解版； VVV (Virtual Volumes View)：开源软件（C++写成），无需安装，支持多个镜像，支持更新和搜索，不能导入，能够导出为CSV文件；有源代码下载，体积小巧（Windows压缩包4MB，源代码2MB）； Visual CD：免费软件，需安装， 间接支持多个镜像（ 一个vcc文件只能对应一个目录镜像，但可以在多个vcc文件内搜索 ）， 支持更新和搜索，不能导入csv和xml，导出功能强（能够导出为html、txt、rtf和txt格式）； Offline CD Browser：免费软件，数据文件放在了默认的安装文件内，安全性差，界面老土，支持更新和搜索，多种搜索类型，无导入和导出功能； Blue Mirror DVD/CD Indexer：安装过程需要联网，间接支持多个镜像（一个数据文件只包含一个镜像，但可以用“Merge with File”合并多个数据文件），似乎没有更新功能和搜索功能，可以导出为CSV文件； EverCD+：支持导出为xml文件； GCstar：安装文件很大，似乎是一个个人文档管理软件，严格来说不属于光盘管理软件； 总结</p>
-
-<p>VVV无需安装，体积小，功能完善，开源，是EverCD+比较好的替代品；</p>
-
-<p>这类软件都没有从csv、xml文件导入的功能，所以目前的EverCD+数据文件可能无法导入到其他软件中。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/13/163122/">Haskell Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-05-13T16:31:22+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<pre><code>sudo apt-get install aptitude
-sudo aptitude install haskell-platform
-</code></pre>
-
-<p>verified on Linux Mint 14 Xfce.</p>
-
-<p>Install hoogle (offline documentation of Haskell):</p>
-
-<pre><code>cabal update
-cabal install alex happy &amp;&amp; cabal install hoogle
-</code></pre>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/11753979/cabal-install-hoogle-error">http://stackoverflow.com/questions/11753979/cabal-install-hoogle-error</a></p>
-
-<p>Very slow, you can use <a href="http://www.haskell.org/hoogle/">the online version</a>;</p>
-
-<p>modify ~/.cabal/conifg:</p>
-
-<pre><code>remote-repo: old.hackage.haskell.org:http://old.hackage.haskell.org
-</code></pre>
-
-<p>Ref:</p>
-
-<p><a href="http://hackage.haskell.org/">http://hackage.haskell.org/</a></p>
-
-<p><a href="http://www.haskell.org/haskellwiki/Hoogle">http://www.haskell.org/haskellwiki/Hoogle</a></p>
-
-<pre><code>$ cabal update
-$ cabal install hoogle
-$ ~/.cabal/bin/hoogle data # create database
-$ ~/.cabal/bin/hoogle map # search "map"
-</code></pre>
-
-<p>Save the following lines to ~/.ghci to enable you use &ldquo;:hoogle&rdquo; or &ldquo;:doc&rdquo; to get doc info in ghci:</p>
-
-<pre><code>:def hoogle \x -&gt; return $ ":!hoogle \"" ++ x ++ "\""       
-:def doc \x -&gt; return $ ":!hoogle --info \"" ++ x ++ "\""
-</code></pre>
-
-<h1>Sample Project</h1>
-
-<p>Based on <a href="http://www.haskell.org/haskellwiki/How_to_write_a_Haskell_program;">http://www.haskell.org/haskellwiki/How_to_write_a_Haskell_program;</a></p>
+<h1>vim</h1>
 
 <ol>
-<li><p>create home folder: <code>take haq</code>;</p></li>
-<li><p>create source file &ldquo;Haq.hs&rdquo;;</p></li>
-<li><p>stick it in version control:</p>
-
-<pre><code> git init
- git add Haq.hs
- git commit -m "add first source"
-</code></pre></li>
-<li><p>add a build system: <code>cabal init</code>;</p></li>
-<li><p>modify .cabal file: add &ldquo;Haq.hs&rdquo; after &ldquo;&ndash; main-is:&rdquo; and uncomment this line(delete &ldquo;&ndash;&rdquo;); If you donot specify the license type, comment out the line &ldquo;license-file&rdquo;;</p></li>
-<li><p>cabal update</p></li>
-<li><p>cabal install &ndash;prefix=<dst_folder> &ndash;user</p></li>
-<li><p>run app: <code>bin/haq me</code> under <dst_folder>, or run app in-place (under current directory): dist/build/haq/haq me</p></li>
+<li>将以下程序保存到hello.c文件中。</li>
 </ol>
 
 
-<p>verified on Haskell Platform 7.4.2, Linux Mint 14:</p>
+<p> #include &lt;stdio.h>
+ main()
+ {
+  printf(&ldquo;hello, world!!!\n&rdquo;);
+ }</p>
 
-<p>$ ghc &ndash;version</p>
-
-<p>The Glorious Glasgow Haskell Compilation System, version 7.4.2</p>
-
-<h1>Miscellaneous</h1>
-
-<ul>
-<li><p>ghc: compiler</p></li>
-<li><p>ghci: interactive shell;</p></li>
-<li><p>runghc: run haskell script without compile</p></li>
-<li><p>Compile haskell source file to executable:</p>
-
-<pre><code>  $ ghc --make &lt;FileName&gt;.hs -o &lt;ExeFileName&gt;
-</code></pre></li>
-</ul>
+<ol>
+<li>运行&#8221;:!d:\Apps\tcc\tcc.exe -run %&#8221;</li>
+</ol>
 
 
-<p>for example:</p>
+<h1>Notepad++</h1>
 
-<pre><code>$ ghc --make Test.hs -o test
+<p>需要的软件：<a href="http://notepad-plus-plus.org/">Notepad++</a> v5.8.3 绿色版和它的NppExec插件；</p>
+
+<h2>编译器</h2>
+
+<p>下载tcc的windows压缩包后解压到一个目录下，例如”f:\Software\tcc“；</p>
+
+<h2>语法高亮</h2>
+
+<p>Notepad++内置了对C语言的语法高亮，如果在“语言”菜单下没有&#8221;C&#8221;语言项，在【设置->首选项->语言】下从”禁用项“列表中把C放到”启用项“列表中即可。</p>
+
+<h2>命令行输出</h2>
+
+<p>安装NppExec：下载NppExec后解压到npp安装目录的plugins文件夹下，例如我的npp绿色版路径是f:\Software\Notepad++583，则解压后目录结构为f:\Software\Notepad++583\plugins\NppExec.dll和f:\Software\Notepad++583\plugins\NppExec（下面是几个.h文件），压缩包doc目录下文件放在f:\Software\Notepad++583\plugins\doc下。启动Npp后可看到【插件->NppExec】菜单，【插件->NppExec->Show Console Dialog】打开命令输出窗口，可用【插件->NppExec->Change Console Font】修改输出窗口的字体和字号；</p>
+
+<h2>定义运行脚本</h2>
+
+<p> 【插件->NppExec->Execute】打开Execute窗口，输入</p>
+
+<p> NPP_SAVE
+ &ldquo;f:\Software\tcc\tcc.exe&rdquo; &ldquo;$(FULL_CURRENT_PATH)&rdquo; -run</p>
+
+<p> 点Save保存此脚本为”Run C“；第一行脚本表示保存文件，第二行脚本使用了tcc.exe的-run参数，将编译、连接、运行一次性搞定；</p>
+
+<h2>定义菜单项</h2>
+
+<p> 【插件->NppExec->Advanced Options】中选择&#8221;Run C&#8221;，然后勾选&#8221;Place to the Macro submenu&#8221;；</p>
+
+<p> 绑定快捷键</p>
+
+<p> 【设置->管理快捷键】的&#8221;Macros&#8221;或者&#8221;Plugins commands&#8221;下面找到&#8221;Run C&#8221;，为其设置一个快捷键；</p>
+
+<h2>编译运行</h2>
+
+<p>Npp中打开前述hello.c文件，【宏->Run C】或者使用前面设置的快捷键启动Run C脚本，在Console窗口中可以看到程序的输出。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/07/19/164331/">日期格式转换的正则表达式实现</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-07-19T16:43:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:43 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>原始文本：</p>
+
+<blockquote><p>2011年7月18日：修改密码的核心功能开发完毕；
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<p>目标格式文本：</p>
+
+<blockquote><p>2011-7-18：修改密码的核心功能开发完毕；
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<h1>vim实现</h1>
+
+<pre><code>:%s/\(\d\{4}\).\(\d\{1,2}\).\(\d\{1,2}\)./\1-\2-\3/g 
 </code></pre>
 
-<h1>GHCi usage</h1>
+<p>说明： 采用 :%s/old/new/g 命令进行替换，其中%表示对所有行进行替换操作，最后的g参数表明对一行中所有的new均替换为old。\d代表任意数字，old pattern中每个括号（即(&hellip;)）中的内容构成一个group member，new pattern中对group member的引用用\1、\2、\3&hellip;代表，即&#8221;BRE&#8221;, back references.</p>
 
-<ul>
-<li><p>get current working directory: :!pwd (you can use :!<shell_cmd> to run any shell command);</p></li>
-<li><p>turn on/off type declaration: :set +t, :unset +t</p></li>
-<li><p>get type information of a object: :t</p></li>
-<li><p>define local variable and show bindings:</p>
+<h1>Groovy实现</h1>
 
-<pre><code>  let x = 3, 
-  :show bindings
-</code></pre></li>
-<li><p>load module: :m +Data.Ratio</p></li>
-<li><p>change cwd: :cd <path_name></p></li>
-<li><p>load file: :l <file_name></p></li>
-<li><p>quit ghci shell: :q</p></li>
-<li><p>get function doc: :i <func_name></p></li>
-</ul>
-
-
-<h1>Syntax</h1>
-
-<ul>
-<li><p>comments: &ndash;</p></li>
-<li><p>comparison: /=, >, &lt;</p></li>
-<li><p>boolean operation: not, || , &amp;&amp;</p></li>
-<li><p>Haskell requires type names to start with an uppercase letter, and variable names must start with a lowercase letter.</p></li>
-<li><p>To construct a rational number: 11 % 29 (after &ldquo;:m +Data.Ratio&rdquo;)</p></li>
-<li><p>values in &ldquo;where&rdquo;, &ldquo;case&rdquo; and &ldquo;let&rdquo; clause must keep the SAME indentions;</p></li>
-</ul>
-
-
-<h1>Shell Interaction Library</h1>
-
-<p>shqq, shelly</p>
-
-<p>Ref: <a href="http://www.yesodweb.com/blog/2012/03/shelly-for-shell-scripts">Shelly: Write your shell scripts in Haskell</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/12/200007/">视频分割、合并软件比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-05-12T20:00:07+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>特点</p>
-
-<p>支持格式：是否同时支持AVI、MPG、RM、RMVB、WMV等视频格式的分割；</p>
-
-<p>输入时间：直接输入时间，而不是用游标拖动；</p>
-
-<p>多段剪辑：是否支持从一个文件中设置多个片段，一次性剪辑出来；</p>
-
-<p>快速分割：是否能够在不重新编码的情况下分割视频；</p>
-
-<p>Boilsoft Video Cutter</p>
-
-<p>不能分割rmvb，有时会出现不能预览视频的情况，支持输入时间（操作比较麻烦），支持多段剪辑，支持快速分割；</p>
-
-<p>Boilsoft.Video.Splitter</p>
-
-<p>所有分割均失败；</p>
-
-<p>Ultra Video Splitter</p>
-
-<p>支持所有格式，支持输入时间，不支持多段剪辑，支持快速分割；</p>
-
-<p>SolveigMM Video Splitter</p>
-
-<p>支持AVI和WMV以及多种音频格式，支持输入时间，多段剪辑，快速分割，支持批处理操作，能够对进度条进行缩放，有视频（仅AVI、WMV、ASF）和音频合并功能，分割质量好，快捷键支持好；</p>
-
-<p> 结论：当分割AVI、WMV、ASF格式文件时用SolveigMM Video Splitter，分割RM格式文件时用Ultra Video Splitter。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/11/150130/">删除过期的文件夹</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-05-11T15:01:30+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>BVT将每天检出并运行单元测试的源代码放入一个以日期命名的文件夹中，每个文件夹都很大，因此需要及时清除比较老的文件夹以节约磁盘空间，例如今天是5月11日，bvt运行目录e:\bvt_build下有如下文件夹和文件：</p>
-
-<p> 2011-04-18\</p>
-
-<p> 2011-04-19\</p>
-
-<p> 2011-04-22\</p>
-
-<p> 2011-04-25\</p>
-
-<p> 2011-04-27\</p>
-
-<p> 2011-05-10\</p>
-
-<p> 2011-05-09\</p>
-
-<p>  2011-05-08\</p>
-
-<p> backup\</p>
-
-<p> note.txt</p>
-
-<p>现在的要求是仅保留今天、昨天和前天共3天的文件夹，其余文件夹删除（文件都保留），技术关键有两点：一是怎样将字符串形式的日期转换为可以用来做减法的date对象，以便判断与今天的间隔，这里采用的方法是：先将字符串转换为一个datetime对象，然后转换为一个timestamp（实数），再将timestamp转换为date对象；二是怎样将时间间隔（timedelta）对象转换为整型数以便进行比较，这里用的方法是得到timedelta对象后取其days属性。代码如下：</p>
-
-<p> import os,shutil,time</p>
-
-<p> from datetime import datetime, timedelta, date</p>
-
-<p> today = date.today()</p>
-
-<p> sub_items = os.listdir(&lsquo;e:/bvt_build&rsquo;)</p>
-
-<p> for item in sub_items:</p>
-
-<p>  try:</p>
-
-<p>   timeFloat = time.mktime(time.strptime(item, &ldquo;%Y-%m-%d&rdquo;))</p>
-
-<p>   the_day = date.fromtimestamp(timeFloat)</p>
-
-<p>   time_span = (today - the_day).days</p>
-
-<p>   if time_span > 2:</p>
-
-<pre><code>shutil.rmtree(os.path.join('e:/bvt_build',item)) 
+<pre><code>oriStr = '''2011年7月18日：修改密码的核心功能开发完毕； 
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；'''; 
+pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+matcher = oriStr =~ pattern; 
+matcher.each { all,y,m,d-&gt; 
+    println 'Patten is: '+all; 
+    println 'Replaced by: '+y+'-'+m+'-'+d; 
+}; 
+println '*****'; 
+println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;}; 
 </code></pre>
 
-<p>  except:</p>
+<p>运行结果：</p>
 
-<p>   continue</p>
+<pre><code>Patten is: 2011年7月18日 
+Replaced by: 2011-7-18 
+Patten is: 2011年7月19日 
+Replaced by: 2011-7-19 
+***** 
+2011-7-18：修改密码的核心功能开发完毕； 
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
 
-<p>运行后的结果如下：</p>
+<p>说明： 跨行字符串用三引号括起来；匹配模式用“ /&hellip;/” 括起来；用模式匹配字符串时，每一次成功匹配构成了matcher的一个元素（代码中用matcher.each得到），如果模式当中包含group（可以matcher.hasGroup()判断），则这个元素本身也是一个List，其中第一个元素是符合模式的substring（代码中的all），各个group member可以用下标引用，也可以分别起名字（代码中分别为y、m、d）。这部分内容可参见《Groovy in Action》（2007版）第3.5节“Working with regular expressions”。Groovy的String.replaceAll方法包括两个参数，第一个是要被代替的pattern，第二个是用来代替pattern的closure，该closure的返回结果是最后一行代码的值。</p>
 
-<p> 2011-05-09\</p>
+<p>例如：<code>println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;return 'Date'};</code> 的输出是：</p>
 
-<p> 2011-05-10\</p>
+<pre><code>Date：修改密码的核心功能开发完毕； 
+Date：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
 
-<p> backup\</p>
+<h1>基于文件读写的Groovy实现</h1>
 
-<p> note.txt</p>
+<pre><code>pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+convStr = ''; 
+new File('f:/Edit3.txt').eachLine{ 
+    convStr += (it.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d})+'\n' 
+} 
+new File('f:/conv.txt').write convStr; 
+</code></pre>
+
+<p>说明： 第4行的it表示此行文本（字符串）。</p>
 </div>
   
   
@@ -535,7 +698,7 @@ $ ~/.cabal/bin/hoogle map # search "map"
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/10/175806/">Bvt脚本运行环境设置</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/07/18/112537/">Java Assert关键字的使用方法</a></h1>
     
     
       <p class="meta">
@@ -544,16 +707,48 @@ $ ~/.cabal/bin/hoogle map # search "map"
 
 
 
-<time class='entry-date' datetime='2011-05-10T17:58:06+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:58 pm</span></time>
+<time class='entry-date' datetime='2011-07-18T11:25:37+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:25 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>tools目录：来自svn；</p>
+  <div class="entry-content"><p>assert后面的表达式为假时会抛出AssertionError类对象，此类继承自Throwable类，可以用try..catch(AssertionError e)&hellip;语句捕获并处理，如果不处理，将会向其他Exception一样向上层调用抛出，导致线程运行中断。</p>
 
-<p>log目录以及下面的bvt.log文件：自动生成；</p>
+<h2>使用assert的方法</h2>
+
+<p>assert适用于定义服务器的能力边界，如最大负载等，不适于对外部条件（例如检验用户输入格式）进行判断（参考<a href="http://stackoverflow.com/questions/1276308/exception-vs-assertion%EF%BC%89%EF%BC%8C%E5%9B%A0%E4%B8%BA%E5%A4%84%E7%90%86%E8%BF%99%E7%B1%BB%E9%97%AE%E9%A2%98%E7%9A%84%E6%96%B9%E6%B3%95%E6%98%AF%E7%BB%99%E5%87%BA%E4%B8%80%E4%B8%AA%E5%8F%8D%E9%A6%88%E4%BF%A1%E6%81%AF%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E4%B8%AD%E6%96%AD%E6%9C%8D%E5%8A%A1%E3%80%82%E5%9F%BA%E4%BA%8E%E6%AD%A4%EF%BC%8C%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%88%9D%E6%9C%9F%E5%8F%AF%E4%BB%A5%E7%94%A8assert%E5%B0%86%E6%B5%81%E7%A8%8B%E8%BF%90%E8%A1%8C%E7%9A%84%E5%89%8D%E6%8F%90%E6%9D%A1%E4%BB%B6%E5%86%99%E5%87%BA%E6%9D%A5%EF%BC%8C%E4%BD%86%E5%9C%A8%E4%BA%A7%E5%93%81%E5%8F%91%E5%B8%83%E5%89%8D%E5%BA%94%E5%B0%86%E8%BF%99%E4%BA%9B%E4%B8%B4%E6%97%B6assert%E6%94%B9%E6%88%90%E6%AD%A3%E5%BC%8F%E7%9A%84%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E8%AF%AD%E5%8F%A5%E3%80%82">http://stackoverflow.com/questions/1276308/exception-vs-assertion%EF%BC%89%EF%BC%8C%E5%9B%A0%E4%B8%BA%E5%A4%84%E7%90%86%E8%BF%99%E7%B1%BB%E9%97%AE%E9%A2%98%E7%9A%84%E6%96%B9%E6%B3%95%E6%98%AF%E7%BB%99%E5%87%BA%E4%B8%80%E4%B8%AA%E5%8F%8D%E9%A6%88%E4%BF%A1%E6%81%AF%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E4%B8%AD%E6%96%AD%E6%9C%8D%E5%8A%A1%E3%80%82%E5%9F%BA%E4%BA%8E%E6%AD%A4%EF%BC%8C%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%88%9D%E6%9C%9F%E5%8F%AF%E4%BB%A5%E7%94%A8assert%E5%B0%86%E6%B5%81%E7%A8%8B%E8%BF%90%E8%A1%8C%E7%9A%84%E5%89%8D%E6%8F%90%E6%9D%A1%E4%BB%B6%E5%86%99%E5%87%BA%E6%9D%A5%EF%BC%8C%E4%BD%86%E5%9C%A8%E4%BA%A7%E5%93%81%E5%8F%91%E5%B8%83%E5%89%8D%E5%BA%94%E5%B0%86%E8%BF%99%E4%BA%9B%E4%B8%B4%E6%97%B6assert%E6%94%B9%E6%88%90%E6%AD%A3%E5%BC%8F%E7%9A%84%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E8%AF%AD%E5%8F%A5%E3%80%82</a></p>
+
+<p>JUnit的assert*提供了比内置assert更丰富的判断方法，但本质上仍然是抛出AssertionError，且增加了对JUnit的依赖，因此不建议用JUnit代替assert。</p>
+
+<p>（2012-12-19更新）</p>
+
+<hr />
+
+<p>Java的assert关键字是从JAVA SE 1.4 引入的，为了和老版本兼容，Java在执行的时候默认是不启动断言检查的，这种情况下所有的assert语句都将被忽略。要开启断言检查，则需要在运行时加参数-enableassertions或-ea来开启，在Eclipse中，就是在要运行的类（或测试方法）的Run Configurations中的“Arguments”下的“VM arguments”部分写上：“-ea”。为了避免由于忘记加这个开关造成assert失效导致错误的测试结果，建议不要使用java的assert，而使用JUnit的org.junit.Assert.assertTrue(expr)方法。</p>
+
+<h1>assert关键字的两种用法：</h1>
+
+<ol>
+<li>assert &lt;boolean表达式></li>
+</ol>
+
+
+<p>如果&lt;boolean表达式>为true，则程序继续执行。</p>
+
+<p>如果为false，则抛出 java.lang.AssertionError；</p>
+
+<ol>
+<li>assert &lt;boolean表达式> : &lt;提示信息> （boolean表达式和提示信息之间用冒号分隔）</li>
+</ol>
+
+
+<p>如果&lt;boolean表达式>为true，则程序继续执行。</p>
+
+<p>如果为false，则抛出java.lang.AssertionError，并输出提示信息。</p>
+
+<p>另外assert后面可以指定对哪些类断言生效，详见<a href="http://www.ibm.com/developerworks/cn/java/l-javaassertion/index.html">深入解析Java的新特性assertion</a>。</p>
 </div>
   
   
@@ -566,7 +761,7 @@ $ ~/.cabal/bin/hoogle map # search "map"
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/10/135056/">Python的目录文件拷贝</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/07/07/113549/">Use `Resolve Dependency in Workspace` Feature of IvyDE to Resolve Project Dependency in Develop Stage</a></h1>
     
     
       <p class="meta">
@@ -575,22 +770,14 @@ $ ~/.cabal/bin/hoogle map # search "map"
 
 
 
-<time class='entry-date' datetime='2011-05-10T13:50:56+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>1:50 pm</span></time>
+<time class='entry-date' datetime='2011-07-07T11:35:49+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:35 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Python中进行目录（包括其中所有的文件和子目录）的拷贝时，如果使用shutil 模块，有两个方法，分别是copy()和copytree()方法，copy只能拷贝单个文件，copytree虽然可以拷贝整个目录，但要求目标目录必须不存在。当需要把多个源目录中的文件、子目录拷贝到一个目标目录下时，不能用这个方法，解决的方法是使用distutils.dir_util 模块的copy_tree方法。示例代码如下：</p>
-
-<p> from distutils.dir_util import copy_tree</p>
-
-<p> copy_tree(&lsquo;e:\GODU_SERVER_2.2\bin&rsquo;, &lsquo;e:\bvt_build\2011-05-10\GODU_SERVER_2.2\bin&rsquo;)</p>
-
-<p> copy_tree(&lsquo;e:\GODU_SERVER_2.2\conf&rsquo;, &lsquo;e:\bvt_build\2011-05-10\GODU_SERVER_2.2\conf&rsquo;)</p>
-
-<p>详见用户手册。</p>
+  <div class="entry-content">
 </div>
   
   
@@ -603,7 +790,7 @@ $ ~/.cabal/bin/hoogle map # search "map"
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/06/170316/">Python的变量共享问题</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/07/07/112831/">IoConnector和IoSession的关系以及上挂Filter的区别</a></h1>
     
     
       <p class="meta">
@@ -612,22 +799,468 @@ $ ~/.cabal/bin/hoogle map # search "map"
 
 
 
-<time class='entry-date' datetime='2011-05-06T17:03:16+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:03 pm</span></time>
+<time class='entry-date' datetime='2011-07-07T11:28:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:28 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>模块中的多个类之间经常要共享某一变量，比如生成BVT报告的JUnit适配器类实例需要根据Cobertura适配器类实例的计算出来的有效行数计算千行代码测试用例数，又比如适配器类在备份BVT报告时需要知道报告备份的地址，而这个地址是保存在BVT类中的。</p>
+  <div class="entry-content"><p>IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下：</p>
 
-<p>以上场景都需要解决变量在类实例间的传递问题，办法有4个：使用模块级的全局变量、使用类的静态成员变量、使用环境变量、定义为global。</p>
+<p>  IoConnector connector = new NioSocketConnector(50);</p>
 
-<p>模块级全局变量适用于此变量在模块内共享的情况，优点是简单易懂，在模块开始部分定义一个空字典，条目的key是该条目的功能说明；</p>
+<p>  ConnectFuture connFuture = connector.connect(new InetSocketAddress(ip, port));</p>
 
-<p>类静态成员适用于该变量是类的普遍特性的情况，用 self.<strong>class</strong>.var_name 的方法定义，用 ClassName.var_name 的方法获取。</p>
+<p>  boolean b = connFuture.awaitUninterruptibly(10000);</p>
 
-<p>环境变量和global变量适用于在模块间共享变量的情况，但对数据的封装性比较差，尽量不要使用。</p>
+<p>  if (b) {</p>
+
+<p>   IoSession session = connFuture.getSession();</p>
+
+<p>   &hellip;</p>
+
+<p>  }</p>
+
+<p>也就是用IoConnector的connect方法得到一个ConnectFuture，再用此ConnectFuture的getSession方法得到IoSession。</p>
+
+<p>本质上Filter是与连接（也就是IoSession）相关联的，但由于下面的两个原因，导致需要在Connector上定义filter链。</p>
+
+<p>首先是filter链需要在连接建立前就要定义好，这样才能实现“一建立连接就做某事”这种功能，在已经存在的Session（也就是连接）上挂filter显然无法达到这种效果；</p>
+
+<p>其次是Connector每与服务端建立一个连接就会生成一个Session，且这些Session的行为具有很大的相似性，也就是上面的filter一般也是一样的，这样为多个session定义相同的一组filter显然是一种dirty work；</p>
+
+<p>简而言之，就是Connector上挂filter链属于“配置”定义，而session上挂filter链属于“运行时”定义，当连接关闭（断开）后，这个filter链也就不存在了。</p>
+
+<p>下面是二者挂filter链的具体方法。</p>
+
+<p>对于Connector：</p>
+
+<p>  DefaultIoFilterChainBuilder chain = IoConnector.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
+
+<p>对于session：</p>
+
+<p>  IoFilterChain chain = session.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/28/145204/">更新ivy资源库的自动化脚本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-28T14:52:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>为产品库添加一个新jar包需要下面几个步骤：</p>
+
+<ol>
+<li><p>根据jar包名字，从maven库里得到依赖定义字符串；</p></li>
+<li><p>将该字符串加上配置说明和下载脚本（参见笔记“依赖管理常用vim脚本”）；</p></li>
+<li><p>将已下载条目备份文件（installed.txt）另存为old.bpk；</p></li>
+<li><p>将build.xml中的下载条目插入到installed.txt中（按字母顺序排列）；</p></li>
+<li><p>用新的下载脚本替换build.xml中原有的下载脚本；</p></li>
+<li><p>运行ant命令将jar包下载到产品库中；</p></li>
+<li><p>在ivy.xml中加入依赖条目，解析之；</p></li>
+</ol>
+
+
+<p>以下是上面1~5步的自动化脚本。</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> # Purpose:  download jars to public repo</p>
+
+<p> # Author:  Li Chao</p>
+
+<p> # Created:  28-06-2011</p>
+
+<p> #</p>
+
+<p> # Demonstration:</p>
+
+<p> # install Apache Log4j 1.2</p>
+
+<p> #  1. from mvnrepository.com we got the dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16"/></p>
+
+<p> #  2. modify dep_str in this file with above dep string:</p>
+
+<p> #  3. run this file, copy modified dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16" conf="compile->master&#8221;/></p>
+
+<p> #  4. open a shell and run ant cmd to download jars of log4j</p>
+
+<p> #  5. paste modified dep string to ivy.xml and resolve it</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> import os, re</p>
+
+<p> dep_str = &lsquo;<dependency org="log4j" name="log4j" rev="1.2.16"/>&rsquo;</p>
+
+<p> cmd_pattern = &lsquo;&lt;ivy:install.+from=&ldquo;\${from.resolver}&rdquo; to=&ldquo;\${to.resolver}&rdquo;/>&rsquo;</p>
+
+<p> script = &lsquo;build.xml&rsquo;</p>
+
+<p> def conv_str():</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>   covert dep_str to custom_ivy_dep string and ivy_install string;</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>  custom_ivy_dep = dep_str.replace(&lsquo;/>&rsquo;,&lsquo; conf=&ldquo;compile->master&rdquo;/>&rsquo;)</p>
+
+<p>  print &lsquo;Copy the following String:\n%s&rsquo; %custom_ivy_dep</p>
+
+<p>  keys = re.findall(r&#8217;&ldquo;\S+&rdquo;&lsquo;, dep_str)</p>
+
+<p>  if len(keys)!=3:</p>
+
+<p>   raise Exception(&lsquo;Format wrong of input string!&rsquo;)</p>
+
+<p>  global ivy_install</p>
+
+<p>  ivy_install = &lsquo;&lt;ivy:install organisation=%s module=%s revision=%s &rsquo;\</p>
+
+<pre><code>  'from="${from.resolver}" to="${to.resolver}"/&gt;' %tuple(keys) 
+</code></pre>
+
+<p> def do_bpk():</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>   create backup file(filename: installed.txt/old.bpk):</p>
+
+<pre><code>1 extract old install string from build.xml; 
+
+2 delete old.bpk if it exists; 
+
+3 rename installed.txt to old.bpk; 
+
+4 read old.bpk file, insert old install string and create installed.txt file; 
+</code></pre>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>  installed = &lsquo;installed.txt&rsquo;</p>
+
+<p>  old_bpk =&lsquo;old.bpk&rsquo;</p>
+
+<p>  xml_file = open(script)</p>
+
+<p>  global xml_str</p>
+
+<p>  xml_str = xml_file.read()</p>
+
+<p>  xml_file.close()</p>
+
+<p>  old_install = re.findall(cmd_pattern, xml_str, re.M)[0]</p>
+
+<p>  print &lsquo;old install string is:\n%s&rsquo; %old_install</p>
+
+<p>  if os.path.exists(old_bpk): os.remove(old_bpk)</p>
+
+<p>  if os.path.exists(installed):</p>
+
+<p>   os.rename(installed, old_bpk)</p>
+
+<p>  else:</p>
+
+<p>   raise Exception(&lsquo;%s does not exist!&rsquo;%installed)</p>
+
+<p>  installed_file = open(old_bpk)</p>
+
+<p>  installed_items = installed_file.read()</p>
+
+<p>  installed_file.close()</p>
+
+<p>  all_items = installed_items.split(&lsquo;\n&rsquo;)</p>
+
+<p>  all_items.append(old_install)</p>
+
+<p>  all_items.sort()</p>
+
+<p>  bpk_file = open(installed,&lsquo;w&rsquo;)</p>
+
+<p>  bpk_file.write( &lsquo;\n&rsquo;.join(all_items) )</p>
+
+<p>  bpk_file.close()</p>
+
+<p> def build_script():</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>   modify install script(build.xml): replace old install string with new one</p>
+
+<p>  &ldquo;&rdquo;&#8221;</p>
+
+<p>  xml_file = open(script,&lsquo;w&rsquo;)</p>
+
+<p>  new_xml = re.sub(cmd_pattern, ivy_install, xml_str)</p>
+
+<p>  xml_file.write(new_xml)</p>
+
+<p>  xml_file.close()</p>
+
+<p> def main():</p>
+
+<p>  conv_str()</p>
+
+<p>  do_bpk()</p>
+
+<p>  build_script()</p>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  main()</p>
+
+<p>代码中的技术点包括：</p>
+
+<ol>
+<li><p>格式化字符串的生成方法：%后面必须接一个tuple；</p></li>
+<li><p>如何使用正则表达式进行文本的搜索（findall）和替换(sub)；</p></li>
+<li><p>字符串的join方法进行list的组合，也可以用reduce方法： total_str = reduce(lambda x,y:x+y, str_list)</p></li>
+</ol>
+
+
+<p>  但用join方法更简洁。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/27/154047/">数码照片按拍摄时间分文件夹保存</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-27T15:40:47+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:40 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>拍摄的大量数码照片需要根据拍摄的时间分别放到不同的文件夹里，例如2011年6月27日拍摄的照片要放在名为“2011-6-27”的文件夹里。拍摄时间是根据文件的“最后修改时间”属性确定的，因为“创建时间”属性是会随着文件的拷贝而变化的，不能作为拍摄时间的根据。当然如果用画图或者photoshop修改了照片，那么 “最后修改时间”属性也不是拍摄时间了，但文件的【属性->摘要->照片拍照时间】项仍能显示出真实的拍照时间，但如何取这个属性尚不清楚，故本文不涉及。下面是源代码： </h2>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> # Author:  Li Chao</p>
+
+<p> # Created:  27-06-2011</p>
+
+<p> #</p>
+
+<p> # Purpose: 将相机SD卡上的照片按照拍摄日期放入硬盘上当前目录下的不同的文件夹中。</p>
+
+<p> #</p>
+
+<p> # Usage:</p>
+
+<p> # step 1: 将本文件拷贝到目标文件夹中；</p>
+
+<p> # step 2: 在这个文件夹下新建一个run.bat，内容如下：</p>
+
+<p> #   python arrangePhotos.py [photo_path] [last_backup_date]</p>
+
+<p> #   第1个参数是SD卡里照片所在文件夹路径，第二个参数是已备份的最后日期；</p>
+
+<p> # step 3: 运行run.bat</p>
+
+<p> #</p>
+
+<p> # Example: python arrangePhotos.py h:/transfer/pics 2011-06-10</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> import sys, os, time, shutil</p>
+
+<p> from datetime import date</p>
+
+<p> def main():</p>
+
+<p>  photos_path = sys.argv[1]</p>
+
+<p>  last_bp = time.strptime(sys.argv[2], &ldquo;%Y.%m.%d&rdquo;)</p>
+
+<p>  last_bp_epoch = time. mktime (last_bp)</p>
+
+<p>  for item in os.listdir(photos_path):</p>
+
+<p>   modif_time = os.path. getmtime (os.path.join(photos_path,item))</p>
+
+<p>   if modif_time - last_bp_epoch &lt;= 3600*24 :</p>
+
+<pre><code>continue 
+</code></pre>
+
+<p>   cre_date_obj = date.fromtimestamp(modif_time)</p>
+
+<p>   cre_date = cre_date_obj.strftime(&ldquo;%Y.%m.%d&rdquo;)</p>
+
+<p>   if not os.path.exists(cre_date):</p>
+
+<pre><code>os.mkdir(cre_date) 
+
+print '\n%s' %cre_date 
+</code></pre>
+
+<p>   shutil.copy2(os.path.join(photos_path,item), cre_date)</p>
+
+<pre><code>print '.', 
+</code></pre>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  main()</p>
+
+<hr />
+
+<p> 对源代码的解释：</p>
+
+<ol>
+<li>时区问题：</li>
+</ol>
+
+
+<p>  由于time.mktime()方法和os.path.getmtime()都是以1970-1-1 08:00:00为起点，因此将这些时间数转换为日期、时间时，一定要用time.localtime()方法，如果用time.gmtime()，则会得到错误的值，下面这段代码演示了两种方法的区别：</p>
+
+<p> import time</p>
+
+<p> gm_sec = time.gmtime(0)</p>
+
+<p> print gm_sec</p>
+
+<p> gm = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, gm_sec)</p>
+
+<p> print &lsquo;UTC start point is %s&rsquo; %gm</p>
+
+<p> lc_sec = time.localtime(0)</p>
+
+<p> print lc_sec</p>
+
+<p> lc = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, lc_sec)</p>
+
+<p> print &lsquo;local time start point is %s&rsquo; %lc</p>
+
+<p> second_day = time.mktime(time.strptime(&lsquo;1970-1-2&rsquo;, &ldquo;%Y-%m-%d&rdquo;))</p>
+
+<p> print &lsquo;second day is %s hours after first day&rsquo; %(second_day/3600)</p>
+
+<p>输出为：</p>
+
+<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
+
+<p> UTC start point is 1970-01-01, 00:00:00</p>
+
+<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=8, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
+
+<p> local time start point is 1970-01-01, 08:00:00</p>
+
+<p> second day is 16.0 hours after first day</p>
+
+<p>加粗的部分表明东8区的时间起点是1970-1-1 08:00:00。</p>
+
+<ol>
+<li>为什么修改时间要比最后一次备份时间多一天（即24小时，3600*24秒）？</li>
+</ol>
+
+
+<p> 例如最后一次备份时间是2011年6月27日，last_bp_epoch的值对应于27日0点0分，当处理一张2011年6月27日晚11点拍摄的照片时，modif_time - last_bp_epoch = 23 hour，这张照片已经备份过了，不应该再次备份，因此modif_time - last_bp_epoch > 24hour时才需要备份；</p>
+
+<ol>
+<li>怎样让print语句的输出不换行？</li>
+</ol>
+
+
+<p> 在字符串后面加逗号即可。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/27/102352/">语音朗读软件使用小记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-27T10:23:52+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:23 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最先下的是“方正畅听2008”，但装上之后发现根本不能正常朗读，发出来的声音伴有巨大的杂音，完全听不清。</p>
+
+<p>后来使用了小众软件推荐的“随读”，语音引擎选用了Neospeech的中文-Liang，输出设为“16kHz 16Bit Stereo”。没有导出为MP3功能（通过插件可以导出MP3），只能朗读txt文件。</p>
+
+<p>再后来又试用了免费的eSpeak，以及NextUp出品的TextAloud，综合比较TextAloud是最优秀的，其中的批量转换MP3功能尤其值得称道。</p>
+
+<p>语音引擎方面，通过使用发现，中文的Lily（女声）和Liang（男声）效果最好，Wang（男声）和Hui（女声）效果一般，英文的Bridget和Julie似乎都不错。
+另：[NeoSpeech.TTS][女声].NeoSpeech.Chinese.Lily.zip安装后的破解方法如下（不破解的话会在每次朗读前加一小段说明）：
+打开安装目录C:\Program Files\VW\VT\Lily\M16-SAPI5\data-common\verify下新建一个文本文件：verification.txt，写入：
+License:effacee1e9a0c118ca2dd64bdf6a66c3cc3d82fbee5a11f7002cb600ec1900e8de006e8f00152800adc100f14a0115d5:*:VoiceText:0:1:Nextup:WindowsNT2KXP::;
+&mdash; Label Print &mdash;
+CODE: VoiceText-02FF-278E-8AE6
+Site name: Nextup
+Host ID: *
+Expiration Date: unlimited
+Maximum Channel: 1
+Operating System: WindowsNT2KXP
+保存后重新启动朗读软件即可，无需重启系统。</p>
 </div>
   
   
@@ -652,23 +1285,23 @@ $ ~/.cabal/bin/hoogle map # search "map"
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
+        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
+        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
+        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
+        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
+        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

@@ -9,12 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="安装方便：只要配好JAVA_HOME，用java -jar drjava-stable-20120818-r5686.jar即可启动，算是绿色软件；
-特色功能：交互式命令行，可以在调试程序时改变变量值，很方便；
-编辑功能比较弱：Ctrl+k删除行；
-有工程的概念；
-定制功能比较强；
-没有&# &hellip;">
+  <meta name="description" content="Algorithms(by Robert Sedgewick)中运行算法程序一般是这样的： java AlgorithmClass &lt; inputFile.txt 例如第47页&#8221;java BinarySearch tinyW.txt &lt; tinyT.txt&#8221;， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -76,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/01/04/143858/">DrJava试用笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/01/23/125458/">调试Algorithms一书中带有输入重定向的代码</a></h1>
     
     
       <p class="meta">
@@ -85,75 +80,62 @@
 
 
 
-<time class='entry-date' datetime='2013-01-04T14:38:58+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:38 pm</span></time>
+<time class='entry-date' datetime='2013-01-23T12:54:58+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>12:54 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ul>
-<li><p>安装方便：只要配好JAVA_HOME，用java -jar drjava-stable-20120818-r5686.jar即可启动，算是绿色软件；</p></li>
-<li><p>特色功能：交互式命令行，可以在调试程序时改变变量值，很方便；</p></li>
-<li><p>编辑功能比较弱：Ctrl+k删除行；</p></li>
-<li><p>有工程的概念；</p></li>
-<li><p>定制功能比较强；</p></li>
-<li><p>没有&#8221;.&ldquo;之后自动列出对象的方法、属性列表的功能，比较不方便；</p></li>
-<li><p>没有自动编译功能，不能自动标出编译错误，需要compile的时候才报错，开发效率低；</p></li>
-</ul>
+  <div class="entry-content"><p>Algorithms(by Robert Sedgewick)中运行算法程序一般是这样的：</p>
 
-</div>
-  
-  
+<p> java AlgorithmClass &lt; inputFile.txt</p>
 
+<p>例如第47页&#8221;java BinarySearch tinyW.txt &lt; tinyT.txt&#8221;，其中的&#8221;&lt;&ldquo;是输入重定向（standard input redirect），即用文件（tiny.txt）的内容代替键盘（standard input）作程序的输入，在Eclipse中调试这种代码很麻烦，因为Eclipse不支持输入重定向（直接在参数里写&rdquo;&lt; tiny.txt&#8221;无效，但支持输出到某一指定文件中），有两个方法解决这个问题。</p>
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/04/105459/">Notes About Robert Sedgewick: Algorithms</a></h1>
-    
-    
-      <p class="meta">
-        
+<p>首先是准备工作：</p>
+
+<ol>
+<li><p>Create a project in eclipse, then creating a folder named &ldquo;data&rdquo; in it;</p></li>
+<li><p>copy tinyT.txt &amp; tinyW.txt into &ldquo;data&rdquo;;</p></li>
+</ol>
 
 
+<h1>方法1：使用System.setIn()方法</h1>
+
+<ol>
+<li>modify &ldquo;int[] whitelist = In.readInts(args[0]);&rdquo; in BinarySearch.java as following:
+System.setIn(new FileInputStream(&ldquo;data/tinyT.txt&rdquo;));
+int[] whitelist = In.readInts(&ldquo;data/&rdquo; + &ldquo;tinyW.txt&rdquo;);</li>
+<li>run BinarySearch;
+Reference: <a href="http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file">http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file</a></li>
+</ol>
 
 
-<time class='entry-date' datetime='2013-01-04T10:54:59+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:54 am</span></time>
-        
-      </p>
-    
-  </header>
+<p>这个方法的不足之处是有时候程序在运行完后会报一个JNI异常，让人很不爽，于是有了下面第二个方法。</p>
 
+<h1>方法2：自己修改StdIn类</h1>
 
-  <div class="entry-content"><h1>Unresolved imports in StdDraw3D.java</h1>
+<p>分析StdIn类的代码可知，它用了一个Scanner类包装了System.in，所以只要把System.in换成我们指定的文本文件就可以了，于是新建一个StdIn2类，代码与StdIn基本一样，增加了下面的方法：</p>
 
-<p>download j3d-1_5_2-windows-i586.zip from <a href="http://java3d.java.net/binary-builds.html,">http://java3d.java.net/binary-builds.html,</a> then extract j3dcore.jar, j3dutils.jar &amp; vecmath.jar from $ZIP_FILE/j3d-jre.zip/lib/ext, then add these jars into classpath of project of StdLib which is built from stdlib-package.jar from official booksite: algs4.cs.princeton.edu.
-Reference: <a href="http://stackoverflow.com/questions/2352364/where-to-get-com-sun-j3d-classes">http://stackoverflow.com/questions/2352364/where-to-get-com-sun-j3d-classes</a></p>
-
-<h1>How to create a customized Iterable Class</h1>
-
-<p>p141, algorithm 1.1, and corresponding source file ResizingArrayStack.java in downloaded algs4.jar file.
-The &ldquo;Item&rdquo; in ResizingArrayStack<Item> is a parameter. That is to say, you can change its name to anything. For example:
- ResizingArrayStack<T> implements Iterable<T> { &hellip;
-or:
- ResizingArrayStack<MyItem> implements Iterable<MyItem> { &hellip;
-The method &ldquo;next()&rdquo; in private class &ldquo;ReverseArrayIterator&rdquo; will not be used in client main method. But we can demonstrate its usage by adding the following snippet in main method:
- for (String i : s) {
-  System.out.println(&ldquo;i= &rdquo; + i);
+<p> public static void setInputFile(String path) {
+  try {
+   scanner = new Scanner(new BufferedInputStream(new FileInputStream(
+     path)), charsetName);
+  } catch (FileNotFoundException e) {
+   e.printStackTrace();
+  }
+  scanner.useLocale(usLocale);
  }</p>
 
-<h1>About exercises solutions</h1>
+<p>其实就是把scanner的初始化方法放到了setInputFile中（包括声明scanner和static{}块中两处），然后修改算法代码：</p>
 
-<p>Some exercises solutions can be found at <a href="http://algs4.cs.princeton.edu/code/;">http://algs4.cs.princeton.edu/code/;</a></p>
+<ol>
+<li><p>将BinarySearch中的StdIn重构为StdIn2；</p></li>
+<li><p>main()方法的开始处加上&#8221;StdIn2.setInputFile(&ldquo;data/tiny.txt&rdquo;);&ldquo;；</p></li>
+<li><p>运行代码。</p></li>
+</ol>
 
-<h1>How to plot graphs of algorithms</h1>
-
-<p>Use StdDraw.java. Some use cases can be found at <a href="http://introcs.cs.princeton.edu/15inout">Section 1.5</a> of Introduction to Programming in Java: An Interdisciplinary Approach by Robert Sedgewick and Kevin Wayne.</p>
 </div>
   
   
@@ -166,7 +148,7 @@ The method &ldquo;next()&rdquo; in private class &ldquo;ReverseArrayIterator&rdq
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/12/29/101709/">Cygwin与Windows间的Copy/Paste</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/01/21/120949/">用PhotoRec恢复误删除的文件</a></h1>
     
     
       <p class="meta">
@@ -175,57 +157,25 @@ The method &ldquo;next()&rdquo; in private class &ldquo;ReverseArrayIterator&rdq
 
 
 
-<time class='entry-date' datetime='2012-12-29T10:17:09+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:17 am</span></time>
+<time class='entry-date' datetime='2013-01-21T12:09:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>12:09 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>命令行状态下</h1>
+  <div class="entry-content"><p>今天尝试用<a href="http://www.cgsecurity.org/wiki/PhotoRec">PhotoRec</a>恢复被误删除的文件，效果不错，找回了被误删的pdf文件，另外被恢复的jpg，chm文件也能正常显示，但java文件和txt文件里面的内容似乎不是原文件内容。这个软件有下面的特点：</p>
 
-<p>首先将Cygwin设为左键选择后自动复制，右键粘贴；然后就可以把Cygwin当成一个普通的Windows应用了；</p>
+<ol>
+<li><p>命令行（字符）界面；</p></li>
+<li><p>不能指定要恢复的目录，只能指定恢复某一分区；</p></li>
+<li><p>不能指定要恢复文件的类型（扩展名），只能自己在被恢复的目录里找；</p></li>
+<li><p>U盘被格式化后这个软件能够恢复上面的文件；</p></li>
+<li><p>目录结构无法恢复，只能恢复文件；</p></li>
+</ol>
 
-<h1>vi窗口中</h1>
 
-<p>根据<a href="http://vim.wikia.com/wiki/Using_the_Windows_clipboard_in_Cygwin_Vim%E7%9A%84%E4%BB%8B%E7%BB%8D%EF%BC%8C%E5%B0%86%E4%B8%8B%E9%9D%A2%E7%9A%84%E4%BB%A3%E7%A0%81%E6%8B%B7%E8%B4%9D%E5%88%B0cygwin%E7%9A%84$HOME/.vimrc%E4%B8%AD%EF%BC%8C%E5%B0%B1%E5%8F%AF%E4%BB%A5%E7%94%A8\y%E6%8B%B7%E8%B4%9D%EF%BC%8C\p%E7%B2%98%E8%B4%B4%E4%BA%86%E3%80%82">http://vim.wikia.com/wiki/Using_the_Windows_clipboard_in_Cygwin_Vim%E7%9A%84%E4%BB%8B%E7%BB%8D%EF%BC%8C%E5%B0%86%E4%B8%8B%E9%9D%A2%E7%9A%84%E4%BB%A3%E7%A0%81%E6%8B%B7%E8%B4%9D%E5%88%B0cygwin%E7%9A%84$HOME/.vimrc%E4%B8%AD%EF%BC%8C%E5%B0%B1%E5%8F%AF%E4%BB%A5%E7%94%A8\y%E6%8B%B7%E8%B4%9D%EF%BC%8C\p%E7%B2%98%E8%B4%B4%E4%BA%86%E3%80%82</a></p>
-
-<p> function! Putclip(type, &hellip;) range
-  let sel_save = &amp;selection
-  let &amp;selection = &ldquo;inclusive&rdquo;
-  let reg_save = @@
-  if a:type == &lsquo;n&rsquo;
-  silent exe a:firstline . &ldquo;,&rdquo; . a:lastline . &ldquo;y&rdquo;
-  elseif a:type == &lsquo;c&rsquo;
-  silent exe a:1 . &ldquo;,&rdquo; . a:2 . &ldquo;y&rdquo;
-  else
-  silent exe &ldquo;normal! <code>&lt;" . a:type . "</code>>y&rdquo;
-  endif
-  &ldquo;call system(&lsquo;putclip&rsquo;, @@)
-  &#8220;As of Cygwin 1.7.13, the /dev/clipboard device was added to provide
-  &#8220;access to the native Windows clipboard. It provides the added benefit
-  &#8220;of supporting utf-8 characters which putclip currently does not. Based
-  &#8220;on a tip from John Beckett, use the following:
-  call writefile(split(@@,&rdquo;\n&#8221;), &lsquo;/dev/clipboard&rsquo;)
-  let &amp;selection = sel_save
-  let @@ = reg_save
- endfunction
- vnoremap <silent> <leader>y :call Putclip(visualmode(), 1)<CR>
- nnoremap <silent> <leader>y :call Putclip(&lsquo;n&rsquo;, 1)<CR>
- function! Getclip()
-  let reg_save = @@
-  &ldquo;let @@ = system(&lsquo;getclip&rsquo;)
-  &#8220;Much like Putclip(), using the /dev/clipboard device to access to the
-  &#8220;native Windows clipboard for Cygwin 1.7.13 and above. It provides the
-  &#8220;added benefit of supporting utf-8 characters which getclip currently does
-  &#8220;not. Based again on a tip from John Beckett, use the following:
-  let @@ = join(readfile(&lsquo;/dev/clipboard&rsquo;), &rdquo;\n&#8221;)
-  setlocal paste
-  exe &lsquo;normal p&rsquo;
-  setlocal nopaste
-  let @@ = reg_save
- endfunction
- nnoremap <silent> <leader>p :call Getclip()<CR></p>
+<p>其他类似的软件见<a href="http://www.freewaregenius.com/the-best-free-data-recovery-tool-13-undelete-tools-compared/%E3%80%82">http://www.freewaregenius.com/the-best-free-data-recovery-tool-13-undelete-tools-compared/%E3%80%82</a></p>
 </div>
   
   
@@ -238,7 +188,7 @@ The method &ldquo;next()&rdquo; in private class &ldquo;ReverseArrayIterator&rdq
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/12/28/143757/">Auto Dir Sync Script Based on Total Commander</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/01/18/235212/">使用同一个无线路由器构建无线局域网</a></h1>
     
     
       <p class="meta">
@@ -247,54 +197,18 @@ The method &ldquo;next()&rdquo; in private class &ldquo;ReverseArrayIterator&rdq
 
 
 
-<time class='entry-date' datetime='2012-12-28T14:37:57+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:37 pm</span></time>
+<time class='entry-date' datetime='2013-01-18T23:52:12+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:52 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>The Sync source folder is in e:\mydoc\CalibreLib, destination folder is M:\backup\CalibreLib, where M is the drive letter of an USB disk with label &ldquo;Emacs&rdquo;;</p>
+  <div class="entry-content"><p>两台笔记本电脑，连接同一个无线路由器（基于ADSL），要构建无线局域网共享文件，首先要将网络位置设为“家庭网络”，然后首先改为家庭网络的机器会自动生成一个密码，在后面加入的机器中填入这个密码，就加入了同一个局域网了。</p>
 
-<h1>Giving USB Disk a fixed Drive Letter</h1>
+<p>要互相传文件，【开始->计算机】中会出现“家庭组”（见下图），打开下面的项目，就可以看到对方的文件了。</p>
 
-<p>Right click &ldquo;My Compter&rdquo; -> Manage -> Storage -> Disk Management. Right click the USB drive -> Change Drive Letter and Paths, and modify it to M. You can choose any letter between M~Z. A letter before M is not recommended because it could be occupied by virtual drives or CD-ROMs.</p>
-
-<p>Test shows that other USB disk won&rsquo;t use the drive letter &ldquo;M&rdquo;. And this USB disk(&ldquo;Emacs&rdquo;) always use &ldquo;M&rdquo; no matter which USB port it&rsquo;s plugged in;</p>
-
-<h1>Define Sync Configuration in Total Commander</h1>
-
-<ol>
-<li><p>Open e:\mydoc\CalibreLib in upper(left) panel in TC, M:\backup\CalibreLib in bottom panel;</p></li>
-<li><p>Shift + F12(Commands -> Synchronize Dirs) to show the Sync window of TC;</p></li>
-<li><p>Check &ldquo;Asymmetric&rdquo;(because I want a strict mirror of e:\mydoc\CalibreLib, not a copy. see TC doc for detailed explanation) and &ldquo;Subdirs&rdquo;;</p></li>
-<li><p>Click the button at the left side of the directory input box and choose &ldquo;add current directories and settings to list&rdquo;. You can verify this by openning file wincmd.ini in TC&rsquo;s installation dir and you can find:</p></li>
-</ol>
-
-
-<p> [SyncOptions]
- BooksLib_L=E:\MyDoc\CalibreLib\
- BooksLib_R=M:\backup\CalibreLib\
- BooksLib_Wcs=<em>.</em>
- BooksLib_Flags=9|61|-9</p>
-
-<p>In &ldquo;Configuration and Switches&rdquo; -> &ldquo;ini file Settings&rdquo; of TC&rsquo;s document file(TOTALCMD.CHM), you can find the explanations about settings above.</p>
-
-<h1>Define a hotkey in AutoHotkey Script</h1>
-
-<p>  #!s:: Run, d:\apps\TotalCmd\TOTALCMD.EXE /S=S:=BooksLib ; Sync Calibre dir to usb disk</p>
-
-<h1>Use this auto sync script</h1>
-
-<ol>
-<li><p>Insert USB disk;</p></li>
-<li><p>Press Win+Alt+s;</p></li>
-<li><p>Sync tool of TC will start comparation automatically;</p></li>
-<li><p>When comparation ends, check the result. If it&rsquo;s OK, press Enter to start Synchronize;</p></li>
-</ol>
-
-
-<p>That&rsquo;s it.</p>
+<p>参考：<a href="http://www.pc841.com/article/20110505-2415.html">Windows 7笔记本电脑实现无线网络共享详细教程</a></p>
 </div>
   
   
@@ -307,7 +221,7 @@ The method &ldquo;next()&rdquo; in private class &ldquo;ReverseArrayIterator&rdq
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/12/28/083648/">Notes of Cygwin in Windows7</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/01/18/113138/">SortCompare.time的反射版本</a></h1>
     
     
       <p class="meta">
@@ -316,183 +230,219 @@ The method &ldquo;next()&rdquo; in private class &ldquo;ReverseArrayIterator&rdq
 
 
 
-<time class='entry-date' datetime='2012-12-28T08:36:48+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:36 am</span></time>
+<time class='entry-date' datetime='2013-01-18T11:31:38+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:31 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Installation</h1>
+  <div class="entry-content"><p>&ldquo;Algorithms&rdquo; by Robert Sedgewick, p256, SortCompare.time():</p>
 
-<ol>
-<li><p>download setup.exe from its <a href="http://www.cygwin.com/">official website</a>;</p></li>
-<li><p>run setup.exe, select &ldquo;download without installing&rdquo; option;</p></li>
-<li><p>when asking for download website, select the first 163.com and three .cn sites, thus bypassing the connection restriction of company LAN;</p></li>
-<li><p>cygwin app dir is: d:\apps\cygwin; cygwin packages dir is: e:\mydoc\cygwinPkgs;</p></li>
-<li><p>when asking for packages, select package &ldquo;Debug&rdquo; &amp; &ldquo;Devel&rdquo;(assure vi, git, apt-get, gcc, gdb, make, c99, pkg-config, doxygen, valgrind &amp; Graphviz are included), select all related packages;</p></li>
-<li><p>rerun setup.exe, select &ldquo;install from local directory&rdquo; option;</p></li>
-<li><p>Root Directory($CYGWIN_ROOT): e:\mydoc\cygwinRoot;</p></li>
-<li><p>install a icon at start menu;</p></li>
-<li><p>run app from start menu;</p></li>
-</ol>
+<p> public static double time(String alg, Double[] a) throws SecurityException,
+   NoSuchMethodException, ClassNotFoundException,
+   IllegalArgumentException, IllegalAccessException,
+   InvocationTargetException {
+  Stopwatch timer = new Stopwatch();
+  String originClassName = new Object(){}.getClass().getEnclosingClass().getName();
+  String packageName = originClassName.substring(0,
+    originClassName.lastIndexOf(&ldquo;.&rdquo;));
+  String className = packageName.concat(&ldquo;.&rdquo; + alg);
+  Class&lt;?> clazz = Class.forName(className);
+  Method sortMethod = clazz.getDeclaredMethod(&ldquo;sort&rdquo;, Comparable[].class);
+  Object[] param = { a };
+  sortMethod.invoke(null, param);
+  return timer.elapsedTime();
+ }</p>
+
+<p>这里面注意的有两点，一是在static方法里获取所在类名的方法，二是如何用反射调用参数为数组的方法（见笔记 用反射机制在运行时创建对象并执行方法 ）。</p>
+</div>
+  
+  
 
 
-<h1>Usage</h1>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/16/163308/">怎样在命令行中运行Eclipse中的项目</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-16T16:33:08+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>比如在Eclipse中开发了一个服务，现在需要演示怎样在生产环境里启动这个服务，所以不能在Eclipse里启动这个服务，只能在命令行里启动，但这个服务可能依赖很多jar文件，有一个简单的方法可以得到Eclipse中的启动命令行，首先用debug模式启动这个服务，然后切换到debug perspective，在debug view里右键这个进程 -> Proerties -> Process properties -> Command Line中就是命令行参数了，但还需要修改，将运行指令由javaw改为java，去掉第一个参数&#8221;-agentlib:jdwp=transport=dt_socket,suspend=y,address=localhost:58830&#8221;，然后就可以粘贴到命令行里运行了，下面是一个例子，原始字符串执行后没有反应，处理后就可以正常运行了：</p>
+
+<p>e:\workspace\GoduServer3.0>D:\Apps\Java\jdk1.6.0_35\bin\javaw.exe -agentlib:jdwp=transport=dt_socket,suspend=y,address=localhost:58830 -Dfile.encoding=UTF-8 -classpath E:\workspace\JDK6UTF8\GoduServer3.0\bin;&hellip; transfer.PoolServer</p>
+
+<p>e:\workspace\GoduServer3.0>D:\Apps\Java\jdk1.6.0_35\bin\java.exe -Dfile.encoding=UTF-8 -classpath E:\workspace\JDK6UTF8\GoduServer3.0\bin;&hellip; transfer
+.PoolServer
+  0 PoolServer   main: Server start listening at port 1234</p>
+
+<p>下面是操作过程截图：</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/15/204809/">U盘自动弹出脚本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-15T20:48:09+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:48 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>需要微软的Sysinternals Suite中的sync工具，解压到d:\apps下。</p>
+
+<p>ahk脚本：</p>
+
+<p> #u:: ; eject usb drive
+ InputBox, myInp, Remove USB, Input Drive Letter:,
+ if ErrorLevel
+  return
+ else
+  Run, d:\Apps\SysinternalsSuite\sync.exe -e %myInp%
+ return</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/15/185250/">Notes About MercurialEclipse</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-15T18:52:50+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>MercurialEclipse的主页上要求首先注册，其实可以不注册，直接输入update地址（<a href="http://cbes.javaforge.com/update%EF%BC%89%EF%BC%8C%E5%8A%A0%E4%BB%A3%E7%90%86%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%E6%AD%A4%E6%8F%92%E4%BB%B6%EF%BC%8C%E5%90%A6%E5%88%99%E5%A4%B1%E8%B4%A5%EF%BC%9B">http://cbes.javaforge.com/update%EF%BC%89%EF%BC%8C%E5%8A%A0%E4%BB%A3%E7%90%86%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%E6%AD%A4%E6%8F%92%E4%BB%B6%EF%BC%8C%E5%90%A6%E5%88%99%E5%A4%B1%E8%B4%A5%EF%BC%9B</a>
+ 安装是不要选“***with mylyn那一项”，只安装MercurialEclipse，安装完后在File->Import里多了一个Mercurial项目，在Window->Preference->Team里多了Mercurial一项。
+ 今天（2013-01-15）导入同事机器上的Hg仓库成功；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/15/121434/">vim.org上插件评分的含义</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-15T12:14:34+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:14 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Rating m/n, Downloaded by k</p>
+
+<p>m指总分数，n指总投票数，k是总下载数，评分有3个级别：&#8221;Life Changing&#8221;4分，&#8221;Helpful&#8221;1分，&#8221;Unfulfilling&#8221;-1分，所以基本上m/n的值超过1就说明东西不错，越接近4越好。</p>
+
+<p>来源：<a href="http://www.vim.org/karma.php">Karma on vim.org</a>.</p>
+
+<p>Karma是来自于佛教的词汇，指报应、业、因果、缘分之类的；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/15/115821/">将vim打造成Java IDE</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-15T11:58:21+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>需要的插件列表：</p>
 
 <ul>
-<li><p>Window size, font and fore/background color are all customized via &ldquo;Options&rdquo; in popup menu;</p></li>
-<li><p>In cygwin, &ldquo;/cygdrive&rdquo; is the root of all windows logic drivers(c:, d:, e:, etc). e.g. &ldquo; /cygdrive/e/mydoc&rdquo; in cygwin equals to &ldquo;e:\mydoc&rdquo; in windows ;</p></li>
-<li><p>&ldquo;/&rdquo; in cygwin equals to &ldquo;e:\mydoc\cygwinRoot&rdquo; in windows. So when you mkdir under /home/chad in cygwin, actually the directory is created in e:\mydoc\cygwinRoot\home\chad in windows;</p></li>
-<li><p>customize window scroll keys: options -> Window;</p></li>
+<li><p><a href="http://www.vim.org/scripts/script.php?script_id=273">Taglist</a></p></li>
+<li><p><a href="http://www.vim.org/scripts/script.php?script_id=2771">Conque Shell</a></p></li>
+<li><p><a href="http://www.vim.org/scripts/script.php?script_id=1984">FuzzyFinder</a></p></li>
+<li><p>NERDTree</p></li>
+<li><p><a href="http://www.vim.org/scripts/script.php?script_id=1785">javaComplete</a></p></li>
 </ul>
 
 
-<h1>install ssh server</h1>
-
-<ol>
-<li><p>install openssh for cygwin: Net -> openssh</p></li>
-<li><p>run cygwin as administrator;</p></li>
-<li><p>ssh-host-config -y</p></li>
-<li><p>enter a password for default ssh user &ldquo;cyg_server&rdquo;</p></li>
-<li><p>cygrunsrv &ndash;start sshd</p></li>
-</ol>
-
-
-<p>启动后在Windows的“服务”中可以看到一个名为&#8221;CYGWIN sshd&#8221;的本地服务，&#8221;sshd&#8221;是其“服务名称”，&#8221;CYGWIN sshd&#8221;是&#8221;显示名称&#8221;，用netstat可以看到有进程在22端口监听。</p>
-
-<p><a href="http://x3ro.de/cygwin-running-sshd-windows-7/">Cygwin: Running an sshd on Windows 7</a></p>
-
-<p>I can login user cyg_server, but automatically quit. so weired.</p>
-
-<h1>Some Packages:</h1>
+<p>其他选项：</p>
 
 <ul>
-<li>telnet client: Net -> inetutils</li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/27/200055/">一款优秀的词典软件GoldenDict</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-12-27T20:00:55+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="http://goldendict.org/">GoldenDict</a>: free, portable, extensible;</p>
-
-<p>最大的优点是可以挂接外置词典，尤其是兼容StarDict格式，使得许多优秀的免费词典可用；支持鼠标取词和剪贴板取词，但对SumatraPDF的支持似乎不太好；界面能够显示音标；</p>
-
-<p>StarDict dict: google &ldquo;stardict词典下载&rdquo;</p>
-
-<p><a href="http://forum.ubuntu.org.cn/viewtopic.php?f=86&amp;t=313666">星际译王本地词典下载</a></p>
-
-<h1>Use GoldenDict on Mint</h1>
-
-<p>Use Softeware Manager install GoldenDict, and add dict.cn as a online dict at [Edit -> Dictioanries -> Sources -> Websites], Click &ldquo;Add&rdquo;, Name: dict.cn; Address: <a href="http://dict.cn/%GDWORD%.">http://dict.cn/%GDWORD%.</a> You can modify dictionary order with drag and drop in [Edit -> Dictionaries -> Dictionaries];</p>
-
-<p>Clipboard translation with Ctrl+C+C works well under GoldenDict 1.0.1, Mint 14.</p>
-
-<h1>安装词典的方法</h1>
-
-<p>将下载的压缩包解压到$APP_HOME/content下，使content下形成如下目录：</p>
-
-<p>stardict-gaojihanyudacidian-2.4.2
-stardict-hanyuchengyucidian-2.4.2
-stardict-langdao-ce-gb-2.4.2
-stardict-ncce-ce-2.4.2
-stardict-ncce-ec-2.4.2
-stardict-oxford-gb-2.4.2
-stardict-oxfordjm-ec-2.4.2</p>
-
-<p>启动GoldenDict.exe，【编辑->词典(F3)->词典来源->文件->重新扫描】，然后在【词典】标签页下即可看到导入的词典了，可以用拖拽的方法调整词典顺序；</p>
-
-<p>Linux下可以在任意位置解压词典（建议在~/.goldendict下新建mydict，用户词典都解压在这个目录下），然后[Edit-> Dictionaries(F3)-> Sources -> Files -> Add]，选择解压目录就可以增加一个本地词典了。</p>
-
-<h1>使用方法</h1>
-
-<h2>剪贴板取词</h2>
-
-<p>首先选中要翻译的词，然后按住Ctrl不放，按两下C键，这是默认设置，可以改成别的，但由于第一次按C键将内容拷贝到剪贴板上，所以修改后的快捷键的第一个键必须是C；</p>
-
-<h2>鼠标取词</h2>
-
-<p>GoldenDict提供了鼠标取词功能，但没有提供“不对菜单栏和按钮取词”功能，对PDF文档的取词也不灵，整体看可用性不高，还是以剪贴板取词为主吧；</p>
-
-<h2>显示/隐藏主界面</h2>
-
-<p>默认是Ctrl+两次F11，不太顺手，但考虑到主要是剪贴板取词，需要在主界面上手工输入的情况不多，所以这个设置不需要修改；</p>
-
-<h1>其他类似工具</h1>
-
-<p><a href="http://wordnet.princeton.edu/wordnet/">WordNet</a>: from Princeton University, nonportable, old_fashioned(last release in 2005), no popup functionality;</p>
-
-<p><a href="http://www.dicts.info/sda.php">Simple dictionary applications</a>: free, portable, extensible database, poor looking;</p>
-
-<p><a href="http://www.vocab.co.uk/index.htm">Interlex</a>: free, nonportable, for learning, not dictionary;</p>
-
-<p>Pop-Up Dictionary: proprietary ware;</p>
-
-<p>JLearnIt : proprietary ware;</p>
-
-<p><a href="https://en.wiktionary.org/wiki/Wiktionary:Main_Page">Wiktionary</a>: free, online;</p>
-
-<p><a href="http://www.wordweb.info/">WordWeb</a>: Free + Pro;</p>
-
-<p><a href="http://www.speech.cs.cmu.edu/cgi-bin/cmudict">The CMU Pronouncing Dictionary</a>: The Carnegie Mellon University Pronouncing Dictionary;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/27/170117/">用mtputty代替SecureCRT</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-12-27T17:01:17+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="http://ttyplus.com/multi-tabbed-putty/">mtputty</a>是一个免费的多标签putty增强工具；同时支持putty的windows版本kitty，有望代替SecureCRT。</p>
-
-<ul>
-<li><p>Portable模式启动方法：mtputty.exe /P</p></li>
-<li><p>貌似不支持预期-发送机制</p></li>
+<li><p><a href="http://www.vim.org/scripts/script.php?script_id=1154">JavaKit</a></p></li>
+<li><p><a href="http://www.vim.org/scripts/script.php?script_id=2627">exVim</a></p></li>
+<li><p><a href="http://www.vim.org/scripts/script.php?script_id=1440">winmanager</a> (Deprecated)</p></li>
 </ul>
 
 </div>
@@ -507,7 +457,7 @@ stardict-oxfordjm-ec-2.4.2</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/12/27/162826/">保存Total Commander的列宽</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/01/15/115359/">Notes About NERDTree</a></h1>
     
     
       <p class="meta">
@@ -516,84 +466,58 @@ stardict-oxfordjm-ec-2.4.2</p>
 
 
 
-<time class='entry-date' datetime='2012-12-27T16:28:26+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:28 pm</span></time>
+<time class='entry-date' datetime='2013-01-15T11:53:59+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:53 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Total Commander的默认列宽经常显示不全内容，需要手工调整，用&#8221;Menu -> Configuration -> Save Position&#8221;可以永久保存列宽，避免重复手工调整。</p>
-</div>
-  
-  
+  <div class="entry-content"><p><a href="https://github.com/scrooloose/nerdtree">NERDTree</a> is the best file explorer for vim so far.</p>
+
+<h1>NERDTree configuration in .vimrc</h1>
+
+<ul>
+<li><p>Close NERDTree when all files closed:</p>
+
+<p>  autocmd bufenter * if (winnr(&ldquo;$&rdquo;) == 1 &amp;&amp; exists(&ldquo;b:NERDTreeType&rdquo;) &amp;&amp; b:NERDTreeType == &ldquo;primary&rdquo;) | q | endif</p></li>
+<li><p>Open a NERDTree automatically when vim starts up if no files were specified</p>
+
+<p>  autocmd vimenter * if !argc() | NERDTree | endif</p></li>
+<li><p>NERDTree Shortcuts:</p>
+
+<p>  map <C-n> :NERDTreeToggle<CR></p></li>
+</ul>
 
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/27/161253/">用Java安装包安装绿色JDK</a></h1>
-    
-    
-      <p class="meta">
-        
+<h1>Keyboard shortcut list</h1>
 
+<p>C: make current folder the root;
+t: Open selected node/bookmark in a new tab
+T: Same as &rsquo;t&#8217; but keep the focus on the current tab
+?: Toogle Help
+C-n C-n: Toogle focus between files and NERDTree</p>
 
-
-
-<time class='entry-date' datetime='2012-12-27T16:12:53+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Oracle官网上下载的JDK安装包是一个exe文件，默认方式安装后会将系统的Java运行时（JRE）指向自身，当机器上有多个jdk时容易弄乱，安装时不要选“公共JRE”就可以变成绿色JDK了。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/27/112233/">Windows系统间传输文件的方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-12-27T11:22:33+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:22 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>假设现有两台计算机A和B需要互相传文件，A传给B多，B传给A少。</p>
-
-<p>首先将A计算机需要传输的文件夹设为共享。方法是：右键文件夹 -> 属性 -> 共享 -> 高级共享，勾选“共享此文件夹”，起一个有意义的名字或者用默认的，同时共享的用户数量设为2就够了，如果B也要给A传，点击“权限”，“更改”一项后面勾选“允许”。</p>
-
-<p>这时在文件夹属性的“共享”标签页里出现了一个“网络路径”条目，其他计算机就可以用下面的路径访问这个文件夹了。</p>
-
-<p>还有其他方法也可以传文件，例如用远程桌面，或者局域网通讯工具，但如果传输的文件量大，共享的方式还是比较方便的。</p>
-
-<p>B机器在连接A时，点击Windows键，在搜索栏里输入&#8221;\&ldquo;，Windows会自动搜索可用的共享机器，很方便。</p>
-
-<p>A和B之间可以用网线直连，这种方法可行，但设置家庭组的方法无法连上。</p>
-
-<p>如果在输入&#8221;\&ldquo;之后找不到A，首先检查网线头是否连接上了，如果还不行将两台电脑都设置成“家庭网络”再试；</p>
+<p>I: toogle show/hide hiden files
+?: toggle quick help;
+o: toggle fold/unfold;
+O: unfold to leaf;
+x: fold parent;
+u: make root up 1 level;
+r: refresh current dir;
+m: show menu(about dir manipulation): mkdir/rm/move
+cd: change working dir to current selected dir;
+F: toggle show/hide files;
+B: toggle bookmark table;
+q: close NERDTree window;
+A: Max/Restore NERDTree window;
+P: goto the root;
+p: goto the parent;
+Bookmark is persistent. So you can reopen it after you leaving vim.
+:Bookmark <name>: set bookmark(dir or file)
+:OpenBookmark <bookmark>: open file <bookmark>
+:ClearBookmark: as is
+D: delete bookmark(when cursor in bookmark table)</p>
 </div>
   
   
@@ -618,23 +542,23 @@ stardict-oxfordjm-ec-2.4.2</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
+        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
+        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
+        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
+        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
+        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

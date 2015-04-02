@@ -5,14 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>基于Search Source的简单查询实现方法 - Dark Matter in Cyberspace</title>
+  <title>Meteor应用中简单查询的实现方法 - Dark Matter in Cyberspace</title>
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="这个搜索基于search-source.
-通过meteor add meteorhacks:search-source添加到meteor中，
-代码参照了meteor-instant-search-demo. 准备数据源 导入数据 下载zips.json；
-参考Is there a sample &hellip;">
+  <meta name="description" content="简单搜索要求多个检索词能够以任意顺序出现在多个字段中，目前的解决方法有两种思路： 一是创建一个额外的检索项，把所有要检索的字段用字符串方式组合起来放在检索项中，然后用正则表达式匹配；
+这种方式实际上有信息冗余，所以原始数据变化后一定要及时更新检索项； 二是用第三方包实现这种功能。 自定义搜索： &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +69,7 @@
   
   <header>
     
-      <h1 class="entry-title">基于Search Source的简单查询实现方法</h1>
+      <h1 class="entry-title">Meteor应用中简单查询的实现方法</h1>
     
     
       <p class="meta">
@@ -87,13 +85,105 @@
   </header>
 
 
-<div class="entry-content"><p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
+<div class="entry-content"><p>简单搜索要求多个检索词能够以任意顺序出现在多个字段中，目前的解决方法有两种思路：</p>
+
+<p>一是创建一个额外的检索项，把所有要检索的字段用字符串方式组合起来放在检索项中，然后用正则表达式匹配；
+这种方式实际上有信息冗余，所以原始数据变化后一定要及时更新检索项；</p>
+
+<p>二是用第三方包实现这种功能。</p>
+
+<h1>自定义搜索：检索词放在单独Collection中</h1>
+
+<p>优点是检索词单独存放，需要去掉或者更新检索词时，只要简单地drop掉检索词Collection即可，
+适于存储大量记录；</p>
+
+<p>缺点有两个：
+首先显示查询结果比较麻烦，需要先在检索项集合中搜出命中目标的_id，然后再查询原始数据表显示完整信息；
+其次这种数据结构对组合查询支持不好，比如要查询"名称"字段中含有"abc"，并且"类别"字段中含有"xyz"的展会，
+由于"类别"字段是一个复杂对象，需要事先组合成一个字符串，这一项如果放在单独的collection中，
+需要查询两个不同的集合，然后取它们的并集。</p>
+
+<p>首先在MongoDB中，创建用于简单搜索的新collection &ldquo;simpleSearch&rdquo;:</p>
+
+<pre><code>db.fairs.find().forEach(function(elem) {
+    var searchStr = elem.chnName + elem.engName + elem.position;
+    db.simpleSearch.save({ _id: elem._id, searchBody: searchStr });
+})
+</code></pre>
+
+<p>然后定义路由处理函数：</p>
+
+<pre><code>Fairs = new Mongo.Collection("fairs");
+SimpleSearch = new Mongo.Collection("simpleSearch");
+
+Router.route('/results/:inp', function() {
+  // basic search url: /results/abc?type=basic
+  // complex search url: /results/?type=complex?name=xxx?time=xxx?position=xxx?category=xxx
+  var fullStr = this.params.inp;
+  var searchType = this.params.query.type;
+  if (searchType === "basic") {
+    var parts = fullStr.trim().split(" ");
+    for (i=0; i&lt;parts.length; ++i) {
+      parts[i] = "(?=.*" + parts[i] + ")";
+    }
+    var queryPtn = new RegExp("(" + parts.join("") + ")", "i");
+    var ids = [];
+    SimpleSearch.find( { searchBody: queryPtn }, { fields: { searchBody:0 }} ).forEach(
+      function(elem) {
+        ids.push(elem._id);
+      });
+    this.render('SearchResults', {
+      data: function() {
+        return Fairs.find( { _id: { $in: ids } } );
+      }
+    });
+  } else if (searchType === "complex") {
+    ...
+  }
+});
+</code></pre>
+
+<p>这里首先查询SimpleSearch集合，然后将查询得到的展会<em>id存入临时容器ids数组中，然后在Fairs集合中通过"$in"操作符取得所有ids数组中</em>id对应的展会对象。</p>
+
+<h1>自定义搜索：检索词放在原始信息文档中</h1>
+
+<p>这个方法把原始信息和检索项放在同一个集合中，几个检索项放在集合的一个key下面，
+集合会比较臃肿，但查询和显示都方便，适用于尺寸不大的数据库。</p>
+
+<p>控制器定义：</p>
+
+<pre><code>Fairs = new Mongo.Collection("fairs");
+Router.route('/results/:inp', function() {
+  // basic search url: /results/abc?type=basic
+  // complex search url: /results/?type=complex?name=xxx?time=xxx?position=xxx?category=xxx
+  var fullStr = this.params.inp;
+  var searchType = this.params.query.type;
+  if (searchType === "basic") {
+    var parts = fullStr.trim().split(" ");
+    for (i=0; i&lt;parts.length; ++i) {
+      parts[i] = "(?=.*" + parts[i] + ")";
+    }
+    var queryPtn = new RegExp("(" + parts.join("") + ")", "i");
+    this.render('SearchResults', {
+      data: function() {
+        return Fairs.find( { "indexStr.simpleSearch": queryPtn } );
+      }
+    });
+  } else if (searchType === "complex") {
+    ...
+  }
+});
+</code></pre>
+
+<h1>基于Search Source的实现方法</h1>
+
+<p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
 通过<code>meteor add meteorhacks:search-source</code>添加到meteor中，
 代码参照了<a href="https://github.com/meteorhacks-samples/meteor-instant-search-demo">meteor-instant-search-demo</a>.</p>
 
-<h1>准备数据源</h1>
+<h2>准备数据源</h2>
 
-<h2>导入数据</h2>
+<h3>导入数据</h3>
 
 <ol>
 <li><p>下载<a href="http://media.mongodb.org/zips.json">zips.json</a>；
@@ -110,17 +200,25 @@
        { $set: {forsearch: elem.city + ' ' + elem.state}}
      );
  });
+
+ db.fairs.find().forEach(function(elem) {
+     var cat_minor = _.reduce(elem.category.minor
+     db.fairs.update(
+       {_id: elem._id},
+       { $set: {forsearch: elem.chnName + ' ' + elem.engName + ' ' + elem.time + ' ' + elem.position + catStr}}
+     );
+ });
 </code></pre>
 
 <p> 参考<a href="http://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field">Update MongoDB field using value of another field</a>.</p></li>
 </ol>
 
 
-<h1>搜索逻辑</h1>
+<h2>搜索逻辑</h2>
 
 <p>下面"/&ldquo;都指项目根目录。</p>
 
-<h2>数据集定义</h2>
+<h3>数据集定义</h3>
 
 <p>在/collections.js中定义数据集和索引：</p>
 
@@ -130,7 +228,7 @@ if(Meteor.isServer) {
 }
 </code></pre>
 
-<h2>服务端</h2>
+<h3>服务端</h3>
 
 <p>在/server/server.js中定义：</p>
 
@@ -160,7 +258,7 @@ function buildRegExp(searchText) {
 即既能匹配A.<em>B，又能匹配B.</em>A，
 参考<a href="http://stackoverflow.com/questions/19896324/match-string-in-any-word-order-regex">match string in any word order regex</a>.</p>
 
-<h2>客户端：搜索输入框框即时响应</h2>
+<h3>客户端：搜索输入框框即时响应</h3>
 
 <p>搜索框是通用控件，所以定义在了/client/comTemp.js中，定义了对框中keyup事件的响应：</p>
 
@@ -172,7 +270,7 @@ function buildRegExp(searchText) {
 });
 </code></pre>
 
-<h2>客户端：搜索结果展示页面</h2>
+<h3>客户端：搜索结果展示页面</h3>
 
 <p>定义在/client/results.html中。</p>
 
@@ -198,7 +296,7 @@ function buildRegExp(searchText) {
 &lt;/template&gt;
 </code></pre>
 
-<h2>客户端：搜索结果的数据控制</h2>
+<h3>客户端：搜索结果的数据控制</h3>
 
 <p>定义在/client/results.js中。</p>
 
@@ -290,23 +388,23 @@ Template.SearchResults.rendered = function() {
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
+        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
+        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
+        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
+        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
+        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

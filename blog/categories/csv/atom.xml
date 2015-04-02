@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Csv | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/csv/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-02-02T16:10:00+08:00</updated>
+  <updated>2015-04-02T09:35:25+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,142 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Import Data for Newfairs.com]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/20/194901/"/>
+    <updated>2015-02-20T19:49:01+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/20/194901</id>
+    <content type="html"><![CDATA[<h1>Prerequisites</h1>
+
+<p>First install MongoDB, node.js and csvkit.</p>
+
+<p>For node.js, download node binary package (node-v0.10.33-linux-x64.tar.gz in my case) from its website,
+extract and add binary folder into $PATH. For example, add the following line into ~/.zshenv:</p>
+
+<pre><code>PATH=$HOME/apps/node-v0.10.33-linux-x64/bin:$PATH
+</code></pre>
+
+<p>For MongoDB, download its binary package (mongodb-linux-x86_64-2.6.5.tgz in my case) from its website,
+extract and add binary folder into $PATH:</p>
+
+<pre><code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH
+</code></pre>
+
+<p>Install csvkit with <code>sudo pip install csvkit</code>.</p>
+
+<h1>Preparation</h1>
+
+<ol>
+<li><p>Convert Excel (xls/xlsx) file to csv file: <code>in2csv data.xls &gt; data.csv</code>;</p></li>
+<li><p>(Optional) Convert file encoding: <code>iconv -f gbk -t utf8 data20150218.csv &gt; input.csv</code>;</p></li>
+<li><p>Examine data: <code>head input.csv | csvjson -i 4</code>;</p></li>
+<li><p>Start MongoDB server for importing data: <code>mongod</code>;</p></li>
+</ol>
+
+
+<h1>Import Data</h1>
+
+<p>In case you want to overwrite old data, you need backup old collection:
+start a mongodb client, make a copy of the old collection (the original collection is &ldquo;fairs&rdquo;):</p>
+
+<pre><code>$ mongo
+&gt; db.fairs.renameCollection('fairsBak')
+</code></pre>
+
+<p>P.S. You can make a copy of a collection with <code>db.fairs.copyTo('fairsBak')</code>.</p>
+
+<p>Now import new data to collection &ldquo;fairs&rdquo;:</p>
+
+<pre><code>./importdata
+</code></pre>
+
+<h1>Under the hood</h1>
+
+<p>importdata:</p>
+
+<pre><code>#!/bin/bash
+
+# convert the csv file encoding with:
+# iconv -f gbk -t utf8 xxx.csv &gt; input.csv
+INP='input.csv'
+TargetDB='test'
+TargetCol='fairs'
+
+RAW='rawdata.json'
+RES='result.json'
+if [[ ! -f $INP ]]; then
+  echo File input.csv not exists!
+  exit 1
+fi
+rm -rf $RAW $RES
+csvjson $INP &gt; $RAW
+node checkTransform
+mongoimport -d $TargetDB -c $TargetCol --type json --file $RES --jsonArray
+rm -rf $RAW $RES
+</code></pre>
+
+<p>checkTransform.js:</p>
+
+<pre><code>var data = require('./rawdata.json');
+var fs = require('fs');
+var result = []
+
+data.forEach(function(elem) {
+  var aFair = JSON.parse( JSON.stringify(elem) );
+  aFair.indexStr = {};
+  aFair.indexStr['name'] = (elem.chnName + ' ' + elem.engName).trim();
+  aFair.indexStr['sponsor'] = elem.sponsor;
+  aFair.indexStr['undertaker'] = elem.undertaker;
+  aFair.indexStr['category'] = elem.category;
+  aFair.indexStr['simpleSearch'] = elem.chnName + ' ' + elem.engName + ' ' + elem.position + ' ' + elem.time + ' ' + elem.category;
+
+  if (elem.sponsor) {
+    aFair['sponsor'] = [];
+    elem.sponsor.split('|').forEach(function(spr) {
+      var aSponsor = {};
+      var sps = spr.split('$');
+      aSponsor['name'] = sps[0];
+      aSponsor['tel'] = sps[1];
+      aSponsor['fax'] = sps[2];
+      aSponsor['email'] = sps[3];
+      aSponsor['website'] = sps[4];
+      aFair.sponsor.push(aSponsor);
+    });
+  }
+
+  if (elem.undertaker) {
+    aFair['undertaker'] = [];
+    elem.undertaker.split('|').forEach(function(udt) {
+      var aUndertaker = {};
+      var uds = udt.split('$');
+      aUndertaker['name'] = uds[0];
+      aUndertaker['tel'] = uds[1];
+      aUndertaker['fax'] = uds[2];
+      aUndertaker['email'] = uds[3];
+      aUndertaker['website'] = uds[4];
+      aFair.undertaker.push(aUndertaker);
+    });
+  }
+
+  if (elem.category) {
+    aFair['category'] = [];
+    elem.category.split('|').forEach(function(catStr) {
+      var aCat = {};
+      var cats = catStr.split('$');
+      aCat['major'] = cats[0] === '?' ? '' : cats[0];
+      aCat['minor'] = cats.slice(1);
+      aFair.category.push(aCat);
+    });
+  }
+
+  result.push(aFair);
+});
+
+fs.writeFile('result.json', JSON.stringify(result));
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Manipulating CSV Files in Command Line]]></title>
@@ -33,7 +169,8 @@ It&rsquo;s developed with Python. So install it with <code>sudo pip install csvk
 
 <p>If there are newline characters in records, add &ldquo;-l&rdquo; option to make it clear: <code>csvcut -l -c 1,2,11,16 data.csv|head</code>;</p>
 
-<p>Convert to json file with csvjson: <code>csvcut -c 1,2,11,16 fairData150104.csv|head|csvjson -i 4</code>, &ldquo;-i&rdquo; specify how many indent spaces, default is no indent.</p>
+<p>Convert to json file with csvjson:, <code>head fairData150104.csv|csvjson -i 4</code>, where &ldquo;-i&rdquo; specify how many indent spaces, default is no indent.
+Or select some collomns to show: <code>csvcut -c 1,2,11,16 fairData150104.csv|head|csvjson -i 4</code></p>
 
 <h1>csvtool</h1>
 
@@ -130,7 +267,8 @@ Next check the json file with <code>jsonlint myfile.json</code>.</p>
 <pre><code>mongoimport -h localhost:3001 -d meteor -c fairs --type json --jsonArray --file demo.json
 </code></pre>
 
-<p>Or if your mongod is running on localhost, use the following line to import (don&rsquo;t create the target database and collection before import):</p>
+<p>Or if your mongod is running on localhost, use the following line to import
+(no need to create the target database and collection before import):</p>
 
 <pre><code>mongoimport -d meteor -c fairs --type json --file first31.json --jsonArray
 </code></pre>

@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Login as admin, go to a dashboard of a project, then click &ldquo;Configuration -> History&rdquo; at the upper-right corner of the panel.
-">
+  <meta name="description" content="Under $JENKINS_HOME/jobs/GSP/workspace/build/work/plugins(we call this folder as &ldquo;basedir&rdquo;), there are many bundle folders. Some of them &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/11/19/173101/">Manage Historical Snapshots in Sonarqube</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/06/111936/">Get Total Testcase Number in JUnit Report File With Grep and Awk</a></h1>
     
     
       <p class="meta">
@@ -81,14 +80,41 @@
 
 
 
-<time class='entry-date' datetime='2013-11-19T17:31:01+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:31 pm</span></time>
+<time class='entry-date' datetime='2013-12-06T11:19:36+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:19 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Login as admin, go to a dashboard of a project, then click &ldquo;Configuration -> History&rdquo; at the upper-right corner of the panel.</p>
+  <div class="entry-content"><p>Under $JENKINS_HOME/jobs/GSP/workspace/build/work/plugins(we call this folder as &ldquo;basedir&rdquo;), there are many bundle folders. Some of them were compiled, so there are many test report file &ldquo;TEST-<full-name>.xml&rdquo; in <bundle-name>/build/unittest_report, for example, com.boco.gsp.element.decision.config/build/unittest_report/TEST-com.boco.gsp.decision.config.parser.DecisionParserTest.xml. The content of this file is:</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo; ?></p>
+
+<p> <testsuite errors="0" failures="0" hostname="
+pwm" name="com.boco.gsp.decision.config.parser.DecisionParserTest" tests="3" time="0.127" timestamp="2013-12-05T19:25:11"></p>
+
+<p>  <properties></p>
+
+<p>   &hellip;</p>
+
+<p> </testsuite></p>
+
+<p>In this case the testcase number is 3 according to &lsquo;test=&ldquo;3&rdquo;&rsquo;. Now we need get the total number of testcases with following steps:</p>
+
+<ol>
+<li><p>find all these test report file under ${basedir};</p></li>
+<li><p>get the testcase number;</p></li>
+<li><p>add all these number up;</p></li>
+<li><p>print the result;</p></li>
+</ol>
+
+
+<p>We achieve this by the following command under ${basedir}:</p>
+
+<p> grep -Po &lsquo;(?&lt;=tests=&ldquo;)\d+&rsquo; <em>*/TEST-</em>.xml | awk -F&#8217;:&lsquo; &rsquo;{SUM += $2; print $1 &rdquo;: &ldquo; $2} END {print &#8220;Total: &rdquo; SUM}&#8217;</p>
+
+<p>&ldquo;-P&rdquo; let grep interpret pattern as perl regular expression. &ldquo;-o&rdquo; means only output the matched part. &ldquo;(?>=&hellip;)&rdquo; eliminates the text in parenthesis. &ldquo;-F&rdquo; of awk specify the delimiter. This command works on zsh because the &ldquo;<em>*/</em>&rdquo; syntax only valid on zsh. If you use bash, you have to modify this.</p>
 </div>
   
   
@@ -101,7 +127,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/11/19/101234/">Work on Remote Git Repository</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/04/163536/">Run Clojure Script With External Dependencies Without Leiningen</a></h1>
     
     
       <p class="meta">
@@ -110,116 +136,33 @@
 
 
 
-<time class='entry-date' datetime='2013-11-19T10:12:34+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:12 am</span></time>
+<time class='entry-date' datetime='2013-12-04T16:35:36+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:35 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Create New Branch</h1>
+  <div class="entry-content"><p>The normal way of deploy clojure files is using leiningen. But if we have no leiningen, or the script is small and unnecessary to pack as a leiningen project, we can build a &ldquo;bare&rdquo; clojure script in the following way.</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ git clone https://github.com/hackrole/pyevernote.git
-</span><span class='line'>$ cd pyevernote
-</span><span class='line'>$ git branch    // list all existing branches
-</span><span class='line'>$ git checkout -b leetschau     // create new branch "leetschau" and checkout it</span></code></pre></td></tr></table></div></figure>
+<ol>
+<li><p>Get the dependency jar files, 2 options:</p>
 
+<ol type="a">
+<li><p>download the jar file directly;</p></li>
+<li><p>if the dependency project provide the dependency as leiningen dependency items in porject.clj (for example, &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; in <a href="https://github.com/clojure/data.json">data.json</a>), you can build the leiningen project following Parse Sonarqube Data via Web API in Clojure , then copy the denpendency jar files from the ~/.m2/repository folder;</p></li>
+</ol>
+</li>
+<li><p>Build srcipt: get-sonar-data.clj</p>
 
-<h1>Push to remote repository</h1>
+<p> (require &lsquo;[clojure.data.json :as json])
+ (def url &ldquo;<a href="http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes">http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes</a>&rdquo;)
+ (def data (json/read-str (slurp url)))
+ (println ((first data) &ldquo;name&rdquo;))
+ (println ((first ((first data) &ldquo;msr&rdquo;)) &ldquo;val&rdquo;))</p></li>
+<li><p>Run script: java -cp &lsquo;./*:.&rsquo; clojure.main get-sonar-data.clj</p></li>
+</ol>
 
-<p><code>$ git push origin leetschau</code>, where &ldquo;origin&rdquo; is repository name, &ldquo;leetschau&rdquo; is branch name.</p>
-
-<p>When you push your branch the first time, add &ldquo;-u&rdquo; to specify that the current branch is associated with the remote branch.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/6089294/why-do-i-need-to-do-set-upstream-all-the-time.">http://stackoverflow.com/questions/6089294/why-do-i-need-to-do-set-upstream-all-the-time.</a></p>
-
-<h1>Push all branches to remote repository</h1>
-
-<p><code>$ git push origin --all</code>.</p>
-
-<h1>Discard local changes</h1>
-
-<p>We need discard all local changes and keep the same with remote repository. Provided that you want sync with &ldquo;master&rdquo; branch in remote repository &ldquo;origin&rdquo;:</p>
-
-<pre><code>$ git fetch orgin
-$ git reset --hard origin/master
-</code></pre>
-
-<p>Note that files not in stage area (not been &ldquo;add&rdquo;) will remains, while files in stage area or committed will be removed.</p>
-
-<h1>Remove Existing Branch</h1>
-
-<pre><code>$ git push origin :leetchao
-</code></pre>
-
-<h1>Create, query and remove remote repository alias</h1>
-
-<pre><code>$ git remote add pyevernote-repo https://github.com/hackrole/pyevernote.git
-$ git remote -v
-$ git remote rm pyevernote-repo
-</code></pre>
-
-<h1>Checkout from a existing repository and branch</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ git clone https://github.com/hackrole/pyevernote.git
-</span><span class='line'>$ cd pyevernote
-</span><span class='line'>$ git branch -r
-</span><span class='line'>  origin/leetschau
-</span><span class='line'>  ...
-</span><span class='line'>$ git checkout leetschau      // or "git checkout -b leetschau origin/leetschau" for old version git</span></code></pre></td></tr></table></div></figure>
-
-
-<p>For verification, you can find &lsquo;remote=origin &hellip; under [branch &ldquo;leetschau&rdquo;]&rsquo; in file .git/config.</p>
-
-<h1>Update from remote repository</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ git fetch origin
-</span><span class='line'>$ git status
-</span><span class='line'>  Your branch is **behind** 'origin/develop' by 3 commits... (which means your local branch need to be updated with remote one)
-</span><span class='line'>$ git merge origin/develop</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Note: Do not use &ldquo;git pull&rdquo; for &ldquo;pull&rdquo; is too &ldquo;smart&rdquo;.
-<a href="http://longair.net/blog/2009/04/16/git-fetch-and-merge/">git: fetch and merge, donât pull</a> gives the reason and provides an excellent explanation of what is &ldquo;branch&rdquo;.</p>
-
-<h1>Move a git repository from Bitbucket to Github</h1>
-
-<p>Based on <a href="http://www.blackdogfoundry.com/blog/moving-repository-from-bitbucket-to-github/">Moving Repository from Bitbucket to GitHub</a>.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>cd $DSNOTE_HOME
-</span><span class='line'>git remote rename origin bitbucket
-</span><span class='line'>// create a new repository "dsnote" on Github
-</span><span class='line'>git remote add origin https://github.com/leetschau/dsnote.git
-</span><span class='line'>git push -u origin master
-</span><span class='line'>git remote -v
-</span><span class='line'>git branch -r</span></code></pre></td></tr></table></div></figure>
-
-
-<h1>Other</h1>
-
-<p>Always use <code>git status</code> to get current status, such as the difference between CWD and stage area, difference between stage area and local repository, and difference between local repository and remote repository.
-Use <code>git log</code> to show commit history.</p>
 </div>
   
   
@@ -232,7 +175,7 @@ Use <code>git log</code> to show commit history.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/11/14/160706/">Add Multiple Classpath Items in One Tag</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/04/114616/">Parse Sonarqube Data via Web API in Clojure</a></h1>
     
     
       <p class="meta">
@@ -241,295 +184,7 @@ Use <code>git log</code> to show commit history.</p>
 
 
 
-<time class='entry-date' datetime='2013-11-14T16:07:06+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:07 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I have to add many jar files to a &ldquo;javac&rdquo; and a &ldquo;junit&rdquo; task from command line arguments. The <pathemelent path/> inside <classpath/> tag is suited for this situation.</p>
-
-<p>Ant script:</p>
-
-<p> &lt;javac srcdir=&ldquo;${test.dir}&rdquo;</p>
-
-<p>  destdir=&ldquo;${test.class.dir}&rdquo;
-  encoding=&ldquo;UTF-8&rdquo;
-  debug=&ldquo;true&rdquo;
-  failonerror=&ldquo;true&rdquo;>
-  <classpath>
-   <pathelement location="${instrumented.class.dir}"/>
-   <pathelement location="${src.class.dir}"/>
-   <pathelement path="${pdegen.classpath}"/>
-  </classpath>
- </javac></p>
-
-<p> <junit printsummary="yes" fork="yes">
-  <sysproperty key="net.sourceforge.cobertura.datafile"
-   file="${cobertura.data.file}" />
-  <classpath>
-   <pathelement location="${instrumented.class.dir}"/>
-   <pathelement location="${src.class.dir}"/>
-   <pathelement location="${test.class.dir}"/>
-   <pathelement location="${src.dir}"/>
-   <pathelement location="${cobertura.path}"/>
-   <pathelement path="${pdegen.classpath}"/>
-  </classpath>
-  <formatter type="xml"/>
-  <batchtest todir="${unittest.report.dir}" haltonerror="yes">
-   <fileset dir="${test.dir}">
-    <include name="**/*.java" />
-   </fileset>
-  </batchtest>
- </junit></p>
-
-<p>The corresponding command line is:</p>
-
-<p> ant -Dpdegen.classpath=/path/to/jar1:/path/to/jar2 target_name</p>
-
-<p>Here is the working Python script:</p>
-
-<p>  from subprocess import call</p>
-
-<p>  test_cmd = &lsquo;ant -buildfile unittest.xml -Drootdir=&rsquo;+ base_dir + \</p>
-
-<pre><code>pkg_name +' -Dcobertura.path=/usr/share/ant/lib/cobertura.jar -Dpdegen.classpath='+classpath[pkg_name] 
-</code></pre>
-
-<p>  ret = call(test_cmd.split())</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/11/163132/">Use Remote Desktop Between Two Ubuntu Host</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-11T16:31:32+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Verified between Mint 14 Xfce, 2014-2-26.</p>
-
-<h1>Server (IP: 10.21.3.31)</h1>
-
-<ol>
-<li><p><code>sudo aptitude install xrdp</code></p></li>
-<li><p><code>sudo service xrdp start</code></p></li>
-</ol>
-
-
-<h1>Client</h1>
-
-<ol>
-<li><p>Install &ldquo;Remmina&rdquo; with Software Manager;</p></li>
-<li><p>Launch Remmina, create a new connectiion with the following parameters:</p>
-
-<p> Name: My PC
- Protocol: RDP - Remote Desktop Protocol
- Server: 10.21.3.31
- User name: chad (The desktop user)
- Password: xxx
- Resolution: Use client resolution
- Color depth: True color(32 bpp)</p></li>
-<li><p>Connect to host;</p></li>
-<li><p>If you want keyboard shortcuts of host, check the &ldquo;Grab all keyboard events&rdquo;;</p></li>
-</ol>
-
-
-<p>Now you can open a gedit window, and use left Ctrl key to active Chinese Input Method.</p>
-
-<hr />
-
-<p>Old version: 2013-11-11</p>
-
-<h1>Server (IP: 10.21.3.31)</h1>
-
-<ol>
-<li><p>Install: sudo apt-get install tightvncserver</p></li>
-<li><p>Config: vi ~/.vnc/xstartup</p></li>
-</ol>
-
-
-<p>Add: &ldquo;xfwm4 &amp; xfdesktop &amp; xfce4-panel &amp; xfce4-session&rdquo; after &ldquo; /etc/X11/Xsession&rdquo;</p>
-
-<ol>
-<li><p>Set login passwd: vncpasswd</p></li>
-<li><p>Start service: vncserver :1 -geometry 800x600</p></li>
-<li><p>Stop service: vncserver -kill :1</p></li>
-</ol>
-
-
-<h1>Client</h1>
-
-<ol>
-<li><p>Install: sudo apt-get install vncviewer</p></li>
-<li><p>Connect: vncviewer 10.21.3.31:1</p></li>
-</ol>
-
-
-<p>Problem: This is a new desttop, how to connect to the &ldquo;old&rdquo; desktop?</p>
-
-<p>Note:</p>
-
-<p>There are some other vnc server, I tried vino and x11vnc both not work. Generally, GUI server function of Linux is much weak than that of Windows. You can use &ldquo;Remmina&rdquo; and rdp protocol to connect to a Windows server conveniently. So try to avoid use GUI between remote hosts, using ssh terminal instead.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/06/143348/">Change Default Application on Linux Mint Xfce</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-06T14:33:48+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:33 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Alt-F3 -> Preferred Application</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/06/080552/">Open CPU Support for Virtualizaion Technology</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-06T08:05:52+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:05 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In BIOS, under &ldquo;Processors Settings&rdquo;, enable the &ldquo;Virtualization Technology&rdquo;.</p>
-
-<p>In some Dell Computers, this option is at [Performance -> Virtualization] in BIOS.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/05/171709/">Setup Yum Repositories to Update or Install Package From ISO Image</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-05T17:17:09+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:17 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Create Local Repository</h1>
-
-<ol>
-<li><p>Make sure you have &ldquo;createrepo&rdquo; command: &ldquo;yum -qa|grep create&rdquo;, or install it with &ldquo;yum install createrepo&rdquo;;</p></li>
-<li><p>$ mkdir -p /mnt/iso/1</p></li>
-<li><p>$ mount -o loop /home/chad/warez/CentOS-6.4-x86_64-LiveDVD.iso /mnt/iso/1</p></li>
-<li><p>$ cd /mnt/iso</p></li>
-<li><p>$ createrepo .</p></li>
-<li><p>$ yum clean all</p></li>
-<li><p>$ vi /etc/yum.repos.d/iso.repo</p>
-
-<p> [MyISORepo]
- name=MyISORepo
- baseurl=file:///mnt/iso
- enable=1</p></li>
-<li><p>$ yum &ndash;disablerepo=* &ndash;enablerepo=MyISORepo install kvm</p></li>
-</ol>
-
-
-<h1>Remove Repository</h1>
-
-<ol>
-<li><p>Remove repository temporarily: modify &ldquo;1&rdquo; to &ldquo;0&rdquo; in /etc/yum.repos.d/iso.repo; or permanently: &ldquo;rm -f /etc/yum.repos.d/iso.repo&rdquo;;</p></li>
-<li><p>unmount DVD image: umount /mnt/iso/1</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="http://www.cyberciti.biz/tips/redhat-centos-fedora-linux-setup-repo.html">Howto Setup yum repositories to update or install package from ISO CDROM Image</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/02/141013/">Create Virtual Network With Virtualbox</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-02T14:10:13+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>2:10 pm</span></time>
+<time class='entry-date' datetime='2013-12-04T11:46:16+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:46 am</span></time>
         
       </p>
     
@@ -537,28 +192,23 @@ Use <code>git log</code> to show commit history.</p>
 
 
   <div class="entry-content"><ol>
-<li><p>Create a virtual machine &ldquo;ubs1&rdquo; with ubuntu server 12.04, set its network as Host-only;</p></li>
-<li><p>Start this vm, configure the network manually: IP Address: 192.168.56.11, netmask, gateway and name server address use default value; Set hostname hubs1, domain name as &ldquo;chadhome&rdquo;, set username &ldquo;ubsu1&rdquo;; install OpenSSH server;</p></li>
-<li><p>Create the second vm named &ldquo;ubs2&rdquo; with the same settings with above, IP Address is 192.168.56.22, hostname is hubs2, username is ubsu2;</p></li>
+<li><p>build project: lein new sonar-parser</p></li>
+<li><p>add dependencies: add &ldquo;[org.clojure/data.json &#8220;0.2.3&rdquo;]&ldquo; in :dependencies in project.clj;</p></li>
+<li><p>update (download) dependency jars (into ~/.m2/repository folder): lein deps</p></li>
+<li><p>start repl: lein repl</p></li>
+<li><p>test in repl:</p></li>
 </ol>
 
 
-<p>Now you can ssh between host and these 2 guests.</p>
+<p> (require &lsquo;[clojure.data.json :as json])</p>
 
-<h1>How to enable guest to connect to internet with NAT/Host-only settings?</h1>
+<p> (def data (json/read-str (slurp &ldquo;<a href="http://...">http://&#8230;</a>&rdquo;)))</p>
 
-<h2>Ubuntu</h2>
-
-<ol>
-<li><p>Set network -> Adapter 1 as NAT, adapter 2 as Host-only (the order is import! you can&rsquo;t install host-only first then add nat?)</p></li>
-<li><p>add eth1 in /etc/network/interfaces</p></li>
-</ol>
-
-
-<h2>CentOS</h2>
+<p> ((first ((first data) &ldquo;msr&rdquo;)) &ldquo;val&rdquo;) ; => 5.0</p>
 
 <ol>
-<li>/etc/sysconfig/network-scripts/ifcfg-eth1</li>
+<li><p>add script into src/sonar-parser/core.clj;</p></li>
+<li><p>pack project: lein uberjar</p></li>
 </ol>
 
 </div>
@@ -573,7 +223,7 @@ Use <code>git log</code> to show commit history.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/11/01/093934/">Grouping and Backreference in Replacement of Vim</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/04/100446/">Parse Sonarqube Data via Web API in Groovy</a></h1>
     
     
       <p class="meta">
@@ -582,50 +232,59 @@ Use <code>git log</code> to show commit history.</p>
 
 
 
-<time class='entry-date' datetime='2013-11-01T09:39:34+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>9:39 am</span></time>
+<time class='entry-date' datetime='2013-12-04T10:04:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:04 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>You can group parts of the pattern expression enclosing them with &ldquo;(&rdquo; and &ldquo;)&rdquo; and refer to them inside the replacement pattern by their special number \1, \2 &hellip; \9. Typical example is swapping first two words of the line:</p>
+  <div class="entry-content"><h1>Shell</h1>
 
-<p> :%s/(\w+)(\s+)(\w+)/\3\2\1/gc</p>
+<h2>getdata.groovy</h2>
 
-<p>Ref: <a href="http://vimregex.com/#backreferences">Grouping and Backreferences of vim</a></p>
+<pre><code>url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
 
-<h1>A Demonstration</h1>
+addr = url.toURL() 
+conn= addr.openConnection() 
+status = conn.getResponseCode() 
+reader = new BufferedReader(new InputStreamReader(conn.getInputStream())) 
+datastr = reader.readLine()
 
-<p>There are about 40 JUnit test classes in &ldquo;java_test&rdquo; folder of ESB project. Now we need add all class names and their respective package names into Excel Report.</p>
+import groovy.json.JsonSlurper
 
-<p>Solution:</p>
+slurper = new JsonSlurper()
+
+data = slurper.parseText(datastr)
+
+msr = data[0].msr.frmt_val[0]
+</code></pre>
+
+<h2>Run Shell Script</h2>
 
 <ol>
-<li>Get original outputs with &ldquo;find&rdquo; command:</li>
+<li><p>start shell: &ldquo;groovysh&rdquo;</p></li>
+<li><p>load script file: &ldquo;. getdata.groovy&rdquo;;</p></li>
+<li><p>all variables in script file can be used in shell; evaluate variable value by its name directly;</p></li>
+<li><p>reload file: &ldquo;purge all&rdquo; then &ldquo;. getdata.groovy&rdquo;;</p></li>
 </ol>
 
 
-<p> $ cd java_test
- $ find . -name &lsquo;*.java&rsquo; > report.csv</p>
+<h1>Script</h1>
 
-<p>The original output of &ldquo;find&rdquo; command:</p>
+<h2>getdata_scpt.groovy</h2>
 
-<p>./com/boco/esb/dataquality/service/test/TestDataQualityRuleServiceImpl.java</p>
+<pre><code>def url = "http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes"
+def addr = url.toURL()
+def conn= addr.openConnection()
+def status = conn.getResponseCode()
+def reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))
+println reader.readLine()
+</code></pre>
 
-<p>The target output format:</p>
+<h2>run script</h2>
 
-<p>TestDataQualityRuleServiceImpl,com.boco.esb.dataquality.service.test</p>
-
-<ol>
-<li>Convert format with vi:</li>
-</ol>
-
-
-<p> $ vi report
- :%s/(.<em>)\/(Test.</em>).java/\2,\1/gc</p>
-
-<p>Then open report.csv in Windows, it will be load by Excel automatically.</p>
+<p>groovy getdata_scpt.groovy</p>
 </div>
   
   
@@ -638,7 +297,7 @@ Use <code>git log</code> to show commit history.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/10/31/174404/">Subversion Backup and Restore</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/02/193731/">Run Shell Script Inside Ruby Script</a></h1>
     
     
       <p class="meta">
@@ -647,163 +306,435 @@ Use <code>git log</code> to show commit history.</p>
 
 
 
-<time class='entry-date' datetime='2013-10-31T17:44:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>5:44 pm</span></time>
+<time class='entry-date' datetime='2013-12-02T19:37:31+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>7:37 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Backup Specified Revision</h1>
+  <div class="entry-content"><h1>Backtick grammar</h1>
+
+<p>Thanks to the backtick grammar and string substitution, shell script can be embedded more easily into Ruby script than Python.</p>
+
+<p>Execute shell command in irb, the return value is the output in stdout:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.1.2 :036 &gt; `ls -l|grep play`
+</span><span class='line'> =&gt; "drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj\n" 
+</span><span class='line'> 2.1.2 :037 &gt; `aaa`
+</span><span class='line'> Errno::ENOENT: No such file or directory - aaa
+</span><span class='line'> ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Execute shell commands in Ruby scripts:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># Usage: Save the following scripts in file "cmd.rb" 
+</span><span class='line'># $ ruby cmd.rb ls -a 
+</span><span class='line'>cmd = ARGV[0] 
+</span><span class='line'>op = ARGV[1] 
+</span><span class='line'>result = `#{cmd} #{op}` 
+</span><span class='line'>puts result</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>system function</h1>
+
+<p>Kernel#system executes the given command in a subshell. Return true if the command was found and ran successfully, false otherwise.
+The output of the command will be written to stdout. So it can&rsquo;t store the command output.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2.1.2 :036 &gt; `ls -l|grep play`
+</span><span class='line'>drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj
+</span><span class='line'> =&gt; truee</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/2232/calling-bash-commands-from-ruby">Calling Bash Commands From Ruby</a></p>
+
+<p><a href="http://stackoverflow.com/questions/2741260/can-ruby-access-output-from-shell-commands-as-it-appears">Can Ruby access output from shell commands as it appears?</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/02/164918/">Line Wrap in Python</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-02T16:49:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Omitting Backslash</h1>
+
+<p>You can only omitting backslash in list bracket or using parenthesis with long string.</p>
+
+<p> ke = [&lsquo;com.boco.esb.analysismgr.service.impl&rsquo;,
+   &lsquo;com.boco.esb.dataencapsulation.service.impl&rsquo;,
+   &lsquo;com.boco.esb.dataquality.service.impl&rsquo;]</p>
+
+<p> issue_url = (&lsquo;<a href="http://%s/api/issues/search?componentRoots=%s:%s">http://%s/api/issues/search?componentRoots=%s:%s</a>&rsquo;</p>
+
+<pre><code> '&amp;pageSize=5000&amp;rules=%s&amp;statuses=OPEN,REOPENED') 
+</code></pre>
+
+<h1>Mandatory Backslash</h1>
+
+<h2>Long Variable Name</h2>
+
+<p>Use backslash following &ldquo;=&rdquo; to save space.</p>
+
+<p> METHOD_RELATED_ISSUE_KEYS = \
+ [&lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.MethodLengthCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.ParameterNumberCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.coding.NestedIfDepthCheck&rsquo;,
+  &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.duplicates.StrictDuplicateCodeCheck&rsquo;]</p>
+
+<h2>List Comprehension</h2>
+
+<p>Backslash before &ldquo;for&rdquo; in list(dict) comprehension cannot be omitted.</p>
+
+<p> total_issue_num = sum(get_issue_num(proj_name, pkg, issue_key) \
+   for pkg in pkgs)</p>
+
+<h2>After Operator</h2>
+
+<p>Backslash after operator cannot be omitted.</p>
+
+<p> line_cov = sum(cov_line for (cov_line,<em>) in lines_info) / \
+     sum(valid_line for (</em>,valid_line) in lines_info)</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/02/152923/">Retrieve Sonarqube Data With Java</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-02T15:29:23+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>3:29 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following class &ldquo;GetData&rdquo; can retrieve data from Sonarqube. But you have to</p>
+
+<p> import java.net.URL;
+ import java.net.HttpURLConnection;
+ import java.net.MalformedURLException;
+ import java.io.IOException;
+ import java.io.BufferedReader;
+ import java.io.InputStreamReader;
+ public class GetData {
+  private static String url = &ldquo;<a href="http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes">http://10.0.2.74:9000/api/resources?resource=ESB:com.boco.esb.analysismgr.service.impl&amp;metrics=classes</a>&rdquo;;
+  public static void main(String[] args) {
+   HttpURLConnection myURLConnection = null;
+   int status = -1;
+   String cont = null;
+   try {
+    URL myURL = new URL(url);
+    myURLConnection = (HttpURLConnection)myURL.openConnection();
+    myURLConnection.connect();
+    status = myURLConnection.getResponseCode();
+    switch (status) {
+     case 200:
+     case 201:
+      BufferedReader br = new BufferedReader(new InputStreamReader(myURLConnection.getInputStream()));
+      StringBuilder sb = new StringBuilder();
+      String line;
+      while ((line = br.readLine()) != null) {
+       sb.append(line+&ldquo;\n&rdquo;);
+      }
+      br.close();
+      cont = sb.toString();
+    }
+   }
+   catch (MalformedURLException e) {
+    System.out.println(&ldquo;url error&rdquo;);
+   }
+   catch (IOException e) {
+    System.out.println(&ldquo;other io error&rdquo;);
+   }
+   System.out.println(&ldquo;my conn ret code: &rdquo; + status);
+   System.out.println(&ldquo;my conn: &rdquo; + cont);
+  }
+ }</p>
+
+<p>$ java GetData</p>
+
+<p>my conn ret code: 200
+my conn: [{&ldquo;id&rdquo;:8251,&ldquo;key&rdquo;:&ldquo;ESB:com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;name&rdquo;:&ldquo;com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;scope&rdquo;:&ldquo;DIR&rdquo;,&ldquo;qualifier&rdquo;:&ldquo;PAC&rdquo;,&ldquo;date&rdquo;:&ldquo;2013-11-29T17:02:10+0800&rdquo;,&ldquo;lname&rdquo;:&ldquo;com.boco.esb.analysismgr.service.impl&rdquo;,&ldquo;lang&rdquo;:&ldquo;java&rdquo;,&ldquo;msr&rdquo;:[{&ldquo;key&rdquo;:&ldquo;classes&rdquo;,&ldquo;val&rdquo;:5.0,&ldquo;frmt_val&rdquo;:&ldquo;5&rdquo;}]}]</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/02/111254/">FP vs OOP</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-02T11:12:54+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Four Paradigms of Decomposing Problems</h1>
+
+<ul>
+<li><p>Procedural: C, Pascal, Unix shells;</p></li>
+<li><p>Declarative: SQL;</p></li>
+<li><p>Object-oriented: Smalltalk, Java;</p></li>
+<li><p>Functional: Haskell;</p></li>
+</ul>
+
+
+<h1>Relations of FP and OOP</h1>
+
+<p>&ldquo;Functional programming can be considered the opposite of object-oriented programming. Objects are little capsules containing some internal state along with a collection of method calls that let you modify this state, and programs consist of making the right set of state changes. Functional programming wants to avoid state changes as much as possible and works with data flowing between functions.&rdquo; &ndash;From <a href="http://docs.python.org/2/howto/functional.html">Functional Programming HOWTO</a></p>
+
+<p>&ldquo;I think the lack of reusability comes in object-oriented languages, not in functional languages. Because the problem with object-oriented languages is they’ve got all this implicit environment that they carry around with them. You wanted a banana but what you got was a gorilla holding the banana and the entire jungle.&rdquo; &ndash;Joe Armstrong (the creator of Erlang) discussed in &ldquo;Coders At work&rdquo; about the reusability of Object-Oriented Programming.
+To be fair, in my opinion it&rsquo;s not an intrinsic problems of OOP. You can write OOP code which is also functional, but certainly:
+* Typical OOP tends to emphasize change of state in objects.
+* Typical OOP tends to impose tight coupling between layers (which hinders modularization).
+* Typical OOP mixes the concepts of identity and state.
+* Mixture of data and code raises both conceptual and practical problems.
+&ndash; <a href="http://code.google.com/p/tokland/wiki/RubyFunctionalProgramming">Ruby Functional Programming</a>
+Rich Hickey, the creator of Clojure (a functional Lisp-dialect for the JVM), discusses state, values and identity in this <a href="http://www.infoq.com/presentations/Value-Identity-State-Rich-Hickey">excellent talk</a>.</p>
+
+<h1>If we can do functional programming with Python, do we need a specific functional programming language?</h1>
+
+<p><a href="http://programmers.stackexchange.com/questions/42986/if-we-can-do-functional-programming-with-python-do-we-need-a-specific-functiona">http://programmers.stackexchange.com/questions/42986/if-we-can-do-functional-programming-with-python-do-we-need-a-specific-functiona</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/29/172706/">Manipulate Sonarqube Database in PostgreSQL With JDBC</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-29T17:27:06+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Use the following Java class to manipulate Sonarqube database in postgresql.</p>
+
+<h1>ManipulateSonarPost.java</h1>
+
+<p> import java.sql.Connection;
+ import java.sql.DatabaseMetaData;
+ import java.sql.DriverManager;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ import java.sql.Statement;
+ public class TestPost {
+  private static Connection connection = null;
+  public static void main(String[] args) throws SQLException, java.lang.ClassNotFoundException {
+   String url = &ldquo;jdbc:postgresql://localhost/sonar&rdquo;;
+   String user = &ldquo;sonar&rdquo;;
+   String password = &ldquo;sonar&rdquo;;
+   String driver = &ldquo;org.postgresql.Driver&rdquo;;</p>
+
+<p>   Class.forName(driver);
+   connection = DriverManager.getConnection(url+&ldquo;?user=&rdquo;+user+&ldquo;&amp;password=&rdquo;+password);
+   if ((connection == null) || (connection.isClosed())) return;
+   System.out.println(&ldquo;Connection is: &rdquo;+connection);</p>
+
+<p>   listTables();
+   String table = &ldquo;projects&rdquo;;
+   printTable(table);
+   connection.close();</p>
+
+<p>  }</p>
+
+<p>  private static void listTables() throws SQLException {
+   DatabaseMetaData md = connection.getMetaData();
+   ResultSet rs = md.getTables(null, null, &ldquo;%&rdquo;, null);
+   while (rs.next()) {
+    System.out.println(rs.getString(3));
+   }
+   rs.close();</p>
+
+<p>  }</p>
+
+<p>  private static void printTable(String tableName) throws SQLException {
+   Statement st = connection.createStatement();
+   ResultSet rs = st.executeQuery(&ldquo;SELECT * FROM &rdquo; + tableName);
+   while (rs.next()) {
+     System.out.println(&ldquo;Column 1: &rdquo; + rs.getString(1));
+     System.out.println(&ldquo;Column 2: &rdquo; + rs.getString(2));
+     System.out.println(&ldquo;Column 3: &rdquo; + rs.getString(3));
+   }
+   rs.close();
+   st.close();
+  }
+ }</p>
+
+<h1>Compile and Run</h1>
+
+<p>$ javac -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar ManipulateSonarPost.java</p>
+
+<p>$ java -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar:. ManipulateSonarPost</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/29/100558/">Backup and Restore Postgresql Database</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-29T10:05:58+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:05 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Backup</h1>
+
+<p>(On CentOS 6.4)</p>
+
+<p>Enable backup as user &ldquo;sonar&rdquo;: modify authentication file pg_hba.conf following SonarQube and Postgresql on Linux ;</p>
+
+<p>Then you can backup a database: $ pg_dump -U sonar -F c -v -f sonar.bak sonar</p>
+
+<p>Synopsis: pg_dump [options] <db_name>. &ldquo;-F c&rdquo; means using &ldquo;custom&rdquo; file format. -f specifies the output file name.</p>
+
+<p>Or backup all: $ pg_dumpall -U postgres -f totalbackup.sql -v -c</p>
+
+<p>The &ldquo;-c&rdquo; will print drop commands to remove existing databases or roles. So you can restore them without cleaning existing databases in your backup server first.</p>
+
+<h1>Restore</h1>
+
+<p>Install and start postgresql server. Then you can restore a full backup:</p>
+
+<p> $ psql -U postgres -f totalbackup.sql</p>
+
+<p>Or restore a specific database:</p>
 
 <ol>
-<li><p>Backup specified revision (here is 20):</p>
+<li><p>$ psql -U postgres (modify pg_hba.conf for authenticaiton);</p></li>
+<li><p>create role &ldquo;sonar&rdquo; and database &ldquo;sonar&rdquo;:</p></li>
+</ol>
 
-<p> $ cd /opt/svnRepo
- $ svnadmin dump deployTest/ -r 20 > deploy-r20.dump</p></li>
-<li><p>Restore backup:</p>
 
-<p> $ mv deploy-r20.dump /opt/Gcp/tmp
- $ cd /opt/Gcp/tmp
- $ svnadmin create deploy20
- $ svnadmin load deploy20 &lt; deploy-r20.dump</p></li>
+<p> create role sonar login password &lsquo;sonar&rsquo;;</p>
+
+<p> create database sonar owner sonar;</p>
+
+<ol>
+<li>$ pg_restore -U sonar -d sonar -j 4 -v sonar.bak</li>
 </ol>
 
 
 <h1>Verify</h1>
 
-<ol>
-<li><p>Get revision 20 of &ldquo;deploy.exp&rdquo; in original repository</p>
-
-<p> $ svn cat -r 20 file:///opt/svnRepo/deployTest/CalcServer/deploy.exp > r20</p></li>
-<li><p>Get &ldquo;deploy.exp&rdquo; in restored repository</p>
-
-<p> $ svn cat file:///opt/Gcp/tmp/deploy20/CalcServer/deploy.exp > restore20</p></li>
-<li><p>Compare them:</p>
-
-<p> $ diff r20 restore20</p></li>
-</ol>
-
-
-<p>They are identical.</p>
-
-<ol>
-<li><p>Compare logs:</p>
-
-<h2> [root@cloud141 /opt/svnRepo]$ svn log -r 20 file:///opt/svnRepo/deployTest/ </h2>
-
- r20 | bvt | 2013-08-30 17:30:03 +0800 (Fri, 30 Aug 2013) | 1 line
-
-<h2> remove unittest in source file </h2>
-
-<h2> [root@cloud141 /opt/svnRepo]$ svn log file:///opt/Gcp/tmp/deploy20 </h2>
-
- r1 | bvt | 2013-08-30 17:30:03 +0800 (Fri, 30 Aug 2013) | 1 line
-
-<h2> remove unittest in source file </h2></li>
-</ol>
-
-
-<p>So you can see the restored repository is identical to that part of original repository <strong>except</strong> the revision number.</p>
-
-<h1>Backup Specified Revisions</h1>
-
-<pre><code>$ svnadmin dump deployTest/ -r 10:20 &gt; deploy-r20.dump
-</code></pre>
-
-<h1>Incremental Backup</h1>
-
-<ol>
-<li><p>Backup:</p>
-
-<p> $svnadmin dump myrepos -r 0:1000 > 0-1000.dumpfile
- $svnadmin dump myrepos -r 1001:2000 &ndash;incremental > 1001-2000.dumpfile
- $svnadmin dump myrepos -r 2001:3000 &ndash;incremental > 2001:3000.dumpfile</p></li>
-<li><p>Restore:</p>
-
-<p> $svnadmin load myrepos &lt; 0-1000.dumpfile
- $svnadmin load myrepos &lt; 1001-2000.dumpfile
- $svnadmin load myrepos &lt; 2001:3000.dumpfile</p></li>
-</ol>
-
-
-<h2>Experiment on incremental dump</h2>
-
-<ol>
-<li><p>Create a incremental backup:</p>
-
-<p> [root@cloud141 /opt/svnRepo]$ svnadmin dump deployTest/ &ndash;incremental -r 9:11 > r9-11.dump</p></li>
-<li><p>Create a full backup:</p>
-
-<p> [root@cloud141 /opt/svnRepo]$ svnadmin dump deployTest/ -r 9:11 > backup9-11.dump</p></li>
-<li><p>Compare the size of these two dump files, full backup is obviously larger than the incremental counterpart:</p>
-
-<p> [root@cloud141 /opt/svnRepo]$ ll
- total 984
- -rw-r&ndash;r&ndash; 1 root root 997105 Oct 31 19:08 backup9-11.dump
- drwxr-xr-x 6 root root 4096 Aug 22 18:09 deployTest
- -rw-r&ndash;r&ndash; 1 root root 2509 Oct 31 19:07 r9-11.dump</p></li>
-<li><p>Restore a incremental backup in a fresh repository:</p>
-
-<p> [root@cloud141 /opt/svnRepo]$ mv r9-11.dump ../Gcp/tmp
- [root@cloud141 /opt/Gcp/tmp]$ svnadmin create new9
- [root@cloud141 /opt/Gcp/tmp]$ svnadmin load new9 &lt; r9-11.dump
- &lt;&lt;&lt; Started new transaction, based on original revision 9
- svnadmin: File not found: transaction &lsquo;0-0&rsquo;, path &lsquo;CalcServer/src/com/boco/deploy/ConfigLoader.java&rsquo;</p>
-
 <ul>
-<li> editing path : CalcServer/src/com/boco/deploy/ConfigLoader.java &hellip;[root@</li>
+<li>Print database size of &ldquo;sonar&rdquo;:</li>
 </ul>
-</li>
-</ol>
 
 
-<p>You can see the restore failed.</p>
-
-<ol>
-<li><p>Restore a incremental backup (revision 9~11) in a &ldquo;root&rdquo; repository (restored from revision 8) :</p>
-
-<p> [root@cloud141 /opt/Gcp/tmp]$ svnadmin load backup8 &lt; r9-11.dump
- &hellip;</p>
-
-<h2> [root@cloud141 /opt/Gcp/tmp]$ svn log file:///opt/Gcp/tmp/backup8 </h2>
-
- r4 | bvt | 2013-08-30 16:35:10 +0800 (Fri, 30 Aug 2013) | 1 line
-
-<h2> initial import project </h2>
-
- r3 | bvt | 2013-08-30 15:31:47 +0800 (Fri, 30 Aug 2013) | 1 line
-
-<h2> make new project basedir </h2>
-
- r2 | bvt | 2013-08-29 14:32:15 +0800 (Thu, 29 Aug 2013) | 1 line
-
-<h2> remove unittest in source file to pass compile without junit </h2>
-
- r1 | bvt | 2013-08-29 14:31:10 +0800 (Thu, 29 Aug 2013) | 1 line
-
-<h2> remove unittest in source file to pass compile without junit </h2></li>
-</ol>
-
-
-<p>Now the restore succeed.</p>
-
-<h2>Summary</h2>
-
-<p>Backup a huge repository in the following steps:</p>
-
-<ol>
-<li><p>Execute a full backup at a revision. If the revision n is not 0, you will lose all revisions from 0 to n-1;</p></li>
-<li><p>Execute incremental backups weekly, use the revision arrange as file name: &ldquo;inc-rev-from-to.dump&rdquo;, like &ldquo;inc-rev-35-46.dump&rdquo;;</p></li>
-<li><p>When original repository corrupts, first load the full backup, then load the incremental ones according to their revision numbers;</p></li>
-</ol>
-
-
-<p>Ref:</p>
+<p> $ psql -U sonar -c &ldquo;\l+&rdquo; sonar|grep sonar</p>
 
 <ul>
-<li><p><a href="http://blog.csdn.net/windone0109/article/details/2908133">SVN版本库的备份、还原、移植（初级篇、中级篇和高级篇）</a></p></li>
-<li><p><a href="http://greyshine.blog.51cto.com/1003856/415113">SVN备份及其还原——dump/load方法</a></p></li>
+<li>Print all tables and sizes in database &ldquo;sonar&rdquo;:</li>
+</ul>
+
+
+<p> $ psql -U sonar -c &ldquo;\d+&rdquo; sonar</p>
+
+<p>Or run a psql console ($ psql -U sonar), and use the following commands to verify:</p>
+
+<ul>
+<li><p>\d // list all tables</p></li>
+<li><p>select * from projects; // print contents of table &ldquo;projects&rdquo;</p></li>
+<li><p>select pg_size_pretty(pg_database_size(&lsquo;sonar&rsquo;)); // print the human_readable size of database &ldquo;sonar&rdquo;</p></li>
+<li><p>select pg_database_size(&lsquo;sonar&rsquo;); // give the exact size of database &ldquo;sonar&rdquo;</p></li>
 </ul>
 
 </div>
@@ -830,23 +761,23 @@ Use <code>git log</code> to show commit history.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
+        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
+        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
+        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
+        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
+        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

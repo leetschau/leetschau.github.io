@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="&ldquo;A Real-World Use Case&rdquo; in Chapter 1 In this case a GUI window need to be displayed based on data extracted from &ldquo;New York Times& &hellip;">
+  <meta name="description" content="Autocomplete function in text box provides instant response to user input text, which is very powerful and user-friendly. For meteor, this function &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/21/100928/">Notes of Data Science at the Command Line</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/04/230146/">Text Box Autocomplete in Meteor</a></h1>
     
     
       <p class="meta">
@@ -80,276 +80,336 @@
 
 
 
-<time class='entry-date' datetime='2014-10-21T10:09:28+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:09 am</span></time>
+<time class='entry-date' datetime='2014-12-04T23:01:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:01 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>&ldquo;A Real-World Use Case&rdquo; in Chapter 1</h1>
+  <div class="entry-content"><p>Autocomplete function in text box provides instant response to user input text, which is very powerful and user-friendly.</p>
 
-<p>In this case a GUI window need to be displayed based on data extracted from &ldquo;New York Times&rdquo;.
-So we have to connect to the VM with X forwarded: <code>ssh vagrant@localhost -p 2222 -X</code>.
-I registered the <a href="http://developer.nytimes.com/apps/myapps">NYT developer keys</a>.
-So the run following commands to extract data:</p>
+<p>For meteor, this function is called typeahead.
+Run <code>meteor search typeahead</code>, you can find <a href="https://github.com/sergeyt/meteor-typeahead">sergeyt:typeahead</a>.
+Clone it to your computer with git, in the &ldquo;demo&rdquo; subfolder, run <code>meteor</code> and open <a href="http://localhost:3000/.">http://localhost:3000/.</a>
+When typing in the first text box (&ldquo;NBA teams&rdquo; in it), it will provide instant response.</p>
 
-<pre><code>parallel -j1 --progress --delay 0.1 --results results "curl -sL 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=New+York+Fashion+Week&amp;begin_date={1}0101&amp;end_date={1}1231&amp;page={2}&amp;api-key=13fdd3f29a9479f92ef74c26166fda3a:16:60048486'" ::: {2009..2013} ::: {0..99} &gt; /dev/null
-cat results/1/*/2/*/stdout | jq -c '.response.docs[] | {date: .pub_date, type: .document_type,title: .headline.main }' | json2csv -p -k date,type,title &gt; fashion.csv
-&lt; fashion.csv Rio -ge 'g + geom_freqpoly(aes(as.Date(date), color=type), ''binwidth=7) + scale_x_date() + labs(x="date", title="Coverage of New York'' Fashion Week in New York Times")' | display
+<p>sergeyt:typeahead&rsquo;s Bootstrap counterpart is called typeahead, too. That of jQuery is called &ldquo;Autocomplete&rdquo;.</p>
+
+<p>The following is a minimal working demo of sergeyt:typeahead:</p>
+
+<pre><code>$ meteor create meteorapp
+$ cd meteorapp
+$ meteor add sergeyt:typeahead
+$ cat meteorapp.html
+&lt;head&gt;
+  &lt;title&gt;meteorapp&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;input "p" in the following text box&lt;/h1&gt;
+
+&lt;/body&gt;
+
+&lt;template name="sti"&gt;
+  &lt;input class="form-control typeahead" name="team"
+      type="text" placeholder="NBA teams"
+      autocomplete="off" spellcheck="off"
+      data-source="nba"/&gt;
+&lt;/template&gt;
+
+$ cat meteorapp.js
+Nba = new Meteor.Collection("nba");
+
+if (Meteor.isClient) {
+  Template.sti.helpers({
+    nba: function(){
+        return Nba.find().fetch().map(
+                function(it){
+                  return it.name;
+                });
+    }
+  });
+
+  Meteor.startup(function(){
+      Meteor.typeahead.inject();
+  });
+}
+
+if (Meteor.isServer) {
+  Meteor.startup(function () {
+    Nba.insert({name:'Philadelphia 76ers'});
+    Nba.insert({name:'Detroit Pistons'});
+    Nba.insert({name:'Portland Trail Blazers'});
+  });
+}
 </code></pre>
 
-<p>Now a GUI window named ImageMagick appears, and display the data in file fashion.csv.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/20/171325/">MEAN Devlopment on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-20T17:13:25+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:13 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>ArchLinux</h1>
-
-<pre><code>sudo pacman -S nodejs mongodb
-sudo systemctl enable mongodb.service
-sudo systemctl start mongodb.service
-// verify with command "mongo"
-sudo npm install -g meanio
-sudo npm install -g bower
-sudo npm install -g grunt-cli
-mean init myApp
-cd myApp &amp;&amp; npm install
-grunt
-</code></pre>
-
-<p>Now browse <a href="http://localhost:3000.">http://localhost:3000.</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/20/094427/">Virtualization With Vagrant on ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-20T09:44:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Firstly install Virtualbox and Vagrant:</p>
-
-<pre><code>sudo pacman -S virtualbox vagrant
-</code></pre>
-
-<p>If you met the following warning, and vagrant can&rsquo;t start:</p>
-
-<blockquote><p>The vboxdrv kernel module is not loaded.
-Either there is no module available for the current kernel (3.16.4-1-ARCH) or it failed to load.</p></blockquote>
-
-<p>run following commands to compile kernel module vboxdrv and load it:</p>
-
-<pre><code>sudo pacman -S linux-headers virtualbox-host-dkms
-sudo dkms install vboxhost/4.3.18
-sudo modprobe vboxdrv
-</code></pre>
-
-<p>Verify the module is loaded successfully with <code>lsmod |grep vboxdrv</code>.</p>
-
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/VirtualBox">VirtualBox on ArchWiki</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/18/222508/">ArchLinux Sound Control on Thinkpad T440p</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-18T22:25:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ sudo pacman -S alsa-utils
-$ alsamixer
-The &ldquo;Card&rdquo; value on the left-upper corner is &ldquo;HDA Intel HDMI&rdquo;. This is not right.
-Press F6, a list appear:
--   (default)
-0   HDA Intel HDMI
-1   HDA Intel PCH
-29  ThinkPad Console Audio Control</p>
-
-<p>This means there are totally 3 playback devices. And currently &ldquo;0 HDA Intel HDMI&rdquo; is the default one.
-However this is a wrong one. The right audio output device should have &ldquo;dB gain&hellip;&rdquo; in its &ldquo;Item&rdquo; value.
-If we choose &ldquo;1 HDA Intel PCH&rdquo;, on the upper-left corner there will be a line: &ldquo;Item: Master [dB gain: 0.00]&rdquo;.
-So this is the right one, and its id is &ldquo;1&rdquo;.</p>
-
-<p>In window of this device, tab to &ldquo;Master&rdquo;, use &ldquo;m&rdquo; key to toogle its status from &ldquo;MM&rdquo; (means mute) to &ldquo;OO&rdquo; (means open this device).
-Then use up arrow key to increase its volume, until the &ldquo;dB gain&rdquo; is zero.</p>
-
-<p>Quit it with &ldquo;ESC&rdquo; key. Create a new file ~/.asoundrc:</p>
-
-<pre><code>defaults.ctl.card 1
-defaults.pcm.card 1
-</code></pre>
-
-<p>Now test it with <code>speaker-test -c 2</code>.</p>
-
-<p>Ref: &ldquo;No sound when S/PDIF video card is installed&rdquo; section in <a href="https://wiki.archlinux.org/index.php/ALSA#Troubleshooting">Advanced Linux Sound Architecture</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/174733/">Install WPS on 64bit ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T17:47:33+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Now WPS is a 32bit application. It&rsquo;s can&rsquo;t run on 64bit ArchLinux.
-So firstly we should open the multilib repository of the system. Then install WPS with yaourt.</p>
+<p>Note:</p>
 
 <ol>
-<li><p>Uncomment the following lines in /etc/pacman.conf:</p>
+<li><p>Every time start the server, the 3 items will be added into collection Nba. So if you don&rsquo;t clear data (with <code>meteor reset</code>), you will see many identical items in candidate list;</p></li>
+<li><p>No matter &ldquo;on&rdquo; or &ldquo;off&rdquo; of the value of the &ldquo;autocomplete&rdquo; attribute of the text box, the autocomplete function always works. So what is the function of this attribute?</p></li>
+</ol>
 
-<pre><code> [multilib]
- Include = /etc/pacman.d/mirrorlist
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/04/110411/">Username Disappeared in Meteor Official Tutorial</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-04T11:04:11+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In the 9th step (Adding user accounts) of official tutorial &ldquo;simple-todos&rdquo; of Meteor 1.0,
+if you start server while leaving some old data (todo items) created in previous steps,
+you will find that there&rsquo;s no username before the todo text.</p>
+
+<p>But if you clear all old data (click remove button on web page, or use <code>meteor reset</code>),
+and create new todo items with a signed in username, you will find the username appear.</p>
+
+<h1>Data binding between Template and Collection</h1>
+
+<p>The following modified version simple-todos works:</p>
+
+<p>simple-todos.html:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;head&gt;
+</span><span class='line'>  &lt;title&gt;Todo List&lt;/title&gt;
+</span><span class='line'>&lt;/head&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;body&gt;
+</span><span class='line'>  &lt;div class="container"&gt;
+</span><span class='line'>    &lt;header&gt;
+</span><span class='line'>      &lt;h1&gt;Todo List&lt;/h1&gt;
+</span><span class='line'>      &lt;label class="hide-completed"&gt;
+</span><span class='line'>        &lt;input type="checkbox" checked="" /&gt;
+</span><span class='line'>        Hide Completed Tasks
+</span><span class='line'>      &lt;/label&gt;
+</span><span class='line'>
+</span><span class='line'>      
+</span><span class='line'>
+</span><span class='line'>      
+</span><span class='line'>        &lt;form class="new-task"&gt;
+</span><span class='line'>          &lt;input type="text" name="text" placeholder="Type to add tasks" /&gt;
+</span><span class='line'>        &lt;/form&gt;
+</span><span class='line'>      
+</span><span class='line'>    &lt;/header&gt;
+</span><span class='line'>    &lt;ul&gt;
+</span><span class='line'>      
+</span><span class='line'>        
+</span><span class='line'>      
+</span><span class='line'>    &lt;/ul&gt;
+</span><span class='line'>  &lt;/div&gt;
+</span><span class='line'>&lt;/body&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;template name="todo"&gt;
+</span><span class='line'>  &lt;li class="checked"&gt;
+</span><span class='line'>    &lt;button class="delete"&gt;&times;&lt;/button&gt;
+</span><span class='line'>    &lt;input type="checkbox" checked="" class="toggle-checked" /&gt;
+</span><span class='line'>    &lt;span class="text"&gt;&lt;strong&gt;&lt;/strong&gt; -  at &lt;/span&gt;
+</span><span class='line'>  &lt;/li&gt;
+</span><span class='line'>&lt;/template&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>simple-todos.js:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Tasks = new Mongo.Collection("tododb");
+</span><span class='line'>
+</span><span class='line'>if (Meteor.isClient) {
+</span><span class='line'>  Template.body.helpers({
+</span><span class='line'>    todoitems: function () {
+</span><span class='line'>      if (Session.get("hideCompleted")) {
+</span><span class='line'>        return Tasks.find({checked: {$ne: true}}, {sort: {createdAt: -1}});
+</span><span class='line'>      } else {
+</span><span class='line'>        return Tasks.find({}, {sort: {createdAt: -1}});
+</span><span class='line'>      }
+</span><span class='line'>    },
+</span><span class='line'>    hideCompleted: function () {
+</span><span class='line'>      return Session.get("hideCompleted");
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.body.events({
+</span><span class='line'>    "submit .new-task": function (event) {
+</span><span class='line'>      var text = event.target.text.value;
+</span><span class='line'>
+</span><span class='line'>      Tasks.insert({
+</span><span class='line'>        text: text,
+</span><span class='line'>        createdAt : new Date(),
+</span><span class='line'>        owner: Meteor.userId(),
+</span><span class='line'>        username: Meteor.user().username
+</span><span class='line'>      });
+</span><span class='line'>
+</span><span class='line'>      event.target.text.value = "";
+</span><span class='line'>
+</span><span class='line'>      return false;
+</span><span class='line'>    },
+</span><span class='line'>
+</span><span class='line'>    "change .hide-completed input": function (event) {
+</span><span class='line'>        Session.set("hideCompleted", event.target.checked);
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.todo.helpers({
+</span><span class='line'>    creDate: function () {
+</span><span class='line'>      return this.createdAt;
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.todo.events({
+</span><span class='line'>    "click .toggle-checked": function () {
+</span><span class='line'>      Tasks.update(this._id, {$set: {checked: ! this.checked}});
+</span><span class='line'>    },
+</span><span class='line'>    "click .delete": function () {
+</span><span class='line'>      Tasks.remove(this._id);
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Accounts.ui.config({
+</span><span class='line'>    passwordSignupFields: "USERNAME_ONLY"
+</span><span class='line'>  });
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>if (Meteor.isServer) {
+</span><span class='line'>  Meteor.startup(function () {
+</span><span class='line'>    // code to run on server at startup
+</span><span class='line'>  });
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So we can conclude (the left hand side of &ldquo;&lt;=>&rdquo; is template in html file, while js codes on the right hand side):</p>
+
+<ol>
+<li><p>The name after #each is a <strong>helper function</strong> which defined in js file, and returns a subset of a collection:</p>
+
+<pre><code>  &lt;=&gt; Template.body.helpers -&gt; todoitems: function () {...}; 
 </code></pre></li>
-<li><p>Install WPS: <code>yaourt -S wpsoffice</code>;</p></li>
-<li><p>Install printer drivers: <code>pacman -S libcups</code>;</p></li>
-<li><p>Install fonts: download wps-office_8.1.0.3724~b1p2_x86.tar.xz from WPS website, unpack it, run <code>./install_fonts</code>;</p></li>
-<li><p>Chinese input: <code>yaourt -S fcitx-wps</code>. Modify &ldquo;kingsoft-office&rdquo; with &ldquo;wpsoffice&rdquo; in pkgbuild file of fcitx-wps, because kingsoft-office doesn&rsquo;t exits now.</p></li>
-</ol>
+<li><p>Variables in  in a template is the attributes of the object in collection, represented by the template:</p>
 
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/multilib">Multilib on Arch Wiki</a></p>
-
-<p><a href="https://wiki.archlinux.org/index.php/WPS_Office">WPS Office on Arch Wiki</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/154329/">Define Key Binding With Xbindkeys on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T15:43:29+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Install xbindkeys: <code>pacman -S xbindkeys</code> or <code>apt-get install xbindkeys</code>;</p></li>
-<li><p>Start xbindkeys when X startup: add &ldquo;xbindkeys&rdquo; <strong>before</strong> &ldquo;exec i3&rdquo; in ~/.xinitrc;</p></li>
-<li><p>Get a template: <code>xbindkeys -d &gt; ~/.xbindkeysrc</code>;</p></li>
-<li><p>Detect key definition: <code>xbindkeys -k</code>;</p></li>
-<li><p>Add output from last command to ~/.xbindkeysrc;</p></li>
-<li><p>Reload new configs: <code>pkill xbindkeys; xbindkeys</code>;</p></li>
-<li><p>Verify the setup.</p></li>
-</ol>
-
-
-<p>Example:</p>
-
-<p>Add the following lines into ~/.xbindkeysrc, to increase and decrease LCD brightness of Thinkpad T440p:</p>
-
-<pre><code>"xbacklight -dec 10"
-    XF86MonBrightnessDown
-
-"xbacklight -inc 10"
-    XF86MonBrightnessUp
+<pre><code> &lt;strong&gt;&lt;/strong&gt; -  &lt;=&gt; Tasks.insert({ text: text, ..., username: Meteor.user().username }); 
 </code></pre>
 
-<p>Ref:</p>
-
-<ul>
-<li><p><a href="https://wiki.archlinux.org/index.php/Xbindkeys">Xbindkeys</a></p></li>
-<li><p><a href="http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/">http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/</a></p></li>
-</ul>
+<p>or a helper function ( here).</p></li>
+<li><p>&ldquo;this&rdquo; in helper function refers to the template the function based on.</p></li>
+</ol>
 
 </div>
   
@@ -363,7 +423,7 @@ So firstly we should open the multilib repository of the system. Then install WP
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/15/084044/">Install Fcitx IM on ArchLinux and I3wm</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/03/180421/">Meteor Codes Auto Completion in Vim</a></h1>
     
     
       <p class="meta">
@@ -372,70 +432,47 @@ So firstly we should open the multilib repository of the system. Then install WP
 
 
 
-<time class='entry-date' datetime='2014-10-15T08:40:44+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:40 am</span></time>
+<time class='entry-date' datetime='2014-12-03T18:04:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:04 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>After installation of i3wm complete, it&rsquo;s time for install Chinese input method for ArchLinux.</p>
-
-<pre><code>$ sudo pacman -S fcitx fcitx-im fcitx-ui-light fcitx-libpinyin fcitx-sunpinyin
-$ sudo pacman -S ttf-dejavu adobe-source-han-sans-otc-fonts
-$ cat .xinitrc
-...
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-export XMODIFIERS="@im=fcitx"
-...
-$ sudo reboot
-</code></pre>
-
-<p>To verify, run <code>fcitx</code> in terminal, check if there is any warns or errors.
-Then run <code>fcitx-configtool</code>. If there isn&rsquo;t input methods under &ldquo;Input Method&rdquo; tab,
-run <code>sudo pacman -S fcitx-cloudpinyin fcitx-sunpinyin fcitx-googlepinyin fcitx-libpinyin</code>.</p>
-
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/fcitx">Fcitx on Arch Wiki</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/13/104106/">Remove Linux From a Windows-Linux Dual-booting Computer</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-13T10:41:06+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I installed Linux Mint on Thinkpad T440p laptop. Now I need to remove the Linux from this computer.</p>
+  <div class="entry-content"><h1>On ArchLinux</h1>
 
 <ol>
-<li><p>Download mbrfix.zip from &ldquo;Download&rdquo; channel on <a href="http://www.sysint.no/">sysint.no</a>.</p></li>
-<li><p>Login the Windows on the laptop, unzip mbrfix.zip, copy MbrFix.exe to C drive;</p></li>
-<li><p>Open a console as administrator, run <code>MbrFix /drive 0 fixmbr /win7 /yes</code>;</p></li>
-<li><p>Format Linux partition;</p></li>
+<li><p>Install node.js: <code>sudo pacman -S nodejs</code>;</p></li>
+<li><p>Install <a href="https://github.com/marijnh/tern_for_vim">tern_for_vim</a>:</p>
+
+<pre><code> $ cd ~/.vim/bundle
+ $ git clone https://github.com/marijnh/tern_for_vim.git
+ $ cd tern_for_vim
+ $ npm install
+</code></pre></li>
+<li><p>Install meteor plugin for tern <a href="https://github.com/Slava/tern-meteor">tern-meteor</a>: download meteor.js from this site to folder ~/.vim/bundle/tern_for_vim/node_modules/tern/plugins;</p></li>
+<li><p>Create a meteor project, create a .tern-project file under the project home:</p>
+
+<pre><code> {
+   "libs": [
+     "browser",
+     "jquery",
+     "underscore"
+   ],
+   "loadEagerly": [ "*.js", "*/*.js", "*/*/*.js", "*/*/*/*.js" ],
+   "dontLoad": [ ".meteor" ],
+   "plugins": {
+     "meteor": {}
+   }
+ }
+</code></pre></li>
+<li><p>Now when you edit .js file, use C-x,C-o to trigger autocompletion.</p></li>
 </ol>
 
 
-<p>Reboot, bingo.</p>
+<p>Ref:</p>
+
+<p><a href="https://github.com/joyent/node/wiki/installing-node.js-via-package-manager#arch-linux">Installing Node.js via package manager</a>;</p>
 </div>
   
   
@@ -448,7 +485,7 @@ run <code>sudo pacman -S fcitx-cloudpinyin fcitx-sunpinyin fcitx-googlepinyin fc
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/07/224855/">Dart Development on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/03/113214/">Use Template.dynamic to Create Dynamic Pages for Meteor Application</a></h1>
     
     
       <p class="meta">
@@ -457,49 +494,80 @@ run <code>sudo pacman -S fcitx-cloudpinyin fcitx-sunpinyin fcitx-googlepinyin fc
 
 
 
-<time class='entry-date' datetime='2014-10-07T22:48:55+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:48 pm</span></time>
+<time class='entry-date' datetime='2014-12-03T11:32:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:32 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Linux Mint 64bit</h1>
+  <div class="entry-content"><p>For a SPA (single page app), it&rsquo;s a common practice to switch between templates instead of pages.
+The following codes demonstrate how to switching between 2 templates according to 2 buttons&#8217; clicking events.</p>
 
-<p>Today I tried Dart official tutorial <a href="https://www.dartlang.org/codelabs/darrrt/">Avast, Ye Pirates: Write a Web App</a>. When I run dartium in &ldquo;Step 1: Run the skeleton app&rdquo;, I met the following errors:</p>
+<pre><code>$ meteor create multipage
+$ cd multipage
+$ cat &lt;&lt; EOF &gt; multipage.html
+&lt;head&gt;
+  &lt;title&gt;multiple-view-example&lt;/title&gt;
+&lt;/head&gt;
 
-<blockquote><p>Could not launch browser - process terminated while trying to connect. Try closing and running Dartium instances.:
-Dartium stdout: /home/xxx/Apps/dart/chromium/chrome:error while loading share libraries: libudev.so.0: cannot open shared object file: No such file or directory</p></blockquote>
+&lt;body&gt;
+  &lt;button class="pageHome"&gt;Home&lt;/button&gt;
+  &lt;button class="pageAbout"&gt;About&lt;/button&gt;
 
-<p>The official solution <a href="https://code.google.com/p/dart/wiki/PreparingYourMachine">PreparingYourMachine</a> on dart wiki is somewhat complicated.
-For I&rsquo;ve installed Chrome, there is a simple way to resolve this problem:</p>
+&lt;/body&gt;
 
-<pre><code>sudo ln -s /opt/google/chrome/libudev.so.0 /usr/lib/x86_64-linux-gnu/libudev.so.0
+&lt;template name="home"&gt;
+  &lt;p&gt;Home!&lt;/p&gt;
+&lt;/template&gt;
+
+&lt;template name="about"&gt;
+  &lt;p&gt;About!&lt;/p&gt;
+&lt;/template&gt;
+EOF
+
+$ cat &lt;&lt; EOF &gt; multipage.js
+if ( Meteor.isClient ) {
+  Meteor.startup(function () {
+    Session.set("page", "home");
+    console.log("session key: " + Session.get("page"));
+  });
+
+  Template.body.helpers({
+    whichOne: function(){
+      console.log("session key: " + Session.get("page"));
+      return Session.get("page");
+    }
+  });
+
+  Template.body.events({
+    "click .pageHome": function () {
+      Session.set("page", "home");
+    },
+    "click .pageAbout": function () {
+      Session.set("page", "about");
+    }
+  });
+}
+
+if ( Meteor.isServer ) {
+  Meteor.startup( function() {
+  } );
+}
+EOF
+
+$ meteor
 </code></pre>
 
-<p>Verified on Linux Mint 17 x86_64.</p>
+<p>Open <a href="http://localhost:3000,">http://localhost:3000,</a> clicking &ldquo;Home&rdquo; button, the &ldquo;home&rdquo; template is shown.
+While clicking &ldquo;about&rdquo; button, the &ldquo;about&rdquo; template is shown.</p>
 
-<p>Notes:</p>
+<p>Template.dynamic is better than Meteor&rsquo;s route package, for it&rsquo;s a built-in function of Meteor.
+No need to install a package with <code>meteor add ...</code>.</p>
 
-<ul>
-<li><p>I met a &ldquo;404 not found&rdquo; error when install libudev-dev with aptitude.</p></li>
-<li><p>To install chrome, download google-chrome-stable_current_amd64.deb from <a href="https://www.google.com/chrome/">Chrome official website</a>.</p></li>
-</ul>
+<p>And you can put big templates into a new html file, which make the struture more flexible.</p>
 
-
-<h1>ArchLinux</h1>
-
-<p>Download Dart complete bundle (darteditor-linux-x64.zip) on<a href="https://www.dartlang.org/">Dart website</a>.
-Extract it, and start dart editor with ./DartEditor.
-However, when running a dart project with &ldquo;Run in dartium&rdquo; context menu, an &ldquo;libgconf.so.4 no exist&rdquo; error raises.
-So we have to install dart sdk to provide this library file: <code>sudo pacman -S dart</code>.</p>
-
-<p>You can also install dart-editor and dartium from AUR:</p>
-
-<pre><code>yaourt -S dart-editor dartium-bin
-</code></pre>
-
-<p>But it&rsquo;s very slow.</p>
+<p>Ref: <a href="http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js">http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js</a></p>
 </div>
   
   
@@ -512,7 +580,7 @@ So we have to install dart sdk to provide this library file: <code>sudo pacman -
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/06/094327/">Config Environment Variables on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/01/103921/">Use Bootstrap Themes in Meteor</a></h1>
     
     
       <p class="meta">
@@ -521,55 +589,350 @@ So we have to install dart sdk to provide this library file: <code>sudo pacman -
 
 
 
-<time class='entry-date' datetime='2014-10-06T09:43:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:43 am</span></time>
+<time class='entry-date' datetime='2014-12-01T10:39:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>System-wide environment variables</h1>
+  <div class="entry-content"><p><a href="https://www.meteor.com/">Meteor</a> is awesome for build dynamic web apps.
+However it&rsquo;s a &ldquo;baremetal&rdquo; without templates.
+On the other hand, <a href="http://getbootstrap.com/">Bootstrap</a> is a powerful front-end framework with many beautiful themes.
+So we have to combine these two.</p>
 
-<p>Add global environment variables in file <strong>/etc/environment</strong>.
-This file is specifically meant for system-wide environment variable settings.
-It is <strong>not</strong> a script file, but rather consists of assignment expressions, one per line:</p>
+<p>First of all we need to get the bootstrap.min.js
+from the latest precompiled version of bootstrap release package (bootstrap-x.x.x-dist.zip).
+<a href="http://bootswatch.com/">Bootswatch</a> provides free bootstrap themes.
+Download &ldquo;bootstrap.min.css&rdquo; file with clicking &ldquo;Download&rdquo; button of prefered theme,
+and put it under client folder of meteor app.
+Then all DOM element will be styled.</p>
 
-<pre><code>JAVA_HOME=/usr/lib/jvm/default-java
+<pre><code>cd ~/docs/tmp
+meteor create mywebapp
+cd mywebapp
+rm *.js *.css *.html
+mkdir -p {server,client/{css,lib}}
+wget https://github.com/twbs/bootstrap/releases/download/v3.3.1/bootstrap-3.3.1-dist.zip
+unzip bootstrap-3.3.1-dist.zip -d bootstrap
+cp bootstrap/dist/js/bootstrap.min.js client/lib
+rm -rf bootstrap*
+wget http://bootswatch.com/readable/bootstrap.min.css client/css/bootstrap.min.css
+cat &lt;&lt; EOF &gt; client/mywebapp.html
+&lt;head&gt;
+  &lt;title&gt;sousouzhan&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;Welcome to Meteor!&lt;/h1&gt;
+
+
+&lt;/body&gt;
+
+&lt;template name="hello"&gt;
+  &lt;button type="button" class="btn btn-default"&gt;Click Me&lt;/button&gt;
+  &lt;div class="searchform"&gt;
+    &lt;form role="form"&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputEmail1"&gt;Email address&lt;/label&gt;
+        &lt;input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email"&gt;
+      &lt;/div&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputPassword1"&gt;Password&lt;/label&gt;
+        &lt;input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password"&gt;
+      &lt;/div&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputFile"&gt;File input&lt;/label&gt;
+        &lt;input type="file" id="exampleInputFile"&gt;
+        &lt;p class="help-block"&gt;Example block-level help text here.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class="checkbox"&gt;
+        &lt;label&gt;
+          &lt;input type="checkbox"&gt; Check me out
+        &lt;/label&gt;
+      &lt;/div&gt;
+      &lt;button type="submit" class="btn btn-default"&gt;Submit&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+  &lt;p&gt;You've pressed the button  times.&lt;/p&gt;
+&lt;/template&gt;
+EOF
+meteor
 </code></pre>
 
-<p>So do not add &ldquo;export&rdquo; before assignments. Variable expansion does <strong>not</strong> work in this file.</p>
+<p>Then open <a href="http://localhost:3000">http://localhost:3000</a> to view the result.</p>
+</div>
+  
+  
 
-<h1>User specific environment variables</h1>
 
-<p>Add user level environment variables in file <strong>~/.zshenv</strong>. For example, to override system PATH:</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<pre><code>export PATH=$HOME/apps/spark-1.0.2-bin-hadoop2/bin:$PATH
-</code></pre>
 
-<h1>User aliases setup</h1>
 
-<p>For bash there is a ~/.bash_aliases file, so we define aliases in this file, and load it in zsh with adding following codes into ~/.zshrc:</p>
 
-<pre><code>if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
-</code></pre>
+<time class='entry-date' datetime='2014-11-28T08:44:28+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:44 am</span></time>
+        
+      </p>
+    
+  </header>
 
-<p>Some example in ~/.bash_aliases:</p>
 
-<pre><code>alias gst='git status'
-alias dn='$HOME/apps/dsnote/donshell.sh'
-</code></pre>
+  <div class="entry-content"><ul>
+<li><p><strong>Go to specific tab with text</strong> by extension &ldquo;Tabhunter&rdquo;</p>
 
-<p>Refs:</p>
+<p>  Setup the invoking key in its preference page. I use F1 as the key.
+  Every time F1 is pressed, input some text to activate the corresponding tab.
+  Current version (2015/03/27) is 1.0.5.</p></li>
+<li><p><strong>Jump betwwen tabs</strong> with <em>ctrl+tab</em></p>
 
-<ul>
-<li><p><a href="https://help.ubuntu.com/community/EnvironmentVariables">EnvironmentVariables on UBUNTU wiki</a>.</p></li>
-<li><p><a href="https://wiki.archlinux.org/index.php/zsh">Zsh on ArchLinux Wiki</a>.</p></li>
-<li><p><a href="http://unix.stackexchange.com/questions/71253/what-should-shouldnt-go-in-zshenv-zshrc-zlogin-zprofile-zlogout">What should/shouldn&rsquo;t go in .zshenv, .zshrc, .zlogin, .zprofile, .zlogout?</a>.</p></li>
-<li><p><a href="http://stackoverflow.com/questions/663658/what-is-the-correct-target-for-the-java-home-envrionment-variable-for-a-linux-op">What is the correct target for the JAVA_HOME envrionment variable for a Linux OpenJDK debian-based distribution?</a>.</p></li>
+<p>  In a new tab, type <em>about:config</em> in the address bar and press Enter. Click the button promising to be careful.
+  Set <strong>browser.ctrlTab.previews</strong> to <em>true</em>;
+  Now use <em>ctrl+tab</em> to jump between two tabs;</p>
+
+<p>  Or use extension &ldquo;Ctrl-Tab&rdquo; to achieve the same functionality.</p></li>
+<li><p><strong>Jump between tab groups</strong> with <em>ctrl+`</em></p>
+
+<p>  Create and manage tab groups with <em>ctrl+shift+e</em> (see <a href="https://support.mozilla.org/en-US/kb/tab-groups-organize-tabs#w_how-do-i-organize-my-tab-groups">Use Tab Groups to organize a lot of tabs</a> for details).
+  And use <em>ctrl+`</em> to jump between two tab groups.</p></li>
 </ul>
 
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-27T09:28:46+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Jump between matching HTML and XML tags</h1>
+
+<p>In normal mode, use &ldquo;vat&rdquo; to select all texts between these matching tags,
+then use &ldquo;o&rdquo; to jump between matching tags.</p>
+
+<p>In &ldquo;vat&rdquo;, &ldquo;v&rdquo; means select,
+&ldquo;a&rdquo; means including tags themselves(comparing with &ldquo;i&rdquo;),
+&ldquo;t&rdquo; means tags.</p>
+
+<p>So we have &ldquo;cat&rdquo; (change outer), &ldquo;yat&rdquo; (copy outer), &ldquo;cit&rdquo; (change inner), &ldquo;dit&rdquo; (delete inner), etc.</p>
+
+<h1>Fold/Unfold HTML Tags</h1>
+
+<p>Fold a html tag: <code>zfit</code>;</p>
+
+<p>Toggle fold/unfold tags: <code>za</code>;</p>
+
+<p>Unfold all tags: <code>zR</code>;</p>
+
+<p>See <a href="http://stackoverflow.com/questions/21501789/vim-how-to-fold-an-html-tag">vim how to fold an html tag</a> for other methods.</p>
+
+<h1>Auto complete opened tags</h1>
+
+<h2>xmledit plugin</h2>
+
+<p>Install with <code>git clone https://github.com/sukima/xmledit.git ~/.vim/bundle/xmledit</code>.
+But it only works with .xml files. Not working with .html files.</p>
+
+<p>To fix this, <code>cd ~/.vim/bundle/xmledit/ftplugin; cp xml.vim html.vim</code> (overwrite the existing html.vim file).</p>
+
+<h2>No plugins</h2>
+
+<p>Add &ldquo;inoremap <F8> &lt;/<C-X><C-O>&rdquo; into ~/.vimrc.
+Now after &ldquo;<p>some text&rdquo;, press F8, it will be converted to &ldquo;<p>some text</p>&rdquo;.</p>
+
+<h2>ragtag plugin</h2>
+
+<p>Install <a href="https://github.com/tpope/vim-ragtag">ragtag</a> plugin for vim with <code>git clone https://github.com/tpope/vim-ragtag.git</code> into ~/.vim/bundle.</p>
+
+<p><code>:h ragtag</code> in vim for help.</p>
+
+<p>When editing a .html file, in insert mode, after input &ldquo;div&rdquo;, press Ctrl-x,Space, it will be convert to &ldquo;<div>|</div>&rdquo;.
+If press Ctrl-x,Enter, it will be converted to:</p>
+
+<pre><code>&lt;div&gt;
+|
+&lt;/div&gt;
+</code></pre>
+
+<p>where &ldquo;|&rdquo; marks the cursor position.</p>
+
+<h2>Other plugins</h2>
+
+<p>There are some more powerful plugins for xml/html editing, but they are more complicated.
+Like <a href="http://www.vim.org/scripts/script.php?script_id=1697">surround.vim</a>, <a href="http://www.vim.org/scripts/script.php?script_id=13">closetag.vim</a>, and <a href="https://github.com/mattn/emmet-vim">emmet-vim</a>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/20/100341/">Using Empathy as Local Network Instant Messaging Tool</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-20T10:03:41+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>LinuxMint</h1>
+
+<p>sudo aptitude install empathy telepathy-gabble telepathy-salut telepathy-rakia</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/19/153734/">Add Customized Files and Folders Into Deployed Zip File Created by Gradle</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-19T15:37:34+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Creating deployed zip file with gradle is very convenient. But what if I want to add some customized files and folders into this file?</p>
+
+<p>According to <a href="http://stackoverflow.com/questions/5743036/deploy-additional-files-in-gradle-application-plugin">Deploy additional files in Gradle Application Plugin</a>,
+creat a &ldquo;dist&rdquo; folder under &ldquo;src&rdquo; in the root of project. Then everything under &ldquo;dist&rdquo; will be copied to zip file created by <code>gradle distZip</code> or <code>gradle installApp</code>.</p>
+
+<pre><code>$ pwd
+/home/chad/docs/GDEP-0811
+$ mkdir -p src/dist/plugins
+$ echo "pwd" &gt; src/dist/plugins/autocmd.sh
+$ echo "config1: value1" &gt; src/dist/dep.conf
+$ tree src/dist
+src/dist
+├── dep.conf
+└── plugins
+    └── autocmd.sh
+$ gradle clean installApp
+$ tree build/install/gdep
+build/install/gdep
+├── bin
+│   ├── gdep
+│   └── gdep.bat
+├── dep.conf
+├── lib
+│   ├── commons-configuration-1.10.jar
+│   └── ...
+└── plugins
+    └── autocmd.sh
+$ gradle clean distZip
+$ unzip -l build/distributions/gdep-0.4.zip
+Archive:  build/distributions/gdep-0.4.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  2014-11-19 15:35   gdep-0.4/
+      132  2014-09-29 17:01   gdep-0.4/dep.conf
+        0  2014-11-19 15:20   gdep-0.4/plugins/
+        6  2014-11-19 15:13   gdep-0.4/plugins/autocmd.sh
+        0  2014-11-19 15:35   gdep-0.4/lib/
+     7255  2014-11-19 15:35   gdep-0.4/lib/gdep-0.4.jar
+    76643  2014-08-14 08:40   gdep-0.4/lib/...
+        0  2014-11-19 15:35   gdep-0.4/bin/
+     5369  2014-11-19 15:35   gdep-0.4/bin/gdep
+     2727  2014-11-19 15:35   gdep-0.4/bin/gdep.bat
+---------                     -------
+  2180116                     20 files
+</code></pre>
+
+<p>Here the file &ldquo;dep.conf&rdquo; and folder &ldquo;plugins&rdquo; is copied directly from $PROJ_ROOT/src/dist.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/13/114946/">Using Pub of Dart With Jayproxy</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-13T11:49:46+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Dart&rsquo;s pub tool is blocked by GFW. So we have to use it with the help of a proxy.</p>
+
+<p>Modify pubspec.yaml at the root of a Dart project. Then run the following commands at this position:</p>
+
+<pre><code>export http_proxy=http://&lt;username&gt;:&lt;password&gt;@us.jayproxy.net:6000
+export https_proxy=http://&lt;username&gt;:&lt;password&gt;@us.jayproxy.net:6000
+pub get
+</code></pre>
 </div>
   
   
@@ -594,23 +957,23 @@ alias dn='$HOME/apps/dsnote/donshell.sh'
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a>
+        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/30/183509/">基于Search Source的简单查询实现方法</a>
+        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/29/141348/">Git-flow Notes</a>
+        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/174649/">Meteor Development Styles</a>
+        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/01/26/173952/">离线保存网页</a>
+        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Mongodb | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/mongodb/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-02-02T16:10:00+08:00</updated>
+  <updated>2015-04-02T09:35:25+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -14,336 +14,346 @@
 
   
   <entry>
-    <title type="html"><![CDATA[基于Search Source的简单查询实现方法]]></title>
-    <link href="http://leetschau.github.io/blog/2015/01/30/183509/"/>
-    <updated>2015-01-30T18:35:09+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/01/30/183509</id>
-    <content type="html"><![CDATA[<p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
-通过<code>meteor add meteorhacks:search-source</code>添加到meteor中，
-代码参照了<a href="https://github.com/meteorhacks-samples/meteor-instant-search-demo">meteor-instant-search-demo</a>.</p>
-
-<h1>准备数据源</h1>
-
-<h2>导入数据</h2>
+    <title type="html"><![CDATA[Update Data in MongoDB]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/06/180118/"/>
+    <updated>2015-03-06T18:01:18+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/06/180118</id>
+    <content type="html"><![CDATA[<p>Say you want to update data in updated.csv into &ldquo;fairs&rdquo; collection of &ldquo;meteor&rdquo; database in MongoDB.</p>
 
 <ol>
-<li><p>下载<a href="http://media.mongodb.org/zips.json">zips.json</a>；
-参考<a href="http://stackoverflow.com/questions/5723896/is-there-a-sample-mongodb-database-along-the-lines-of-world-for-mysql">Is there a sample MongoDB Database along the lines of world for MySql?</a>.</p></li>
-<li><p>导入Meteor数据库中：启动meteor服务，然后在另一个shell里运行：
-<code>~/apps/mongodb-linux-x86_64-2.6.5/bin/mongoimport -h localhost:3001 --db meteor --collection zips --type json --file zips.json</code>;</p></li>
-<li><p>增加搜索字段：由于简单搜索要求输入可能匹配任意字段，
-能达到这个要求的唯一方法就是将被查询的字段连接成一个完整的“搜索”字符串，
-输入的各项可以以任何顺序出现在这个搜索字符串（这里这一项名为&#8221;forsearch&#8221;）中，下面增加这一项：</p>
+<li><p>Convert data to be updated in csv file to json file: <code>csvjson updated.csv rawdata.json</code>;</p></li>
+<li><p>Load this file in a js script &ldquo;my-script&rdquo; with <code>var data = require('./rawdata.json');</code>;</p></li>
+<li><p>Check and convert data content in my-script, and write the reulst into another json file &ldquo;result.json&rdquo;:</p>
 
-<pre><code> db.zips.find().forEach(function(elem) {
-     db.zips.update(
-       {_id: elem._id},
-       { $set: {forsearch: elem.city + ' ' + elem.state}}
-     );
- });
-</code></pre>
+<pre><code> var fs = require('fs');
+ fs.writeFile('result.json', JSON.stringify(result));
+</code></pre></li>
+<li><p>Run my-script with <code>node my-script</code>;</p></li>
+<li><p>Import result.json into a new collection &ldquo;tmp&rdquo; of MongoDB database with
+<code>mongoimport -d $TargetDB -c $TargetCol --type json --file result.json --jsonArray</code>;</p></li>
+<li><p>Update collection fairs while traversing collection tmp;</p>
 
-<p> 参考<a href="http://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field">Update MongoDB field using value of another field</a>.</p></li>
+<pre><code> db = connect("localhost:27017/meteor");
+ cursor = db.tmp.find();
+ while ( cursor.hasNext() ) {
+   db.fairs.save(cursor.next());
+ }
+</code></pre></li>
+<li><p>Save above script into update.js;</p></li>
+<li><p>Update data with <code>mongo update.js</code>;</p></li>
 </ol>
 
 
-<h1>搜索逻辑</h1>
+<p>Ref:</p>
 
-<p>下面&#8221;/&ldquo;都指项目根目录。</p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/write-scripts-for-the-mongo-shell/">Write Scripts for the mongo Shell</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Add Database Authentication for Meteor App]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/06/090609/"/>
+    <updated>2015-03-06T09:06:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/06/090609</id>
+    <content type="html"><![CDATA[<p>MongoDB version: 3.0.</p>
 
-<h2>数据集定义</h2>
+<ol>
+<li><p>Start mongod without auth: <code>mongod</code>;</p></li>
+<li><p>Connect to server with <code>mongo</code>;</p></li>
+<li><p>Create admin and database owners:</p></li>
+<li><p>Start mongod with <code>mongod --auth</code>;</p></li>
+<li><p>Start Meteor app with <code>MONGO_URL="mongodb://chad:123@localhost:27017/test" meteor</code>.</p></li>
+</ol>
 
-<p>在/collections.js中定义数据集和索引：</p>
 
-<pre><code>Zips = new Mongo.Collection('zips');
-if(Meteor.isServer) {
-  Zips._ensureIndex({city: 1, state: 1});
-}
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb">http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb</a></p>
+
+<h1>MMS</h1>
+
+<p>Connect mongodb server without authentication: <code>mongo &lt;ip&gt;:&lt;port&gt;</code>;</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Manage Website Remotely]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/05/095056/"/>
+    <updated>2015-03-05T09:50:56+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/05/095056</id>
+    <content type="html"><![CDATA[<h1>Prerequisite</h1>
+
+<h2>Managing Node</h2>
+
+<p>// Install Fabric with <code>sudo pip install fabric</code>.</p>
+
+<p>Install ansible with <code>sudo pip install ansible</code>.</p>
+
+<h2>Provision of remote host</h2>
+
+<p>Create user with <code>sudo useradd -m chad</code>,
+then add ssh-auto-login with <code>ssh-copy-id ...</code>.</p>
+
+<p>// Install Node.js, MongoDB,</p>
+
+<h1>Backup MongoDB</h1>
+
+<h1>Import new data</h1>
+
+<h1>Update website codes</h1>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[The Algorithm of Related Fairs]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/25/141712/"/>
+    <updated>2015-02-25T14:17:12+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/25/141712</id>
+    <content type="html"><![CDATA[<p>For a given fair A, it&rsquo;s <em>major category</em> are a set of its cat.major subdocuments.</p>
+
+<p>For example, for the fair:</p>
+
+<pre><code>{ cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] }
 </code></pre>
 
-<h2>服务端</h2>
+<p>its major categories are set [&ldquo;abc, &#8220;xyz&rdquo;].
+Here we say the major categories of fair X is <code>majorCat(X)</code>.</p>
 
-<p>在/server/server.js中定义：</p>
+<p>If the intersection of set <code>majorCat(X)</code> and <code>majorCat(Y)</code> are not empty,
+we say fair X and Y are <em>related</em>.</p>
 
-<pre><code>SearchSource.defineSource('zips', function(searchText, options) {
-  var options = {sort: {isoScore: -1}, limit: 20};
+<p>So for a given fair X, how to find all its related fairs in a collection?</p>
 
-  if(searchText) {
-    var regExp = buildRegExp(searchText);
-    var selector =  {forsearch: regExp};
-    return Zips.find(selector, options).fetch();
-  } else {
-    return Zips.find({}, options).fetch();
-  }
-});
+<p>Here is the demonstration:</p>
 
-function buildRegExp(searchText) {
-  var parts = searchText.trim().split(/[ \-\:]+/);
-  for (i=0; i&lt;parts.length; ++i) {
-    parts[i] = "(?=.*" + parts[i] + ")";
-  }
-  var res = new RegExp("(" + parts.join("") + ")", "i");
-  return res;
-}
+<p>In mongodb, create a test collection with the following codes:</p>
+
+<pre><code>db.cats.insert( { cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] } );
+db.cats.insert( { cat: [ { major: "abcd", minor: [ 1,23,3] }, { major: "xyzu", minor: [ 87, 987, 343]} ] } );
+db.cats.insert( { cat: [ { major: "bcd", minor: [ 1,23,3] }, { major: "abc", minor: [ 3, 23, 876]} ] } );
+db.cats.insert( { cat: [ { major: "xyz", minor: [ 8,83,5] }, { major: "axc", minor: [ 34, 3, 76]} ] } );
 </code></pre>
 
-<p>buildRegExp函数中的正则表达式<code>(?=.*A)(?=.*B)</code>可以实现对A和B任意顺序的匹配，
-即既能匹配A.<em>B，又能匹配B.</em>A，
-参考<a href="http://stackoverflow.com/questions/19896324/match-string-in-any-word-order-regex">match string in any word order regex</a>.</p>
+<p>Create a new Meteor app with <code>meteor create relatedFairs</code>, and its files:</p>
 
-<h2>客户端：搜索输入框框即时响应</h2>
+<p>relatedFairs.html</p>
 
-<p>搜索框是通用控件，所以定义在了/client/comTemp.js中，定义了对框中keyup事件的响应：</p>
+<pre><code>&lt;head&gt;
+  &lt;title&gt;relatedFairs&lt;/title&gt;
+&lt;/head&gt;
 
-<pre><code>Template.Header.events({
-  "keyup #search-input": _.throttle(function(e) {
-    var text = $(e.target).val().trim();
-    ZipSearch.search(text);
-  }, 200)
-});
-</code></pre>
+&lt;body&gt;
+  &lt;h1&gt;Find related fairs&lt;/h1&gt;
+  
+&lt;/body&gt;
 
-<h2>客户端：搜索结果展示页面</h2>
-
-<p>定义在/client/results.html中。</p>
-
-<pre><code>&lt;template name="SearchResults"&gt;
-  &lt;div id="search-result" class="container content"&gt;
-    &lt;div id="search-meta"&gt;
-      
-        searching ...
-      
-    &lt;/div&gt;
-
+&lt;template name="hello"&gt;
+  &lt;ul&gt;
     
-      &lt;div class="package"&gt;
-        &lt;h4 class="name"&gt;
-          }
-        &lt;/h4&gt;
-        &lt;div class="description"&gt;
-          }, }
-        &lt;/div&gt;
-      &lt;/div&gt;
+      &lt;li&gt; 
+        &lt;b&gt;:&lt;/b&gt;
+        
+          ,
+        
+      &lt;/li&gt;
     
-  &lt;/div&gt;
+  &lt;/ul&gt;
+  
+    &lt;p&gt;Related fairs of the first fair &lt;/p&gt;
+    &lt;ul&gt;
+      
+        &lt;li&gt;
+          &lt;b&gt;:&lt;/b&gt;
+          
+            ,
+          
+        &lt;/li&gt;
+      
+    &lt;/ul&gt;
+  
 &lt;/template&gt;
 </code></pre>
 
-<h2>客户端：搜索结果的数据控制</h2>
+<p>relatedFairs.js:</p>
 
-<p>定义在/client/results.js中。</p>
+<pre><code>Fairs = new Mongo.Collection("cats");
 
-<pre><code>var options = {
-  keepHistory: 1000 * 60 * 5,
-  localSearch: true
-};
-var fields = ['forsearch'];     // 这里定义要搜索的字段
+if (Meteor.isClient) {
+  Template.hello.helpers({
+    allFairs: function () {
+      return Fairs.find();
+    },
+    related: function () {
+      var theXrd = 0,
+          theFair = Fairs.findOne( {}, {skip: theXrd } );
+      if (! theFair) {
+        return null;
+      }
+      var majors = _.map(theFair.cat, function(i) { return i.major; } );
+      var rels = Fairs.find( { cat: { $elemMatch: { major: { $in: majors } } },
+                               _id: { $ne: theFair._id } } );
+      return {firstID: theFair._id._str, relatedFairs: rels };
+    }
+  });
+}
+</code></pre>
 
-ZipSearch = new SearchSource('zips', fields, options);
-// 这里的zips要与服务端SearchSource.defineSource中定义的名字一致
+<p>Here we use <a href="http://underscorejs.org/">Underscore.js</a>,
+so install this package with <code>meteor add underscore</code> to run our demo app
+(with <code>MONGO_URL="mongodb://localhost:27017/test" meteor</code> in project root folder).</p>
 
-Template.SearchResults.helpers({
-  getZips: function() {
-    return ZipSearch.getData({
-      transform: function(matchText, regExp) {
-        console.log("matchText: " + matchText);
-        console.log("regExp: " + regExp);
-        var res = matchText.replace(regExp, "&lt;b&gt;$&amp;&lt;/b&gt;");
-        console.log("res is: " + res);
-        return res;
-      },
-      sort: {isoScore: -1}
-    });
-  },
+<p>Modify the value of &ldquo;theXrd&rdquo; above, you can see the related fairs of each fair.</p>
 
-  isLoading: function() {
-    return ZipSearch.getStatus().loading;
-  }
-});
+<p>To make a demo in a production collection,
+in fair &ldquo;A&rdquo; we find a major category called &ldquo;垃圾车与运输车&#8221;，
+then choose a fair B, whose id is &#8220;54e71a5642fb549b1389ae6f&rdquo;.</p>
 
-Template.SearchResults.rendered = function() {
-  ZipSearch.search('');
-};
+<p>Let&rsquo;s add the major cateory to fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a5642fb549b1389ae6f") }, { $push: {category: {major: "垃圾车与运输车"}} } );
+</code></pre>
+
+<p>Now fair A and B is related. Test them on your web site.
+If the test is past, remove the test data from fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a6642fb549b1389ae6f") }, { $pop: { category: 1 } } );
 </code></pre>
 ]]></content>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Frequent Used Commands in Mongodb Shell]]></title>
-    <link href="http://leetschau.github.io/blog/2014/12/29/193156/"/>
-    <updated>2014-12-29T19:31:56+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/12/29/193156</id>
-    <content type="html"><![CDATA[<p>The foloowing codes demonstrate the creation &copy;, query &reg;, update (U) and delete (D) operations on mongodb collections.</p>
+    <title type="html"><![CDATA[Import Data for Newfairs.com]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/20/194901/"/>
+    <updated>2015-02-20T19:49:01+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/20/194901</id>
+    <content type="html"><![CDATA[<h1>Prerequisites</h1>
 
-<p>It also shows how to rename collections and keys of documents.</p>
+<p>First install MongoDB, node.js and csvkit.</p>
+
+<p>For node.js, download node binary package (node-v0.10.33-linux-x64.tar.gz in my case) from its website,
+extract and add binary folder into $PATH. For example, add the following line into ~/.zshenv:</p>
+
+<pre><code>PATH=$HOME/apps/node-v0.10.33-linux-x64/bin:$PATH
+</code></pre>
+
+<p>For MongoDB, download its binary package (mongodb-linux-x86_64-2.6.5.tgz in my case) from its website,
+extract and add binary folder into $PATH:</p>
+
+<pre><code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH
+</code></pre>
+
+<p>Install csvkit with <code>sudo pip install csvkit</code>.</p>
+
+<h1>Preparation</h1>
+
+<ol>
+<li><p>Convert Excel (xls/xlsx) file to csv file: <code>in2csv data.xls &gt; data.csv</code>;</p></li>
+<li><p>(Optional) Convert file encoding: <code>iconv -f gbk -t utf8 data20150218.csv &gt; input.csv</code>;</p></li>
+<li><p>Examine data: <code>head input.csv | csvjson -i 4</code>;</p></li>
+<li><p>Start MongoDB server for importing data: <code>mongod</code>;</p></li>
+</ol>
+
+
+<h1>Import Data</h1>
+
+<p>In case you want to overwrite old data, you need backup old collection:
+start a mongodb client, make a copy of the old collection (the original collection is &ldquo;fairs&rdquo;):</p>
 
 <pre><code>$ mongo
-db.fairs.insert({'name': 'bikeShow', 'time': '2014.12.24', 'location': 'Beijing', 'products': ['bike', 'car', 'truck']})
-db.fairs.insert({'name': 'clothShow', 'time': '2014.2.14', 'location': 'Shanghai', 'products': ['silk', 'wood', 'paper']})
-db.fairs.insert({'name': 'MyFruits', 'time': '2011.4.18', 'location': 'Guangzhou', 'products': ['berry', 'apple', 'banana']})
-
-db.newfairs.find({}, {name: 1})
-db.newfairs.find({}, {'name.chn': 1})
-
-db.fairs.renameCollection('newfairs')
-
-db.newfairs.update({}, {$rename: {'time': 'date'} }, {multi: true} )
-db.newfairs.update({}, {$rename: {'name': 'names'} }, {multi: true} )
-db.newfairs.update({}, {$rename: {'names': 'name.chn'} }, {multi: true} )
-db.newfairs.update({}, {$unset: {'date': ""}}, {multi: true})
-db.newfairs.remove({})
-db.newfairs.drop()
-exit
+&gt; db.fairs.renameCollection('fairsBak')
 </code></pre>
 
-<p>You can&rsquo;t use <code>{$rename: {'name': 'name.chn'}}</code> directly for &ldquo;$rename must not be on the same path&rdquo;.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Mongodb Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2014/12/25/091714/"/>
-    <updated>2014-12-25T09:17:14+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/12/25/091714</id>
-    <content type="html"><![CDATA[<h1>Start mongodb server as a common user</h1>
+<p>P.S. You can make a copy of a collection with <code>db.fairs.copyTo('fairsBak')</code>.</p>
 
-<p>The default data path of Mongodb is /data/db, which you have to create as root.</p>
+<p>Now import new data to collection &ldquo;fairs&rdquo;:</p>
 
-<p>If you just want play around mongodb with some test data, you can create a temporary folder as data directory:</p>
-
-<pre><code>$ mkdir ~/docs/tmp/mongodb-repo
-$ cd ~/apps/mongodb-linux-x86_64-2.6.5
-$ bin/mongod --dbpath ~/docs/tmp/mongodb-repo
-// in a new shell
-$ ~/apps/mongodb-linux-x86_64-2.6.5/bin/mongo
+<pre><code>./importdata
 </code></pre>
 
-<p>For convenience, add <code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH</code> into ~/.zshenvr,
-and <code>alias mongod='mongod --dbpath /home/chad/docs/tmp/mongodb-repo'</code> into ~/.bash_alias.</p>
+<h1>Under the hood</h1>
 
-<p>Make sure the following lines exist in ~/.zshrc:</p>
+<p>importdata:</p>
 
-<pre><code>if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+<pre><code>#!/bin/bash
+
+# convert the csv file encoding with:
+# iconv -f gbk -t utf8 xxx.csv &gt; input.csv
+INP='input.csv'
+TargetDB='test'
+TargetCol='fairs'
+
+RAW='rawdata.json'
+RES='result.json'
+if [[ ! -f $INP ]]; then
+  echo File input.csv not exists!
+  exit 1
 fi
+rm -rf $RAW $RES
+csvjson $INP &gt; $RAW
+node checkTransform
+mongoimport -d $TargetDB -c $TargetCol --type json --file $RES --jsonArray
+rm -rf $RAW $RES
 </code></pre>
 
-<p>Now we can start mongo server and client anywhere in a shell.</p>
+<p>checkTransform.js:</p>
 
-<h1>Database Management</h1>
+<pre><code>var data = require('./rawdata.json');
+var fs = require('fs');
+var result = []
 
-<p>First start mongo server <code>mongod</code>. Then start the client with <code>mongo</code>.
-All the following commands is running in mongo shell, whose prompt is &lsquo;> &rsquo;.</p>
+data.forEach(function(elem) {
+  var aFair = JSON.parse( JSON.stringify(elem) );
+  aFair.indexStr = {};
+  aFair.indexStr['name'] = (elem.chnName + ' ' + elem.engName).trim();
+  aFair.indexStr['sponsor'] = elem.sponsor;
+  aFair.indexStr['undertaker'] = elem.undertaker;
+  aFair.indexStr['category'] = elem.category;
+  aFair.indexStr['simpleSearch'] = elem.chnName + ' ' + elem.engName + ' ' + elem.position + ' ' + elem.time + ' ' + elem.category;
 
-<p>List all existing database: <code>show dbs</code>;</p>
-
-<p>Create a new database &ldquo;meteor&rdquo; and switch to it: <code>use meteor</code>;</p>
-
-<p>Remove database &ldquo;mydb&rdquo;: <code>use mydb</code>, then <code>db.dropDatabase()</code>;</p>
-
-<h1>Backup and Restore</h1>
-
-<ul>
-<li><p>Backup a database: <code>mongodump -d &lt;db_name&gt;</code>;</p></li>
-<li><p>Backup a collection: <code>mongodump -d &lt;db_name&gt; -c &lt;collection_name&gt;</code>;</p></li>
-<li><p>Restore a collection: <code>mongorestore -d &lt;target_db_name&gt; -c &lt;target_collection_name&gt;.bson</code>;</p></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Meteor MongoDB Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2014/12/20/230618/"/>
-    <updated>2014-12-20T23:06:18+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/12/20/230618</id>
-    <content type="html"><![CDATA[<ul>
-<li><p>Connect to a mongodb of a Meteor app: run <code>meteor</code> at the project root. Start another shell, go to this folder, and run <code>meteor mongo</code>;</p></li>
-<li><p>List all available commands: <code>help</code>;</p></li>
-<li><p>List DB operation methods: <code>db.help()</code>;</p></li>
-<li><p>List all existing collection names: <code>show collections</code>;</p></li>
-<li><p>List all available commands of a collection: <code>db.&lt;collection-name&gt;.help()</code>;</p></li>
-<li><p>Show collection information: <code>db.&lt;collection-name&gt;.stats()</code>;</p></li>
-<li><p>Print all &ldquo;name&rdquo; field of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {name_chn: 1})</code>;</p></li>
-<li><p>Print all fields except &ldquo;name_chn&rdquo; of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {products: 0})</code>;</p></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Import Data From Files Into Mongodb]]></title>
-    <link href="http://leetschau.github.io/blog/2014/12/08/114328/"/>
-    <updated>2014-12-08T11:43:28+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/12/08/114328</id>
-    <content type="html"><![CDATA[<h1>From CSV File</h1>
-
-<p>Here I use mongoDB&rsquo;s mongoimport tool to import csv file into Meteor app&rsquo;s Mongodb.</p>
-
-<p>First download mongodb package (mongodb-linux-x86_64-2.6.5.tgz) from <a href="http://www.mongodb.org/">mongoDB</a>, extract it into ~/apps folder.</p>
-
-<p>Next start the Meteor app. Open a new terminal window, in project root folder, run <code>meteor mongo</code>.
-You can see something like &ldquo;connecting to: 127.0.0.1:3001/meteor&rdquo;.
-This tells us database server is listening on port 3001, and database name is &ldquo;meteor&rdquo;.</p>
-
-<p>Save the following codes into app&rsquo;s $HOME/private folder as importdb.sh:</p>
-
-<pre><code>mongoimport -h localhost:3001 --db meteor --collection fairs --type csv --file fairs.csv --headerline
-</code></pre>
-
-<p>Here &ldquo;-d&rdquo; equals to &ldquo;&ndash;db&rdquo;, &ldquo;-c&rdquo; equals to &ldquo;&ndash;collection&rdquo;.
-And the source csv file is saved in file private/fairs.csv.</p>
-
-<p>It&rsquo;s headerline (first line of csv file) is also comma-seperated:</p>
-
-<pre><code>Name, Age, Job
-Bob, 35, Cooker
-Tom, 28, Coder
-...
-</code></pre>
-
-<p>Now in the Meteor app, add <code>Fairs = new Meteor.Collection("fairs");</code> into js file to use the data.</p>
-
-<h1>From JSON File</h1>
-
-<h2>Json Lint</h2>
-
-<p>Validate the json file with <a href="https://github.com/zaach/jsonlint">jsonlint</a>.</p>
-
-<p>You need install node.js, then install jsonlint with <code>npm install jsonlint -g</code>.
-Next check the json file with <code>jsonlint myfile.json</code>.</p>
-
-<h2>Import from Json File</h2>
-
-<p>Use the following commands to import json objects from a file:</p>
-
-<pre><code>mongoimport -h localhost:3001 -d meteor -c fairs --type json --jsonArray --file demo.json
-</code></pre>
-
-<p>Or if your mongod is running on localhost, use the following line to import (don&rsquo;t create the target database and collection before import):</p>
-
-<pre><code>mongoimport -d meteor -c fairs --type json --file first31.json --jsonArray
-</code></pre>
-
-<p>This is a sample of the imported json file:</p>
-
-<pre><code>[
-  { name: "Widget 1",
-    desc: "This is Widget 1"
-  },
-  { name: "Widget 2",
-    desc: "This is Widget 2"
+  if (elem.sponsor) {
+    aFair['sponsor'] = [];
+    elem.sponsor.split('|').forEach(function(spr) {
+      var aSponsor = {};
+      var sps = spr.split('$');
+      aSponsor['name'] = sps[0];
+      aSponsor['tel'] = sps[1];
+      aSponsor['fax'] = sps[2];
+      aSponsor['email'] = sps[3];
+      aSponsor['website'] = sps[4];
+      aFair.sponsor.push(aSponsor);
+    });
   }
-]
+
+  if (elem.undertaker) {
+    aFair['undertaker'] = [];
+    elem.undertaker.split('|').forEach(function(udt) {
+      var aUndertaker = {};
+      var uds = udt.split('$');
+      aUndertaker['name'] = uds[0];
+      aUndertaker['tel'] = uds[1];
+      aUndertaker['fax'] = uds[2];
+      aUndertaker['email'] = uds[3];
+      aUndertaker['website'] = uds[4];
+      aFair.undertaker.push(aUndertaker);
+    });
+  }
+
+  if (elem.category) {
+    aFair['category'] = [];
+    elem.category.split('|').forEach(function(catStr) {
+      var aCat = {};
+      var cats = catStr.split('$');
+      aCat['major'] = cats[0] === '?' ? '' : cats[0];
+      aCat['minor'] = cats.slice(1);
+      aFair.category.push(aCat);
+    });
+  }
+
+  result.push(aFair);
+});
+
+fs.writeFile('result.json', JSON.stringify(result));
 </code></pre>
-
-<p>If the &ldquo;&ndash;jsonArray&rdquo; option is omitted, the json file have to keep each object in one line, like this:</p>
-
-<pre><code>{ name: "Widget 1", desc: "This is Widget 1" }
-{ name: "Widget 2", desc: "This is Widget 2" }
-</code></pre>
-
-<p>See <code>mongoimport --help</code> for details.</p>
 ]]></content>
   </entry>
   

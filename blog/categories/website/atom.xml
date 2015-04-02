@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Website | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/website/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-02-02T16:10:00+08:00</updated>
+  <updated>2015-04-02T09:35:25+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,225 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[优化网站加载速度的方法]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/27/173224/"/>
+    <updated>2015-03-27T17:32:24+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/27/173224</id>
+    <content type="html"><![CDATA[<h1>Google PageSpeed</h1>
+
+<p>在页面中输入要测试的url，然后就可以运行测试了，给出的是综合评分和各项改进措施。</p>
+
+<h1>YSlow</h1>
+
+<p>在Firefox里以插件方式安装YSlow，运行YSlow需要首先安装Firebug。
+在FireFox中打开要测试的网站，然后开启Firebug，切换到最右侧的YSlow页面，点击测试按钮开始测试。</p>
+
+<p>Google PageSpeed只能测试有公共IP的网站，YSlow可以测试本地运行的网站，而且结果似乎更为详细。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Web Scanning Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/18/095552/"/>
+    <updated>2015-03-18T09:55:52+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/18/095552</id>
+    <content type="html"><![CDATA[<h1>Discovery Scanning</h1>
+
+<p>This step find the IP address of a website, most frequently with <code>ping</code> tools.</p>
+
+<h1>Port scanning</h1>
+
+<p>This step find the openning ports on a host.</p>
+
+<h2>Stealth scan</h2>
+
+<p>Scan commonly used 1000 ports (preconfigured by nmap) of a host: <code>nmap -sS &lt;target-ip&gt;</code>;</p>
+
+<p>Scan all port of a host: <code>nmap -sS &lt;target-ip&gt; -p 0-65535</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>$ sudo nmap -sS xxx.xxx.xxx.143 -p 27010-27020
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:01 CST
+Nmap scan report for newfairs.com (xxx.xxx.xxx.143)
+Host is up (0.30s latency).
+PORT      STATE  SERVICE
+27010/tcp closed flexlm10
+27011/tcp closed unknown
+27012/tcp closed unknown
+27013/tcp closed unknown
+27014/tcp closed unknown
+27015/tcp closed unknown
+27016/tcp closed unknown
+27017/tcp open   unknown
+27018/tcp closed unknown
+27019/tcp closed unknown
+27020/tcp closed unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 5.66 seconds
+</code></pre>
+
+<p>Port 27017 (used by mongoDB) is detected.</p>
+
+<h2>Connection scan</h2>
+
+<p>Command: <code>nmap -sT &lt;target-ip&gt;</code>;</p>
+
+<p>Compared with connection scan, stealth scan won&rsquo;t be logged by the target.
+So it&rsquo;s more safe.</p>
+
+<h1>Banner grabbing</h1>
+
+<p>This step get the banner of a service on a specific port (here is 21):</p>
+
+<pre><code>sudo nmap -sT xxx.xxx.xxx.234 -p 21 --script=banner
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:30 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.064s latency).
+PORT   STATE SERVICE
+21/tcp open  ftp
+| banner: 220-FileZilla Server v0.9.33 beta\x0D\x0A220-written by Tim Kos
+|_se (Tim.Kosse@gmx.de)\x0D\x0A220 Please visit http://sourceforge.net...
+</code></pre>
+
+<p>So this is a FileZilla server, version 0.9.33,
+which implies the OS is probably Windows.</p>
+
+<h1>Service identification</h1>
+
+<p>This step detect what service is running on a specific port of a host.</p>
+
+<p>This is the detection on port 3389: <code>sudo nmap xxx.xxx.xxx.234 -p 3389 -sV</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>sudo nmap xxx.xxx.xxx.234 -p 80 -sV                
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:23 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.072s latency).
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.2.17 ((Win32) PHP/5.3.5)
+</code></pre>
+
+<h1>Operating system identification</h1>
+
+<p>Command: <code>nmap &lt;target-ip&gt; -O</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>$ sudo nmap xxx.xxx.xxx.143 -O
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 08:43 CST
+Nmap scan report for xxx.com (xxx.xxx.xxx.143)
+Host is up (0.32s latency).
+Not shown: 984 closed ports
+PORT     STATE    SERVICE
+22/tcp   open     ssh
+80/tcp   open     http
+135/tcp  filtered msrpc
+139/tcp  filtered netbios-ssn
+445/tcp  filtered microsoft-ds
+593/tcp  filtered http-rpc-epmap
+901/tcp  filtered samba-swat
+1068/tcp filtered instl_bootc
+1723/tcp filtered pptp
+3000/tcp open     ppp
+3128/tcp filtered squid-http
+4444/tcp filtered krb524
+5800/tcp filtered vnc-http
+5900/tcp filtered vnc
+6129/tcp filtered unknown
+6667/tcp filtered irc
+Aggressive OS guesses: Linux 3.2 - 3.6 (96%), Linux 2.6.32 - 2.6.39 (94%), Linux 2.6.32 - 3.0 (93%), Linux 3.5 (92%), Linux 2.6.32 (92%), IPFire firewall 2.11 (Linux 2.6.32) (92%), Linux 2.6.15 - 2.6.26 (likely embedded) (90%), Linux 2.6.32 - 2.6.33 (90%), Linux 2.6.32 - 2.6.35 (90%), Linux 2.6.18 (90%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 23 hops
+
+OS detection performed. Please report any incorrect results at http://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 83.20 seconds
+</code></pre>
+
+<p>Ref: &ldquo;Kali Linux Network Scanning Cookbook&rdquo; by Justin Hutchens.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Website Server Provsion]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/06/101802/"/>
+    <updated>2015-03-06T10:18:02+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/06/101802</id>
+    <content type="html"><![CDATA[<h1>Work flow</h1>
+
+<ol>
+<li><p>Install packages: tree, curl, git;</p></li>
+<li><p>Create user chad, add it to sudoers;</p></li>
+<li><p>Install Meteor: <code>curl https://install.meteor.com | /bin/sh</code>;</p></li>
+<li><p>download mongoDB package (mongodb-linux-x86_64-rhel62-3.0.0.tgz for now) from <a href="https://www.mongodb.org/">mongoDB</a>;</p></li>
+<li><p>Extract mongoDB package to $HOME/apps, add $MONGO_HOME/bin to $PATH
+ (in file ~/.bash_profile);</p></li>
+<li><p>Config mongoDB: save the following codes into $HOME/docs/mongoRepo/mongo.conf:</p>
+
+<pre><code> net:
+   bindIp: 127.0.0.1
+   port: 27017
+ storage:
+   dbPath: dbHome
+ systemLog:
+   destination: file
+   path: "mongodb.log"
+   logAppend: true
+</code></pre></li>
+<li><p>Start mongod: <code>mongod --config mongo.conf</code>, or in background: <code>nohup mongod --config mongo.conf &amp;</code>;</p></li>
+</ol>
+
+
+<h1>Ansible</h1>
+
+<h2>Managing Node</h2>
+
+<p>Install <a href="http://www.ansible.com/">ansible</a> with <code>sudo pip install ansible</code>.</p>
+
+<h2>Provision of remote host</h2>
+
+<p>On remote host, create user with <code>sudo useradd -m chad</code>
+and set password: <code>sudo passwd chad</code>.
+On manging node, add ssh automatic login of chad and root on remote host with <code>ssh-copy-id</code>.</p>
+
+<p>For a vagrant host, run the following commands in project&rsquo;s root directory:</p>
+
+<pre><code>vagrant ssh
+sudo passwd
+// set password for root ...
+sudo useradd -m chad
+sudo passwd chad
+// set password for chad ...
+exit
+ssh-copy-id chad@localhost -p 2222
+ssh-copy-id root@localhost -p 2222
+</code></pre>
+
+<p>// Install Node.js, MongoDB,</p>
+
+<p>Install mms with installing its rpm package,
+you can remove it later with:</p>
+
+<pre><code># service --status-all
+# rpm -qa|grep mongo
+mongodb-mms-automation-agent-manager-1.6.2.960-1.x86_64
+# rpm -e mongodb-mms-automation-agent-manager-1.6.2.960-1.x86_64
+# service --status-all
+</code></pre>
+
+<p>Change host name:</p>
+
+<p>Add &ldquo;newfairs.biz&rdquo; after &ldquo;127.0.0.1  &rdquo;, before &ldquo;localhost&rdquo; in /etc/hosts.
+Restart mms agent: <code>service mongodb-mms-automation-agent restart</code>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[网站线框图绘制工具]]></title>
@@ -95,48 +314,6 @@ RGB常用于显示器，用3原色的值表示一种颜色。</p>
 <li><p><a href="http://paletton.com/">paletton.com</a></p></li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Build Color Theme for Website With Gpick]]></title>
-    <link href="http://leetschau.github.io/blog/2014/12/15/170422/"/>
-    <updated>2014-12-15T17:04:22+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/12/15/170422</id>
-    <content type="html"><![CDATA[<p>First install with <code>sudo aptitude install gpick</code>, and start it with <code>gpick</code>;</p>
-
-<h1>Build a color theme based on existing web page</h1>
-
-<p>Choose &ldquo;Color picker&rdquo; tag.</p>
-
-<p>Select a slot in color picker swatch (the six hexagons mark by 1 ~ 6).
-Start color picker by shortcut Ctrl-p, move mouse to the location,
-press SPACE to put the color into the slot.</p>
-
-<p>The highlighted slot become the next slot automatically.</p>
-
-<p>So you can select another color, and put it into the current highlighted slot by press SPACE.</p>
-
-<p>Right click the color picker swatch and select &ldquo;Add to palette&rdquo; or &ldquo;Add all to palette&rdquo;
-to put these color into the color palette on the right-hand side.</p>
-
-<h1>Generate Color theme based on existing color</h1>
-
-<p>Right click one or more colors in the color palette, select &ldquo;Generate&hellip;&rdquo;.
-Set &ldquo;Colors&rdquo; to 3, &ldquo;Type&rdquo; to &ldquo;triadic&rdquo;, you can find the triadic color group in &ldquo;Preview&rdquo; panel.
-If this is what you want, press &ldquo;OK&rdquo; button.</p>
-
-<p>In the same way you can build complementary color group with: Type: Complementary, Colors: 2.</p>
-
-<h1>Build a color theme from scratch</h1>
-
-<p>Choose &ldquo;Scheme Generation&rdquo; tag in upper-left corner.
-After you&rsquo;ve decided the value of hue, saturation, lightness and type,
-right click the color block and select &ldquo;Add to palette&rdquo; or &ldquo;Add all to palette&rdquo;.</p>
-
-<p>Find all built-in shortcuts on the &ldquo;HELP&rdquo; section of <a href="http://www.gpick.org/">gpick&rsquo;s website</a>.</p>
-
-<p>Ref: <a href="http://libregraphicsworld.org/blog/entry/creating-color-schemes-with-gpick">Creating color schemes with Gpick</a>;</p>
 ]]></content>
   </entry>
   

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Vps | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/vps/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-02-02T16:10:00+08:00</updated>
+  <updated>2015-04-02T09:35:25+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,97 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Deploy Meteor App With MUP]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/25/195307/"/>
+    <updated>2015-03-25T19:53:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/25/195307</id>
+    <content type="html"><![CDATA[<h1>Create VPS</h1>
+
+<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
+Get its root password in you email.
+Add the following section into ~/.ssh/config:</p>
+
+<pre><code>Host do
+Hostname 128.199.72.206
+User root
+</code></pre>
+
+<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
+
+<h1>Publish Meteor App</h1>
+
+<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
+
+<p>Create a mup project:</p>
+
+<pre><code>cd ~/docs/tmp
+mkdir nfDeploy
+cd nfDeploy
+mup init
+</code></pre>
+
+<p>Now you can see a mup.json file, edit it as follows:</p>
+
+<pre><code>{
+  "servers": [
+    {
+      "host": "128.199.72.xxx",
+      "username": "root",
+      "pem": "~/.ssh/id_rsa"
+    }
+  ],
+
+  "setupMongo": true,
+  "setupNode": true,
+  "nodeVersion": "0.10.36",
+  "setupPhantom": true,
+  "appName": "newfairs",
+
+  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
+
+  "env": {
+    "PORT": 80,
+    "ROOT_URL": "http://niufairs.biz"
+  },
+
+  "deployCheckWaitTime": 15
+}
+</code></pre>
+
+<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
+&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
+mup will bundle codes in it, and publish them to host on vps.</p>
+
+<p>You can only use key authentication.
+If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
+
+<p>Setup production environment: <code>mup setup</code>;
+Delpoy app: <code>mup deploy</code>;</p>
+
+<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
+
+<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
+</code></pre>
+
+<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
+
+<h1>Import Data</h1>
+
+<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
+
+<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
+scp -r mynf do:~/
+ssh do
+cd mynf
+mongorestore -d newfairs meteor
+</code></pre>
+
+<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Deploy Web Server on Linode]]></title>
@@ -33,7 +124,7 @@ Then direct different domain requests to its corresponding port using nginx.</p>
 <p>First register (purchase) a domain name, if you haven’t already.
 Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
 
-<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 -> 把域名指向我的网站 -> 新手设置引导 -> 把域名指向我的网站-添加IP地址&rdquo;,
+<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 ->  解析设置 -> 设置网站解析 -> 把域名指向我的网站-添加IP地址&rdquo;,
 add your Linode instance IP address as &ldquo;A&rdquo; record,
 Then wait up to 24 hours for the changes to take effect.
 I waited about 30 minutes to take effect.</p>
@@ -43,7 +134,7 @@ in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DN
 
 <p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
 Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
-Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#109;&#97;&#105;&#x6c;&#x74;&#111;&#58;&#108;&#99;&#x40;&#x31;&#x32;&#x36;&#x2e;&#99;&#111;&#x6d;">&#108;&#99;&#x40;&#x31;&#50;&#x36;&#46;&#99;&#x6f;&#109;</a>&rdquo;.
+Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#x6d;&#x61;&#105;&#108;&#x74;&#x6f;&#58;&#x6c;&#99;&#x40;&#x31;&#50;&#x36;&#x2e;&#x63;&#x6f;&#x6d;">&#108;&#x63;&#x40;&#x31;&#x32;&#x36;&#46;&#99;&#111;&#x6d;</a>&rdquo;.
 Then click &ldquo;Add a Master Zone&rdquo;.</p>
 
 <h2>Setting Reverse DNS</h2>
@@ -111,6 +202,22 @@ http {
   }
 }
 </code></pre>
+
+<h1>Configure Email Server</h1>
+
+<p>I bought an <strong>business</strong> account on <a href="https://www.fastmail.com/">FastMail</a>, and
+configure 3 places to make the mail server functional:</p>
+
+<ol>
+<li><p>In FastMail <a href="&#x6d;&#97;&#105;&#108;&#x74;&#x6f;&#x3a;&#109;&#97;&#115;&#116;&#x65;&#114;&#x75;&#x73;&#x65;&#x72;&#64;&#110;&#105;&#x75;&#102;&#x61;&#105;&#x72;&#115;&#x2e;&#99;&#x6f;&#x6d;">&#x6d;&#97;&#x73;&#x74;&#x65;&#114;&#x75;&#115;&#101;&#x72;&#64;&#110;&#x69;&#x75;&#102;&#97;&#105;&#x72;&#115;&#46;&#x63;&#x6f;&#109;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
+<li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
+
+<p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
+<li><p>Add the following record on &ldquo;niufairs.com&rdquo; on Linode.com:</p>
+
+<p> MX Records ->  Mail Server: in1-smtp.messagingengine.com, Preference: 10, TTL: Default.</p></li>
+</ol>
+
 
 <p>Refs:</p>
 

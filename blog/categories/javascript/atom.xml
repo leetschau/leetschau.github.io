@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Javascript | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/javascript/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-02-02T16:10:00+08:00</updated>
+  <updated>2015-04-02T09:35:25+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,123 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[The Algorithm of Related Fairs]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/25/141712/"/>
+    <updated>2015-02-25T14:17:12+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/25/141712</id>
+    <content type="html"><![CDATA[<p>For a given fair A, it&rsquo;s <em>major category</em> are a set of its cat.major subdocuments.</p>
+
+<p>For example, for the fair:</p>
+
+<pre><code>{ cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] }
+</code></pre>
+
+<p>its major categories are set [&ldquo;abc, &#8220;xyz&rdquo;].
+Here we say the major categories of fair X is <code>majorCat(X)</code>.</p>
+
+<p>If the intersection of set <code>majorCat(X)</code> and <code>majorCat(Y)</code> are not empty,
+we say fair X and Y are <em>related</em>.</p>
+
+<p>So for a given fair X, how to find all its related fairs in a collection?</p>
+
+<p>Here is the demonstration:</p>
+
+<p>In mongodb, create a test collection with the following codes:</p>
+
+<pre><code>db.cats.insert( { cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] } );
+db.cats.insert( { cat: [ { major: "abcd", minor: [ 1,23,3] }, { major: "xyzu", minor: [ 87, 987, 343]} ] } );
+db.cats.insert( { cat: [ { major: "bcd", minor: [ 1,23,3] }, { major: "abc", minor: [ 3, 23, 876]} ] } );
+db.cats.insert( { cat: [ { major: "xyz", minor: [ 8,83,5] }, { major: "axc", minor: [ 34, 3, 76]} ] } );
+</code></pre>
+
+<p>Create a new Meteor app with <code>meteor create relatedFairs</code>, and its files:</p>
+
+<p>relatedFairs.html</p>
+
+<pre><code>&lt;head&gt;
+  &lt;title&gt;relatedFairs&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;Find related fairs&lt;/h1&gt;
+  
+&lt;/body&gt;
+
+&lt;template name="hello"&gt;
+  &lt;ul&gt;
+    
+      &lt;li&gt; 
+        &lt;b&gt;:&lt;/b&gt;
+        
+          ,
+        
+      &lt;/li&gt;
+    
+  &lt;/ul&gt;
+  
+    &lt;p&gt;Related fairs of the first fair &lt;/p&gt;
+    &lt;ul&gt;
+      
+        &lt;li&gt;
+          &lt;b&gt;:&lt;/b&gt;
+          
+            ,
+          
+        &lt;/li&gt;
+      
+    &lt;/ul&gt;
+  
+&lt;/template&gt;
+</code></pre>
+
+<p>relatedFairs.js:</p>
+
+<pre><code>Fairs = new Mongo.Collection("cats");
+
+if (Meteor.isClient) {
+  Template.hello.helpers({
+    allFairs: function () {
+      return Fairs.find();
+    },
+    related: function () {
+      var theXrd = 0,
+          theFair = Fairs.findOne( {}, {skip: theXrd } );
+      if (! theFair) {
+        return null;
+      }
+      var majors = _.map(theFair.cat, function(i) { return i.major; } );
+      var rels = Fairs.find( { cat: { $elemMatch: { major: { $in: majors } } },
+                               _id: { $ne: theFair._id } } );
+      return {firstID: theFair._id._str, relatedFairs: rels };
+    }
+  });
+}
+</code></pre>
+
+<p>Here we use <a href="http://underscorejs.org/">Underscore.js</a>,
+so install this package with <code>meteor add underscore</code> to run our demo app
+(with <code>MONGO_URL="mongodb://localhost:27017/test" meteor</code> in project root folder).</p>
+
+<p>Modify the value of &ldquo;theXrd&rdquo; above, you can see the related fairs of each fair.</p>
+
+<p>To make a demo in a production collection,
+in fair &ldquo;A&rdquo; we find a major category called &ldquo;垃圾车与运输车&#8221;，
+then choose a fair B, whose id is &#8220;54e71a5642fb549b1389ae6f&rdquo;.</p>
+
+<p>Let&rsquo;s add the major cateory to fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a5642fb549b1389ae6f") }, { $push: {category: {major: "垃圾车与运输车"}} } );
+</code></pre>
+
+<p>Now fair A and B is related. Test them on your web site.
+If the test is past, remove the test data from fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a6642fb549b1389ae6f") }, { $pop: { category: 1 } } );
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Frequent Used Commands in Mongodb Shell]]></title>
@@ -42,6 +159,12 @@ exit
 </code></pre>
 
 <p>You can&rsquo;t use <code>{$rename: {'name': 'name.chn'}}</code> directly for &ldquo;$rename must not be on the same path&rdquo;.</p>
+
+<ul>
+<li><p>Find docs whose &ldquo;website&rdquo; field is not null: <code>db.fairs.findOne({$where: "this.website.length &gt; 0" } )</code>;</p></li>
+<li><p>Remove all docs whose &ldquo;position&rdquo; field is an empty string: <code>db.fairs.remove( { $where: "this.position.length == 0" } )</code>;</p></li>
+</ul>
+
 ]]></content>
   </entry>
   
@@ -175,189 +298,6 @@ create table shellstatus (id int not null generated by default as identity (star
 </code></pre>
 
 <p>Then you can use <code>select * from shellstatus;</code> to list all data in this table.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Closure in Different Languages]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/20/104236/"/>
-    <updated>2014-08-20T10:42:36+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/20/104236</id>
-    <content type="html"><![CDATA[<p>The following code snippets compare closures in several languages.</p>
-
-<p>First is closure in javascript. Here I use <a href="https://github.com/creationix/nvm">nvm</a> to run javascript code.</p>
-
-<pre><code>$ cat closure.js
-function extent() {
-    var n = 0;
-    return function() {
-        n++;
-        console.log("n=" + n);
-    }
-}
-
-extent()();
-extent()();
-f = extent();
-console.log("-----");
-//console.log(extent.uniqueId());
-f();
-f();
-
-$ nvm alias default 0.10
-$ nvm run closure.js
-Running node v0.10.30
-n=1
-n=1
------
-n=1
-n=2
-</code></pre>
-
-<p>In above example, the closure is <code>function() { n++; console.log... }</code>. It&rsquo;s bound to variable &ldquo;f&rdquo;. The local variable &ldquo;n&rdquo; is &ldquo;closed&rdquo; into closure. Its lifetime is the same with &ldquo;f&rdquo;. So after the first execution of f, its inner state is saved.</p>
-
-<p>For Python, nested function can only access variables in outer scope, but can&rsquo;t reassign (modify) them. So I use list as a workaround. In Python 3, there is a new keyword &ldquo;nonlocal&rdquo; to remove this restriction.</p>
-
-<pre><code>$ cat closure.py2.py
-def extent():
-    n = [0]
-    def afun():
-        n[0] += 1
-        print('n=' + str(n[0]))
-    return afun
-
-extent()()
-extent()()
-print('-----')
-f = extent()
-f()
-f()
-print("type of f is %s, its id is %d" % (type(f), id(f)))
-
-$ python closure.py2.py 
-n=1
-n=1
------
-n=1
-n=2
-type of f is &lt;type 'function'&gt;, its id is 140403684898408
-
-$ cat closure.py3.py
-def extent():
-    n = 0
-    def afun():
-        nonlocal n
-        n += 1
-        print('n=' + str(n))
-    return afun
-
-extent()()
-extent()()
-f = extent()
-print('----')
-f()
-f()
-print("type of f is %s, its id is %d" % (type(f), id(f)))
-
-[0] python3 closure.py3.py
-n=1
-n=1
-----
-n=1
-n=2
-type of f is &lt;class 'function'&gt;, its id is 139914425096528
-</code></pre>
-
-<p>The Ruby environment used here is <a href="http://rvm.io/">RVM</a>. Ruby version is 2.1.2.</p>
-
-<pre><code>$ rvm use 2.1.2 --default
-$ cat closure.rb
-def extent
-    n = 0
-    lambda {
-        n += 1
-        printf "n=%d\n", n
-    }
-end
-
-extent().call()
-extent().call()
-f = extent()
-puts '------'
-f.call()
-f.call()
-puts "class of f is #{f.class.name}, its id is #{f.object_id}"
-
-$ ruby closure.rb
-n=1
-n=1
-------
-n=1
-n=2
-class of f is Proc, its id is 6724520
-</code></pre>
-
-<p>Two versions of Scala, define functions via &ldquo;def&rdquo; and &ldquo;val&rdquo; give different results:</p>
-
-<pre><code>$ diff *.scala
-1c1
-&lt; def extent = {
----
-&gt; val extent = {
-
-$ cat closure-def.scala
-def extent = {
-    var n = 0
-    () =&gt; {
-        n += 1
-        println("n=" + n)
-    }
-}
-
-extent()
-extent()
-val f = extent
-println("------")
-f()
-f()
-println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
-
-$ scala closure-def.scala
-n=1
-n=1
-------
-n=1
-n=2
-Class of f is class Main$$anon$1$$anonfun$extent$1, its id is 8970973
-
-$ cat closure-val.scala 
-val extent = {
-    var n = 0
-    () =&gt; {
-        n += 1
-        println("n=" + n)
-    }
-}
-
-extent()
-extent()
-val f = extent
-println("------")
-f()
-f()
-println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
-$ scala closure-val.scala 
-n=1
-n=2
-------
-$ scala closure-val.scala 
-n=1
-n=2
-------
-n=3
-n=4
-Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973
-</code></pre>
 ]]></content>
   </entry>
   
