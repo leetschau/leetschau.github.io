@@ -9,11 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="打印logback调试信息：
-自动感知文件变化：，不加scanPeriod的话，默认值是1分钟，一般用默认值就行；
-不打印第一行格式信息：
-不打印调试信息：将ch.qos.logback.core.ConsoleAppender包含的改为
-appender的级别设置： &hellip;">
+  <meta name="description" content="Linux平台
+jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报：&#8221;The VM does not support the attach mechanism&#8221;错误； C:\Users\chad> jps 1308 DeadLock
+4780 Jps &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +67,285 @@ appender的级别设置： &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/19/145826/">Java程序线程死锁分析</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-19T14:58:26+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:58 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Linux平台
+jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报：&#8221;The VM does not support the attach mechanism&#8221;错误；</p>
+
+<p>C:\Users\chad> jps 1308 DeadLock
+4780 Jps</p>
+
+<p>C:\Users\chad> F:\Software\jdk1.6.0_27\bin\jstack.exe 1308
+2012-05-19 14:45:29
+Full thread dump Java HotSpot&trade; Client VM (20.2-b06 mixed mode):</p>
+
+<p>&hellip;</p>
+
+<h1>Found one Java-level deadlock : </h1>
+
+<p>&ldquo;Thread-1&rdquo;:
+ waiting to lock monitor 0x01adee04 (object 0x03c002d8, a deadlockEx.DeadLock$Friend),
+ which is held by &ldquo;Thread-0&rdquo;
+&ldquo;Thread-0&rdquo;:
+ waiting to lock monitor 0x01ae0664 (object 0x03c002e8, a deadlockEx.DeadLock$Friend),
+ which is held by &ldquo;Thread-1&rdquo;
+&hellip;
+Found 1 deadlock.</p>
+
+<p> 测试样例（来自 Deadlock on Java docs ）：
+package deadlockEx;
+public class DeadLock {
+ static class Friend {
+  private final String name;
+  public Friend(String name) {
+   this.name = name;
+  }
+  public String getName() {
+   return this.name;
+  }
+  public synchronized void bow(Friend bower) {
+   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed to me!%n&rdquo;, this.name,
+    bower.getName());
+   bower.bowBack(this);
+  }
+  public synchronized void bowBack(Friend bower) {
+   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed back to me!%n&rdquo;, this.name,
+    bower.getName());
+  }
+ }
+ public static void main(String[] args) {
+  final Friend alphonse = new Friend(&ldquo;Alphonse&rdquo;);
+  final Friend gaston = new Friend(&ldquo;Gaston&rdquo;);
+  new Thread(new Runnable() {
+   public void run() {
+    alphonse.bow(gaston);
+   }
+  }).start();
+  new Thread(new Runnable() {
+   public void run() {
+    gaston.bow(alphonse);
+   }
+  }).start();
+ }
+} HP-UX平台</p>
+
+<p>用gcore <pid>（不支持gcore的UX可用gdb <pid>?）生成dump文件，文件名为core.<pid>，用jmap将此文件转为hprof文件，再用visualVM分析；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/19/144904/">通过dump文件分析Java程序运行状态</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-19T14:49:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java程序的快照（dump）分为两种：thread dump, heap dump。前者记录了进程（process）中各线程（Thread）（在CPU中的）运行状态主要用来解决死锁（deadlock）问题，后者记录了Java堆的情况，主要用来分析内存泄露问题。</p>
+
+<p> 生成堆dump（heapdump）文件方法
+1. 在启动Java程序时添加参数：-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=<my_dump_path>，完整示例见文末；</p>
+
+<ol>
+<li><p>启动程序；</p></li>
+<li><p>用jps或者ps指令找到此程序pid，例如17992；</p></li>
+<li><p>运行kill -3 <pid>；</p></li>
+<li><p>在my_dump_path下可以找到生成的dump文件，文件名为java_pid<pid>.hprof.&lt;date.time>，例如：java_pid17992.hprof.20120519.141323</p></li>
+</ol>
+
+
+<p>启动程序的完整脚本：</p>
+
+<h1>!/bin/sh</h1>
+
+<p>JARS=&ldquo;&rdquo;
+for i in ./*.jar; do
+ JARS=&ldquo;$JARS&rdquo;:$i
+done
+JAVA_OPTS=&ldquo;-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=$HOME/backup&rdquo;
+exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina.echoServer.EchoServer
+ 分析dump文件</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/19/105840/">在Linux系统上查找文件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-19T10:58:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Find命令</h1>
+
+<p>格式：find &lt;指定搜索范围> &lt;指定条件> &lt;指定动作></p>
+
+<p>其中搜索范围是一个目录名，指定条件包括文件名、文件属性（修改时间所属用户等）、所在位置特点（如目录深度等）等；指定动作包括打印（-print）等；</p>
+
+<p>例如：find $HOME -name &ldquo;*.sh&#8221;，查找用户根目录下所有以.sh结尾的文件，除了按文件名查找，find还可以按文件大小、类型、所属用户、用户组、修改时间、是否为空等，还可以指定找到文件后要执行的动作， 例如下面第一个指令是找到文件后运行ls命令，第3个指令是查找文件名中有echo且不属于root的文件（可以用!表示取反）：</p>
+
+<pre><code>[godu@goduserver ~]$ find ./backup/nep -name "*echo*" -ls
+124059671 8 -rwxr-xr-x 1 godu  godu   192 5月 19 10:59 ./backup/nep/echoServerStart.sh
+[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user godu 
+[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user root 
+./backup/nep/echoServerStart.sh
+find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-type l可知此目录下所有文件都为link文件。 
+</code></pre>
+
+<p>详见：<a href="http://blog.csdn.net/ydfok/article/details/1486451">linux查找文件命令find</a></p>
+
+<h2>引号问题</h2>
+
+<p>（2013-9-4更新）</p>
+
+<p>find <dest_path> -name <name_pattern>中<name_pattern>是glob格式，而且只匹配文件名，如果想用正则表达式匹配，则需要匹配完整路径名。</p>
+
+<p>例如有这样一个文件：./CalcServer/src/com/boco/deploy/ConfigLoader.java，用<code>find . -name "Co*.java"</code>可以匹配上，但<code>find . -regex "Co.*java"</code>匹配不上，因为它只匹配了文件名，而不是包括路径的完整路径名，改为<code>find . -regex ".*Co.*java"</code>就ok了。</p>
+
+<p>参考：<a href="http://bbs.chinaunix.net/thread-612012-1-1.html">http://bbs.chinaunix.net/thread-612012-1-1.html</a></p>
+
+<h2>查找条件</h2>
+
+<p>（2013-10-17更新）</p>
+
+<h3>按时间特性查找</h3>
+
+<ul>
+<li><p>find <dest_path> -newerXY <time-expr>: 查找在某个时间点之后修改（更新，生成）的文件，例如：</p>
+
+<p>  find . -newermt &lsquo;2014-01-16 00:00&rsquo; -name &lsquo;*.py&rsquo;</p>
+
+<p>查找所有修改时间晚于1月16日0点的扩展名为py的文件。</p></li>
+<li><p>find <dest_path> -mtime -1: 查找最近一天内被更改过的文件；</p></li>
+<li><p>mtime是按天查询，&#8221;-mtime -7&#8221; 查询修改时间在7天前到现在这段时间内的文件；</p></li>
+<li><p>mmin是按分钟查询，其他与mtime一样；</p></li>
+<li><p>atime, ctime分别是access time和change time（mtime是modification time），其他与mtime一样；</p></li>
+<li><p>find <dest_path> -newer <file_name> 列出所有修改时间晚于<file_name>修改时间的文件；</p></li>
+</ul>
+
+
+<h3>查找深度限制</h3>
+
+<ul>
+<li>-maxdepth <n> 用来指定查询的目录深度，一般作为find的第一个参数；</li>
+</ul>
+
+
+<h3>查找类型限制</h3>
+
+<ul>
+<li>&ldquo;-type f&rdquo; 表示只显示文件，&#8221;-type d&#8221; 表示只查询目录；另外还有l（链接），s(socket)等类型可选；</li>
+</ul>
+
+
+<h2>指定动作</h2>
+
+<ul>
+<li><p>&ldquo;-exec&rdquo;: 格式:</p>
+
+<ul>
+<li><p>find <path> <criterion> -exec <command> {} \;
+上面{}代表被查出来的项目，<command>命令以分号结尾，但为了避免分号在不同系统中的歧义，前面加反斜杠对分号进行转义；</p></li>
+<li><p>find <path> <criterion> -exec <command> {} +
+将所有find找到的条目放在一起，由<command>一次性执行，效率比&#8221;find &hellip; \;&ldquo;版本高很多；</p></li>
+</ul>
+</li>
+<li><p>&ldquo;-print&rdquo;: 主要用来在管道命令中为其他命令传值；</p></li>
+</ul>
+
+
+<h1>Locate命令</h1>
+
+<p> 相当于find -name，但速度远快于find，因为Linux维护了一个文件列表数据库（在Ubuntu上，这个数据库文件是/var/lib/mlocate/mlocate.db），locate命令查询这个数据库给出结果。由于数据库每天更新，所以如果查询最近的更改，需要手工更新数据库：</p>
+
+<pre><code>sudo updatedb
+</code></pre>
+
+<p>注意locate的搜索结果是包含路径的，所以用locate &lsquo;abc<em>&#8216;是搜不到文件名以abc开头的文件的，必须写为&#8221;</em>abc*&ldquo;;</p>
+
+<ul>
+<li>文件名部分普通匹配：locate strom；对应Emacs中M-x locate;</li>
+</ul>
+
+
+<p>只有在这种最简形式下，可以将locate &lsquo;<em>strom</em>&#8216;简写为locate storm;</p>
+
+<ul>
+<li><p>glob匹配：locate &lsquo;<em>strom</em>.gz&#8217;，搜索所有storm*.gz文件;</p></li>
+<li><p>正则匹配：locate -r &lsquo;.<em>Storm.</em>java&#8217;，或者：locate -r &rsquo;.<em>[Gg]roovy.</em>&lsquo;;</p>
+
+<p>  在特定路径下搜索指定扩展名文件：locate -r &lsquo;.<em>warez.</em>[Vv]irtual[Bb]ox.*[rpm|deb]&rsquo;</p>
+
+<p>  用正则指定文件扩展名：locate -r &lsquo;Storm.*.java&rsquo;</p></li>
+<li><p>locate+grep效果很好，先用locate进行粗选，然后在grep中细化，如查抄版本号为2.2.0的一个Hadoop安装包：locate 2.2.0|grep hadoop，或者查找所有文件名为Groovy或者groovy的文件：locate -r &lsquo;[Gg]roovy&rsquo;|grep &lsquo;[Gg]roovy&rsquo;</p></li>
+</ul>
+
+
+<p>Ref:</p>
+
+<p><a href="http://www.kuqin.com/linux/20091009/70532.html">Linux的五个查找命令</a></p>
+
+<p><a href="http://www.linuxhaxor.net/5-ways-to-search-for-files-using-the-terminal-in-linux/">5 Ways To Search For Files Using The Terminal</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -405,310 +682,6 @@ bingo!</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/25/101848/">RMI运行实例</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-25T10:18:48+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>计算机的远程通信有很多种方法， RPC 的设计目标是让一台主机（客户端）上的程序能够引用另一台主机（服务端）上对象，并运行它的方法，也就是“跨地址空间的进程间通信”， RMI 是RPC的Java语言实现。</p>
-
-<p>本实例包含5个文件：</p>
-
-<p>// ================= Hello.java ====================</p>
-
-<p>package test.rmi;</p>
-
-<p>import java.rmi.Remote;</p>
-
-<p>import java.rmi.RemoteException;</p>
-
-<p>/**</p>
-
-<ul>
-<li><p>远程方法调用接口，定义远程调用方法</p></li>
-</ul>
-
-
-<p> */</p>
-
-<p>public interface Hello extends Remote {</p>
-
-<p> String sayHello() throws RemoteException;</p>
-
-<p>}</p>
-
-<p> //=================  HelloServer.java =============================
- package test.rmi;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
-/<strong>
- <em><p>服务器端，实现了Hello接口中的方法，用于实现远程调用方法的具体业务逻辑</p>
- </em>/
-public class HelloServer extends UnicastRemoteObject implements Hello {
-  private static final long serialVersionUID = 1L;
-  String name;
-  public HelloServer(String s) throws RemoteException {
-   super();
-   name = s;
-  }
-  public String sayHello() throws RemoteException {
-   return &ldquo;Hello from lc!&rdquo;;
-  }
-  public static void main(String[] args) {
-   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
-   * 并且在命令行中使用如下格式
-   * java -Djava.security.policy=java.policy test.rmi.HelloServer
-   <em>/
-   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
-   Registry registry = null;
-   try {
-    /**启动注册服务器，使用了这个语句就不再需要在命令行环境中
-    </em>启动registry服务了
-    <em>/
-    registry = LocateRegistry.getRegistry();
-    /</em> 若没有获得连接，则此句会抛出异常，后面在捕获后进行相关处理 */
-    registry.list();
-    System.out.println(&ldquo;Register the exist server!&rdquo;); //$NON-NLS-1$
-   } catch (RemoteException re) {
-    try {
-     int port = Integer.parseInt(Configur
-        .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;)); //$NON-NLS-1$
-     registry = LocateRegistry.createRegistry(port);
-     System.out.println(&ldquo;Create Registry Server!&rdquo;); //$NON-NLS-1$
-    } catch (Exception e) {
-     e.printStackTrace();
-    }
-   }
-   try {
-    HelloServer helloServer = new HelloServer(&ldquo;Hello&rdquo;);
-    registry.rebind(
-       Configur.getString(&ldquo;HelloServer.HelloServerName&rdquo;), helloServer); //$NON-NLS-1$
-    System.out.println(&ldquo;HelloServer server start!&rdquo;); //$NON-NLS-1$
-   } catch (Exception e) {
-    e.printStackTrace();
-   }
-  }
-}</p>
-
-<p>//==================  HelloClient.java ============================
- package test.rmi;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-/<strong>
- * <p>客户端，需要注册服务器并使用jndi</p>
- */
-public class HelloClient {
-  public static void main(String[] args) {
-   /</strong>下面这句话若要加上，则需要进行权限的认证，即增加.policy文件
-   * 并且在命令行中使用如下格式
-   * java -Djava.security.policy=java.policy test.rmi.HelloServer
-   <em>/
-   /</em> System.setSecurityManager(new RMISecurityManager()); <em>/
-   try {
-    /</em> 注册服务器 */
-    String hostName = Configur
-       .getString(&ldquo;HelloServer.RegistryServerName&rdquo;);
-    int port = Integer.parseInt(Configur
-       .getString(&ldquo;HelloServer.RegistryServerPort&rdquo;));
-    Registry registry = LocateRegistry.getRegistry(hostName, port);
-    Hello hello = (Hello) registry.lookup(Configur
-       .getString(&ldquo;HelloServer.HelloServerName&rdquo;));
-    String message = hello.sayHello();
-    System.out.println(message);
-   } catch (Exception e) {
-    e.printStackTrace();
-   }
-  }
-}</p>
-
-<p>//================= Configur.java =============================
- package test.rmi;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
-/<em>*
- * <p>获取系统运行所需要的配置信息，对应的配置文件名称为config.properties</p>
- </em>/
-public class Configur {
- private static final String BUNDLE_NAME = &ldquo;test.rmi.config&rdquo;;
- private static final ResourceBundle RESOURCE_BUNDLE = ResourceBundle
-   .getBundle(BUNDLE_NAME);
- private Configur() {
- }</p>
-
-<p> /<em>*
-  * <p>通过key名称获得配置文件的相关信息</p>
-  * @param key key名称
-  * @return String 配置文件信息
-  </em>/
- public static String getString(String key) {
-  try {
-   return RESOURCE_BUNDLE.getString(key);
-  } catch (MissingResourceException e) {
-   return &lsquo;!&rsquo; + key + &lsquo;!&rsquo;;
-  }
- }
-}</p>
-
-<p>//================= config.properties =============================
- HelloServer.RegistryServerPort=1111
-HelloServer.HelloServerName=HelloServer
-HelloServer.RegistryServerName=10.31.1.71</p>
-
-<p> 源代码目录是e:\MyDoc\JEx\Ex1\src，Eclipse自动生成的class文件在e:\MyDoc\JEx\Ex1\bin（以及包目录）下。 运行方法：</p>
-
-<ol>
-<li>E:\MyDoc\JEx\Ex1\bin> rmic test.rmi.HelloServer  （rmic.exe是$JAVA_HOME/bin里的文件）</li>
-</ol>
-
-
-<p> 生成e:\MyDoc\JEx\Ex1\bin\test\rmi\HelloServer_Stub.class文件（没有生成skeleton文件）</p>
-
-<ol>
-<li>E:\MyDoc\JEx\Ex1\bin> java test.rmi.HelloServer</li>
-</ol>
-
-
-<p> Create Registry Server!
- HelloServer server start!</p>
-
-<ol>
-<li><p>关闭本机的Windows防火墙；</p></li>
-<li><p>copy HelloClient.class, HelloServer_Stub.class, Hello.class, Configur.class, config.properties到另一台机器，运行 java test.rmi.HelloClient ，返回&#8221;Hello from lc!&ldquo;。</p></li>
-</ol>
-
-
-<p>要运行Server只需要Hello.class, HelloServer.class, Configur.class, config.properties 4个文件，HelloServer_Stub.class只在客户端需要。</p>
-
-<p>可以看到客户端新建了一个Hello类型的对象，然后调用了这个对象的方法sayHello，而这个对象和方法的定义在另一台主机上。</p>
-
-<p>RMI是一种同步调用方式，也就是说代码运行到&#8221;String message = hello.sayHello()&ldquo;是会阻塞（block），直到服务端返回sayHello的结果，与此相对， JMS 是异步发送消息，客户端发送完消息后不等待结果返回，运行后面的代码。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/20/094834/">动态和静态类型语言中实现回调的方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-20T09:48:34+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:48 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>静态语言实现回调的方法有待后续补充；</p>
-
-<p> Twisted Introduction from KRONDO by Dave Peticolas, Part6中使用的源代码twisted-client-3\get-poetry.py很好的阐述了python中实现回调（call back）的方法，下面是get-poetry.py的简化版：
- from twisted.internet.protocol import Protocol, ClientFactory</p>
-
-<p> class PoetryProtocol(Protocol):
-  poem = &lsquo;&rsquo;
-  def dataReceived(self, data):
-   self.poem += data
-  def connectionLost(self, reason):
-   self.poemReceived(self.poem)
-  def poemReceived(self, poem):
-   self.factory.poem_finished(poem)</p>
-
-<p> class PoetryClientFactory(ClientFactory):
-  protocol = PoetryProtocol</p>
-
-<p>  def <strong>init</strong>(self, callback):
-   self.callback = callback  # 将回调函数作为属性写入facotry对象中</p>
-
-<p>  def poem_finished(self, poem):
-   self. callback (poem)   # 神奇的是这个“属性”可以当方法用，只要在后面直接加括号和参数就OK了
- def get_poetry(host, port, callback ):
-  from twisted.internet import reactor
-  factory = PoetryClientFactory(callback)
-  reactor.connectTCP(host, port, factory)</p>
-
-<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:
-  def got_poem (poem):
-   poems.append(poem)
-   if len(poems) == len(addresses):
-    reactor.stop()
-  for address in addresses:
-   host, port = address
-   get_poetry(host, port, got_poem ) # 将回调方法方法作为参数传给factory对象</p>
-
-<p> 回调方法的本质是：从服务器下载诗句，当下载完成时做某件事，如何做这件事（做这件事的步骤）就定义在回调函数get_poem中。同步方式下，下载完成等同于下载诗句的函数返回，异步方式下不能这么办，只能由感知到事件发生的对象运行回调函数这种方法达到目的。本例中，服务器在诗句下载完成后关闭与客户端的连接，所以客户端的protocol对象的 connectionLost方法（也是一个call back函数）首先感知到下载完成，然后调用自己对应的factory对象的poem_finished方法，在poem_finished方法中使用get_poem方法处理下载完的poem。这里的关键是我们用写入属性的方法将回调函数赋给factory对象，factory就可以在接到（来自于protocol对象的）通知的时候运行这个“属性方法”。Part 6的Figure 11很好的图示了上述过程。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/20/083747/">Bat脚本的非阻塞调用</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-20T08:37:47+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:37 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>例如现在要启动3个Server，每个都监听一个端口，因此需要在调用脚本之外的进程里运行，这就需要start命令：</p>
-
-<p> start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10000 poetry/ecstasy.txt &ndash;num-bytes 30
-start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10001 poetry/fascination.txt
-start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10002 poetry/science.txt</p>
-
-<p>如果用call取代start，脚本会阻塞在第一个调用中，直到第一个调用返回才启动第二个。</p>
-
-<p>使用set为变量赋值时，注意等号左右不要留空格，否则变量名和变量值会包括这些空格。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/75">&larr; Older</a>
@@ -726,23 +699,23 @@ start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

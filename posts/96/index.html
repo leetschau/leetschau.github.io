@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="一个项目的Ivy文件（ivy.xml）主要定义了项目的三部分内容： 项目本身属性：例如开发项目的组织名称，项目名称、项目版本、项目状态、发布日期等； 项目发布产品的定义：逐条列出项目发布的产品，每个产品条目包括：产品名称、产品类型、产品扩展名等； 项目依赖产品的定义： &hellip;">
+  <meta name="description" content="使用Ant+JUnit跑测试用例时如果出现“NoClassDefFoundError”问题，注意一下classpath里的JUnit版本是否为4.5，如果是将其替换为4.0或者4.8。 参见： http://stackoverflow.com/questions/1171264/ant-junit &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,297 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/12/15/113825/">Ant + JUnit: NoClassDefFoundError问题解决办法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-12-15T11:38:25+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:38 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>使用Ant+JUnit跑测试用例时如果出现“NoClassDefFoundError”问题，注意一下classpath里的JUnit版本是否为4.5，如果是将其替换为4.0或者4.8。
+ 参见：
+  <a href="http://stackoverflow.com/questions/1171264/ant-junit-noclassdeffounderror">http://stackoverflow.com/questions/1171264/ant-junit-noclassdeffounderror</a></p>
+
+<p> 使用<test>标签运行JUnit测试时，test的name属性要写类的全名，否则会报“ NoClassDefFoundError”错误，例如：
+ <test name="com.boco.godu.gapi.AdminFilterTest" todir="${test.xml.result}">
+  <formatter type="xml" /></p>
+
+<p> </test>
+ 如果name写成“ AdminFilterTest ”，则出 “ NoClassDefFoundError”错误 。</p>
+
+<p> <junit>的子标签<classpath>中，若需要引用class文件，使用<pathelement path="${test.class.dir}"/>，其中test.class.dir定义为：
+ <property name="test.class.dir" value="${build.dir}/test"/>
+ 若需要引用jar文件，则使用<path refid="lib.path"/>，其中&#8221;lib.path&#8221;定义为：
+ <path id="lib.path"></p>
+
+<p>  <fileset dir="${build.lib.dir}"></p>
+
+<p>  <include name="**/*.jar"/></p>
+
+<p>  </fileset></p>
+
+<p>  </path></p>
+
+<p> 完整的测试任务实例如下：
+  <target name="unit_test" depends="compile">
+   <javac srcdir="${test.src.dir}" destdir="${test.class.dir}"
+    classpathref="lib.path" classpath="${build.class.dir}"
+    encoding="GBK" optimize="off" debug="on"/>
+   <junit printsummary="yes" haltonfailure="no">
+    <classpath>
+     <pathelement path="${test.class.dir}"/>
+     <pathelement path="${build.class.dir}"/>
+     <path refid="lib.path"/>
+    </classpath>
+    <test name="com.boco.godu.gapi.AdminFilterTest" todir="${test.xml.result}">
+     <formatter type="xml" />
+    </test>
+   </junit>
+   <junitreport todir="${test.report.dir}">
+    <fileset dir="${test.xml.result}">
+     <include name="TEST-*.xml" />
+    </fileset>
+    <report format="noframes" todir="${test.report.dir}" />
+   </junitreport>
+  </target></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/12/09/180259/">自动生成srt格式的脚本（Python实现）</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-12-09T18:02:59+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>6:02 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>用威力导演制作短片，这个软件有个导入srt字幕的功能，可以写好文本后一次性导入短片的字幕，比手工在威力导演里写快多了，srt文本中，每一条字幕的格式是：
+ 序号
+ 起止时间
+ 字幕内容</p>
+
+<p>例如：
+ 1
+ 00:00:08,0 &ndash;> 00:00:13,0
+ 发展历程</p>
+
+<p> 2
+ 00:00:13,0 &ndash;> 00:00:18,0
+ 2006年
+ 通用产品线正式成立
+ &hellip;</p>
+
+<p>这种格式在字幕的条数发生变化时修改起来很麻烦，比如一共有50条字幕，在第3条后加一条新字幕，则后面47条的序号、起止时间点都要修改，简直是噩梦，为此编写了下面的Python脚本，现在只要将字幕写成如下格式，用脚本处理后就能生成上面要求的格式了：</p>
+
+<p> 发展历程</p>
+
+<p> 2006年
+ 通用产品线正式成立
+ &hellip;</p>
+
+<p>其中主要的技术点有（Python 3.1）：
+ 时间偏移用timedelta对象，时间点用datetime对象，不能用time对象，因为time对象和timedelta对象不能做和； 时间转换为字符串的方法是strftime() 地址字符串要用“/”代替“\”；
+将待处理文件保存为ANSI格式文本，在脚本里配好地址（这里是“f:/视频制作”）就可以了。</p>
+
+<p>下面是脚本内容：</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> from datetime import datetime, timedelta</p>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  #读原始文件</p>
+
+<p>  oriScript = open(&lsquo;f:/视频制作/rawScript.srt&rsquo;,&lsquo;rt&rsquo;)</p>
+
+<p>  #写目标文件</p>
+
+<p>  destScript = open(&lsquo;f:/视频制作/destScript.srt&rsquo;,&lsquo;wt&rsquo;)</p>
+
+<p>  try:</p>
+
+<p>   block = &lsquo;&rsquo;</p>
+
+<p>   seqNo = 1</p>
+
+<p>   startTime = datetime(1980,1,1,0,0,8)</p>
+
+<p>   for curLine in oriScript:</p>
+
+<pre><code>#print(len(curLine)) 
+
+if curLine.isspace() and len(block)&gt;0: #本行是空行 
+
+ destScript.write(str(seqNo)+'\n') #写字幕序号 
+
+ endTime = startTime+timedelta(seconds=5) 
+
+ #写起止时间： 
+
+ destScript.write(startTime.strftime("%X") + ',0 --&gt; '+ endTime.strftime("%X") + ',0\n') 
+
+ destScript.write(block+'\n') 
+
+ block = '' #清空缓存 
+
+ seqNo = seqNo + 1 #序号递增 
+
+ startTime = endTime #本条的终止时间是下一条的起始时间 
+
+else: 
+
+ block = block + curLine #当前行追加到缓存中 
+</code></pre>
+
+<p>  finally:</p>
+
+<p>   oriScript.close()</p>
+
+<p>   destScript.close()</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/12/08/163752/">Hudson/Jenkins 笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-12-08T16:37:52+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>ivy的settings文件在【Manage Hudson->Configure System->Global properties->Environment variables->Add】中设置；</p></li>
+<li><p>build.xml中需要的变量可以在项目的Configure->Build->Advanced->Properties】中添加，例如： ivy.settings.path=d:/workspace/ivysettings.xml ；</p></li>
+<li><p>一个job的源代码在该job的【Configure->Source Code Management->Subversion->Modules->Repository URL】中指定，例如： <a href="http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/GAPI">http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/GAPI</a> ；</p></li>
+<li><p>发送Email在【Manage Hudson->Configure System->E-mail Notification】中指定，【SMTP server】指定邮件服务器的IP地址（可用 ping boco.com.cn 获取），【System Admin E-mail Address】写上发件人Email地址，【Advanced->Use SMTP Authentication】下写上发件人的用户名和密码；</p></li>
+<li><p>如果Hudson服务器设置了安全管理，匿名用户无法管理，可以将hudson根目录下的config.xml中的<authorizationStrategy .../>改为 <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
+即可。</p></li>
+</ul>
+
+
+<p>2013-05-09更新：</p>
+
+<ul>
+<li><p>安装为Windows服务：用java -jar jenkins.war启动后在管理界面中点击“Install as a windows service”，安装完毕后在控制面板的服务里可以看到一个名为&#8221;jenkins&#8221;的系统服务，启动类型为“自动”，这样每次启动机器后jenkins服务就自动启动了，参考 <a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+as+a+Windows+service">https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+as+a+Windows+service</a></p></li>
+<li><p>修改界面语言：Jenkins使用浏览器的语言作为它的界面语言，所以如果使用IE的话可以通过更改iE的语言配置达到更改Jenkins界面语言的目的：IE菜单->Internet选项->常规->外观->语言，将英语放在语言列表的第一位。</p></li>
+<li><p>配置邮件帐号：</p>
+
+<p>[Jenkins Location -> System Admin e-mail address]中填写管理员email地址，此地址将作为BVT的发送地址；</p>
+
+<p>[邮件通知 -> SMTP服务器] 中写邮件服务器的ip地址；勾选“使用SMTP认证”，“用户名”和“密码”填写管理员帐号的用户名和密码；</p>
+
+<p>验证方法：勾选“通过发送测试邮件测试配置”，填写&#8221;Test e-mail recipient&#8221;地址，然后点击&#8221;Test configuration&#8221;；</p></li>
+<li><p>隐藏Disable状态的Project</p></li>
+</ul>
+
+
+<p>新建一个View，在[Job Filters -> Status Filter]中选择&#8221;Enabled jobs only&#8221;;</p>
+
+<ul>
+<li>Trouble Shooting</li>
+</ul>
+
+
+<p>如果报找不到Gradle.bat错误，尝试将浏览器默认语言改为中文，Jenkins全局配置的GRADLE_HOME的路径名后面加反斜杠；</p>
+
+<p>如果Gradle构建成功，提取测试结果失败，在项目配置里，Gradle Task中写两个任务：clean和build；</p>
+
+<h1>install jenkins on Ubuntu</h1>
+
+<p>install jenkins FAILED following these instructions on jenkins official site:</p>
+
+<pre><code>wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+sudo sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ &gt; /etc/apt/sources.list.d/jenkins.list' 
+sudo apt-get update 
+sudo apt-get install jenkins 
+</code></pre>
+
+<p>So download jenkins.war manually and start it as following:</p>
+
+<pre><code>nohup java -jar jenkins.war 1&gt;jenkins.log 2&gt;jenkins.log &amp;
+</code></pre>
+
+<p>reinstall jenkins plugin failed for some reason, so if you upgrade jenkins, you have to:</p>
+
+<ol>
+<li><p>stop jenkins service</p></li>
+<li><p>remove $HOME/.jenkins folder;</p></li>
+<li><p>download new jenkins.war;</p></li>
+<li><p>restart jenkins service.</p></li>
+</ol>
+
+
+<p>some other dir:</p>
+
+<p>/etc/logrotate.d/jenkins
+/etc/jenkins
+/etc/default/jenkins
+/usr/share/jenkins
+/var/lib/jenkins
+/var/log/jenkins
+/opt/jenkins
+/run/jenkins
+/root/.jenkins</p>
+
+<p><a href="http://jenkins.361315.n4.nabble.com/remove-jenkins-and-install-new-one-td3947139.html">remove jenkins and install new one</a> give some good advices to remove Jenkins completely.</p>
+
+<p>基于Jenkins 1.5。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -537,230 +828,6 @@ Eclipse默认的配色还不错，就是白色的背景太亮了，将背景色�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/11/11/102004/">Python代码的打包和部署工具</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-11-11T10:20:04+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:20 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>setuptools，详情google: python setuptools</p>
-
-<p>等同于java中的jar，python叫作egg，也就是“蛇蛋”</p>
-
-<p>与java中classpath对应的概念是sys.path</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/11/05/102205/">Eclipse的变量标记开关</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-11-05T10:22:05+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:22 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>例如有如下代码：</p>
-
-<p>int var_a = 0;
-int var_b = var_a + 2;</p>
-
-<p>当光标在var_a变量上时，Eclipse会将代码进行如下标记：
- int var_a = 0;</p>
-
-<p> int  var_b = var_a + 2;</p>
-
-<p> 这一特性在编写和分析代码时很有用，当这一功能关闭时，用如下方法打开此功能：</p>
-
-<p> Eclipse菜单->Window->Preferences->Java->Editor->Mark Occurences，勾选“Mark occurences of the selected element in the current file”以及下面的所有选项。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/11/03/114432/">Ivy使用手册</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-11-03T11:44:32+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>11:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>安装和配置</p>
-
-<p> 安装  Ivy</p>
-
-<p> 下载并解压 Ivy-2.2.0 ；</p>
-
-<p> Eclipse->Window->Preferences->Ant->Runtime->Global Entries->Add External JARs ，添加 IVY 压缩包里的 ivy-2.2.0.jar 和 jsch-0.1.31.jar 。</p>
-
-<p> 安装  IvyDE</p>
-
-<p> Eclipse->Help->Install New Software->Add->Location 设为：</p>
-
-<p> <a href="http://www.apache.org/dist/ant/ivyde/updatesite">http://www.apache.org/dist/ant/ivyde/updatesite</a></p>
-
-<p> 根据要求完成后续安装过程。</p>
-
-<p> 配置  Ivy</p>
-
-<p> Eclipse->Window->Preferences->Ivy->Settings->Ivy settings path 设为：</p>
-
-<p> ${project_loc}/ivysettings.xml</p>
-
-<p> 开发过程改进</p>
-
-<p> 项目根目录下将不再有 lib 文件夹，相应地两个文件： ivy.xml 和 ivysettings.xml ，开发人员在 ivy.xml 中声明本项目依赖的包（包括第三方包和其他项目的发布包）， ivysettings.xml 定义项目共享库的位置以及从库中获取包的方法。这两个文件由共享库管理员维护，通过 SVN 保持项目成员间的一致。</p>
-
-<p> classpath  整合</p>
-
-<p> 使用 Ivy 的第一步是将 Ivy 管理的依赖包整合进项目的 classpath 中，首先将项目依赖写入 ivy.xml 文件，然后设置项目属性： Java Build Path->Libraries->Add Library->IvyDE Managed Dependencies ，后面使用默认设置即可。</p>
-
-<p> 依赖管理</p>
-
-<p> 开发过程中需要增加依赖包时，根据包的类型不同分两种情况分别说明。</p>
-
-<p> 引用第三方包</p>
-
-<p> 以 dom4j-1.6.1 为例，在 Maven 共享库 上搜索“ dom4j ”，选择搜索结果中的“ dom4j>dom4j ”，点击进入后选择 1.6.1 版，点击进入后找到“ Apache Ivy ”，将下面的内容（依赖说明）</p>
-
-<p> <dependency org="dom4j" name="dom4j" rev="1.6.1"/></p>
-
-<p> 拷贝到 ivy.xml 中，并增加“ transitive=&ldquo;false&rdquo; ”（以避免下载 dom4j 的依赖包）：</p>
-
-<p> <ivy-module ></p>
-
-<p> <info  /></p>
-
-<p>  <publications></p>
-
-<p>  </p>
-
-<p>  </publications></p>
-
-<p> <dependencies></p>
-
-<p>   <dependency org="dom4j" name="dom4j" rev="1.6.1" transitive="false"/></p>
-
-<p>   </p>
-
-<p>  </dependencies></p>
-
-<p> </ivy-module></p>
-
-<p> 保存文件后如果出现“包无法解析”错误，说明共享库中没有此三方包，需要将依赖说明发给共享库管理员，由其更新共享库后重新解析即可。</p>
-
-<p> 引用项目发布包</p>
-
-<p> 在 ivy.xml 中添加：</p>
-
-<p> <dependency org="com.boco" name="godu" rev="2.1" transitive="false"/></p>
-
-<p> 定义项目发布包</p>
-
-<p> 定义本项目所发布的产品，以便于其他项目引用，在 ivy.xml 的 publications 部分声明产品名称、类型、扩展名等，例如：</p>
-
-<p> <ivy-module ></p>
-
-<p>  <info  /></p>
-
-<p>  <publications></p>
-
-<p>   <artifact name="gapi" type="jar" ext="jar" /></p>
-
-<p>  </publications></p>
-
-<p> <dependencies></p>
-
-<p>   </p>
-
-<p>  </dependencies></p>
-
-<p> </ivy-module></p>
-
-<p> 发布过程改进</p>
-
-<p> 打包脚本</p>
-
-<p> 纯 Ant 打包脚本向 Ant+Ivy 打包脚本迁移非常简单，只要在编译任务开始前增加“获取”任务，其他完全保持不变：</p>
-
-<p> <target name="resolve" depends="init" description=""></p>
-
-<p>  &lt;ivy:retrieve pattern=&ldquo;${lib.dir}/[artifact].[ext]&rdquo;/></p>
-
-<p> </target></p>
-
-<p> 通过修改 pattern 属性，可以将依赖包在 lib 文件夹里以不同的方式组织，例如安装“类型”属性分文件夹放置：</p>
-
-<p> pattern=&ldquo;${lib.dir}/[type]/[artifact].[ext]&rdquo;</p>
-
-<p> 发布项目产品</p>
-
-<p> 在 ant 脚本中添加以下任务：</p>
-
-<p> <target name="publish" depends="compile" description=""></p>
-
-<p>   &lt;ivy:publish artifactspattern=&ldquo;${build.dist.dir}/[artifact].[ext]&rdquo;</p>
-
-<pre><code> resolver="" status="" pubrevision=""/&gt; 
-</code></pre>
-
-<p> </target></p>
-
-<p> release 发布时， status=release ，非 release 发布时，去掉 status 和 pubrevision 属性。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/97">&larr; Older</a>
@@ -778,23 +845,23 @@ int var_b = var_a + 2;</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Python | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/python/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-04-02T09:35:25+08:00</updated>
+  <updated>2015-04-15T10:58:04+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,69 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Python的Generator和yield]]></title>
+    <link href="http://leetschau.github.io/blog/2015/04/08/161006/"/>
+    <updated>2015-04-08T16:10:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/04/08/161006</id>
+    <content type="html"><![CDATA[<p>下面的代码演示了yield的一个使用场景：</p>
+
+<pre><code>def fab(max): 
+    n, a, b = 0, 0, 1 
+    while n &lt; max: 
+        yield b 
+        # print b 
+        a, b = b, a + b 
+        n = n + 1 
+
+for n in fab(5):
+    print(n)
+</code></pre>
+
+<p>简单地讲，yield的作用就是把一个函数变成一个Generator，
+带有yield的函数不再是一个普通函数，Python解释器会将其视为一个Generator，
+调用<code>fab(5)</code>不会执行fab函数，而是返回一个iterable对象。
+在for循环执行时，每次循环都会执行fab函数内部的代码，执行到<code>yield b</code>时，
+fab 函数就返回一个迭代值，下次迭代时，代码从<code>yield b</code>的下一条语句继续执行，
+而函数的本地变量看起来和上次中断执行前是完全一样的，于是函数继续执行，直到再次遇到<code>yield</code>。</p>
+
+<p>上面的<code>fab</code>函数也可以返回一个List，与Generator相比，缺点是内存使用量会很大，
+比如要读取一个10GB的文件，如果直接使用f.read()会把整个文件加载到内存中，
+用Generator代替List，可以保证内存使用量是固定的，例如下面的1024字节：</p>
+
+<pre><code>def read_file(fpath): 
+    BLOCK_SIZE = 1024 
+    with open(fpath, 'rb') as f: 
+        while True: 
+            block = f.read(BLOCK_SIZE) 
+            if block: 
+                yield block 
+            else: 
+                return
+</code></pre>
+
+<p>上面的文件读取是为了演示yield的用法，在实际读取文件时，
+如果是大文件，不能一次性载入所有内容，使用for循环，一次载入一行到内存：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    for line in f:
+        print(line)
+</code></pre>
+
+<p>反之，如果文件比较小，需要一次性载入内存，使用<code>readlines()</code>方法：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    lines = f.readlines()
+</code></pre>
+
+<p>参考：</p>
+
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-cn-python-yield/">Python yield 使用浅析</a></p>
+
+<p><a href="https://docs.python.org/2/tutorial/inputoutput.html">7. Input and Output</a> in <a href="https://docs.python.org/2/tutorial/index.html">The Python Tutorial</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[System Monitor Tools for Linux Server]]></title>
@@ -423,85 +486,6 @@ $ hadoop fs -cat gutenberg-output/part-00000
 </code></pre>
 
 <p>Verified on CDH 4.3, built on 8 CentOS 6.3 64bit host, Python 2.6.6, 2014-8-7.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Manage Python Versions With Pyenv]]></title>
-    <link href="http://leetschau.github.io/blog/2014/08/06/144020/"/>
-    <updated>2014-08-06T14:40:20+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/08/06/144020</id>
-    <content type="html"><![CDATA[<p><a href="https://github.com/yyuu/pyenv">pyenv</a> is python equivalent of rvm of ruby.
-It can replace the virtualenvwrapper, and there&rsquo;s no need to install virtualenv before pyenv.
-It will install virtualenv automatically.</p>
-
-<p>On ArchLinux, you just install it according its documents on the website:</p>
-
-<pre><code>$ curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-</code></pre>
-
-<p>But on Mint 17, you have to install libraries beforehand:</p>
-
-<pre><code>$ sudo apt-get install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl
-</code></pre>
-
-<p>Then run &ldquo;curl &hellip;&rdquo; to install it.</p>
-
-<p>Then add &ldquo;export &hellip; eval &hellip;&rdquo; into ~/.zshrc according to its prompt at the end of the installation.</p>
-
-<h1>Usage</h1>
-
-<pre><code>$ pyenv commands         // list all available commands
-$ pyenv install -l       // list all available versions to install
-$ pyenv install 2.6.6
-$ pyenv rehash           // run this command after install a new version
-$ pyenv versions         // list all installed versions
-$ pyenv shell 2.6.6      // set python version to 2.6.6 in this session (shell)
-$ pyenv local 2.6.6      // create a .python-version file under CWD, it will use 2.6.6 afterwards according to this file
-$ pyenv shell system     // go back to use the system python version
-$ pyevn which python     // check the python path in current environment
-$ pyenv uninstall 2.6.6
-</code></pre>
-
-<h2>No Special Package Nedded</h2>
-
-<p>If your python project need no special dependency packages, use <code>pyenv local 2.6.6</code> is a good idea.
-It only create a .python-version under the folder. Very clean.</p>
-
-<h2>Need Install Package</h2>
-
-<p>If your project need some package, which you don&rsquo;t want to put into system environment, use</p>
-
-<pre><code>$ pyenv virtualenv 2.6.6 myproj
-</code></pre>
-
-<p>Now you have a INDEPENDENT python environment based on 2.6.6. You can verify this by run:</p>
-
-<pre><code>$ cd myproj
-$ pyenv activate myproj
-$ pyenv which python
-/home/chad/.pyenv/versions/myproj/bin/python
-$ pyenv deactivate
-</code></pre>
-
-<h1>Fabric on ArchLinux</h1>
-
-<p>Fabric uses library paramiko, which is incompatible with Python 3.x.
-After fabric installed on ArchLinux with pip, when you run <code>fab test</code>, a &ldquo;cannot import name isMappingType&rdquo; error occurs.
-So we need install a Python 2.7, then install fabric based on it:
-<code>
-pyenv install 2.7.8
-pyenv shell 2.7.8
-pip install fabric
-</code>
-Now create a test fabfile.py:
-<code>
-def test():
-    print("hello world")
-</code>
-And run it: <code>fab test</code>.</p>
-
-<p>In a new shell, run fabric with <code>pyenv shell 2.7.8; fab test</code>.</p>
 ]]></content>
   </entry>
   

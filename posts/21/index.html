@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="i3 is a good wm(window manager), it&rsquo;s powerful and easy to install. It supports system tray, app like golden-dict will have a icon in system &hellip;">
+  <meta name="description" content="Partition Disk and Install 32bit Arch Linux Create usb install key: $ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,301 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/03/105044/">Install 32bit Arch Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-03T10:50:44+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Partition Disk and Install 32bit Arch Linux</h1>
+
+<ol>
+<li><p>Create usb install key:</p>
+
+<p> $ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync</p></li>
+<li><p>Startup laptop with usb key and select &ldquo;Boot Arch Linux (i686)&rdquo;;</p></li>
+<li><p>Connect wifi:</p>
+
+<p> # wpa_supplicant -B -i wlp5s0 -c &lt;(wpa_passphrase TP-LINK_PocketAP_8344C2 py25)
+ # dhcpcd wlp5s0</p></li>
+<li><p>Partition disk:</p>
+
+<p> # sgdisk &ndash;zap-all /dev/sda
+ # cgdisk /dev/sda    // create 20G, 50G, 20G, 50G, 20G, 50G, 20G, 50G, 105G, totally 9 partitions
+ // This is a gpt partition, where can&rsquo;t install Windows, because Windows only support MBR partition
+ # parted /dev/sda print   // print the partition tables
+ # mkfs.ext4 /dev/sda1
+ # mkfs.ext4 /dev/sda2
+ # lsblk -f                // display the current partition layout</p></li>
+<li><p>Mount partition:</p>
+
+<p> # mount /dev/sda1 /mnt
+ # mkdir /mnt/home
+ # mount /dev/sda2 /mnt/home</p></li>
+<li><p>Select a mirror:</p>
+
+<p> # vi /etc/pacman.d/mirrorlist</p></li>
+<li><p>Install the base system: (so cool~)</p>
+
+<p> # pacstrap -i /mnt base</p></li>
+<li><p>Create fstab and chroot:</p>
+
+<p> # genfstab -U -p /mnt >> /mnt/etc/fstab
+ # arch-chroot /mnt /bin/bash</p></li>
+<li><p>Set locale:</p>
+
+<p> # vi /etc/locale.gen  // uncomment en_US.UTF-8 &amp; zh_CN.UTF-8
+ # locale-gen
+ # echo LANG=en_US.UTF-8 > /etc/locale.conf
+ # export LANG=en_US.UTF-8
+ # setfont Lat2-Terminus16 (optional)</p></li>
+<li><p>Set time zone:</p>
+
+<p> # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime    // now <code>date</code> command will give corrent time
+ # hwclock &ndash;systohc &ndash;utc</p></li>
+<li><p>Set hostname:</p>
+
+<p> # echo blackpad > /etc/hostname
+ # vi /etc/hosts</p></li>
+<li><p>Config wireless (modify the wireless name based on your machine):</p>
+
+<p> # pacman -S iw wpa_supplicant dialog wpa_actiond
+ # systemctl enable <a href="&#x6d;&#x61;&#105;&#x6c;&#x74;&#x6f;&#x3a;&#110;&#x65;&#x74;&#99;&#x74;&#108;&#45;&#97;&#117;&#116;&#111;&#x40;&#119;&#x6c;&#112;&#x35;&#x73;&#48;&#46;&#x73;&#101;&#114;&#118;&#x69;&#x63;&#x65;">&#x6e;&#x65;&#116;&#99;&#116;&#108;&#x2d;&#x61;&#x75;&#x74;&#111;&#x40;&#x77;&#108;&#x70;&#x35;&#x73;&#48;&#46;&#x73;&#x65;&#x72;&#x76;&#105;&#x63;&#101;</a></p></li>
+<li><p>Set root passwd:</p>
+
+<p> # passwd</p></li>
+<li><p>Install and configure a bootloader:</p>
+
+<p> # pacman -S gptfdisk
+ # pacman -S syslinux     // install syslinux boot loader because we create gpt partition earlier. Install grub will produce an error.
+ # syslinux-install_update -i -a -m
+ # vi /boot/syslinux/syslinux.cfg     // modify &ldquo;APPEND root=/dev/sda1 rw&rdquo; in &ldquo;LABEL arch&rdquo; section</p></li>
+<li><p>Shutdown, unplugged usb key and restart laptop;</p></li>
+<li><p>Start wifi connection:</p>
+
+<p> # wifi-menu wlp5s0     // get interface name with <code>iw dev</code></p></li>
+</ol>
+
+
+<p>Choose a SSID, enter the key, press &ldquo;OK&rdquo;, then you can see &ldquo;Interface wlp5s0 is controlled by netctl-auto&rdquo;, use <code>ip addr</code> or <code>ping ...</code> to verify network.</p>
+
+<ol>
+<li><p>Install SSH service:</p>
+
+<p> # pacman -Syu openssh
+ # systemctl start sshd
+ # systemctl enable sshd.service</p></li>
+</ol>
+
+
+<h1>Install the second System</h1>
+
+<ol>
+<li><p>Start laptop with YUMI usb key;</p></li>
+<li><p>Startup a openSUSE 13.1 live dvd, install system on /dev/sda3 and /dev/sda4, reboot;</p></li>
+<li><p>startup laptop, it prints: multiple active partitions, start failed;</p></li>
+<li><p>Startup labtop with Arch USB key, delete openSUSE partitions, reboot, Arch is back;</p></li>
+<li><p>Startup a CentOS live DVD, install system on /dev/sda3 and /dev/sda4, rebuild boot loader, reboot;</p></li>
+<li><p>Startup laptop, only CentOS can start, it print &ldquo;boot error&rdquo; when choose &ldquo;Arch Linux&rdquo; to start;</p></li>
+<li><p>Startup labtop with Arch USB key, delete CentOS partitions, reboot, only a GNU Grub command line;</p></li>
+</ol>
+
+
+<p>This experiment failed.</p>
+
+<h1>Install i3</h1>
+
+<pre><code># useradd -m -s /usr/bin/bash chad
+# pacman -S xorg-server xorg-server-utils xorg-xinit
+# pacman -S dmenu i3
+# pacman -S gnome     // this big one (almost 1GB) is necessary, only gnome-shell can't work
+# pacman -S xf86-video-intel xf86-input-synaptics
+// video and touchpad driver, there will be a "could not open module intel" error without them
+// they take effect after installation without reboot
+# su - chad
+$ echo "exec i3" &gt;  ~/.xinitrc
+$ startx
+</code></pre>
+
+<h1>Install Chinese IM</h1>
+
+<pre><code># pacman -S ibus-libpinyin
+# su - chad
+$ ibus-setup
+</code></pre>
+
+<p>Then select &ldquo;Chinese - Intelligent Pinyin&rdquo; under &ldquo;Input Method&rdquo; tab, and click &ldquo;Preferences&rdquo; to customize it.
+The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
+&ldquo;ibus-pinyin&rdquo; can&rsquo;t work properly.
+&ldquo;ibus-rime&rdquo; can only input traditional Chinese.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/02/133411/">Gentoo Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-02T13:34:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:34 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<p>Follow <a href="http://www.gentoo.org/doc/en/handbook/handbook-x86.xml">Gentoo Linux x86 Handbook</a>.</p>
+
+<ol>
+<li><p>Download gentoo install CD install-x86-minimal-20140415.iso from its website <a href="http://distfiles.gentoo.org/releases/x86/autobuilds/current-install-x86-minimal/">x86 minimal site</a>;</p></li>
+<li><p>Create USB installer: <code>dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync</code>;</p></li>
+<li><p>Use this usb key start the laptop;</p></li>
+<li><p>Create a wpa_supplicant conf file:</p>
+
+<p> $ cat /etc/wpa_supplicant/wpa_supplicant.conf
+ network={
+     ssid=&ldquo;TP-LINK&hellip;&rdquo;
+     psk=&ldquo;py&hellip;&rdquo;
+     scan_ssid=1
+     proto=WPA2
+ }</p></li>
+<li><p>Connect WiFi: <code>/etc/init.d/wpa_supplicant start</code>, verify: ping another host in your wifi network;</p></li>
+<li><p>Test network with <code>ping www.baidu.com</code>, if you can&rsquo;t connect to it, config network:</p>
+
+<p> # ifconfig wlp5s0 down
+ # ifconfig wlp5s0 192.168.1.103 broadcast 192.168.1.255 netmask 255.255.255.0 up
+ # route add default gw 192.168.1.253   // get gateway IP with <code>route -n</code> on another host</p></li>
+</ol>
+
+
+<p>If you still can&rsquo;t ping a internet website, run <code>dhcpcd wlp5s0</code> to generate nameservers(stored in /etc/resolv.conf);</p>
+
+<ol>
+<li><p>Partition disk;</p></li>
+<li><p>The command &ldquo;emerge-webrsync&rdquo; in step &ldquo;Configuring Portage&rdquo; which download Portage snapshot from 163.com is very slow(about 15 minutes);</p></li>
+<li><p>Config kernel manually: <code>make menuconfig</code>: Processor type and features -> Processor family: Core 2/newer Xeon, but there are many errors due to hardware info mismatch. So I give up and use &ldquo;genkernel&rdquo; utility to compile the kernel. It takes about 25 minutes;</p></li>
+<li><p><code>ls /boot/kernel*</code>: /boot/kernel-genkernel-x86-3.12.13-gentoo; <code>ls /boot/initr*</code>: /boot/initramfs-genkernel-x86-3.12.13-gentoo</p></li>
+<li><p>Install vim with <code>emerge vim</code>;</p></li>
+<li><p><code>emerge sys-boot/grub</code> is slow;</p></li>
+<li><p>After reboot, only loopback nic is detected wiht <code>ifconfig</code> command.</p>
+
+<p> # modprobe wlp5s0
+ modprobe: FATAL: Module wlp5s0 not found
+ # ifconfig wlp5s0 up
+ wlp5s0: ERROR while getting interface flags: No such device
+ # dmesg | grep iwlwifi
+ &hellip; request for firmware file &lsquo;iwlwifi-1000-5.ucode&rsquo; failed.
+ &hellip;</p>
+
+<p> # genkernel &ndash;menuconfig all
+ mark &ldquo;Intel Wireless WiFi MVM Firmware support&rdquo;
+ Device Drivers -> Network device support (NETDEVICES) -> Wireless LAN (WLAN) -> IEEE 802.11 for Host AP -> Support downloading firmw
+                                                       -> ISDN Support -> Siemens Gigaset support
+                                                       -> Ethernet driver support: all intel ethernet drivers
+ # emerge -v iwlwifi-1000-5.ucode</p></li>
+</ol>
+
+
+<p>Start with usb key, Create a wpa_supplicant conf file;</p>
+
+<pre><code># /etc/init.d/wpa_supplicant start  // connect to wifi.
+# mount /dev/sda4 /mnt/gentoo  // 4.f: Mounting
+# mkdir /mnt/gentoo/boot
+# mount /dev/sda2 /mnt/gentoo/boot
+# mount -t proc proc /mnt/gentoo/proc // 6.a. Chrooting: Mounting the necessary Filesystems;
+# mount --rbind /sys /mnt/gentoo/sys
+# mount --rbind /dev /mnt/gentoo/dev
+# chroot /mnt/gentoo /bin/bash 
+# source /etc/profile
+# export PS1="(chroot) $PS1"
+# emerge sys-apps/pciutils   // install lspci
+# emerge ...      // install iwconfig
+# ifconfig -a
+wlp5s0 ...
+# emerge net-wireless/wpa_supplicant
+#ls /lib/firmware/
+// there is no "iwlwifi-1000-5.ucode microcode.dat"
+# emerge sys-kernel/linux-firmware
+# ls /lib/firmware/iwlwifi*
+/lib/firmware/iwlwifi-1000.5.ucode
+# create the wpa_supplicant.conf file
+# /etc/init.d/net.wlp5s0 start
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/01/121138/">Package Management on Arch Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-01T12:11:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>12:11 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Search packages: <code>pacman -Ss pkg1 pkg2 ...</code>;</p>
+
+<p>Install packages with updated repo: <code>pacman -Syu pkg1 pkg2 ...</code>;</p>
+
+<p>Remove a package and its dependencies which is not required by other installed packages: <code>pacman -Rs pkg1</code>;</p>
+
+<p>Remove a package and leaving all its dependencies installed: <code>pacman -R pkg1</code>;</p>
+
+<p>Remove all orphaned packages: <code>pacman -Rns $(pacman -Qtdq)</code>;</p>
+
+<p>Ref: <a href="https://wiki.archlinux.org/index.php/pacman">pacman</a> on Arch Linux.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -829,178 +1124,6 @@ pacman -S xorg-xinit</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/23/114357/">Console Web Browser Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-23T11:43:57+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:43 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>lynx</h1>
-
-<p>On Mint: <code>sudo apt-get install lynx</code>.</p>
-
-<ul>
-<li><p>Getting help: Shift + /;</p></li>
-<li><p>Configuration: o (open VI mode here), the configuration file is ~/.lynxrc;</p></li>
-<li><p>Move cursor to previous/next link: up/down arrow keys, or j/k if &ldquo;vi mode&rdquo; turned on;</p></li>
-<li><p>Line up/down: Ctrl-p/n;</p></li>
-<li><p>Move backward in history (like backspace in Firefox): left arrow key;</p></li>
-<li><p>Quit lynx: q;</p></li>
-<li><p>Copy text: drag mouse button;</p></li>
-<li><p>Add bookmark: a</p></li>
-<li><p>Goto bookmark: v</p></li>
-</ul>
-
-
-<p>lynx bookmark can remember file and page position.
-While bookmark of elinks only remember file, and always load the first page.
-Copying text need only draging mouse, while elinks need pressing shift key at the same time.
-So lynx is more convenient than elinks.</p>
-
-<h1>elinks</h1>
-
-<p>On Mint: <code>sudo apt-get install elinks</code>.</p>
-
-<p>Config key bindings in ~/.elinks/elinks.conf.
-Append the following lines into it:</p>
-
-<pre><code>bind "main" "j" = "move-cursor-down"
-bind "main" "k" = "move-cursor-up"
-bind "main" "K" = "keybinding-manager"
-</code></pre>
-
-<p>You can use mouse as in the GUI browser.</p>
-
-<ul>
-<li><p>Show menu: press <ESC> key;</p></li>
-<li><p>Show keybindings: K;</p></li>
-<li><p>Line up/down: Ctrl-p/n;</p></li>
-<li><p>Quit elinks: q;</p></li>
-<li><p>Move cursor to previous/next link: j/k or up/down arrow keys;</p></li>
-<li><p>Copy text: press Shift key and drag mouse;</p></li>
-<li><p>Copy current page URL(Ctrl-L on Firefox): =, then copy URL;</p></li>
-<li><p>Add/Show bookmark: s;</p></li>
-<li><p>Set a mark: m followed by a single character, for example &ldquo;ma&rdquo;, or &ldquo;mz&rdquo;. The mark only exists within a elinks session. It won&rsquo;t exist after elinks restart.</p></li>
-<li><p>Goto a mark: &lsquo;(single quote). For example: &#8216;a, or &#8216;z. It only works when cursor is in the same frame as it&rsquo;s set.</p></li>
-<li><p>Jump to next frame: tab;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/23/113830/">Add Vim Mode for Eclipse With Vrapper</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-23T11:38:30+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:38 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<p>Install vrapper 0.42.0 in market place of eclipse.</p>
-
-<h2>Install with proxy (in Linux)</h2>
-
-<ol>
-<li><p>Run commands:</p>
-
-<p> $ cd $ECLIPSE_HOME
- $ export http_proxy=<a href="http://127.0.0.1:8087">http://127.0.0.1:8087</a>
- $ export https_proxy=<a href="http://127.0.0.1:8087">http://127.0.0.1:8087</a>
- $ ./eclipse</p></li>
-<li><p>After eclipse startup, install vrapper as usual. The proxy will work for eclipse automatically. Uninstall vrapper and other plugin in main menu of eclipse -> Help -> About Eclipse -> Installation Details.</p></li>
-</ol>
-
-
-<h1>Usage</h1>
-
-<p>Ref: <a href="http://vrapper.sourceforge.net/documentation">Vrapper Documentation</a></p>
-
-<ul>
-<li>Configuration file: ~/.vrapperrc</li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/22/182822/">Shutdown VirtualBox VM Forcibly When It's Stuck in Stopping Status</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-22T18:28:22+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Today I shutdown a VM using vagrant command <code>vagrant halt</code>, it&rsquo;s stuck in &ldquo;stopping&rdquo; status, and when I use <code>VBoxManage controlvm &lt;vm-name&gt; poweroff</code> to shutdown it, it raise an error:</p>
-
-<pre><code>VBoxManage: error: The virtual machine is being powered down
-VBoxManage: error: Details: code VBOX_E_INVALID_VM_STATE (0x80bb0002), component Console, interface IConsole, callee nsISupports
-VBoxManage: error: Context: "PowerDown(progress.asOutParam())" at line 224 of file VBoxManageControlVM.cpp
-</code></pre>
-
-<p>So the only solution is kill the VM process:</p>
-
-<pre><code>$ ps -ef|grep VBox
-</code></pre>
-
-<p>And a process named &ldquo;/opt/VirtualBox/VBoxHeadless &ndash;comment &hellip; &ndash;startvm &hellip;&rdquo; is the target (identified by the comment). Kill it then.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/22">&larr; Older</a>
@@ -1018,23 +1141,23 @@ VBoxManage: error: Context: "PowerDown(progress.asOutParam())" at line 224 of fi
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

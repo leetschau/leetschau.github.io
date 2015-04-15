@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="将CD盘制作为无损的APE/FLAC格式是最佳选择，但制作要分两步，首先将CD中的音轨抓取出来成为wav文件（推荐使用EAC(Exact Audio Copy)），然后用wav文件制作APE/FLAC文件（推荐使用Monkey&rsquo;s Audio），比较麻烦，对于音源（CD盘）和外设（音响 &hellip;">
+  <meta name="description" content="项目PORJ_TEST是项目PROJ的测试项目。在它的ivy中引用了PROJ的jar包。由于PROJ正处于开发阶段，源代码更改频繁， 在运行PROJ_TEST中的测试时，需要进入PROJ的jar包内部设置断点、调试源代码。传统的方法是在PROJ_TEST的Build Path中添加PROJ项目， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,291 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/09/111841/">基于ivy的源代码调试方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-09T11:18:41+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:18 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>项目PORJ_TEST是项目PROJ的测试项目。在它的ivy中引用了PROJ的jar包。由于PROJ正处于开发阶段，源代码更改频繁， 在运行PROJ_TEST中的测试时，需要进入PROJ的jar包内部设置断点、调试源代码。传统的方法是在PROJ_TEST的Build Path中添加PROJ项目，但这样显然与ivy中定义的引用发生了冲突，且容易在打包时出现问题，怎样让ivy引用的jar包也能提高源代码？方法如下：
+PROJ项目的ivy.xml文件（ivy配置文件）：</p>
+
+<p> <ivy-module version="2.0" ></p>
+
+<p> <info organisation="..." module="proj" revision="alpha" status="integration"/></p>
+
+<p> <configurations></p>
+
+<p> <conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/></p>
+
+<p> <conf name="test" visibility="public" description="used for the test project of gapi" extends="compile"/></p>
+
+<p> <conf name="compile" visibility="private" description="used for compile the artifact only"/></p>
+
+<p> <conf name="sources" visibility="public" description="contains the source artifact of this module"/></p>
+
+<p> </configurations></p>
+
+<p> <publications></p>
+
+<p> <artifact name="gapi" type="jar" ext="jar" conf="master"/></p>
+
+<p> <artifact name="gapi" type="source" ext="jar" conf="sources"/></p>
+
+<p> </publications></p>
+
+<p> <dependencies></p>
+
+<p> <dependency .../></p>
+
+<p> <dependency .../></p>
+
+<p> </dependencies></p>
+
+<p> </ivy-module></p>
+
+<p> PROJ项目的build.xml文件（Ant构建脚本）：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> <project name="PROJ" basedir="./" default="publish_jar" xmlns:ivy="antlib:org.apache.ivy.ant"></p>
+
+<p> <property name="src.dir" value="${basedir}/src" /></p>
+
+<p> <property name="build.dir" value="${basedir}/build" /></p>
+
+<p> <property name="build.class.dir" value="${build.dir}/class" /></p>
+
+<p> <property name="build.dist.dir" value="${build.dir}/dist" /></p>
+
+<p> <property name="build.javadoc.dir" value="${build.dir}/javadocs" /></p>
+
+<p> <property name="build.lib.dir" value="${build.dir}/lib" /></p>
+
+<p> <property name="vendor.name" value="LC_COM" /></p>
+
+<p> <property name="product.name" value="proj" /></p>
+
+<p> <property name="publish.resolver" value="test-repo" /></p>
+
+<p> <tstamp></p>
+
+<p> <format property="build.date" pattern="yyyyMMdd" /></p>
+
+<p> <format property="build.time" pattern="HH:mm:ss" /></p>
+
+<p> </tstamp></p>
+
+<p> <path id="lib.path"></p>
+
+<p> <fileset dir="${build.lib.dir}"></p>
+
+<p> <include name="**/*.jar"/></p>
+
+<p> </fileset></p>
+
+<p> </path></p>
+
+<p> <target name="clean"></p>
+
+<p> <delete dir="${build.dir}"/></p>
+
+<p> </target></p>
+
+<p> <target name="init" depends="clean"></p>
+
+<p> <mkdir dir="${build.dir}"/></p>
+
+<p> <mkdir dir="${build.class.dir}"/></p>
+
+<p> <mkdir dir="${build.dist.dir}"/></p>
+
+<p> <mkdir dir="${build.lib.dir}"/></p>
+
+<p> &lt;ivy:settings file=&ldquo;../ivysettings.xml&rdquo;/></p>
+
+<p> &lt;ivy:resolve/></p>
+
+<p> &lt;ivy:retrieve pattern=&ldquo;${build.lib.dir}/[artifact]-[revision].[ext]&rdquo;/></p>
+
+<p> </target></p>
+
+<p> <target name="compile" depends="init"></p>
+
+<p> &lt;javac srcdir=&ldquo;${src.dir}&rdquo; destdir=&ldquo;${build.class.dir}&rdquo;</p>
+
+<p> classpathref=&ldquo;lib.path&rdquo; encoding=&ldquo;GBK&rdquo; debug=&ldquo;true&rdquo;/></p>
+
+<p> </target></p>
+
+<p> <target name="create_jar" depends="compile"></p>
+
+<p> <jar destfile="${build.dist.dir}/${product.name}-${ivy.revision}-jar.jar" basedir="${build.class.dir}"></p>
+
+<p> <manifest></p>
+
+<p> <attribute name="Vendor" value="${vendor.name}" /></p>
+
+<p> <attribute name="Product-Name" value="${product.name}" /></p>
+
+<p> <attribute name="Version" value="${ivy.revision}" /></p>
+
+<p> <attribute name="Build-Date" value="${build.date}" /></p>
+
+<p> <attribute name="Build-Time" value="${build.time}" /></p>
+
+<p> </manifest></p>
+
+<p> </jar></p>
+
+<p> <jar destfile="${build.dist.dir}/${product.name}-${ivy.revision}-source.jar" basedir="${src.dir}"></p>
+
+<p> <manifest></p>
+
+<p> <attribute name="Vendor" value="${vendor.name}" /></p>
+
+<p> <attribute name="Product-Name" value="${product.name}" /></p>
+
+<p> <attribute name="Version" value="${ivy.revision}" /></p>
+
+<p> <attribute name="Build-Date" value="${build.date}" /></p>
+
+<p> <attribute name="Build-Time" value="${build.time}" /></p>
+
+<p> </manifest></p>
+
+<p> </jar></p>
+
+<p> </target></p>
+
+<p> <target name="publish_jar" depends="create_jar"></p>
+
+<p> &lt;ivy:publish artifactspattern=&ldquo;${build.dist.dir}/[artifact]-[revision]-[type].[ext]&rdquo;</p>
+
+<p> resolver=&ldquo;${publish.resolver}&rdquo; status=&ldquo;integration&rdquo; overwrite=&ldquo;true&rdquo;/></p>
+
+<p> <echo message="publish complete."/></p>
+
+<p> </target></p>
+
+<p> </project></p>
+
+<p>PROJ_TEST项目的ivy.xml文件：</p>
+
+<p> <ivy-module version="2.0" ></p>
+
+<p> <info organisation="..." module="proj_test" revision="alpha" status="integration" publication="20101121175043"/></p>
+
+<p> <configurations></p>
+
+<p> <conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/></p>
+
+<p> <conf name="compile" visibility="private" description="used for compile the artifact only"/></p>
+
+<p> <conf name="test" visibility="public" description="used for the test project of gapi" extends="compile"/></p>
+
+<p> </configurations></p>
+
+<p> <publications></p>
+
+<p> <artifact name="gapi_test" type="jar" ext="jar" conf="master"/></p>
+
+<p> </publications></p>
+
+<p> <dependencies></p>
+
+<p> <dependency org="..." name="proj" rev="alpha" conf="compile->master,test&#8221; changing=&ldquo;true&rdquo;/></p>
+
+<p> <dependency .../></p>
+
+<p> <dependency .../></p>
+
+<p> </dependencies></p>
+
+<p> </ivy-module></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/07/143620/">在Windows上安装和卸载Git</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-07T14:36:20+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>相比于集中式版本控制系统SVN，Git的优点是分布式的版本控制，比SVN更先进（在网上搜svn git，有很多比较二者的文章），Windows平台上的Git客户端 Tortoisegit很易用，文档也很完善。</p>
+
+<p>安装Git时，首先要安装msysgit，这个是Git的完整编译环境，下载msysgit官网上的fullinstall安装包（exe文件），运行后即可自动完成安装。这时能以命令行方式使用Git了，但命令行方式显然不方便，因此需要安装客户端 Tortoisegit，也是从 Tortoisegit官网上下载exe安装包然后运行即可，安装后需要在Setting里设置一下msysgit的目录。
+ 卸载Git时首先卸载Tortoisegit，在“添加/删除程序”里卸载，然后删除msysgit的文件夹，如果删不掉，找到 git_shell_ext.dll 文件所在目录，在命令行下运行 regsvr32/u git_shell_ext.dll ，然后再删除就OK了。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/07/094341/">Notepad++宏编辑</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-07T09:43:41+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:43 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Notepad++没有提供对录制宏的编辑功能（当前使用版本为5.8.3），但手工完全可以进行编辑。首先，Notepad++编辑器中录制的宏实际保存在${INSTALL_FOLDER}/ shortcuts.xml 中。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -169,7 +454,7 @@ AHK源码：</p>
 
 
 <p> $ git config &ndash;global user.name &ldquo;Scott Chacon&rdquo;
- $ git config &ndash;global user.email &ldquo;<a href="&#x6d;&#x61;&#105;&#108;&#116;&#x6f;&#58;&#x73;&#x63;&#104;&#x61;&#x63;&#111;&#110;&#x40;&#x67;&#109;&#97;&#x69;&#x6c;&#46;&#99;&#111;&#x6d;">&#115;&#99;&#104;&#x61;&#99;&#x6f;&#x6e;&#x40;&#x67;&#x6d;&#x61;&#x69;&#108;&#x2e;&#99;&#111;&#x6d;</a>&rdquo;</p>
+ $ git config &ndash;global user.email &ldquo;<a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#111;&#x3a;&#115;&#99;&#x68;&#x61;&#99;&#x6f;&#110;&#64;&#x67;&#x6d;&#97;&#105;&#108;&#46;&#99;&#x6f;&#109;">&#115;&#99;&#x68;&#x61;&#99;&#x6f;&#110;&#x40;&#x67;&#109;&#97;&#105;&#x6c;&#46;&#x63;&#x6f;&#x6d;</a>&rdquo;</p>
 
 <ol>
 <li>新建仓库，并加入源代码：</li>
@@ -620,193 +905,6 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/14/085951/">使用Cobertura做代码覆盖率测试</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-02-14T08:59:51+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:59 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>经验总结：首先要把cobertura.jar包含ant的classpath路径中，其次要求它包含在测试用例的classpath中；</p>
-
-<p>使用cobertura做代码覆盖率测试中出现的问题：覆盖率始终为0，不论是否有可用的测试用例都如此；</p>
-
-<p>解决问题的历程：</p>
-
-<p>第一步：在被测工程中增加了一个很简单的方法，在测试工程中增加了一个对前述方法的测试，发现覆盖度仍为0，由此确定是使用cobertura的方法有问题，而不是测试用例覆盖度确实为0；</p>
-
-<p>第二步：分离了cobertura中进行junit测试报告（以下简称为cob-junit）与cobertura测试报告（之前是放在一个文件夹里，难以区分哪些是junit的报告，哪些是cobertura的报告，后来放在了两个不同的文件夹中）；</p>
-
-<p>第三步：分离后发现：cob-junit的测试报告与纯junit测试报告显示的测试数不同，纯junit的测试用例数正确，cob-junit测试用例数总为1，且运行错误（error），说明测试用例未能启动；检查错误原因：提示“java.lang.NoClassDefFoundError: net/sourceforge/cobertura/coveragedata/HasBeenInstrumented”；</p>
-
-<p>第四步：尝试解决上述错误。google后发现引起这个错误的原因是没有把cobertura.jar包含在测试用例的classpath中，也就是测试工程的ivy.xml文件的依赖条目里没有cobertura的jar包，将它加入到ivy.xml的依赖条目中后，解决了覆盖度始终为0的问题；</p>
-
-<p>经验总结：</p>
-
-<ol>
-<li><p>对于自己不熟悉的技术，不要走捷径，如把cob-junit与cobertura测试报告放在一个文件夹里；</p></li>
-<li><p>出错后要仔细阅读错误报告，寻找能够代表这个错误的关键词句，如“java.lang.NoClassDefFoundError: net/sourceforge/cobertura/coveragedata/HasBeenInstrumented”；</p></li>
-<li><p>如果通过错误报告自己不能解决，使用搜索引擎查找前一步中的关键词句，寻找解决问题的可能经验；</p></li>
-<li><p>如果暂时找不到能解决问题的经验，则按照软件（这里是cobertura）的Tutorial（一般来自官网）构建一个最简单的原型，并使其正常工作，然后不断向自己的问题靠拢，在不断修改原型的过程中对可能出错的方面进行筛选，最终锁定出错的位置；</p></li>
-</ol>
-
-
-<p>实践中面对一些古怪的错误，往往要重复、交叉进行很多次第3步和第4步，才能最终解决问题。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/27/105812/">视频格式转换软件比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-27T10:58:12+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>此处比较的软件共6种，分别是：</p>
-
-<p> 狸窝全能：狸窝全能视频转换器，Leawo Video Converter v2.7.0.0</p>
-
-<p> Softstunt： Softstunt RM RMVB Converter</p>
-
-<p>Any Video Conv: Any Video Converter Professional v2.7.6</p>
-
-<p> 软件名称/功能特点 多种格式转换 转换速度 CPU占用率 合并视频 已完成百分比 视频剪辑 目标文件大小 任务列表 任务完成自动关机 已消耗时间 剩余时间 狸窝全能 全部格式 快 100% 能 标识 具备 标识 具备 具备 标识 标识  Softstunt 仅rm->多种格式 慢 单任务40%，双任务80% 不能 标识 不具备 无标识 具备 不具备 无标识 无标识  Any Video Conv 全部格式 快 单任务50% 能 标识 具备 无标识 具备 具备 无标识 无标识</p>
-
-<p>整体而言，Softstunt生成的avi体积太大，CPU占有率太高，一开始转换就无法进行其他工作了，只能转换rm格式视频，在本次PK中首先出局。Leawo和Any的功能都不错，leawo的易用性更胜一筹，Any生成的avi文件体积只是leawo版的一半左右（相同的avi制式），且实验证明用Any生成的xvid格式的avi影片能够在电视上正常放映， 最终的胜出者是 Any Video Converter  。</p>
-
-<p>Any转换格式设置方法：</p>
-
-<p>首先导入影片，以rmvb影片为例，在右边的“视频输出”部分，【编码器(video codec)】选【xvid】；【大小(video size)】选【原先的】；【比特率】选【768】；【帧率】设置为与被转换的影片一样；“音频输出”部分全部用默认值即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/26/163426/">使用jetty做webserver示例</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-26T16:34:26+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:34 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用jetty做webserver大体可分为3步：首先配置webserver，如指定起始页是哪个文件等，然后利用jetty写一个server，放在某一个类的main()方法里，最后用shell脚本启动这个main()方法。但实际启动webserver的过程则正好相反，用户首先运行shell脚本，这个脚本运行一个java的main()方法，这个方法里定义了配置文件在什么地方，首先启动哪个页面。下面按照运行顺序分别说明这三个步骤。
- 运行启动脚本
-脚本应该是一个bat(on windows)或者sh(on unix)文件，下面是一个bat示例：</p>
-
-<p>&ldquo;%JAVA_HOME%\bin\java&rdquo; -javaagent:%GODU_HOME%\WebRoot\WEB-INF\lib\spring\org.springframework.instrument-3.0.4.RELEASE.jar -Xms256m -Xmx512m -Dfile.encoding=GBK -Dservice_name=goduweb -Djava.awt.Window.locationByPlatform=true -cp %JARS% com.boco.godu.web.server. SimpleJettyServer 8080</p>
-
-<p>实际上就是在%JARS%指定的所有jar包里搜索名为SimpleJettyServer的类，运行其main方法，且带一个参数8080；
- 写启动类
-下面是一个类main()方法内容：</p>
-
-<p>public static void main(final String[] args) throws Exception {</p>
-
-<p>if(args.length>0){</p>
-
-<p> try{</p>
-
-<p>port= Integer.parseInt(args[0]);</p>
-
-<p> }catch(NumberFormatException e){</p>
-
-<p>throw new Exception(&ldquo;web端口设置出错！&rdquo;);</p>
-
-<p> }</p>
-
-<p>}</p>
-
-<p> Server server = new Server();</p>
-
-<p>SelectChannelConnector connector = new SelectChannelConnector();</p>
-
-<p>connector.setPort(port);</p>
-
-<p>connector.setThreadPool(new QueuedThreadPool(150));// 设置服务线程数量</p>
-
-<p>server.addConnector(connector);</p>
-
-<p>WebAppContext context = new WebAppContext();</p>
-
-<p> context.setContextPath(&ldquo;/godu&rdquo;);</p>
-
-<p> context.setDescriptor(&ldquo;WebRoot/WEB-INF/web.xml&rdquo;);</p>
-
-<p> context.setResourceBase(&ldquo;WebRoot&rdquo;);</p>
-
-<p>context.setConfigurationDiscovered(true);</p>
-
-<p>server.setHandler(context);</p>
-
-<p> server.start();</p>
-
-<p>}</p>
-
-<p>其中&#8221;Server server = new Server();&ldquo;中的Server类的全名是org.eclipse.jetty.server.Server，因此最后&#8221;server.start()&#8221;启动的就是一个jetty服务器，这种jetty服务器的特点是运行在启动它的shell(windows上是bat)命令进程中，当这个进程被关闭时，相应的webserver也就不存在了；
- 配置webserver
-从第二步中可以看出，server的配置信息放在了&#8221;WebRoot/WEB-INF/web.xml&#8221;中，这个文件中有如下一段：</p>
-
-<p> <welcome-file-list></p>
-
-<p> <welcome-file>index.jsp</welcome-file></p>
-
-<p> </welcome-file-list></p>
-
-<p>这就定义了当用户在浏览器里输入服务器IP地址并回车后，初始页面是WebRoot文件夹下的index.jsp文件；</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/93">&larr; Older</a>
@@ -824,23 +922,23 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>

@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Web Server 首先试用了 EasyPHP ，在台式机上安装后出现异常退出，似乎是C编译器版本不匹配所致，又试用了 WampServer ，启动后报“403 Forbidden”错误，没有访问权限，解决的话自己要配perl，这产品太牛叉了，最后试用了 xampp ，不需要安装，解压后即可运行 &hellip;">
+  <meta name="description" content="开发产品时一个进程对应一个开发项目，一个项目对应一个日志配置，这是best practice，但有时一个（Eclipse中的）开发项目中包含了多个应用（分别多个进程运行），共享一个配置文件，但生成的日志要分开放在不同的文件里，应该怎么办？假设项目中包括A和B两个应用，B的代码都在com. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,157 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/13/110213/">一个logback文件为多个应用配置日志的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-13T11:02:13+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:02 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>开发产品时一个进程对应一个开发项目，一个项目对应一个日志配置，这是best practice，但有时一个（Eclipse中的）开发项目中包含了多个应用（分别多个进程运行），共享一个配置文件，但生成的日志要分开放在不同的文件里，应该怎么办？假设项目中包括A和B两个应用，B的代码都在com.foo包及子包（com.foo开头的包，如com.foo.bar）中。</p>
+
+<p>方式1：完全分开</p>
+
+<pre><code>&lt;configuration&gt; 
+    &lt;appender name="CONSOLE" .../&gt; 
+    &lt;appender name="APP_A" .../&gt; 
+    &lt;appender name="APP_B" .../&gt; 
+    &lt;logger name="com.foo" additivity="false" level="INFO"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_B" /&gt; 
+    &lt;/logger&gt; 
+    &lt;root level="DEBUG"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_A"/&gt; 
+    &lt;/root&gt; 
+&lt;/configuration&gt; 
+</code></pre>
+
+<p>方式2 ：A包含B</p>
+
+<pre><code>&lt;configuration&gt; 
+    &lt;appender name="CONSOLE" .../&gt; 
+    &lt;appender name="APP_A" .../&gt; 
+    &lt;appender name="APP_B" .../&gt; 
+    &lt;logger name="com.foo" additivity="true" level="INFO"&gt; 
+        &lt;appender-ref ref="APP_B" /&gt; 
+    &lt;/logger&gt; 
+    &lt;root level="DEBUG"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_A"/&gt; 
+    &lt;/root&gt; 
+&lt;/configuration&gt; 
+</code></pre>
+
+<p>方式2与方式1相比，屏幕输出（即CONSOLE的行为）完全一样，各自输出各自的，但APP_A关联的日志文件中将包含A和B所有的日志。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/13/100135/">How to Name a Slf4j Logger</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-13T10:01:35+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:01 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li>Use logger in a non-static context:</li>
+</ol>
+
+
+<p> Logger logger = LoggerFactory.getLogger(this.getClass().getName());</p>
+
+<ol>
+<li>Use logger in a static context(for example in main() method):</li>
+</ol>
+
+
+<p> static Logger logger = LoggerFactory.getLogger(TheWrapperClassName.class);</p>
+
+<p>Method 1 is prefered, because it has no hard-coding for class name.</p>
+
+<p><a href="http://stackoverflow.com/questions/936684/getting-the-class-name-from-a-static-method-in-java">static final Logger logger = Logger.getLogger(new Throwable() .getStackTrace()[0].getClassName());</a> maybe a solution, but may slown down the app.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/13/090430/">Eclipse项目中JDK的版本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-13T09:04:30+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>JDK6编译出来的class文件不能运行在JDK5的虚拟机上，因此用Eclipse开发/运行/打包项目时要注意Java编译器的版本，有3个位置（范围从大到小）会影响Java编译器的版本：</p>
+
+<ol>
+<li><p>Eclipse级全局JRE：Window->Preferences->Java->Installed JREs;</p></li>
+<li><p>项目级JRE：Project->Properties下的：</p></li>
+<li><p>Build Path -> Libraries -> JRE System Library;</p></li>
+<li><p>Java Compiler -> JDK Compliance;</p></li>
+<li><p>Run/Debug Configuration级JRE: 在这个Configuration的&#8221;JRE&#8221;标签页中设置；</p></li>
+</ol>
+
+
+<p>确定class文件版本的方法是查看class文件的第7个字节： 0x31-> JDK5, 0x32 ->JDK6, 0x33 ->JDK7;</p>
+
+<p> class文件格式的详细介绍见 Java class file .</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -441,285 +592,6 @@ python manage.py startapp polls （在命令执行的当前目录下生成polls�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/19/145826/">Java程序线程死锁分析</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-19T14:58:26+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Linux平台
-jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报：&#8221;The VM does not support the attach mechanism&#8221;错误；</p>
-
-<p>C:\Users\chad> jps 1308 DeadLock
-4780 Jps</p>
-
-<p>C:\Users\chad> F:\Software\jdk1.6.0_27\bin\jstack.exe 1308
-2012-05-19 14:45:29
-Full thread dump Java HotSpot&trade; Client VM (20.2-b06 mixed mode):</p>
-
-<p>&hellip;</p>
-
-<h1>Found one Java-level deadlock : </h1>
-
-<p>&ldquo;Thread-1&rdquo;:
- waiting to lock monitor 0x01adee04 (object 0x03c002d8, a deadlockEx.DeadLock$Friend),
- which is held by &ldquo;Thread-0&rdquo;
-&ldquo;Thread-0&rdquo;:
- waiting to lock monitor 0x01ae0664 (object 0x03c002e8, a deadlockEx.DeadLock$Friend),
- which is held by &ldquo;Thread-1&rdquo;
-&hellip;
-Found 1 deadlock.</p>
-
-<p> 测试样例（来自 Deadlock on Java docs ）：
-package deadlockEx;
-public class DeadLock {
- static class Friend {
-  private final String name;
-  public Friend(String name) {
-   this.name = name;
-  }
-  public String getName() {
-   return this.name;
-  }
-  public synchronized void bow(Friend bower) {
-   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed to me!%n&rdquo;, this.name,
-    bower.getName());
-   bower.bowBack(this);
-  }
-  public synchronized void bowBack(Friend bower) {
-   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed back to me!%n&rdquo;, this.name,
-    bower.getName());
-  }
- }
- public static void main(String[] args) {
-  final Friend alphonse = new Friend(&ldquo;Alphonse&rdquo;);
-  final Friend gaston = new Friend(&ldquo;Gaston&rdquo;);
-  new Thread(new Runnable() {
-   public void run() {
-    alphonse.bow(gaston);
-   }
-  }).start();
-  new Thread(new Runnable() {
-   public void run() {
-    gaston.bow(alphonse);
-   }
-  }).start();
- }
-} HP-UX平台</p>
-
-<p>用gcore <pid>（不支持gcore的UX可用gdb <pid>?）生成dump文件，文件名为core.<pid>，用jmap将此文件转为hprof文件，再用visualVM分析；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/19/144904/">通过dump文件分析Java程序运行状态</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-19T14:49:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Java程序的快照（dump）分为两种：thread dump, heap dump。前者记录了进程（process）中各线程（Thread）（在CPU中的）运行状态主要用来解决死锁（deadlock）问题，后者记录了Java堆的情况，主要用来分析内存泄露问题。</p>
-
-<p> 生成堆dump（heapdump）文件方法
-1. 在启动Java程序时添加参数：-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=<my_dump_path>，完整示例见文末；</p>
-
-<ol>
-<li><p>启动程序；</p></li>
-<li><p>用jps或者ps指令找到此程序pid，例如17992；</p></li>
-<li><p>运行kill -3 <pid>；</p></li>
-<li><p>在my_dump_path下可以找到生成的dump文件，文件名为java_pid<pid>.hprof.&lt;date.time>，例如：java_pid17992.hprof.20120519.141323</p></li>
-</ol>
-
-
-<p>启动程序的完整脚本：</p>
-
-<h1>!/bin/sh</h1>
-
-<p>JARS=&ldquo;&rdquo;
-for i in ./*.jar; do
- JARS=&ldquo;$JARS&rdquo;:$i
-done
-JAVA_OPTS=&ldquo;-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=$HOME/backup&rdquo;
-exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina.echoServer.EchoServer
- 分析dump文件</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/19/105840/">在Linux系统上查找文件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-19T10:58:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Find命令</h1>
-
-<p>格式：find &lt;指定搜索范围> &lt;指定条件> &lt;指定动作></p>
-
-<p>其中搜索范围是一个目录名，指定条件包括文件名、文件属性（修改时间所属用户等）、所在位置特点（如目录深度等）等；指定动作包括打印（-print）等；</p>
-
-<p>例如：find $HOME -name &ldquo;*.sh&#8221;，查找用户根目录下所有以.sh结尾的文件，除了按文件名查找，find还可以按文件大小、类型、所属用户、用户组、修改时间、是否为空等，还可以指定找到文件后要执行的动作， 例如下面第一个指令是找到文件后运行ls命令，第3个指令是查找文件名中有echo且不属于root的文件（可以用!表示取反）：</p>
-
-<pre><code>[godu@goduserver ~]$ find ./backup/nep -name "*echo*" -ls
-124059671 8 -rwxr-xr-x 1 godu  godu   192 5月 19 10:59 ./backup/nep/echoServerStart.sh
-[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user godu 
-[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user root 
-./backup/nep/echoServerStart.sh
-find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-type l可知此目录下所有文件都为link文件。 
-</code></pre>
-
-<p>详见：<a href="http://blog.csdn.net/ydfok/article/details/1486451">linux查找文件命令find</a></p>
-
-<h2>引号问题</h2>
-
-<p>（2013-9-4更新）</p>
-
-<p>find <dest_path> -name <name_pattern>中<name_pattern>是glob格式，而且只匹配文件名，如果想用正则表达式匹配，则需要匹配完整路径名。</p>
-
-<p>例如有这样一个文件：./CalcServer/src/com/boco/deploy/ConfigLoader.java，用<code>find . -name "Co*.java"</code>可以匹配上，但<code>find . -regex "Co.*java"</code>匹配不上，因为它只匹配了文件名，而不是包括路径的完整路径名，改为<code>find . -regex ".*Co.*java"</code>就ok了。</p>
-
-<p>参考：<a href="http://bbs.chinaunix.net/thread-612012-1-1.html">http://bbs.chinaunix.net/thread-612012-1-1.html</a></p>
-
-<h2>查找条件</h2>
-
-<p>（2013-10-17更新）</p>
-
-<h3>按时间特性查找</h3>
-
-<ul>
-<li><p>find <dest_path> -newerXY <time-expr>: 查找在某个时间点之后修改（更新，生成）的文件，例如：</p>
-
-<p>  find . -newermt &lsquo;2014-01-16 00:00&rsquo; -name &lsquo;*.py&rsquo;</p>
-
-<p>查找所有修改时间晚于1月16日0点的扩展名为py的文件。</p></li>
-<li><p>find <dest_path> -mtime -1: 查找最近一天内被更改过的文件；</p></li>
-<li><p>mtime是按天查询，&#8221;-mtime -7&#8221; 查询修改时间在7天前到现在这段时间内的文件；</p></li>
-<li><p>mmin是按分钟查询，其他与mtime一样；</p></li>
-<li><p>atime, ctime分别是access time和change time（mtime是modification time），其他与mtime一样；</p></li>
-<li><p>find <dest_path> -newer <file_name> 列出所有修改时间晚于<file_name>修改时间的文件；</p></li>
-</ul>
-
-
-<h3>查找深度限制</h3>
-
-<ul>
-<li>-maxdepth <n> 用来指定查询的目录深度，一般作为find的第一个参数；</li>
-</ul>
-
-
-<h3>查找类型限制</h3>
-
-<ul>
-<li>&ldquo;-type f&rdquo; 表示只显示文件，&#8221;-type d&#8221; 表示只查询目录；另外还有l（链接），s(socket)等类型可选；</li>
-</ul>
-
-
-<h2>指定动作</h2>
-
-<ul>
-<li><p>&ldquo;-exec&rdquo;: 格式:</p>
-
-<ul>
-<li><p>find <path> <criterion> -exec <command> {} \;
-上面{}代表被查出来的项目，<command>命令以分号结尾，但为了避免分号在不同系统中的歧义，前面加反斜杠对分号进行转义；</p></li>
-<li><p>find <path> <criterion> -exec <command> {} +
-将所有find找到的条目放在一起，由<command>一次性执行，效率比&#8221;find &hellip; \;&ldquo;版本高很多；</p></li>
-</ul>
-</li>
-<li><p>&ldquo;-print&rdquo;: 主要用来在管道命令中为其他命令传值；</p></li>
-</ul>
-
-
-<h1>Locate命令</h1>
-
-<p> 相当于find -name，但速度远快于find，因为Linux维护了一个文件列表数据库（在Ubuntu上，这个数据库文件是/var/lib/mlocate/mlocate.db），locate命令查询这个数据库给出结果。由于数据库每天更新，所以如果查询最近的更改，需要手工更新数据库：</p>
-
-<pre><code>sudo updatedb
-</code></pre>
-
-<p>注意locate的搜索结果是包含路径的，所以用locate &lsquo;abc<em>&#8216;是搜不到文件名以abc开头的文件的，必须写为&#8221;</em>abc*&ldquo;;</p>
-
-<ul>
-<li>文件名部分普通匹配：locate strom；对应Emacs中M-x locate;</li>
-</ul>
-
-
-<p>只有在这种最简形式下，可以将locate &lsquo;<em>strom</em>&#8216;简写为locate storm;</p>
-
-<ul>
-<li><p>glob匹配：locate &lsquo;<em>strom</em>.gz&#8217;，搜索所有storm*.gz文件;</p></li>
-<li><p>正则匹配：locate -r &lsquo;.<em>Storm.</em>java&#8217;，或者：locate -r &rsquo;.<em>[Gg]roovy.</em>&lsquo;;</p>
-
-<p>  在特定路径下搜索指定扩展名文件：locate -r &lsquo;.<em>warez.</em>[Vv]irtual[Bb]ox.*[rpm|deb]&rsquo;</p>
-
-<p>  用正则指定文件扩展名：locate -r &lsquo;Storm.*.java&rsquo;</p></li>
-<li><p>locate+grep效果很好，先用locate进行粗选，然后在grep中细化，如查抄版本号为2.2.0的一个Hadoop安装包：locate 2.2.0|grep hadoop，或者查找所有文件名为Groovy或者groovy的文件：locate -r &lsquo;[Gg]roovy&rsquo;|grep &lsquo;[Gg]roovy&rsquo;</p></li>
-</ul>
-
-
-<p>Ref:</p>
-
-<p><a href="http://www.kuqin.com/linux/20091009/70532.html">Linux的五个查找命令</a></p>
-
-<p><a href="http://www.linuxhaxor.net/5-ways-to-search-for-files-using-the-terminal-in-linux/">5 Ways To Search For Files Using The Terminal</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/74">&larr; Older</a>
@@ -737,23 +609,23 @@ find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-t
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a>
       </li>
     
   </ul>
