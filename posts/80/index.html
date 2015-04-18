@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="test.bat内容： set JUnitPath=C:\Users\chad.ivy2\cache\junit\junit\jars\junit-4.8.2.jar
-set ScalaLibraryPath=F:\Software\scala-2.9.1.final\lib\scala- &hellip;">
+  <meta name="description" content="软件开发和维护过程中，日志是必不可少的工具，对于一个10万行规模的产品，要分析它的某一部分，最简单的方法是将log4j配置文件的rootLogger的输出级别设置为debug，但这样将使产品的所有部分的debug信息都输出，一方面会对产品性能产生巨大影响， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,222 @@ set ScalaLibraryPath=F:\Software\scala-2.9.1.final\lib\scala- &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/12/01/142739/">在包一级定制log4j日志输出</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-12-01T14:27:39+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>2:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>软件开发和维护过程中，日志是必不可少的工具，对于一个10万行规模的产品，要分析它的某一部分，最简单的方法是将log4j配置文件的rootLogger的输出级别设置为debug，但这样将使产品的所有部分的debug信息都输出，一方面会对产品性能产生巨大影响，另一方面所关心部分的debug信息会淹没在其他debug日志里，比较好的解决方法是 将这一部分的debug日志单独输出到一个新的日志文件里进行分析 ，下面 以指令平台为例说明实现方法。原始的log4j.properties文件如下：</p>
+
+<p> log4j.rootLogger=INFO,stdout,R,errorlogger</p>
+
+<p> log4j.appender.stdout=org.apache.log4j.ConsoleAppender</p>
+
+<p> log4j.appender.stdout.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.stdout.layout.ConversionPattern=[%p] [%d] [%c - %L] - [%m]%n</p>
+
+<p> log4j.appender.stdout.Threshold=INFO</p>
+
+<p> log4j.appender.R=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.R.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.R.layout.ConversionPattern=[%p] [%d] [%c - %L] - [%m]%n</p>
+
+<p> log4j.appender.R.Threshold=INFO</p>
+
+<p> log4j.appender.R.File=../log/godu.log</p>
+
+<p> log4j.appender.R.MaxFileSize=20MB</p>
+
+<p> log4j.appender.R.MaxBackupIndex=5</p>
+
+<p> log4j.appender.errorlogger=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.errorlogger.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.errorlogger.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n</p>
+
+<p> log4j.appender.errorlogger.Threshold=ERROR</p>
+
+<p> log4j.appender.errorlogger.File=../log/error.log</p>
+
+<p> log4j.appender.errorlogger.MaxFileSize=20MB</p>
+
+<p> log4j.appender.errorlogger.MaxBackupIndex=5</p>
+
+<p>可以看到这里定义了3个rootLogger（默认输出级别是INFO）：stdout向屏幕输出，R记录普通信息（指向godu.log，输出级别为INFO），errorlogger指向error.log，用来记录错误日志（ERROR及以上级别的日志）。现在我们要分析鉴权部分的工作过程，鉴权类都在com.boco.godu.framework.auth包里，要将这个包下所有类的debug信息输出到auth.log里。实现方法是在配置文件中增加一个专门处理auth包的logger：</p>
+
+<p> log4j.logger.com.boco.godu.framework.auth=DEBUG,authDebuger</p>
+
+<p> log4j.additivity.com.boco.godu.framework.auth=false</p>
+
+<p> log4j.appender.authDebuger=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.authDebuger.File=../log/auth.log</p>
+
+<p> log4j.appender.authDebuger.Append=false</p>
+
+<p> log4j.appender.authDebuger.MaxFileSize=2MB</p>
+
+<p> log4j.appender.authDebuger.MaxBackupIndex=10</p>
+
+<p> log4j.appender.authDebuger.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.authDebuger.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n</p>
+
+<p>所以， 包一级定制logger的方法是 ：</p>
+
+<p> log4j.logger.<full package name>=OUTPUT_LEVEL, logger_name</p>
+
+<p>此logger的appender, layout的定义方法与rootLogger一样。上面第二行的作用是 避免详细日志写入rootLogger日志 ，否则新产生的大量debug日志会将之前已有的godu.log（以及godu.log.1等）冲掉，在现场环境下尤其要注意。它的一般形式是：</p>
+
+<p> log4j.additivity.<full package name>=false</p>
+
+<p> 这样就保证了auth包的debug日志不写入godu.log，additivity的默认值是true，所以如果不定义additivity，默认debug日志分别写入godu.log和auth.log中。实验发现指定rootLogger的输出级别（log4j.appender.R.Threshold=INFO）也可以避免debug日志写入godu.log里，但定义additivity更明确，是更好的方法。</p>
+
+<p>除了用来输出详细日志， 包一级定制还有一个用处：屏蔽输出 。如果不需要某些包的日志，只要将它的输出级别调高就可以了。例如我们不想看到mina包的info日志，只有mina报错才写日志，可以做如下处理：</p>
+
+<p> log4j.logger.org.apache.mina=WARN</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/11/30/084314/">Windows的自动登录和隐藏用户</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-11-30T08:43:14+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:43 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Launch Regedit. #r -> regedit
+1. Navigate to: HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\winlogon
+ Set: AutoAdminLogon = 1 (1 means enable auto login, 0 means disable it.)
+ Tip: Try Regedit&rsquo;s 编辑->查找: AutoAdminLogon.
+2. Check for the existence of a REG_SZ type entry called DefaultUserName. If exists, the value should be the user who you wish to logon automatically. If not exists, then right-click in the right pane, 新建->字符串值, name it &ldquo;DefaultUserName&rdquo;. Set the string value to the required UserName.</p>
+
+<p>以上方法在Windows7旗舰版上通过验证。</p>
+
+<p>可选步骤：</p>
+
+<ol>
+<li><p>如果想为默认登录用户添加密码：Create a new String Value called DefaultPassword and set it as you want;</p></li>
+<li><p>If your Windows 7 Machine has joined a domain, then create a String Value called DefaultDomainName and set its value as that domain name;</p></li>
+</ol>
+
+
+<p>上面的方法可以实现隐藏用户：创建一个新用户public，将其设为DefaultUserName，然后AutoAdminLogon设为1，这样开机就自动进入了public用户，只能用“切换用户”功能进入自己使用的用户，只要给自己使用的用户加上密码就可以阻止别人使用了。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/11/29/143328/">Linux中新建用户</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-11-29T14:33:28+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>使用默认配置创建用户</h1>
+
+<pre><code>useradd -p mypwd -m &lt;username&gt; 
+</code></pre>
+
+<p>-p指定用户密码，-m创建用户$HOME目录；</p>
+
+<h1>将此用户加入sudo组（可以使用sudo命令）</h1>
+
+<ul>
+<li><p>Ubuntu: <code>adduser &lt;username&gt; sudo</code></p></li>
+<li><p>CentOS and RHEL: 用<code>visudo -f /etc/sudoers</code> 指令打开/etc/sudoers文件，在文件末尾追加下面的一行</p>
+
+<p>  <username> ALL=(ALL) ALL</p></li>
+</ul>
+
+
+<p>用<code>groups &lt;username&gt;</code>查看uername属于哪些组；</p>
+
+<p>如果只是临时用一次root权限，可以不加入sudoer，而是执行：</p>
+
+<pre><code>su -c "&lt;root_command&gt;" root 
+</code></pre>
+
+<p>指令外边的双引号不能省略。</p>
+
+<h1>查看useradd指令的默认值</h1>
+
+<pre><code>useradd -D
+</code></pre>
+
+<p>设置默认Shell（保存在 /etc/default/useradd中的SHELL值里）：</p>
+
+<pre><code>useradd -D -s /bin/bash 
+</code></pre>
+
+<p>也可以为某一用户单独指定参数：</p>
+
+<pre><code>adduser [-u uid][-g group][-d home][-s shell] 
+</code></pre>
+
+<p>详见man useradd。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -496,250 +711,6 @@ Username/pwd: ...
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/11/14/151545/">Package and Classpath</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-11-14T15:15:45+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:15 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>[godu@goduserver test]$ pwd
-/home/godu/test</p>
-
-<p>[godu@goduserver test]$ cat com/AA.java</p>
-
-<p>package com;
-public class AA {
- public static void main(String[] args) {
-  System.out.println(&ldquo;this is AA&rdquo;);
- }
-}</p>
-
-<p>[godu@goduserver test]$ javac com/AA.java
-[godu@goduserver test]$ java com.AA
-this is AA</p>
-
-<p>以上说明当java类定义在一个包中时，要将java文件放在包指明的路径下，用javac full_path的形式编译，用java package_name.class_name的方法运行。</p>
-
-<p>假设AA类引用了/ap/a/b/C.class文件（AA中有&#8221;import a.b.C;&ldquo;），且C类的包名为&#8221;a.b&#8221;时（package a.b;），运行AA时用classpath参数引用C类：</p>
-
-<p>java -cp /ap com.AA</p>
-
-<p>假设在/ap下将a文件夹打成了JAR包m.jar，则运行AA时将jar文件加入classpath即可：</p>
-
-<p>java -cp /ap/m.jar com.AA</p>
-
-<p>更详细的说明见“ Java的classpath与package ”。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/11/08/160948/">Sed Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-11-08T16:09:48+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Synopsis</h1>
-
-<pre><code>sed [options] [range]&lt;command&gt;[;[range]&lt;command&gt;] &lt;target_file&gt;
-</code></pre>
-
-<p>or:</p>
-
-<pre><code>command_for_sed_input_text | sed [options] [range]&lt;command&gt;
-</code></pre>
-
-<p>其中range可以是指定行，也可以是一个正则表达式（即所有符合表达式的行），<command>可以是开行前插入(i)，在行后追加(a)，替换行&copy;，在终端输出行(p)等等；</p>
-
-<h2>Options</h2>
-
-<ul>
-<li><p>-n: 不显示未处理行，见下面实例；</p></li>
-<li><p>-i: &ldquo;in-place&rdquo; edit，见下面的实例；</p></li>
-</ul>
-
-
-<h1>删除文件中的空行</h1>
-
-<p>包括含几个空格、制表符的行：</p>
-
-<pre><code>sed -i '/^\s*$/d' target-file
-</code></pre>
-
-<h1>显示文件的指定部分</h1>
-
-<p>例如一个200万行的文件名为error.log，需要从第587700行开始显示200行：</p>
-
-<pre><code>sed -n 587700,587900p error.log
-</code></pre>
-
-<p>解释：sed的p指令是将匹配到的行显示到终端上，-n是只显示选中的行，所以使用p指令必加-n选项，-n后面的两个数字分别是起始和终止行号，最后是要处理的文件名。所以显示文件myfile的第m到第n行的命令是：</p>
-
-<pre><code>sed -n m,np myfile
-</code></pre>
-
-<p>如果要显示的行是不连续的，需要用多个&#8221;-e&#8221;选项，例如下面的命令打印input.txt文件的第1~10行，第53行和第200行：</p>
-
-<pre><code>sed -ne 1,10p -e 53p -e 200p input.txt
-</code></pre>
-
-<h1>在文件的指定行前插入一行</h1>
-
-<p>在文件distro.txt第7行前插入一行&#8221;ab cd&#8221;：</p>
-
-<pre><code>sed -i '7 i ab cd' distros.txt
-</code></pre>
-
-<p>&ldquo;-i&#8221;表示结果写回原文件，而不是打印到stdout，即&#8221;in-place&rdquo; edit。同理，在第7行后加一行就是：</p>
-
-<pre><code>sed -i '7 a ab cd' distros.txt
-</code></pre>
-
-<p>把第7行替换为&#8221;ab cd&#8221;：</p>
-
-<pre><code>sed '7 c ab cd' distros.txt
-</code></pre>
-
-<h1>将多个编辑操作放在一个sed命令中进行</h1>
-
-<p>$ cat aaa
-the first line
-the 2nd line
-last line</p>
-
-<p>$ sed -e &lsquo;1 a new line&rsquo; -e &lsquo;2 d&rsquo; aaa
-the first line
-new line
-last line</p>
-
-<p>首先，多个操作用&#8221;-e&#8221;选项组合在一起，其次，每个操作中的行指的是原始文件的行，而不是前面操作之后新的行，上面例子中第一个操作是在第一行后插入一行，然后删掉第2行，可以看到删掉的是原文件的第2行，而不是新插入的行。</p>
-
-<h1>使用正则表达式处理多个行</h1>
-
-<p>$ sed &lsquo;/.*line/ a abc&rsquo; aaa
-the first line
-abc
-the 2nd line
-abc
-last line
-abc</p>
-
-<h1>输出指定区域的文本</h1>
-
-<p>有一个配置文件，现在想输出小节名称和后面的两行文本：</p>
-
-<pre><code>$ cat puppet.conf 
-[main]
-    The Puppet log directory.
-    The default value is '$vardir/log'.
-    logdir = /var/log/puppet
-    Where Puppet PID files are kept.
-    ...
-[agent]
-    The file in which puppetd stores a list of the classes
-    associated with the retrieved configuratiion.  Can be loaded in
-    the separate ``puppet`` executable using the ``--loadclasses``
-    option.
-    The default value is '$confdir/classes.txt'.
-    classfile = $vardir/classes.txt
-    ...
-
-$ sed -n '/\[.*/,+2p' puppet.conf 
-[main]
-    The Puppet log directory.
-    The default value is '$vardir/log'.
-[agent]
-    The file in which puppetd stores a list of the classes
-    associated with the retrieved configuratiion.  Can be loaded in
-</code></pre>
-
-<p>这里使用了&#8221;<pattern>,+N&#8221;输出<pattern>行及以后的N行文本这一模式。</p>
-
-<h1>文件末尾操作</h1>
-
-<p>sed的行号中，&#8221;$&ldquo;代表最后一行，所以下面两句是等价的：</p>
-
-<pre><code>sed '$ a abcd' aaa
-echo "abcd" &gt;&gt; aaa
-</code></pre>
-
-<p>但sed显然功能更强，比如可以用&#8217;$ i &hellip;&lsquo;实现在最后一行前面插入。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/11/07/125749/">用SamInside破解Windows登录密码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-11-07T12:57:49+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>12:57 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>用小马PE的USB-HDD+格式制作启动优盘；
-笔记本启动时按ESC键，选择USB启动；
-进入WinPE后，将%SystemRoot%/system32/config全部拷贝出来（WinXP这个文件夹是C:\WINDOWS\system32\config）；
-启动SamInside，选择File->Import SAM and SYSTEM Registry Files，依次选中config文件夹下的SAM和system两个文件；
-主面板里会出现SAM文件里所有的用户，勾选要破解的用户；
-Service->Options->Brute-force Attack中设置好密码的字符集、长度等；
-Audit下勾选NT-Hash Attack和Brute-force Attack，然后Start Attack；
-实战：SamInside v2.6.5.0采用brute-force方法破解华硕F5R笔记本上Windows XP Administrator用户的6位数字登录密码，用时不到一秒钟就得到了结果：531020，相当给力！此版本可以破解Windows NT, Windows 2000, Windows XP, Windows 2003, Windows Vista, Windows 7的密码。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/81">&larr; Older</a>
@@ -757,23 +728,23 @@ Audit下勾选NT-Hash Attack和Brute-force Attack，然后Start Attack；
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

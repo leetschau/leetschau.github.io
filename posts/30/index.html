@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Verified version: 15. Define keyboard shortcuts: Menu -> System Tools -> System Settings -> Hardware [Switch to Advanced Mode] -> Keyboard -> &hellip;">
+  <meta name="description" content="subprocess.call This is the recommended way to run shell commands in Python compared with old-fashioned os module.
+This is a realtime method, which &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,260 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/03/111321/">Run Shell Commands in Python</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-03T11:13:21+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>subprocess.call</h1>
+
+<p>This is the recommended way to run shell commands in Python compared with old-fashioned os module.
+This is a realtime method, which means you can get the shell output on the fly, compared with following &ldquo;subprocess.check_output&rdquo; method, which collect all output in its return value.
+This method return the return value of the command, for example:</p>
+
+<pre><code>ret = subprocess.call('ls -l')
+</code></pre>
+
+<p>where ret=0, while</p>
+
+<pre><code>ret = subprocess.call('cd aaa')
+</code></pre>
+
+<p>ret=2 when there isn&rsquo;t &ldquo;aaa&rdquo; subfolder under CWD.</p>
+
+<p>For ease of use, write a shorthand function:</p>
+
+<pre><code>import subprocess
+def run(cmd):
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        sys.exit('Exec cmd %s error, return value: %s' %(cmd, str(ret)))
+</code></pre>
+
+<p>Then you can simply use &ldquo;run(cmd)&rdquo; as a shell interface. &ldquo;run&rdquo; print command stdout stderr to console stdout, and if there&rsquo;s something wrong during execution, we interrupt it.</p>
+
+<h1>subprocess.check_output</h1>
+
+<p>A more safe way to run shell command is using &ldquo;check_output&rdquo; function. If the return value if not 0, a exception raised, otherwise return the command output.</p>
+
+<pre><code>$ cat myrun.py
+import subprocess
+def run(cmd):
+    return subprocess.check_output(cmd, shell=True)
+$ python -i myrun.py
+&gt;&gt;&gt; ret = run('ls -l|grep donno')
+&gt;&gt;&gt; ret
+'drwxr-xr-x 6 chad chad 4096 Jan 26 18:18 donno-0.1.10\n-rw-r--r-- 1 chad chad 8716 Jan 27 15:53 donno-0.1.10.tar.gz\n'
+&gt;&gt;&gt; ret = run('cd aaa')
+/bin/sh: 1: cd: can't cd to aaa
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "shtest.py", line 3, in run
+    return subprocess.check_output(cmd, shell=True)
+  File "/usr/lib/python2.7/subprocess.py", line 544, in check_output
+    raise CalledProcessError(retcode, cmd, output=output)
+subprocess.CalledProcessError: Command 'cd aaa' returned non-zero exit status 2
+</code></pre>
+
+<h1>subprocess.Popen</h1>
+
+<p>If you want some more powerful tools, use this. You can&rsquo;t use pipe directly in this form. Instead, You have to use subprocess.PIPE:</p>
+
+<pre><code>&gt;&gt;&gt; import subprocess
+&gt;&gt;&gt; lsres = subprocess.Popen(['ls','-l'], stdout=subprocess.PIPE)
+&gt;&gt;&gt; grepres = subprocess.Popen(['grep', 'Do'], stdin=lsres.stdout, stdout=subprocess.PIPE)
+&gt;&gt;&gt; res = grepres.communicate()
+</code></pre>
+
+<p>communicate() interact with process: Send data to stdin. Read data from stdout and stderr, until end-of-file is reached. Wait for process to terminate. It returns a tuple (stdoutdata, stderrdata).</p>
+
+<h2>Full solution of running shell command</h2>
+
+<p>If you want realtime output, while saving output and return code in variables, you should use Popen:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+cmd = 'vmstat 2 3'
+cmd2 = 'exit 3'
+
+p = Popen(cmd, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+line = ''
+while p.poll() is None:
+    out = p.stdout.read(1)
+    if out=='\n':
+        print(line)
+        line = ''
+    else:
+        line = line + out
+print('--------\nret is: %d' % p.returncode)
+</code></pre>
+
+<p>The Popen.stdout is a file object, so its &ldquo;read(size)&rdquo; method here means read every 1 byte.
+&ldquo;close_fds=True&rdquo; is maybe unnecessary, but I keep it for safe.</p>
+
+<h1>os.system</h1>
+
+<p>If it&rsquo;s unnecessary to save command output, this is most convenient way. The output will output to console. You can use space and pipe in command:</p>
+
+<pre><code>&gt;&gt;&gt; import os 
+&gt;&gt;&gt; ret = os.system('ls -l|grep D') 
+</code></pre>
+
+<p>And it will return after the command complete:</p>
+
+<pre><code>&gt;&gt;&gt; ret = os.system('vmstat 3 3')
+</code></pre>
+
+<h1>os.popen</h1>
+
+<p>Use this form if you want to save command output.</p>
+
+<pre><code>&gt;&gt;&gt; retfile = os.popen('pwd')
+&gt;&gt;&gt; ret = retfile.read() 
+&gt;&gt;&gt; ret 
+'/home/lichao\n' 
+&gt;&gt;&gt; retfile 
+&lt;open file 'pwd', mode 'r' at 0xb74aad30&gt;
+</code></pre>
+
+<p>or write it more compact:</p>
+
+<pre><code>&gt;&gt;&gt; result = os.popen('ls|grep enex').read()
+</code></pre>
+
+<h2>Deprecated</h2>
+
+<ul>
+<li><p>commands.getoutput()</p></li>
+<li><p>commands.getstatusoutput()</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/02/144055/">Search Available Package on Remote Repository</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-02T14:40:55+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>2:40 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Debian-based distro</h1>
+
+<p>First update your system cache:</p>
+
+<pre><code>apt-get update
+</code></pre>
+
+<p>Then you can use one of the following ways to search available packages:</p>
+
+<pre><code>apt-cache search &lt;package-name&gt;
+</code></pre>
+
+<p>There is only package names and simple descriptions.</p>
+
+<pre><code>aptitude search &lt;package-name&gt;
+</code></pre>
+
+<p>The command provide more information than above one. The first character of the output indicate the package status on your host machine: &ldquo;i&rdquo; means installed, &ldquo;p&rdquo; otherwise. If the third character is &ldquo;A&rdquo; other than space, it means the package is auto installed.</p>
+
+<p>Use &ldquo;aptitude why <package-name>&rdquo; to get the explanation of why the package should be installed on the system.</p>
+
+<h1>RPM-based distro</h1>
+
+<pre><code>yum list &lt;package-name&gt;
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/02/094626/">Jump Between Files in Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-02T09:46:26+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>9:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Open file at cursor</h1>
+
+<ul>
+<li><p>Open in the same window: gf</p></li>
+<li><p>Open in a new window: <C-w>f</p></li>
+<li><p>Open in a new tab: <C-w>gf</p></li>
+</ul>
+
+
+<p>You can use relative path. For example, when you put cursor on any character of &ldquo;dir1/file1&rdquo; and press gf, the file &ldquo;file1&rdquo; under folder &ldquo;dir1&rdquo; in CWD will be opened.</p>
+
+<p>Ref: <a href="http://vim.wikia.com/wiki/Open_file_under_cursor">http://vim.wikia.com/wiki/Open_file_under_cursor</a></p>
+
+<h1>Jump back from &ldquo;gf&rdquo;</h1>
+
+<ul>
+<li><p>Jump back: <C-o> or :bf</p></li>
+<li><p>Jump back and forth between two files: <C-6></p></li>
+</ul>
+
+
+<p>Ref: <a href="http://stackoverflow.com/questions/133626/how-do-you-return-from-gf-in-vim">http://stackoverflow.com/questions/133626/how-do-you-return-from-gf-in-vim</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -134,7 +389,7 @@
 <p><a href="http://redobackup.org/">Redo</a></p>
 
 <p>Most user-friendly of all. The only one supporting mouse.
-I backuped system and swap partition on a ftp server (hadoop:<a href="&#109;&#97;&#105;&#x6c;&#x74;&#111;&#58;&#x68;&#x61;&#100;&#111;&#x6f;&#112;&#x40;&#x31;&#48;&#x2e;&#50;&#49;&#x2e;&#51;&#x2e;&#51;&#49;">&#x68;&#x61;&#x64;&#x6f;&#111;&#x70;&#x40;&#49;&#x30;&#x2e;&#x32;&#49;&#x2e;&#x33;&#x2e;&#x33;&#x31;</a>).
+I backuped system and swap partition on a ftp server (hadoop:<a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#x3a;&#104;&#x61;&#x64;&#x6f;&#x6f;&#x70;&#x40;&#x31;&#48;&#46;&#50;&#x31;&#46;&#x33;&#x2e;&#51;&#x31;">&#104;&#97;&#x64;&#111;&#111;&#112;&#64;&#x31;&#x30;&#x2e;&#50;&#x31;&#46;&#x33;&#x2e;&#x33;&#49;</a>).
 It provided a tiny OS including terminal, browser, editor, etc.
 But it can&rsquo;t backup to your booting USB stick.
 So if you want backup to a local disk, you have to backup to another partition or another USB stick.</p>
@@ -454,175 +709,6 @@ then delete it with <code>iptables -D INPUT 2</code>.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/19/160121/">Communicate System Clipboard With Vim in Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-12-19T16:01:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Linux Mint Xfce</h1>
-
-<p>By default, Ubuntu (so as to Linux Mint) installs the vim-tiny package, which is a ultra-light version of the console &ldquo;vim&rdquo; only.</p>
-
-<p>To check the clipboard support of the installed vim, run <code>vim --version|grep clipboard</code>.
-If you get &ldquo;-clipboard&rdquo; and &ldquo;-xterm_clipboard&rdquo;, your vim can&rsquo;t support system clipboard.
-You have to remove current vim, and install a &ldquo;full&rdquo; version vim like this:</p>
-
-<pre><code>$ sudo apt-get purge vim 
-$ sudo apt-get autoremove # remove related packages of vim 
-$ sudo apt-get install vim-gtk # gtk suited for Xfce environments
-</code></pre>
-
-<p>Now let&rsquo;s check:</p>
-
-<pre><code>$ vim --version | grep clipboard 
-</code></pre>
-
-<p>You should get something like &ldquo;+clipboard&rdquo; and &ldquo;+xterm_clipboard&rdquo;.</p>
-
-<p>Now connect vim clipboard with that of system with adding &ldquo;set clipboard=unnamedplus&rdquo; into you ~/.vimrc. And check it:</p>
-
-<ol>
-<li><p>Copy texts in web browser with Ctrl-c, and use &ldquo;p&rdquo; to paste them in vim;</p></li>
-<li><p>copy a line in vim with &ldquo;yy&rdquo;, then paste them into some GUI program (say, gedit) with Ctrl-v.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="http://ubuntuforums.org/showthread.php?t=1686955">how to copy from vim and paste it on system clip board</a></p>
-
-<p><a href="http://comments.gmane.org/gmane.linux.ubuntu.xubuntu.user/4374">vim-gtk or vim-gnome?</a></p>
-
-<h1>ArchLinux</h1>
-
-<p>Install gvim with <code>sudo pacman -S gvim</code>.</p>
-
-<p>Note: On CentOS, use <code>yum search vim</code> to get the exact vim package name. On CentOS 6.4 it&rsquo;s &ldquo;vim-X11&rdquo;.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/19/083804/">Switch User Command in Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-12-19T08:38:04+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:38 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Switch user command (su) has the following forms:</p>
-
-<h1>su <username></h1>
-
-<p>Switch to <username>, without loading environment variables. If <username> is omitted (only &ldquo;su&rdquo;), it equals to &ldquo;su root&rdquo;;</p>
-
-<h1>su - <username></h1>
-
-<p>Switch to <username>, and loading environment variables. &ldquo;-&rdquo; is the abbreviation of &ldquo;-l&rdquo;, which means this is a &ldquo;login&rdquo; shell, so all .profile will be sourced (man su for details). If <username> is omitted (only &ldquo;su -&rdquo;), it equals to &ldquo;su - root&rdquo;;</p>
-
-<h1>su -c &ldquo;<command>&rdquo; <username></h1>
-
-<p>Run command with the identity of another user. It is mostly used in one-off command with root privileges:</p>
-
-<p> su -c &ldquo;<command>&rdquo; root</p>
-
-<p>The double quotes around <command> can&rsquo;t be omitted.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/18/145606/">Search String in Files in Vim</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-12-18T14:56:06+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:56 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Question: Working in vim, I want to search a string, say &ldquo;ord&rdquo;, in some files (say *.hs), in current folder (and all its subfolders), while I don&rsquo;t want to leave vim.</p>
-
-<p>Answer:</p>
-
-<h1>Search List Version</h1>
-
-<p>:vim /ord/ *.hs</p>
-
-<p>You will auto jump to the first matched file. If you don&rsquo;t want this auto-jump, use &ldquo;:vim /ord/j *.hs&rdquo;. Now you can use &ldquo;:cn&rdquo; or &ldquo;:cp&rdquo; to traverse between all matched files, or use &ldquo;:cw&rdquo; to open search result window (use &ldquo;:clo&rdquo; to hide this window).</p>
-
-<h1>No Search List Version</h1>
-
-<p>:lv ord *.hs</p>
-
-<p>There is no search result window (quickfix window) for this &ldquo;lv&rdquo; command. And you can&rsquo;t use &ldquo;:cn&rdquo; and &ldquo;:cp&rdquo; also.</p>
-
-<h1>Fast Search Version</h1>
-
-<p>:grep ord *.hs</p>
-
-<p>You will see a grep result in console. After pressing <Enter>, you come back to vim, &ldquo;:cn&rdquo;, &ldquo;:cp&rdquo; and &ldquo;:cw&rdquo;, etc. are the same with above. This version use system &ldquo;grep&rdquo; command, so it&rsquo;s faster than &ldquo;:vim&rdquo;.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://vim.wikia.com/wiki/Find_in_files_within_Vim">http://vim.wikia.com/wiki/Find_in_files_within_Vim</a></p>
-
-<p>google &ldquo;vim quickfix&rdquo;</p>
-
-<p>:h :vim, :h :grep, :h lv</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/31">&larr; Older</a>
@@ -640,23 +726,23 @@ $ sudo apt-get install vim-gtk # gtk suited for Xfce environments
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

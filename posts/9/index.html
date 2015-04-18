@@ -9,8 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="I wrote a Spark script. Now I need adding a web interface for it. Thus users can input parameters of the script in web browser, run the script,
-and &hellip;">
+  <meta name="description" content="I think the default LinuxMint login screen is not cool, need a new backgroud picture.
+How to change this backgroud picture? In LinuxMint 17 this is &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +66,283 @@ and &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-31T09:23:40+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>9:23 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I think the default LinuxMint login screen is not cool, need a new backgroud picture.
+How to change this backgroud picture? In LinuxMint 17 this is done by creating a new login &ldquo;Theme&rdquo; and use it.
+According to <a href="http://www.windows-to-linux.com/2014/07/custom-login-screen-background-linux-mint-17/">Custom Login Screen Background On Linux Mint 17</a>
+there is 3 steps to achieve this:</p>
+
+<ol>
+<li><p>Create a new theme based on the default theme;</p></li>
+<li><p>Pack this theme;</p></li>
+<li><p>Set it as the login theme.</p></li>
+</ol>
+
+
+<p>Firstly I choose a picture from Variety&rsquo;s Favorites folder as the new backgroud.
+Then run following commands:</p>
+
+<pre><code>sudo cp -r /usr/share/mdm/html-themes/Mint-X ~/StarWorld
+cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/bg.jpg
+cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/screenshot.jpg
+# modify name &amp; description in ~/StarWorld/theme.info
+tar czf star-world.tar.gz ~/StarWorld
+</code></pre>
+
+<p>Next login to Xfce desktop, startup &ldquo;Login Manager&rdquo;, add a new theme, choose star-world.tar.gz.</p>
+
+<p>Now logout and see the effect.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-29T09:44:00+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This morning I tried to install Debian 7.6 64bit on the DELL PC, but it failed due to some hardware problems.
+Then I installed LinuxMint 17 Xfce 64bit on this machine, and partition disk following <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a>:</p>
+
+<blockquote><p>chad@chadpc ~ $ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       276M   45M  218M  17% /boot
+/dev/sda2        15G  4.1G  9.8G  30% /
+&hellip;</p></blockquote>
+
+<p>where /dev/sda1 is formated as ext2, and /dev/sda2 is formated as ext3, and leave /dev/sda4 unused.</p>
+
+<p>After reboot and login LinuxMint,
+modify apt mirror list according to <a href="https://launchpad.net/ubuntu/+archivemirrors">Official Archive Mirrors for Ubuntu</a>,
+adding the following lines into /etc/apt/sources.list:</p>
+
+<pre><code>deb http://mirrors.zju.edu.cn/ubuntu/ trusty main
+deb-src http://mirrors.zju.edu.cn/ubuntu/ trusty main
+deb http://ubuntu.cnssuestc.org/ubuntu/ trusty main
+deb-src http://ubuntu.cnssuestc.org/ubuntu/ trusty main
+</code></pre>
+
+<p>Then run commands as root:</p>
+
+<pre><code>apt-get update
+apt-get install openssh-server
+apt-get install lvm2
+pvcreate /dev/sda4
+vgcreate vg0 /dev/sda4
+apt-get install bridge-utils
+
+brctl addbr xenbr0
+brctl addif xenbr0 eth0
+dhclient xenbr0
+
+aptitude -P install xen-system  # not xen-linux-system
+dpkg-divert --divert /etc/grub.d/08_linux_xen --rename /etc/grub.d/20_linux_xen
+update-grub
+reboot
+# you can find now "Ubuntu GNU/Linux, with Xen hypervisor" is the default startup item in grub boot menu
+</code></pre>
+
+<h1>Build DomU</h1>
+
+<pre><code>apt-get install xen-tools
+</code></pre>
+
+<h2>Using xen-create-image</h2>
+
+<pre><code>xen-create-image --hostname=ch1 --memory=1024gb --vcpus=2 --lvm=vg0 --dhcp --pygrub --dist=wheezy
+</code></pre>
+
+<h2>Using xl</h2>
+
+<p>Follow <a href="http://wiki.xen.org/wiki/Debian_Guest_Installation_Using_Debian_Installer">Debian Guest Installation Using Debian Installer</a>.</p>
+
+<p>Here we download 2 net-install disk (which is very small) and install the guest system via Internet.
+So the host machine need to connected with Internet, or can connect to another machine which can access Internet,
+and defining a proxy when installing.</p>
+
+<p>Select a mirror <a href="http://ftp.cn.debian.org/debian/">ftp.cn.debian.org/debian/</a> in <a href="http://www.debian.org/mirror/list">Debian worldwide mirror sites</a>.
+And download vmlinuz and initrd.gz (from <a href="http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/">http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/</a>)
+to local folder /home/chad/warez/xen-images-debian.</p>
+
+<p>Create a config file /root/deb.cfg:</p>
+
+<pre><code>name = "debian-installer"
+memory = 1024
+disk = ['phy:/dev/vg0/debian-installer,xvda,w']
+vif = [' ']
+
+kernel = "/home/chad/warez/xen-images-debian/vmlinuz"
+ramdisk = "/home/chad/warez/xen-images-debian/initrd.gz"
+extra = "debian-installer/exit/always_halt=true -- console=hvc0"
+</code></pre>
+
+<p>Then run following commands as root:</p>
+
+<pre><code>lvcreate -L 4G -n debian-installer /dev/vg0
+xl create -c /root/deb.cfg
+</code></pre>
+
+<p>Once installation has completed the guest will shutdown and exit.
+Remove the kernel, initrd and extra lines from the guest configuration, here remove the last 3 lines in deb.conf
+and replace them with simply:</p>
+
+<pre><code>bootloader = "pygrub"
+</code></pre>
+
+<p>Now the deb.conf became:</p>
+
+<pre><code>name = "debian-installer"
+memory = 1024
+disk = ['phy:/dev/vg0/debian-installer,xvda,w']
+vif = [' ']
+bootloader = "pygrub"
+</code></pre>
+
+<p>Startup the guest system with <code>xl create -c deb.cfg</code>.
+List all running vms with <code>xl list</code> in dom0.
+Connect this vm with <code>xl console debian-installer</code>.
+List all available subcommands of xl with <code>xl help</code>.
+Shutdown this vm with <code>xl shutdown debian-installer</code></p>
+
+<h1>Post installation</h1>
+
+<p>The &ldquo;brctl&rdquo; and &ldquo;dhclient&rdquo; commands above only build the network interface during system session.
+After system reboot, the bridge interface disappears, thus startup vm will failed.
+So we need define the bridge in /etc/network/interfaces, add the following lines into this file:</p>
+
+<pre><code>auto eth0
+iface eth0 inet dhcp
+
+auto xenbr0
+iface xenbr0 inet dhcp
+    bridge_ports eth0
+</code></pre>
+
+<p>If after reboot, the eth0 can&rsquo;t get IP address, use <code>ifdown eth0</code> and <code>ifup eth0</code> to refresh eth0.</p>
+
+<p>Update 2014.10.31: these settings cause network connection failed. After removing &ldquo;auto xenbr0&hellip;&rdquo; section, everything goes fine.
+So use <code>brctl</code> and <code>dhclient</code> to setup bridge after system startup.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li><p>Use <code>lsblk -f</code> to see the volume group and logical volumes.</p></li>
+<li><p>pvcreate means &ldquo;create physical volume&rdquo;, vgcreate means &ldquo;create volume group&rdquo;, lvcreate means &ldquo;create logical volume&rdquo;.</p></li>
+<li><p>Use <code>lvremove /dev/vg0/debian-installer</code> to remove the logical volume created before.</p></li>
+<li><p>Use <code>dpkg-divert --list</code> to list all diversions, and <code>dpkg-divert --remove /etc/grub.d/20_linux_xen</code> to remove a diversion.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a></p>
+
+<p><a href="https://wiki.debian.org/Xen">Xen on Debian Wiki</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/28/182614/">DMShell Up and Running</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-28T18:26:14+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:26 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The dmshell is a web server accepting a shell command string, and run it on web server host.</p>
+
+<h1>Setup DataBase</h1>
+
+<h2>Fix Derby Server Startup Failed</h2>
+
+<p>When start Derby server with <code>/home/chad/apps/jdk1.6.0_45/db/bin/startNetworkServer</code>, the following error raised:</p>
+
+<blockquote><p>access denied (&ldquo;java.net.SocketPermission&rdquo; &ldquo;localhost:1527&rdquo; &ldquo;listen,resolve&rdquo;)</p></blockquote>
+
+<p>Solution:</p>
+
+<p>Find out system&rsquo;s JRE. On my laptop, it&rsquo;s /usr/lib/jvm/java-7-openjdk-amd64/jre
+Add the following codes into file lib/security/java.policy in this folder:</p>
+
+<pre><code>grant {
+    permission java.net.SocketPermission "localhost:1527", "listen";
+};
+</code></pre>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4">http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4</a></p>
+
+<h2>Create Database and Table</h2>
+
+<p>Run ~/apps/jdk1.6.0_45/db/bin/ij and run following commands:</p>
+
+<pre><code>connect 'jdbc:derby://localhost:1527/dmdb;create=true';
+create table shellstatus (id int not null generated by default as identity (start with 1, increment by 1), shellname varchar(40), starttime timestamp, endtime timestamp,status int);
+</code></pre>
+
+<p>Then you can use <code>select * from shellstatus;</code> to list all data in this table.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -249,8 +526,8 @@ val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._
 <blockquote><p>:: Proceed with installation? [Y/n]
 (211/211) checking keys in keyring                                      [########################################] 100%
 downloading required keys&hellip;
-:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#x6d;&#97;&#105;&#108;&#116;&#x6f;&#58;&#x6d;&#x75;&#102;&#108;&#111;&#110;&#x65;&#x40;&#x76;&#x62;&#115;&#x69;&#109;&#112;&#108;&#x65;&#x2e;&#110;&#x65;&#x74;">&#x6d;&#117;&#102;&#x6c;&#x6f;&#110;&#x65;&#x40;&#118;&#98;&#x73;&#105;&#x6d;&#112;&#108;&#101;&#46;&#x6e;&#x65;&#x74;</a>&rdquo;, created: 2009-07-04? [Y/n]
-error: key &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#x69;&#x6c;&#116;&#x6f;&#58;&#x6d;&#x75;&#102;&#108;&#111;&#110;&#x65;&#x40;&#118;&#x62;&#115;&#x69;&#109;&#x70;&#x6c;&#101;&#46;&#x6e;&#101;&#116;">&#x6d;&#117;&#x66;&#108;&#x6f;&#x6e;&#x65;&#64;&#x76;&#98;&#x73;&#105;&#109;&#x70;&#x6c;&#101;&#x2e;&#110;&#101;&#x74;</a>&rdquo; could not be imported
+:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#109;&#x61;&#x69;&#108;&#116;&#111;&#58;&#109;&#117;&#102;&#x6c;&#111;&#110;&#101;&#64;&#118;&#98;&#x73;&#105;&#x6d;&#112;&#x6c;&#x65;&#x2e;&#x6e;&#101;&#x74;">&#x6d;&#117;&#x66;&#x6c;&#111;&#110;&#x65;&#64;&#118;&#x62;&#x73;&#x69;&#109;&#x70;&#108;&#101;&#x2e;&#x6e;&#101;&#x74;</a>&rdquo;, created: 2009-07-04? [Y/n]
+error: key &ldquo;Fabio Castelli <a href="&#x6d;&#97;&#x69;&#108;&#116;&#111;&#x3a;&#109;&#x75;&#x66;&#x6c;&#111;&#110;&#101;&#64;&#118;&#98;&#x73;&#x69;&#x6d;&#112;&#108;&#101;&#46;&#x6e;&#101;&#x74;">&#109;&#x75;&#x66;&#x6c;&#111;&#x6e;&#101;&#64;&#118;&#98;&#115;&#105;&#109;&#x70;&#x6c;&#101;&#x2e;&#x6e;&#101;&#116;</a>&rdquo; could not be imported
 error: required key missing from keyring
 error: failed to commit transaction (unexpected error)
 Errors occurred, no packages were upgraded.</p></blockquote>
@@ -402,166 +679,6 @@ sudo modprobe vboxdrv
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/18/222508/">ArchLinux Sound Control on Thinkpad T440p</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-18T22:25:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ sudo pacman -S alsa-utils
-$ alsamixer
-The &ldquo;Card&rdquo; value on the left-upper corner is &ldquo;HDA Intel HDMI&rdquo;. This is not right.
-Press F6, a list appear:
--   (default)
-0   HDA Intel HDMI
-1   HDA Intel PCH
-29  ThinkPad Console Audio Control</p>
-
-<p>This means there are totally 3 playback devices. And currently &ldquo;0 HDA Intel HDMI&rdquo; is the default one.
-However this is a wrong one. The right audio output device should have &ldquo;dB gain&hellip;&rdquo; in its &ldquo;Item&rdquo; value.
-If we choose &ldquo;1 HDA Intel PCH&rdquo;, on the upper-left corner there will be a line: &ldquo;Item: Master [dB gain: 0.00]&rdquo;.
-So this is the right one, and its id is &ldquo;1&rdquo;.</p>
-
-<p>In window of this device, tab to &ldquo;Master&rdquo;, use &ldquo;m&rdquo; key to toogle its status from &ldquo;MM&rdquo; (means mute) to &ldquo;OO&rdquo; (means open this device).
-Then use up arrow key to increase its volume, until the &ldquo;dB gain&rdquo; is zero.</p>
-
-<p>Quit it with &ldquo;ESC&rdquo; key. Create a new file ~/.asoundrc:</p>
-
-<pre><code>defaults.ctl.card 1
-defaults.pcm.card 1
-</code></pre>
-
-<p>Now test it with <code>speaker-test -c 2</code>.</p>
-
-<p>Ref: &ldquo;No sound when S/PDIF video card is installed&rdquo; section in <a href="https://wiki.archlinux.org/index.php/ALSA#Troubleshooting">Advanced Linux Sound Architecture</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/174733/">Install WPS on 64bit ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T17:47:33+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Now WPS is a 32bit application. It&rsquo;s can&rsquo;t run on 64bit ArchLinux.
-So firstly we should open the multilib repository of the system. Then install WPS with yaourt.</p>
-
-<ol>
-<li><p>Uncomment the following lines in /etc/pacman.conf:</p>
-
-<pre><code> [multilib]
- Include = /etc/pacman.d/mirrorlist
-</code></pre></li>
-<li><p>Install WPS: <code>yaourt -S wpsoffice</code>;</p></li>
-<li><p>Install printer drivers: <code>pacman -S libcups</code>;</p></li>
-<li><p>Install fonts: download wps-office_8.1.0.3724~b1p2_x86.tar.xz from WPS website, unpack it, run <code>./install_fonts</code>;</p></li>
-<li><p>Chinese input: <code>yaourt -S fcitx-wps</code>. Modify &ldquo;kingsoft-office&rdquo; with &ldquo;wpsoffice&rdquo; in pkgbuild file of fcitx-wps, because kingsoft-office doesn&rsquo;t exits now.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/multilib">Multilib on Arch Wiki</a></p>
-
-<p><a href="https://wiki.archlinux.org/index.php/WPS_Office">WPS Office on Arch Wiki</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/154329/">Define Key Binding With Xbindkeys on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T15:43:29+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Install xbindkeys: <code>pacman -S xbindkeys</code> or <code>apt-get install xbindkeys</code>;</p></li>
-<li><p>Start xbindkeys when X startup: add &ldquo;xbindkeys&rdquo; <strong>before</strong> &ldquo;exec i3&rdquo; in ~/.xinitrc;</p></li>
-<li><p>Get a template: <code>xbindkeys -d &gt; ~/.xbindkeysrc</code>;</p></li>
-<li><p>Detect key definition: <code>xbindkeys -k</code>;</p></li>
-<li><p>Add output from last command to ~/.xbindkeysrc;</p></li>
-<li><p>Reload new configs: <code>pkill xbindkeys; xbindkeys</code>;</p></li>
-<li><p>Verify the setup.</p></li>
-</ol>
-
-
-<p>Example:</p>
-
-<p>Add the following lines into ~/.xbindkeysrc, to increase and decrease LCD brightness of Thinkpad T440p:</p>
-
-<pre><code>"xbacklight -dec 10"
-    XF86MonBrightnessDown
-
-"xbacklight -inc 10"
-    XF86MonBrightnessUp
-</code></pre>
-
-<p>Ref:</p>
-
-<ul>
-<li><p><a href="https://wiki.archlinux.org/index.php/Xbindkeys">Xbindkeys</a></p></li>
-<li><p><a href="http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/">http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/</a></p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/10">&larr; Older</a>
@@ -579,23 +696,23 @@ So firstly we should open the multilib repository of the system. Then install WP
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

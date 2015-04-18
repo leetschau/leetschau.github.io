@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="项目PORJ_TEST是项目PROJ的测试项目。在它的ivy中引用了PROJ的jar包。由于PROJ正处于开发阶段，源代码更改频繁， 在运行PROJ_TEST中的测试时，需要进入PROJ的jar包内部设置断点、调试源代码。传统的方法是在PROJ_TEST的Build Path中添加PROJ项目， &hellip;">
+  <meta name="description" content="任务要求：用户给出一个时间起点和一个终点，检出此时间段内每天的svn库中的源代码进行代码行变化分析。 pysvn方案 pysvn检出特定日期源代码需要在checkout（或者export）方法中的revision参数中设置日期值，此参数是一个pysvn.Revision对象， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,236 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/28/163404/">用pysvn和svnant检出某一日期的svn库中的源代码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-28T16:34:04+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:34 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>任务要求：用户给出一个时间起点和一个终点，检出此时间段内每天的svn库中的源代码进行代码行变化分析。</p>
+
+<h1>pysvn方案</h1>
+
+<p>pysvn检出特定日期源代码需要在checkout（或者export）方法中的revision参数中设置日期值，此参数是一个pysvn.Revision对象，构造此对象需要提供一个float型的参数（从epoch到指定日期的秒数），因此将一个可指定偏移量的日期时间对象转换为这个float对象是程序的难点，具体方法是：</p>
+
+<p>利用date（或者datetime）对象和timedelta得到区间内每天的date对象=>转换为字符串=>用time.strptime()方法将其转换为struct_time对象=>用time.mktime()方法将其转换为float时间。</p>
+
+<p>源代码：</p>
+
+<pre><code>from datetime import datetime, timedelta 
+theDay = datetime.strptime('2011-4-1', "%Y-%m-%d") 
+yesterday = theDay - timedelta(days=1) 
+yesterdayStr = yesterday.strftime("%Y-%m-%d") 
+print yesterdayStr 
+</code></pre>
+
+<p>或者转换为float时间：</p>
+
+<pre><code>import os, sys, commands, shutil, time 
+from datetime import date, timedelta 
+sys.path.append('E:/BVT/Hudson/jobs/GODU/workspace/GODU_BVT/tools') 
+os.environ['Path'] = 'E:/BVT/Hudson/jobs/GODU/workspace/GODU_BVT/tools;'+os.getenv('Path') 
+proj_list = ['GODU_SERVER', 'GAPI', 'GODU_WEB'] 
+src_path = os.path.join(os.getcwd(),'checkoutSrc') 
+svn_root = 'http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/' 
+svn_path_list = ['GODU_SERVER', 'GAPI', 'GODU_Web/goduDS'] 
+def createReport(startYear, startMon, startDay, endYear, endMon, endDay): 
+    try: 
+        resultFile = open('diffcountReport.txt','wt') 
+        import pysvn 
+        svn_client = pysvn.Client() 
+        svn_client.set_default_username('bvt') 
+        svn_client.set_default_password('bvt') 
+        startDate = date(startYear, startMon, startDay) 
+        endDate = date(endYear, endMon, endDay) 
+        timeSpan = (endDate - startDate).days + 1 
+        for i in range(timeSpan): 
+            theDay = startDate+timedelta(days=i) 
+            yesterday = theDay - timedelta(days=1) 
+            dayStr = str(theDay) 
+            timeStruct = time.strptime(dayStr,"%Y-%m-%d") 
+            # if dayStr is a datetime object, the format string should be "%Y-%m-%d %H:%M:%S" 
+            timeFloat = time.mktime(timeStruct) 
+            revdate = pysvn.Revision(pysvn.opt_revision_kind.date, timeFloat) 
+            resultFile.write(dayStr+':\n\n') 
+            try: 
+                for i in range(3): 
+                    svn_client.export(svn_root+svn_path_list[i], os.path.join(src_path, dayStr,proj_list[i]),revision=revdate) 
+                    oldCodePath = os.path.join(src_path, str(yesterday), proj_list[i]) 
+                    newCodePath = os.path.join(src_path, dayStr, proj_list[i]) 
+                    resultFile.write(proj_list[i]+':\n') 
+                    resultFile.write(os.popen('diffcount ' + oldCodePath +' '+ newCodePath).read()) 
+            except Exception,e: 
+                print e 
+            oldSumCodePath = os.path.join(src_path, str(yesterday)) 
+            newSumCodePath = os.path.join(src_path, dayStr) 
+            resultFile.write('Summary:\n') 
+            resultFile.write(os.popen('diffcount ' + oldSumCodePath +' '+ newSumCodePath).read()) 
+        return True 
+    finally: 
+        resultFile.close() 
+
+if __name__ == '__main__': 
+    createReport(2011, 1, 26, 2011, 3, 30) 
+</code></pre>
+
+<h1>svnant方案</h1>
+
+<p>svnant中指定时间相对比较简单，因为它的<svn>本身就接受字符串格式的日期，但ant中并没有提供日期偏移的方法，因此如果只检出1天（或几天）的代码，用svnant比较好，但如果检出几十天的代码，就必须手工实现日期偏移的方法了。</p>
+
+<p>安装svnant的方法比较简单，将svnant.jar、svnClientAdapter.jar、svnjavahl.jar、svnkit.jar共4个jar包copy到$ANT_HOME/lib下，在build.xml里添加一个taskdef就OK了，见下面的源代码：</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt; 
+&lt;project name="CheckoutSrc" basedir="./" default="checkout"&gt; 
+    &lt;property name="proj.root.url" value="http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/GAPI/doc"/&gt; 
+    &lt;property name="src.dir" value="${basedir}/checkouts"/&gt; 
+    &lt;typedef classpath="svnant.jar" resource="org/tigris/subversion/svnant/svnantlib.xml"/&gt; 
+    &lt;target name="checkout"&gt; 
+        &lt;svn username="bvt" password="bvt" dateFormatter="yyyy-MM-DD"&gt; 
+            &lt;export srcUrl="${proj.root.url}" destPath="${src.dir}" revision="2011-01-27"/&gt; 
+        &lt;/svn&gt; 
+    &lt;/target&gt; 
+&lt;/project&gt;
+</code></pre>
+
+<p>参考文献：</p>
+
+<p><a href="http://blogold.chinaunix.net/u/25096/showart_1671401.html">python中解析日期时间字符串为struct_time对象</a></p>
+
+<h1>pysvn和svnant中取svn的旧版本</h1>
+
+<p>不加说明时，pysvn和svnant都是取最新版本（Head版本）的svn数据，但也可以取指定的版本，二者都支持根据版本号或者版本日期两种方式确定export的内容。</p>
+
+<h2>pysvn</h2>
+
+<p>svn_client.export(config.get(&lsquo;svn&rsquo;,&lsquo;test_proj_path&rsquo;), config.get(&lsquo;local&rsquo;,&lsquo;build_folder_name&rsquo;),revision=pysvn.Revision(pysvn.opt_revision_kind.number, 4712))
+详细说明见pysvn文档中对pysvn.Revision对象的说明。</p>
+
+<h2>svnant</h2>
+
+<pre><code>&lt;export srcUrl="${proj.root.url}/@{projName}" destPath="${build.tmp.dir}" revision="4712"/&gt; 
+</code></pre>
+
+<p>详细说明见svnant中对export的解释：<a href="http://subclipse.tigris.org/svnant/svn.html#export">http://subclipse.tigris.org/svnant/svn.html#export</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/16/170320/">Diffcount和cobertura的代码行计算结果说明</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-16T17:03:20+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:03 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>做java程序的代码行计算时，用diffcount计算出来的代码行数的NBNC（非空非注释）行数是真实的代码行数，而cobertura的“line valid”项的值是一个折算值，二者的关系是：${line valid}=(0.46~0.47)*NBNC。diffcount中java与C的代码行折算值为0.41（一行java代码相当于0.41行C代码），与0.46~0.47这个范围相差不大，所以猜测cobertura中的行数大概是折算后的C代码行数。实际计算TestCases/KLOC（每千行代码测试用例数）时，采用何种方式计算代码行数均可，只要QA要求和项目周期中保持一致的计算方法即可。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/16/145839/">最简单的Socket通信之Python版</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-16T14:58:39+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:58 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>功能很简单，首先运行Server，当启动Client并向Server发送‘hi’时，Server回答一句问候语，当Client发送其他信息时，Server回答&#8217;bye&#8217;并关闭连接、退出。</p>
+
+<p>Server端：</p>
+
+<pre><code>import sys, socket 
+serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+serv.bind(('localhost',7788)) 
+serv.listen(2) 
+while True: 
+    connection,address = serv.accept() 
+    try: 
+        connection.settimeout(35) 
+        buf = connection.recv(1024) 
+        if buf=='hi': 
+            connection.send('welcome to server!') 
+        else: 
+            connection.send('bye!') 
+            connection.close() 
+            sys.exit(0) 
+    except socket.timeout: 
+        print 'time out!' 
+</code></pre>
+
+<p>Client端：</p>
+
+<pre><code>import socket 
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+sock.connect(('localhost', 7788)) 
+import time 
+time.sleep(2) 
+sock.send('hi') 
+print sock.recv(1024) 
+sock.close() 
+</code></pre>
+
+<p>注意Server和Client都在本机运行时，要在不同的软件上运行，例如Server用WingIDE跑，Client用PyScripter跑。</p>
+
+<p>Server端通信的基本过程是：建立socke对象->bind->listen->connection周期->close，其中connection周期是：首先用socket server的accept方法生成一个新的socket对象（习惯上成为connection）然后用connection的send/rec方法发送/接收数据，最后调用connection的close方法关闭连接。由于服务器经常要以“服务”的形式不断处理客户连接，因此connection周期通常要放在一个循环体里。</p>
+
+<p>Client端通信的基本过程是：建立socke对象->connect->send/recv->close。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -454,7 +684,7 @@ AHK源码：</p>
 
 
 <p> $ git config &ndash;global user.name &ldquo;Scott Chacon&rdquo;
- $ git config &ndash;global user.email &ldquo;<a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#111;&#x3a;&#115;&#99;&#x68;&#x61;&#99;&#x6f;&#110;&#64;&#x67;&#x6d;&#97;&#105;&#108;&#46;&#99;&#x6f;&#109;">&#115;&#99;&#x68;&#x61;&#99;&#x6f;&#110;&#x40;&#x67;&#109;&#97;&#105;&#x6c;&#46;&#x63;&#x6f;&#x6d;</a>&rdquo;</p>
+ $ git config &ndash;global user.email &ldquo;<a href="&#109;&#97;&#105;&#x6c;&#116;&#111;&#x3a;&#115;&#99;&#104;&#x61;&#x63;&#111;&#x6e;&#x40;&#103;&#x6d;&#x61;&#105;&#x6c;&#46;&#99;&#x6f;&#109;">&#115;&#99;&#104;&#x61;&#x63;&#111;&#110;&#x40;&#103;&#109;&#x61;&#x69;&#108;&#46;&#x63;&#111;&#109;</a>&rdquo;</p>
 
 <ol>
 <li>新建仓库，并加入源代码：</li>
@@ -561,350 +791,6 @@ AHK源码：</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/23/105520/">怎样在类外部测试私有方法和设置/读取私有变量</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-02-23T10:55:20+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>10:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>有些私有方法有很明确的功能，算法比较复杂，不测可能会出问题。测的话最简单的方法是把测试用例写在类内部，例如下面的类：</p>
-
-<p> package com.boco.godu.gapi;</p>
-
-<p> import static org.junit.Assert.assertEquals;</p>
-
-<p> import org.junit.Test;</p>
-
-<p> public class ConnManager {</p>
-
-<p> private static String buildConnPoolID(int connType, String ip, int port, String loginArg1, String loginArg2) {</p>
-
-<p> return connType + ip;</p>
-
-<p> }</p>
-
-<p> @Test</p>
-
-<p> public void testPoolID() {</p>
-
-<p> assertEquals(&ldquo;23ipstr&rdquo;, buildConnPoolID(23, &ldquo;ipstr&rdquo;, 3, null, null));</p>
-
-<p> }</p>
-
-<p> }</p>
-
-<p>但这样测会有几个问题：首先是如果测试方法很多，会把源代码文件搞得很臃肿，其次发布的时候需要将测试代码删除（毕竟不是产品的一部分），以后再需要测试的时候还得重写，最后这样的测试在BVT的时候无法运行，工作量也无法体现出来（BVT的测试用例都是写在单独的测试类中）。所以理想的方法是把测试方法写在单独的测试类中。</p>
-
-<p>下面采用Java的反射机制实现这一目标。首先是被测类：</p>
-
-<p> package org.leechau.testPrivateMethod;</p>
-
-<p> public class ClassTested {</p>
-
-<p> private String buffer ;</p>
-
-<p> private String privateFoo (int a, String b) {</p>
-
-<p> return a + b;</p>
-
-<p> }</p>
-
-<p> }</p>
-
-<p>然后是测试类：</p>
-
-<p> package org.leechau.testPrivateMethod;</p>
-
-<p> import static org.junit.Assert.assertEquals;</p>
-
-<p> import java.lang.reflect.InvocationTargetException;</p>
-
-<p> import java.lang.reflect.Method;</p>
-
-<p> import org.junit.BeforeClass;</p>
-
-<p> import org.junit.Test;</p>
-
-<p> public class PrivateMethodTest {</p>
-
-<p> private static ClassTested oClassTested;</p>
-
-<p> private static Method newPrivateFoo;</p>
-
-<p> private static Field buffer;</p>
-
-<p> @BeforeClass</p>
-
-<p> public static void buildDupObj() throws NoSuchMethodException {</p>
-
-<p> // Get the class of the private method.</p>
-
-<p> oClassTested = new ClassTested();</p>
-
-<p> Class&lt;?> cNewClassTested = oClassTested. getClass ();</p>
-
-<p> // Change the property of the private method to be accessible.</p>
-
-<p> newPrivateFoo = cNewClassTested. getDeclaredMethod (&ldquo;privateFoo&rdquo;,</p>
-
-<p> int.class, String.class);</p>
-
-<p> newPrivateFoo. setAccessible (true);</p>
-
-<p> buffer =  cNewClassTested  . getDeclaredField (&ldquo;buffer&rdquo;);</p>
-
-<p> buffer. setAccessible (true);</p>
-
-<p> buffer. set ( oClassTested  , &ldquo;abcdefg&rdquo;);</p>
-
-<p> }</p>
-
-<p> @Test</p>
-
-<p> public void privateFooTest() throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {</p>
-
-<p> // Run the private method.</p>
-
-<p> Object oActual = newPrivateFoo. invoke (oClassTested, new Integer(169),  new String(&ldquo;_ABC&rdquo;));</p>
-
-<p> // Test the private method</p>
-
-<p> String sActual = oActual.toString();</p>
-
-<p> String sExpected = &ldquo;169_ABC&rdquo;;</p>
-
-<p> assertEquals(sActual, sExpected);</p>
-
-<p> Object result = buffer. get ( oClassTested );</p>
-
-<p> assertEquals(&ldquo;bcdefg&rdquo;, result);</p>
-
-<p> }</p>
-
-<p> @Test</p>
-
-<p> public void privateFooTest2() throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {</p>
-
-<p> Object oActual = newPrivateFoo. invoke (oClassTested, new Integer(169), new String(&ldquo;_DEF&rdquo;));</p>
-
-<p> String sActual = oActual.toString();</p>
-
-<p> String sExpected = &ldquo;169_DEF&rdquo;;</p>
-
-<p> assertEquals(sActual, sExpected);</p>
-
-<p> }</p>
-
-<p> }</p>
-
-<p>这里要注意的是，JUnit 4里一个测试类执行顺序为：@BeforeClass –> @Before –> @Test –> @After –> @AfterClass，其中@BeforeClass和@AfterClass标记仅在测试类的初始化和清理时运行一次且必须是static方法，而@Before/@After标记是在每个@Test方法运行前/后都运行一遍，因此每一个测试方法的调用顺序为：@Before –> @Test –> @After。在JUnit 3里没有@BeforeClass和@AfterClass标记，起初始化和清理任务的方法必须命名为SetUp()和TearDown()。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/21/162416/">激活托盘区程序的ahk脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-02-21T16:24:16+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>4:24 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的脚本实现了激活系统托盘区（system tray）Outlook程序的效果（Windows XP），第一行是不在托盘区出现一个autohotkey的图标，这样做的好处是显得比较酷，缺点是如果想中断这个脚本，就只能在任务管理器里关进程（Autohotkey.exe）了。第二行是运行脚本的快捷键（这里是Win键+“]”键），后面是脚本的具体内容，大体意思是首先用TrayIcons函数找到进程&#8221;OUTLOOK.EXE&#8221;的各种参数，然后用PostMessage方法向这个进程发指令，令其窗口显示出来，TrayIcons函数中涉及了很多Windows API，俺就不懂了，好用就行。</p>
-
-<p>使用方法：首先要安装Autohotkey_L v1.0.92.02，将下面的代码保存为一个 UTF-8格式 编码的文本文件，扩展名为ahk，双击运行之。</p>
-
-<h1>NoTrayIcon</h1>
-
-<h1>]::</h1>
-
-<p>DetectHiddenWindows, On</p>
-
-<p>Info := TrayIcons(&ldquo;OUTLOOK.EXE&rdquo;) ; 激活Outlook，这个名字是任务管理器的“进程”里程序对应的进程名称</p>
-
-<p>StringSplit, TrayInfo, Info,|</p>
-
-<p>PostMessage, TrayInfo1, TrayInfo2, 0x0203,, ahk_id %TrayInfo3% ; 这句话实现了激活托盘区程序</p>
-
-<p>return</p>
-
-<p> ; Found and abused from</p>
-
-<p> ; <a href="http://www.autohotkey.com/forum/topic17314.html">http://www.autohotkey.com/forum/topic17314.html</a></p>
-
-<p> ; thx, Sean &hellip; GREAT WORK!</p>
-
-<p>TrayIcons(sExeName = &ldquo;&rdquo;)</p>
-
-<p>{</p>
-
-<p> WinGet, pidTaskbar, PID, ahk_class Shell_TrayWnd</p>
-
-<p> hProc := DllCall(&ldquo;OpenProcess&rdquo;, &ldquo;Uint&rdquo;, 0x38, &ldquo;int&rdquo;, 0, &ldquo;Uint&rdquo;, pidTaskbar)</p>
-
-<p> pRB := DllCall(&ldquo;VirtualAllocEx&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, 0</p>
-
-<pre><code>    , "Uint", 20, "Uint", 0x1000, "Uint", 0x4)
-</code></pre>
-
-<p> VarSetCapacity(btn, 20)</p>
-
-<p> VarSetCapacity(nfo, 24)</p>
-
-<p> VarSetCapacity(sTooltip, 128)</p>
-
-<p> VarSetCapacity(wTooltip, 128 * 2)</p>
-
-<p> SendMessage, 0x418, 0, 0, ToolbarWindow321, ahk_class Shell_TrayWnd</p>
-
-<p> Loop, %ErrorLevel%</p>
-
-<p> {</p>
-
-<p> SendMessage, 0x417, A_Index - 1, pRB, ToolbarWindow321, ahk_class Shell_TrayWnd</p>
-
-<p> DllCall(&ldquo;ReadProcessMemory&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, pRB, &ldquo;Uint&rdquo;, &amp;btn, &ldquo;Uint&rdquo;, 20, &ldquo;Uint&rdquo;, 0)</p>
-
-<p> iBitmap := NumGet(btn, 0), idn := NumGet(btn, 4), Statyle := NumGet(btn, 8)</p>
-
-<p> dwData := NumGet(btn,12), iString := NumGet(btn,16)</p>
-
-<p> DllCall(&ldquo;ReadProcessMemory&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, dwData, &ldquo;Uint&rdquo;, &amp;nfo, &ldquo;Uint&rdquo;, 24, &ldquo;Uint&rdquo;, 0)</p>
-
-<p> hWnd := NumGet(nfo, 0), uID := NumGet(nfo, 4)</p>
-
-<p> nMsg := NumGet(nfo, 8)</p>
-
-<p> WinGet, pid, PID, ahk_id %hWnd%</p>
-
-<p> WinGet, sProcess, ProcessName, ahk_id %hWnd%</p>
-
-<p> WinGetClass, sClass, ahk_id %hWnd%</p>
-
-<p> If !sExeName || (sExeName = sProcess) || (sExeName = pid)</p>
-
-<p> {</p>
-
-<p>  DllCall(&ldquo;ReadProcessMemory&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, iString</p>
-
-<pre><code>     , "Uint", &amp;wTooltip, "Uint", 128 * 2, "Uint", 0)
-</code></pre>
-
-<p>  DllCall(&ldquo;WideCharToMultiByte&rdquo;, &ldquo;Uint&rdquo;, 0, &ldquo;Uint&rdquo;, 0, &ldquo;str&rdquo;, wTooltip</p>
-
-<pre><code>     , "int", -1, "str", sTooltip, "int", 128, "Uint", 0, "Uint", 0)
-</code></pre>
-
-<p>  sTrayIcons .= nMsg &ldquo;|&rdquo; uID &ldquo;|&rdquo; hWnd</p>
-
-<p> }</p>
-
-<p> }</p>
-
-<p> DllCall(&ldquo;VirtualFreeEx&rdquo;, &ldquo;Uint&rdquo;, hProc, &ldquo;Uint&rdquo;, pRB, &ldquo;Uint&rdquo;, 0, &ldquo;Uint&rdquo;, 0x8000)</p>
-
-<p> DllCall(&ldquo;CloseHandle&rdquo;, &ldquo;Uint&rdquo;, hProc)</p>
-
-<p> Return sTrayIcons</p>
-
-<p>}</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/18/151635/">Virtualenv使用笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-02-18T15:16:35+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以在沙箱中安装googlemaps(<a href="http://pypi.python.org/pypi/googlemaps/1.0.2">http://pypi.python.org/pypi/googlemaps/1.0.2</a>)为例说明如何用virtualenv隔离安装python第3方库
-// 离线安装virtualenv(<a href="http://pypi.python.org/pypi/virtualenv">http://pypi.python.org/pypi/virtualenv</a>)：首先下载安装包(gz文件)，解压后运行：
-F:\ghost\tempFiles\virtualenv-1.7.1.2>setup install
-（无法找到setup？参考笔记：***）
-// 生成沙箱
-E:\Docs\PythonSandbox>virtualenv gmapenv
-&hellip;
-// 进入沙箱
-E:\Docs\PythonSandbox>cd gmapenv\Script
-（linux下是cd gmapenv/bin）
-// 测试googlemaps是否已安装
-E:\Docs\PythonSandbox\gmapenv\Script>python -c &ldquo;import googlemaps&rdquo;
-（在Windows平台上用单引号会报错）
-// 激活沙盒
-E:\Docs\PythonSandbox\gmapenv\Script>activate
-（实际上是在$PATH前面加上了当前路径，以保证安装的库放在当前路径下）
-// 在线安装第3方库
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>pip install googlemaps
-// 验证测试googlemaps已安装
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>python -c &ldquo;import googlemaps&rdquo;
-// 卸载googlemaps
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>pip uninstall googlemaps
-// 退出沙盒：
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>deactivate
-注：当不能在线安装时：首先进入隔离环境activate，当安装包是zip格式文件（exe,gz,egg），用easy_install installer_file_name.ext（如aa.exe, bb.gz, cc.egg）的方法安装（参考<a href="http://stackoverflow.com/questions/3271590/can-i-install-python-windows-packages-into-virtualenvs%EF%BC%89%EF%BC%9B%E5%AF%B9%E4%BA%8Emsi%E6%A0%BC%E5%BC%8F%E7%9A%84%E5%AE%89%E8%A3%85%E6%96%87%E4%BB%B6%E8%BF%98%E6%B2%A1%E6%9C%89%E6%89%BE%E5%88%B0%E5%AE%89%E8%A3%85%E5%9C%A8%E9%9A%94%E7%A6%BB%E7%8E%AF%E5%A2%83%E4%B8%AD%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%88%E6%89%80%E4%BB%A5%E6%9C%80%E5%A5%BD%E8%BF%98%E6%98%AF%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%EF%BC%89%EF%BC%9B">http://stackoverflow.com/questions/3271590/can-i-install-python-windows-packages-into-virtualenvs%EF%BC%89%EF%BC%9B%E5%AF%B9%E4%BA%8Emsi%E6%A0%BC%E5%BC%8F%E7%9A%84%E5%AE%89%E8%A3%85%E6%96%87%E4%BB%B6%E8%BF%98%E6%B2%A1%E6%9C%89%E6%89%BE%E5%88%B0%E5%AE%89%E8%A3%85%E5%9C%A8%E9%9A%94%E7%A6%BB%E7%8E%AF%E5%A2%83%E4%B8%AD%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%88%E6%89%80%E4%BB%A5%E6%9C%80%E5%A5%BD%E8%BF%98%E6%98%AF%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%EF%BC%89%EF%BC%9B</a></p>
-
-<p>注2：activate只是将隔离环境的python.exe放在了$PATH的最前面，这样安装库时会安装在隔离环境的site-packages里；</p>
-
-<p>注3：需要卸载一个隔离环境时只要删除文件夹就OK了；</p>
-
-<p>主要参考 <a href="http://wiki.pylonshq.com/display/pylonscookbook/Using+a+Virtualenv+Sandbox">http://wiki.pylonshq.com/display/pylonscookbook/Using+a+Virtualenv+Sandbox</a> 中的windows部分。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/93">&larr; Older</a>
@@ -922,23 +808,23 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

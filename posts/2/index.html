@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Say you want to update data in updated.csv into &ldquo;fairs&rdquo; collection of &ldquo;meteor&rdquo; database in MongoDB. Convert data to be &hellip;">
+  <meta name="description" content="Create VPS First build a vps on DigitalOcean, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,319 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-25T19:53:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Create VPS</h1>
+
+<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
+Get its root password in you email.
+Add the following section into ~/.ssh/config:</p>
+
+<pre><code>Host do
+Hostname 128.199.72.206
+User root
+</code></pre>
+
+<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
+
+<h1>Publish Meteor App</h1>
+
+<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
+
+<p>Create a mup project:</p>
+
+<pre><code>cd ~/docs/tmp
+mkdir nfDeploy
+cd nfDeploy
+mup init
+</code></pre>
+
+<p>Now you can see a mup.json file, edit it as follows:</p>
+
+<pre><code>{
+  "servers": [
+    {
+      "host": "128.199.72.xxx",
+      "username": "root",
+      "pem": "~/.ssh/id_rsa"
+    }
+  ],
+
+  "setupMongo": true,
+  "setupNode": true,
+  "nodeVersion": "0.10.36",
+  "setupPhantom": true,
+  "appName": "newfairs",
+
+  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
+
+  "env": {
+    "PORT": 80,
+    "ROOT_URL": "http://niufairs.biz"
+  },
+
+  "deployCheckWaitTime": 15
+}
+</code></pre>
+
+<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
+&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
+mup will bundle codes in it, and publish them to host on vps.</p>
+
+<p>You can only use key authentication.
+If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
+
+<p>Setup production environment: <code>mup setup</code>;
+Delpoy app: <code>mup deploy</code>;</p>
+
+<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
+
+<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
+</code></pre>
+
+<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
+
+<h1>Import Data</h1>
+
+<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
+
+<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
+scp -r mynf do:~/
+ssh do
+cd mynf
+mongorestore -d newfairs meteor
+</code></pre>
+
+<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/18/095552/">Web Scanning Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-18T09:55:52+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Discovery Scanning</h1>
+
+<p>This step find the IP address of a website, most frequently with <code>ping</code> tools.</p>
+
+<h1>Port scanning</h1>
+
+<p>This step find the openning ports on a host.</p>
+
+<h2>Stealth scan</h2>
+
+<p>Scan commonly used 1000 ports (preconfigured by nmap) of a host: <code>nmap -sS &lt;target-ip&gt;</code>;</p>
+
+<p>Scan all port of a host: <code>nmap -sS &lt;target-ip&gt; -p 0-65535</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>$ sudo nmap -sS xxx.xxx.xxx.143 -p 27010-27020
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:01 CST
+Nmap scan report for newfairs.com (xxx.xxx.xxx.143)
+Host is up (0.30s latency).
+PORT      STATE  SERVICE
+27010/tcp closed flexlm10
+27011/tcp closed unknown
+27012/tcp closed unknown
+27013/tcp closed unknown
+27014/tcp closed unknown
+27015/tcp closed unknown
+27016/tcp closed unknown
+27017/tcp open   unknown
+27018/tcp closed unknown
+27019/tcp closed unknown
+27020/tcp closed unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 5.66 seconds
+</code></pre>
+
+<p>Port 27017 (used by mongoDB) is detected.</p>
+
+<h2>Connection scan</h2>
+
+<p>Command: <code>nmap -sT &lt;target-ip&gt;</code>;</p>
+
+<p>Compared with connection scan, stealth scan won&rsquo;t be logged by the target.
+So it&rsquo;s more safe.</p>
+
+<h1>Banner grabbing</h1>
+
+<p>This step get the banner of a service on a specific port (here is 21):</p>
+
+<pre><code>sudo nmap -sT xxx.xxx.xxx.234 -p 21 --script=banner
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:30 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.064s latency).
+PORT   STATE SERVICE
+21/tcp open  ftp
+| banner: 220-FileZilla Server v0.9.33 beta\x0D\x0A220-written by Tim Kos
+|_se (Tim.Kosse@gmx.de)\x0D\x0A220 Please visit http://sourceforge.net...
+</code></pre>
+
+<p>So this is a FileZilla server, version 0.9.33,
+which implies the OS is probably Windows.</p>
+
+<h1>Service identification</h1>
+
+<p>This step detect what service is running on a specific port of a host.</p>
+
+<p>This is the detection on port 3389: <code>sudo nmap xxx.xxx.xxx.234 -p 3389 -sV</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>sudo nmap xxx.xxx.xxx.234 -p 80 -sV                
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:23 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.072s latency).
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.2.17 ((Win32) PHP/5.3.5)
+</code></pre>
+
+<h1>Operating system identification</h1>
+
+<p>Command: <code>nmap &lt;target-ip&gt; -O</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>$ sudo nmap xxx.xxx.xxx.143 -O
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 08:43 CST
+Nmap scan report for xxx.com (xxx.xxx.xxx.143)
+Host is up (0.32s latency).
+Not shown: 984 closed ports
+PORT     STATE    SERVICE
+22/tcp   open     ssh
+80/tcp   open     http
+135/tcp  filtered msrpc
+139/tcp  filtered netbios-ssn
+445/tcp  filtered microsoft-ds
+593/tcp  filtered http-rpc-epmap
+901/tcp  filtered samba-swat
+1068/tcp filtered instl_bootc
+1723/tcp filtered pptp
+3000/tcp open     ppp
+3128/tcp filtered squid-http
+4444/tcp filtered krb524
+5800/tcp filtered vnc-http
+5900/tcp filtered vnc
+6129/tcp filtered unknown
+6667/tcp filtered irc
+Aggressive OS guesses: Linux 3.2 - 3.6 (96%), Linux 2.6.32 - 2.6.39 (94%), Linux 2.6.32 - 3.0 (93%), Linux 3.5 (92%), Linux 2.6.32 (92%), IPFire firewall 2.11 (Linux 2.6.32) (92%), Linux 2.6.15 - 2.6.26 (likely embedded) (90%), Linux 2.6.32 - 2.6.33 (90%), Linux 2.6.32 - 2.6.35 (90%), Linux 2.6.18 (90%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 23 hops
+
+OS detection performed. Please report any incorrect results at http://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 83.20 seconds
+</code></pre>
+
+<p>Ref: &ldquo;Kali Linux Network Scanning Cookbook&rdquo; by Justin Hutchens.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/10/102817/">Convert a CVS Repo to SVN Repo</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-10T10:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Download cvs2svn-2.4.0.tar.gz from <a href="http://cvs2svn.tigris.org/">cvs2svn</a> and extract it.
+We get a folder named &ldquo;cvs2svn-2.4.0&rdquo;.</p>
+
+<p>The cvs repo to be converted is at $HOME/Desktop/goat.
+There&rsquo;s a &ldquo;CVSROOT&rdquo; and &ldquo;dev/GOAT&rdquo; folder in it.</p>
+
+<p>Change CWD to cvs2svn-2.4.0 and run <code>./cvs2svn --encoding=GBK --fallback-encoding=utf8 -s ~/Desktop/goatsvn ~/Desktop/goat</code>.</p>
+
+<p>After convertion, you get your subversion repo at $HOME/Desktop/goatsvn.</p>
+
+<p>Check it with <code>svn ls file://$HOME/Desktop/goatsvn</code>, and <code>svn log HEAD file://$HOME/Desktop/goatsvn</code>
+and <code>svn cat file://$HOME/Desktop/goatsvn/...</code>.</p>
+
+<p>If you encouter this error: &ldquo;ERROR: A CVS repository cannot contain both repo/path/file.txt,v and repo/path/Attic/file.txt,v&rdquo;:
+<code>./cvs2svn --retain-conflicting-attic-files --encoding=GBK --fallback-encoding=utf8 -s ~/Desktop/dev2SVN ~/Desktop/ARENA/dev2</code></p>
+
+<p>Next add this repo to a existing repository:</p>
+
+<p>Ref:</p>
+
+<p>Google for &ldquo;subversion format 5&rdquo;.</p>
+
+<p><a href="http://serverfault.com/questions/277441/difference-between-the-format-and-db-format-files-in-a-subversion-repository">http://serverfault.com/questions/277441/difference-between-the-format-and-db-format-files-in-a-subversion-repository</a></p>
+
+<p><a href="http://stackoverflow.com/questions/3420741/cvs-comma-v-files-in-attic-and-directory">http://stackoverflow.com/questions/3420741/cvs-comma-v-files-in-attic-and-directory</a></p>
+
+<p><a href="http://cvs2svn.tigris.org/faq.html#atticprob">http://cvs2svn.tigris.org/faq.html#atticprob</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -582,312 +896,6 @@ If the test is past, remove the test data from fair B:</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/20/224401/">Test Underscore Functions of Meteor App</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-20T22:44:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:44 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>When you add some underscore functions to your meteor app, you can&rsquo;t test it in browser console.
-So we need test it somewhere else.</p>
-
-<ol>
-<li><p>Create a new folder as the test project root;</p></li>
-<li><p>Install underscore package locally, which means the package is specific for this project;</p></li>
-<li><p>Create a node script to test the underscore functions.</p></li>
-</ol>
-
-
-<p>The whole work flow is like this:</p>
-
-<pre><code>$ mkdir myapp
-$ cd myapp
-$ npm install underscore
-$ cat &lt;&lt; EOF &gt; myfunc.js
-var _ = require('underscore');
-var res = _.map([1, 2, 3], function(num){ return num * 3; });
-console.log(res);
-EOF
-$ node myfunc
-[ 3, 6, 9 ]
-</code></pre>
-
-<p>Note:</p>
-
-<ol>
-<li><p>See <a href="https://docs.npmjs.com/misc/faq#why-cant-npm-just-put-everything-in-one-place-like-other-package-managers">Why can&rsquo;t npm just put everything in one place, like other package managers? on npm&rsquo;s FAQ</a>
-for the reason why npm not install pakcage globally like pip.</p></li>
-<li><p>For node, how to determine install a package locally or globally?
-According to <a href="http://blog.nodejs.org/2011/03/23/npm-1-0-global-vs-local-installation/">npm 1.0: Global vs Local installation</a></p>
-
-<ol type="a">
-<li><p> If you’re installing something that you want to use in your program, using require(&lsquo;whatever&rsquo;), then install it locally, at the root of your project.</p></li>
-<li><p> If you’re installing something that you want to use in your shell, on the command line or something, install it globally, so that its binaries end up in your PATH environment variable. For example, install <a href="http://bower.io/">bower</a> with <code>npm install bower -g</code>.</p></li>
-</ol>
-</li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/20/194901/">Import Data for Newfairs.com</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-20T19:49:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Prerequisites</h1>
-
-<p>First install MongoDB, node.js and csvkit.</p>
-
-<p>For node.js, download node binary package (node-v0.10.33-linux-x64.tar.gz in my case) from its website,
-extract and add binary folder into $PATH. For example, add the following line into ~/.zshenv:</p>
-
-<pre><code>PATH=$HOME/apps/node-v0.10.33-linux-x64/bin:$PATH
-</code></pre>
-
-<p>For MongoDB, download its binary package (mongodb-linux-x86_64-2.6.5.tgz in my case) from its website,
-extract and add binary folder into $PATH:</p>
-
-<pre><code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH
-</code></pre>
-
-<p>Install csvkit with <code>sudo pip install csvkit</code>.</p>
-
-<h1>Preparation</h1>
-
-<ol>
-<li><p>Convert Excel (xls/xlsx) file to csv file: <code>in2csv data.xls &gt; data.csv</code>;</p></li>
-<li><p>(Optional) Convert file encoding: <code>iconv -f gbk -t utf8 data20150218.csv &gt; input.csv</code>;</p></li>
-<li><p>Examine data: <code>head input.csv | csvjson -i 4</code>;</p></li>
-<li><p>Start MongoDB server for importing data: <code>mongod</code>;</p></li>
-</ol>
-
-
-<h1>Import Data</h1>
-
-<p>In case you want to overwrite old data, you need backup old collection:
-start a mongodb client, make a copy of the old collection (the original collection is &ldquo;fairs&rdquo;):</p>
-
-<pre><code>$ mongo
-&gt; db.fairs.renameCollection('fairsBak')
-</code></pre>
-
-<p>P.S. You can make a copy of a collection with <code>db.fairs.copyTo('fairsBak')</code>.</p>
-
-<p>Now import new data to collection &ldquo;fairs&rdquo;:</p>
-
-<pre><code>./importdata
-</code></pre>
-
-<h1>Under the hood</h1>
-
-<p>importdata:</p>
-
-<pre><code>#!/bin/bash
-
-# convert the csv file encoding with:
-# iconv -f gbk -t utf8 xxx.csv &gt; input.csv
-INP='input.csv'
-TargetDB='test'
-TargetCol='fairs'
-
-RAW='rawdata.json'
-RES='result.json'
-if [[ ! -f $INP ]]; then
-  echo File input.csv not exists!
-  exit 1
-fi
-rm -rf $RAW $RES
-csvjson $INP &gt; $RAW
-node checkTransform
-mongoimport -d $TargetDB -c $TargetCol --type json --file $RES --jsonArray
-rm -rf $RAW $RES
-</code></pre>
-
-<p>checkTransform.js:</p>
-
-<pre><code>var data = require('./rawdata.json');
-var fs = require('fs');
-var result = []
-
-data.forEach(function(elem) {
-  var aFair = JSON.parse( JSON.stringify(elem) );
-  aFair.indexStr = {};
-  aFair.indexStr['name'] = (elem.chnName + ' ' + elem.engName).trim();
-  aFair.indexStr['sponsor'] = elem.sponsor;
-  aFair.indexStr['undertaker'] = elem.undertaker;
-  aFair.indexStr['category'] = elem.category;
-  aFair.indexStr['simpleSearch'] = elem.chnName + ' ' + elem.engName + ' ' + elem.position + ' ' + elem.time + ' ' + elem.category;
-
-  if (elem.sponsor) {
-    aFair['sponsor'] = [];
-    elem.sponsor.split('|').forEach(function(spr) {
-      var aSponsor = {};
-      var sps = spr.split('$');
-      aSponsor['name'] = sps[0];
-      aSponsor['tel'] = sps[1];
-      aSponsor['fax'] = sps[2];
-      aSponsor['email'] = sps[3];
-      aSponsor['website'] = sps[4];
-      aFair.sponsor.push(aSponsor);
-    });
-  }
-
-  if (elem.undertaker) {
-    aFair['undertaker'] = [];
-    elem.undertaker.split('|').forEach(function(udt) {
-      var aUndertaker = {};
-      var uds = udt.split('$');
-      aUndertaker['name'] = uds[0];
-      aUndertaker['tel'] = uds[1];
-      aUndertaker['fax'] = uds[2];
-      aUndertaker['email'] = uds[3];
-      aUndertaker['website'] = uds[4];
-      aFair.undertaker.push(aUndertaker);
-    });
-  }
-
-  if (elem.category) {
-    aFair['category'] = [];
-    elem.category.split('|').forEach(function(catStr) {
-      var aCat = {};
-      var cats = catStr.split('$');
-      aCat['major'] = cats[0] === '?' ? '' : cats[0];
-      aCat['minor'] = cats.slice(1);
-      aFair.category.push(aCat);
-    });
-  }
-
-  result.push(aFair);
-});
-
-fs.writeFile('result.json', JSON.stringify(result));
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/18/105314/">超链接中data-toggle属性使用新的Session</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-18T10:53:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:53 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>如果在超链接中将&#8221;data-toggle&#8221;属性设为&#8221;modal&#8221;，如下所示，则超链接所指向的窗体将使用新的Seesion。</p>
-
-<pre><code>&lt;a href="/register" data-toggle="modal"&gt;注册新帐号&lt;/a&gt;
-</code></pre>
-
-<p>比如我们想在每次跳转后将当前url记录在Session变量&#8221;currentUrl&#8221;中，
-但是在url以&#8221;login&#8221;和&#8221;register&#8221;结尾时不更新&#8221;currentUrl&#8221;：</p>
-
-<pre><code>Router.onAfterAction(function(){
-  if (! (Router.current() &amp;&amp; Router.current().url) ) {
-    return;
-  }
-  var currentUrl = Router.current().url;
-  if ( (currentUrl.indexOf('login') &lt; 0 ) &amp;&amp;
-        currentUrl.indexOf("register") &lt; 0 ) {
-    Session.set("currentUrl", currentUrl);
-  }
-});
-</code></pre>
-
-<p>然后在登录或者注册成功后取出这个缓存的变量，利用callback函数跳转回之前的页面：</p>
-
-<pre><code>Accounts.createUser({
-  email: t.find("#userEmail").value,
-  password: t.find("#userPwd").value,
-  profile: {
-    nickname: t.find("#userNickname").value,
-    role: userRole.value,
-    gender: gender.value,
-    desc: userDesc
-  }
-}, function(error) {
-  if (error) {
-    alert("something wrong, registration failed.");
-  } else {
-    alert("注册并登录成功！");
-    var currentUrl = Session.get("currentUrl");
-    var tmp = document.createElement('a');
-    tmp.href = currentUrl;
-    var currentPath = tmp.pathname + tmp.search;
-    Router.go(currentPath);
-  }
-});
-</code></pre>
-
-<p>那么当点击上面的超链接时，所有Session对象都被清空，&#8221;currentUrl&#8221;值变为&#8221;undefined&#8221;，
-如果用<code>Session.setDefault("currentUrl", "aabb");</code>设置默认值，
-则点击上面的超链接后&#8221;currentUrl&#8221;值变为&#8221;aabb&#8221;，
-然后再执行Router.onAfterAction中的callback函数。</p>
-
-<p>这样前面利用缓存变量跳转回原来页面的设计就失效了，页面跳转到&#8221;/undefined&#8221;页面，
-解决办法很简单：去掉超链接中的data-toggle属性，变为一个普通超链接：</p>
-
-<pre><code>&lt;a href="/register"&gt;注册新帐号&lt;/a&gt;
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/3">&larr; Older</a>
@@ -905,23 +913,23 @@ fs.writeFile('result.json', JSON.stringify(result));
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

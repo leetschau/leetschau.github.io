@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="使用一个数组，评分为3对应着： html: &lt;span class="glyphicon text-danger"&gt;&lt;/span&gt; js: Template.UserEvaluations.helpers({ rankicons: function() { return &hellip;">
+  <meta name="description" content="When you add some underscore functions to your meteor app, you can&rsquo;t test it in browser console.
+So we need test it somewhere else. Create a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,312 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/20/224401/">Test Underscore Functions of Meteor App</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-20T22:44:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:44 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When you add some underscore functions to your meteor app, you can&rsquo;t test it in browser console.
+So we need test it somewhere else.</p>
+
+<ol>
+<li><p>Create a new folder as the test project root;</p></li>
+<li><p>Install underscore package locally, which means the package is specific for this project;</p></li>
+<li><p>Create a node script to test the underscore functions.</p></li>
+</ol>
+
+
+<p>The whole work flow is like this:</p>
+
+<pre><code>$ mkdir myapp
+$ cd myapp
+$ npm install underscore
+$ cat &lt;&lt; EOF &gt; myfunc.js
+var _ = require('underscore');
+var res = _.map([1, 2, 3], function(num){ return num * 3; });
+console.log(res);
+EOF
+$ node myfunc
+[ 3, 6, 9 ]
+</code></pre>
+
+<p>Note:</p>
+
+<ol>
+<li><p>See <a href="https://docs.npmjs.com/misc/faq#why-cant-npm-just-put-everything-in-one-place-like-other-package-managers">Why can&rsquo;t npm just put everything in one place, like other package managers? on npm&rsquo;s FAQ</a>
+for the reason why npm not install pakcage globally like pip.</p></li>
+<li><p>For node, how to determine install a package locally or globally?
+According to <a href="http://blog.nodejs.org/2011/03/23/npm-1-0-global-vs-local-installation/">npm 1.0: Global vs Local installation</a></p>
+
+<ol type="a">
+<li><p> If you’re installing something that you want to use in your program, using require(&lsquo;whatever&rsquo;), then install it locally, at the root of your project.</p></li>
+<li><p> If you’re installing something that you want to use in your shell, on the command line or something, install it globally, so that its binaries end up in your PATH environment variable. For example, install <a href="http://bower.io/">bower</a> with <code>npm install bower -g</code>.</p></li>
+</ol>
+</li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/20/194901/">Import Data for Newfairs.com</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-20T19:49:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Prerequisites</h1>
+
+<p>First install MongoDB, node.js and csvkit.</p>
+
+<p>For node.js, download node binary package (node-v0.10.33-linux-x64.tar.gz in my case) from its website,
+extract and add binary folder into $PATH. For example, add the following line into ~/.zshenv:</p>
+
+<pre><code>PATH=$HOME/apps/node-v0.10.33-linux-x64/bin:$PATH
+</code></pre>
+
+<p>For MongoDB, download its binary package (mongodb-linux-x86_64-2.6.5.tgz in my case) from its website,
+extract and add binary folder into $PATH:</p>
+
+<pre><code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH
+</code></pre>
+
+<p>Install csvkit with <code>sudo pip install csvkit</code>.</p>
+
+<h1>Preparation</h1>
+
+<ol>
+<li><p>Convert Excel (xls/xlsx) file to csv file: <code>in2csv data.xls &gt; data.csv</code>;</p></li>
+<li><p>(Optional) Convert file encoding: <code>iconv -f gbk -t utf8 data20150218.csv &gt; input.csv</code>;</p></li>
+<li><p>Examine data: <code>head input.csv | csvjson -i 4</code>;</p></li>
+<li><p>Start MongoDB server for importing data: <code>mongod</code>;</p></li>
+</ol>
+
+
+<h1>Import Data</h1>
+
+<p>In case you want to overwrite old data, you need backup old collection:
+start a mongodb client, make a copy of the old collection (the original collection is &ldquo;fairs&rdquo;):</p>
+
+<pre><code>$ mongo
+&gt; db.fairs.renameCollection('fairsBak')
+</code></pre>
+
+<p>P.S. You can make a copy of a collection with <code>db.fairs.copyTo('fairsBak')</code>.</p>
+
+<p>Now import new data to collection &ldquo;fairs&rdquo;:</p>
+
+<pre><code>./importdata
+</code></pre>
+
+<h1>Under the hood</h1>
+
+<p>importdata:</p>
+
+<pre><code>#!/bin/bash
+
+# convert the csv file encoding with:
+# iconv -f gbk -t utf8 xxx.csv &gt; input.csv
+INP='input.csv'
+TargetDB='test'
+TargetCol='fairs'
+
+RAW='rawdata.json'
+RES='result.json'
+if [[ ! -f $INP ]]; then
+  echo File input.csv not exists!
+  exit 1
+fi
+rm -rf $RAW $RES
+csvjson $INP &gt; $RAW
+node checkTransform
+mongoimport -d $TargetDB -c $TargetCol --type json --file $RES --jsonArray
+rm -rf $RAW $RES
+</code></pre>
+
+<p>checkTransform.js:</p>
+
+<pre><code>var data = require('./rawdata.json');
+var fs = require('fs');
+var result = []
+
+data.forEach(function(elem) {
+  var aFair = JSON.parse( JSON.stringify(elem) );
+  aFair.indexStr = {};
+  aFair.indexStr['name'] = (elem.chnName + ' ' + elem.engName).trim();
+  aFair.indexStr['sponsor'] = elem.sponsor;
+  aFair.indexStr['undertaker'] = elem.undertaker;
+  aFair.indexStr['category'] = elem.category;
+  aFair.indexStr['simpleSearch'] = elem.chnName + ' ' + elem.engName + ' ' + elem.position + ' ' + elem.time + ' ' + elem.category;
+
+  if (elem.sponsor) {
+    aFair['sponsor'] = [];
+    elem.sponsor.split('|').forEach(function(spr) {
+      var aSponsor = {};
+      var sps = spr.split('$');
+      aSponsor['name'] = sps[0];
+      aSponsor['tel'] = sps[1];
+      aSponsor['fax'] = sps[2];
+      aSponsor['email'] = sps[3];
+      aSponsor['website'] = sps[4];
+      aFair.sponsor.push(aSponsor);
+    });
+  }
+
+  if (elem.undertaker) {
+    aFair['undertaker'] = [];
+    elem.undertaker.split('|').forEach(function(udt) {
+      var aUndertaker = {};
+      var uds = udt.split('$');
+      aUndertaker['name'] = uds[0];
+      aUndertaker['tel'] = uds[1];
+      aUndertaker['fax'] = uds[2];
+      aUndertaker['email'] = uds[3];
+      aUndertaker['website'] = uds[4];
+      aFair.undertaker.push(aUndertaker);
+    });
+  }
+
+  if (elem.category) {
+    aFair['category'] = [];
+    elem.category.split('|').forEach(function(catStr) {
+      var aCat = {};
+      var cats = catStr.split('$');
+      aCat['major'] = cats[0] === '?' ? '' : cats[0];
+      aCat['minor'] = cats.slice(1);
+      aFair.category.push(aCat);
+    });
+  }
+
+  result.push(aFair);
+});
+
+fs.writeFile('result.json', JSON.stringify(result));
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/18/105314/">超链接中data-toggle属性使用新的Session</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-18T10:53:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:53 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>如果在超链接中将&#8221;data-toggle&#8221;属性设为&#8221;modal&#8221;，如下所示，则超链接所指向的窗体将使用新的Seesion。</p>
+
+<pre><code>&lt;a href="/register" data-toggle="modal"&gt;注册新帐号&lt;/a&gt;
+</code></pre>
+
+<p>比如我们想在每次跳转后将当前url记录在Session变量&#8221;currentUrl&#8221;中，
+但是在url以&#8221;login&#8221;和&#8221;register&#8221;结尾时不更新&#8221;currentUrl&#8221;：</p>
+
+<pre><code>Router.onAfterAction(function(){
+  if (! (Router.current() &amp;&amp; Router.current().url) ) {
+    return;
+  }
+  var currentUrl = Router.current().url;
+  if ( (currentUrl.indexOf('login') &lt; 0 ) &amp;&amp;
+        currentUrl.indexOf("register") &lt; 0 ) {
+    Session.set("currentUrl", currentUrl);
+  }
+});
+</code></pre>
+
+<p>然后在登录或者注册成功后取出这个缓存的变量，利用callback函数跳转回之前的页面：</p>
+
+<pre><code>Accounts.createUser({
+  email: t.find("#userEmail").value,
+  password: t.find("#userPwd").value,
+  profile: {
+    nickname: t.find("#userNickname").value,
+    role: userRole.value,
+    gender: gender.value,
+    desc: userDesc
+  }
+}, function(error) {
+  if (error) {
+    alert("something wrong, registration failed.");
+  } else {
+    alert("注册并登录成功！");
+    var currentUrl = Session.get("currentUrl");
+    var tmp = document.createElement('a');
+    tmp.href = currentUrl;
+    var currentPath = tmp.pathname + tmp.search;
+    Router.go(currentPath);
+  }
+});
+</code></pre>
+
+<p>那么当点击上面的超链接时，所有Session对象都被清空，&#8221;currentUrl&#8221;值变为&#8221;undefined&#8221;，
+如果用<code>Session.setDefault("currentUrl", "aabb");</code>设置默认值，
+则点击上面的超链接后&#8221;currentUrl&#8221;值变为&#8221;aabb&#8221;，
+然后再执行Router.onAfterAction中的callback函数。</p>
+
+<p>这样前面利用缓存变量跳转回原来页面的设计就失效了，页面跳转到&#8221;/undefined&#8221;页面，
+解决办法很简单：去掉超链接中的data-toggle属性，变为一个普通超链接：</p>
+
+<pre><code>&lt;a href="/register"&gt;注册新帐号&lt;/a&gt;
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -869,192 +1176,6 @@ Install it if you like.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/26/174649/">Meteor Development Styles</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-26T17:46:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Naming Styles</h1>
-
-<ul>
-<li><p>Template, class, enum name use BigCamelCase;</p></li>
-<li><p>File, identifier, function name use smallCamelCase;</p></li>
-<li><p>CSS class name: css-class-name;</p></li>
-<li><p>Constant value name: CONSTANT_VALUES_LIKE_THIS;</p></li>
-</ul>
-
-
-<p>Ref:</p>
-
-<p><a href="https://github.com/meteor/meteor/wiki/Meteor-Style-Guide">Meteor Style Guide</a></p>
-
-<p><a href="https://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml#Naming">Googe JavaScript Naming rules</a>:
-use functionNamesLikeThis, variableNamesLikeThis, ClassNamesLikeThis, EnumNamesLikeThis, methodNamesLikeThis, CONSTANT_VALUES_LIKE_THIS, foo.namespaceNamesLikeThis.bar, and filenameslikethis.js.</p>
-
-<p><a href="https://github.com/airbnb/javascript">Airbnb JavaScript Style Guide</a></p>
-
-<h1>Small Project Structure with Iron Router</h1>
-
-<p>The following is the file structure of small meteor app,
-which put all files into root folder, to simplify file editing and browsing.</p>
-
-<ul>
-<li><p>head.html: contains &ldquo;<head> &hellip; </head>&rdquo;;</p></li>
-<li><p>layout.html: defines layouts of the app, each in a &ldquo;<template>&rdquo;, you can put multiple layouts in this file;</p></li>
-<li><p>router.js: defines all routes and layouts. Put all javascript codes starting with &ldquo;Router.&rdquo; (such as Router.route, Router.configure) into this file;</p></li>
-<li><p>collections.js: define persistent collections, or models of application;</p></li>
-<li><p>style.css: defines global css styles here;</p></li>
-<li><p>comTemp.html: defines global common templates here;</p></li>
-<li><p>page triad: consists of a view (html), a controller (js) and a formatter (css).
-  So the home page triad consists of home.html, home.js and home.css;</p></li>
-</ul>
-
-
-<h1>Large Project Structures</h1>
-
-<p><a href="https://github.com/DiscoverMeteor/Microscope">Microscope</a> of <a href="https://www.discovermeteor.com/">Discover Meteor</a> is a good example:</p>
-
-<p>$ git clone <a href="https://github.com/DiscoverMeteor/Microscope.git">https://github.com/DiscoverMeteor/Microscope.git</a>
-$ cd Microscope
-$ tree -L 3
-.
-├── client
-│   ├── helpers
-│   │   ├── config.js
-│   │   ├── errors.js
-│   │   └── handlebars.js
-│   ├── main.html
-│   ├── main.js
-│   ├── stylesheets
-│   │   └── style.css
-│   └── templates
-│       ├── application
-│       ├── comments
-│       ├── includes
-│       ├── notifications
-│       └── posts
-├── lib
-│   ├── collections
-│   │   ├── comments.js
-│   │   ├── notifications.js
-│   │   └── posts.js
-│   ├── permissions.js
-│   └── router.js
-├── LICENSE.txt
-├── README.markdown
-├── README.nitrous.md
-└── server
-    ├── fixtures.js
-    └── publications.js</p>
-
-<p>Ref:</p>
-
-<p><a href="http://docs.meteor.com/#/full/structuringyourapp">Structuring your application in Meteor Docs</a></p>
-
-<p><a href="https://github.com/EventedMind/iron-router/blob/devel/Guide.md">iron-router official guide</a></p>
-
-<p>google &ldquo;iron router layout&rdquo;;</p>
-
-<p><a href="http://www.manuel-schoebel.com/blog/iron-router-tutorial">Iron-Router Tutorial</a></p>
-
-<p><a href="http://stackoverflow.com/questions/21824045/meteor-iron-router-layout-template">Meteor Iron Router layout template</a></p>
-
-<p><a href="http://stackoverflow.com/questions/19909945/meteor-iron-router-layout-rendering">Meteor Iron-Router Layout Rendering</a></p>
-
-<p><a href="http://robertdickert.com/blog/2014/05/09/set-up-navigation-with-iron-router-and-bootstrap/">Set Up Navigation With Iron Router and Bootstrap</a></p>
-
-<p><a href="http://meteortips.com/tutorial/iron-router-part-1/">A Beginner’s Guide to Iron Router, Part 1</a> on <a href="http://meteortips.com/">Meteor Tips</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/26/173952/">离线保存网页</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-26T17:39:52+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:39 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>首先试用了Firefox的&#8221;Save as PDF&#8221;这个插件，发现对于内容复杂的网页，保存总出错。</p>
-
-<p>又试了&#8221;Screengrab!&ldquo;这个插件，把整个网页保存成一改png文件，效果不错，
-即使网页超出了一屏，也可以保存为一个完整的图片。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-20T09:04:27+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:04 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>To encrypt a file with vim, use <code>:X</code> when saving the file.</p>
-
-<p>To remove the encryption, run <code>:set key=</code> in vim,
-make some modifications in text,
-then save file with <code>:x</code>.</p>
-
-<p>Note that if you didn&rsquo;t make any modifications in text,
-The encryption will not be removed.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -1072,23 +1193,23 @@ The encryption will not be removed.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

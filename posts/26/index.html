@@ -9,11 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="aria2c, curl, wget: Download tools;
-ping: ping -c 4 bing.com;
-tracepath bing.com;
-mtr bing.com: combination of ping and tracepath;
-host bing.com; &hellip;">
+  <meta name="description" content="Today I install Jenkins on CentOS 6. When start the service with &ldquo;java -jar jenkins.war &ndash;httpPort=8088&rdquo;, it raised a &ldquo;java. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +65,241 @@ host bing.com; &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/11/095843/">Fix Jenkins Startup and Access Failure on CentOS</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-11T09:58:43+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Today I install Jenkins on CentOS 6. When start the service with &ldquo;java -jar jenkins.war &ndash;httpPort=8088&rdquo;, it raised a &ldquo;java.net.unknownhostexception: Temporary failure in name resolution&rdquo; error.</p>
+
+<p>Resolution: add hostname (&ldquo;tybvt&rdquo; here) into &ldquo;127.0.0.1&rdquo; name of /etc/hosts, from:</p>
+
+<pre><code>127.0.0.1  localhost.localdomain localhost
+</code></pre>
+
+<p>to:</p>
+
+<pre><code>127.0.0.1  tybvt localhost.localdomain localhost
+</code></pre>
+
+<p>When Jenkins start successfully, only can access from &ldquo;localhost:8088&rdquo;, &ldquo;10.0.2.47:8088&rdquo; is rejected. It&rsquo;s because the firewall &ldquo;iptables&rdquo; service. So we need to add a rule into iptables configuration. Add:</p>
+
+<pre><code>-A INPUT -i eth0 -p tcp --dport 8088 -j ACCEPT
+</code></pre>
+
+<p><strong>right after</strong> the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo; in file /etc/sysconfig/iptables.
+Or simply stop the service with &ldquo;service iptables stop&rdquo; if security is not a concern.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/10/182629/">Configure Hosts With Puppet</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-10T18:26:29+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:26 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>According to &ldquo;Pro Puppet&rdquo; 2nd edition, Chapter 2, &ldquo;Creating a Module to Manage SSH&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/07/172525/">Compile Java Codes in Linux Shell Instead of Ant Script</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-07T17:25:25+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:25 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following is frequently used ant script, compile some java source codes with a libary path, then copy all non-java files to compiled folder:</p>
+
+<pre><code>&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${webroot.dir}/web-inf/classes" /&gt;
+&lt;path id="lib.path"&gt;
+    &lt;fileset dir="${webroot.dir}/web-inf/lib"&gt;
+        &lt;include name="**/*.jar" /&gt;
+    &lt;/fileset&gt;
+&lt;/path&gt;
+&lt;target name="compile-src" depends="init" description="compile java sources"&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="utf-8"
+            debug="true" classpathref="lib.path" failonerror="false"/&gt;
+    &lt;copy todir="${src.class.dir}"&gt;
+        &lt;fileset dir="${src.dir}"&gt;
+            &lt;exclude name="**/*.java" /&gt;
+        &lt;/fileset&gt;
+    &lt;/copy&gt;
+&lt;/target&gt;
+</code></pre>
+
+<p>The corresponding shell script is:</p>
+
+<pre><code>src_dir=/vagrant/codes/GCP6.1/src
+web_build=/vagrant/codes/web_build
+class_dir=$web_build/web_server/webapps/GCP6.1/WEB-INF/classes
+lib_dir=/vagrant/codes/GCP6.1/WebRoot/WEB-INF/lib
+find $src_dir -type f -name "*.java" -exec javac -cp "$lib_dir/*:$src_dir" -d $class_dir {} \;
+rsync -auC --exclude='*.java' $src_dir/ $class_dir/
+</code></pre>
+
+<p>Take care there&rsquo;s no folder named &ldquo;core&rdquo; in $src_dir, or it will be excluded by the &ldquo;-C&rdquo; option of rsync command.</p>
+
+<h1>A Test Case</h1>
+
+<pre><code>$ tree
+.
+├── classes
+├── lib
+│   ├── libadd.jar
+│   └── libmul.jar
+├── libadd
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── add
+│                   ├── MyAdd.class
+│                   └── MyAdd.java
+├── libmul
+│   └── com
+│       └── boco
+│           └── gcp
+│               └── mul
+│                   ├── MyMul.class
+│                   └── MyMul.java
+└── main
+    └── com
+        └── boco
+            └── gcp
+                ├── Test.java
+                └── util
+                    └── MyUtil.java
+
+17 directories, 8 files
+
+$ find . -name '*.java' -exec cat {} \; -exec echo "--------" \;
+package com.boco.gcp.util;
+
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.mul.MyMul;
+
+public class MyUtil {
+    public int newadd(int x, int y) {
+        MyAdd add = new MyAdd();
+        MyMul mul = new MyMul();
+        return add.myadd(3,5) + mul.mymul(3,5);
+    }
+}
+--------
+package com.boco.gcp;
+
+import com.boco.gcp.mul.MyMul;
+import com.boco.gcp.add.MyAdd;
+import com.boco.gcp.util.MyUtil;
+
+public class Test {
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        MyAdd add = new MyAdd();
+        System.out.println(mul.mymul(3,5));
+        System.out.println(add.myadd(3,5));
+        MyUtil util = new MyUtil();
+        System.out.println(util.newadd(3,5));
+    }
+}
+--------
+package com.boco.gcp.mul;
+
+public class MyMul {
+    public int mymul(int x, int y) {
+        return 10*x*y;
+    }
+
+    public static void main(String[] args) {
+        MyMul mul = new MyMul();
+        System.out.println(mul.mymul(3,5));
+    }
+}
+--------
+package com.boco.gcp.add;
+
+public class MyAdd {
+    public int myadd(int x, int y){
+        return 10*x+y;
+    }
+
+    public static void main(String[] args) {
+        MyAdd add = new MyAdd();
+        System.out.println(add.myadd(3,5));
+    }
+}
+--------
+$ find main -name '*.java' -exec javac -cp 'lib/*:main' {} -d classes \;
+$ tree classes/
+classes/
+└── com
+    └── boco
+        └── gcp
+            ├── Test.class
+            └── util
+                └── MyUtil.class
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -437,176 +668,6 @@ end
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/26/162411/">IBus Chinese Pinyin IM on Linux Mint</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-26T16:24:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:24 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Following <a href="http://code.google.com/p/ibus/wiki/PinYinUserGuideCN">this</a>:</p>
-
-<ol>
-<li><p>Install ibus-pinyin:</p>
-
-<p> $ sudo apt-get install ibus ibus-clutter ibus-gtk ibus-gtk3 ibus-qt4
- $ sudo apt-get install ibus-pinyin
- $ im-switch -s ibus</p></li>
-<li><p>Restart machine;</p></li>
-<li><p>Right-click the ibus-pinyin icon in system tray, select &ldquo;Preference&rdquo;, then &ldquo;IBus Preferences&rdquo; panel open;</p></li>
-<li><p>On this panel, under tag &ldquo;Input Method&rdquo;, check &ldquo;Customize active input methods&rdquo;, select &ldquo;Pinyin&rdquo;, then click &ldquo;Add&rdquo; button;</p></li>
-</ol>
-
-
-<p>Now use Ctrl-Space to swtich between IBus-Pinyin and english input method.</p>
-
-<p>The pro of ibus-pinyin is no need to modify system-wide configurations.</p>
-
-<hr />
-
-<p>2014-7-22:</p>
-
-<ol>
-<li><p><code>sudo apt-get install ibus-pinyin ibus-gtk</code>;</p></li>
-<li><p><code>ibus-setup</code>, add &ldquo;PinYin&rdquo; to the System;</p></li>
-<li><p>Logout and login;</p></li>
-</ol>
-
-
-<p>Bingo.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/26/102908/">Build Chinese Writing Environment Without Local IME on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-26T10:29:08+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:29 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Writing</h1>
-
-<p>Writing Chinese on <a href="http://shurufa.baidu.com/online.html">Baidu IME online</a>.</p>
-
-<h2>Auto-save</h2>
-
-<p>Install parcellite and enable its &ldquo;copy on selection&rdquo; feature.
-Now every time select all text in Baidu Web IM with Ctrl-a, the text is stored in system clipboard.</p>
-
-<p>Save text in <a href="http://notepad.im">notepad.im</a> for temperary storage.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/26/100347/">Build VM Cluster on CentOS Host</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-26T10:03:47+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:03 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Host Machine</h1>
-
-<p>[root@bocoty49 ~]# lsb_release -a
-LSB Version:    :base-4.0-amd64:base-4.0-noarch:core-4.0-amd64:core-4.0-noarch:graphics-4.0-amd64:graphics-4.0-noarch:printing-4.0-amd64:printing-4.0-noarch
-Distributor ID: CentOS
-Description:    CentOS release 6.4 (Final)
-Release:    6.4
-Codename:   Final</p>
-
-<h1>VirtualBox</h1>
-
-<p>AMD64 version of &ldquo;Oracle Linux 6(&#8220;OL6&rdquo;)/Red Hat Enterprise Linux 6(&ldquo;RHEL6&rdquo;)/CentOS 6&#8221; on <a href="https://www.virtualbox.org/wiki/Linux_Downloads">download page of VirtualBox website</a>
-File name: VirtualBox-4.3-4.3.8_92456_el6-1.x86_64.rpm</p>
-
-<h1>Vagrant</h1>
-
-<p>CentOS/RedHat/Fedora 64-bit Vagrant Installer on <a href="http://www.vagrantup.com/downloads.html">Vagrant download page</a>
-File name: vagrant_1.4.3_x86_64.rpm</p>
-
-<h1>Usage</h1>
-
-<ol>
-<li><p>Install Virtualbox and vagrant;</p></li>
-<li><p>When &lsquo;vagrant up&rsquo;, a &ldquo;vboxdrv kernel module is not loaded&rdquo; error raise,</p></li>
-</ol>
-
-
-<p>The &ldquo;Release&rdquo; of <code>yum info kernel-headers</code> is &ldquo;431.5.1.el6&rdquo;, which mismatched the result of <code>uname -r</code>(2.6.32-358.23.2.el6.x86_64), so kernel-headers package is unavailable to the current kernel. The solution is update the kernel release to match the packages:</p>
-
-<pre><code># yum update    (this will install kernel-2.6.32-431.5.1.el6.x86_64)
-# reboot (after reboot `uname -r` returns "2.6.32-431.5.1.el6.x86_64", too)
-# yum install gcc
-# yum install kernel-devel
-# /etc/init.d/vboxdrv setup  (Recompiling VirtualBox kernel modules)
-</code></pre>
-
-<ol>
-<li><p><code>vagrant up</code> again.
-The network for the VM is &ldquo;bvtserver.vm.network :public_network&rdquo;, which is suspent when configuring the network. I change the type of network to &ldquo;host-only&rdquo;:</p>
-
-<p> production.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.5&rdquo;,
-     virtualbox__intnet: &ldquo;gcptest-network&rdquo;</p></li>
-</ol>
-
-
-<p>Now you can use ssh between each other via host-only NIC, and use apt-get to install packages via NAT NIC, so cool!</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/27">&larr; Older</a>
@@ -624,23 +685,23 @@ The network for the VM is &ldquo;bvtserver.vm.network :public_network&rdquo;, wh
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

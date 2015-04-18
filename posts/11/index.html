@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Find out if current system time and time zone services status: timedatectl status.
-If your &ldquo;Time zone&rdquo; is correct (Hongkong, in my case &hellip;">
+  <meta name="description" content="The simple web server is based on example 16-1 in &ldquo;Clojure Programming&rdquo; by Chas Emerick. I add it into a clojure project created by &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,189 @@ If your &ldquo;Time zone&rdquo; is correct (Hongkong, in my case &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/27/113819/">A Simple Ring Server</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-27T11:38:19+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:38 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The simple web server is based on example 16-1 in &ldquo;Clojure Programming&rdquo; by Chas Emerick. I add it into a clojure project created by leiningen.</p>
+
+<pre><code>$ lein new app ring-server
+$ cd ring-server
+// Add "[ring "1.0.0"]" into ":dependencies" of project.clj
+$ vi src/ring-server/core.clj
+$ cat src/ring-server/core.clj
+(ns ring-server.core
+  (:gen-class))
+
+(use '[ring.adapter.jetty :only (run-jetty)])
+(defn app
+  [{:keys [uri query-string]}]
+  {:body (format "You requested %s with query %s" uri query-string)})
+(defn -main
+  "this is a ring server"
+  [port]
+  (run-jetty #'app {:port (bigdec port) :join? false}))
+
+$ lein run -m ring-server.core 8082
+</code></pre>
+
+<p>Now open <a href="http://localhost:8082/hello?at=china">http://localhost:8082/hello?at=china</a> in your browser, you can see &ldquo;You requested /hello with query at=china&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/24/073009/">Xen on CentOS 6</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-24T07:30:09+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:30 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ref: <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart">Xen4 CentOS6 QuickStart</a> &amp; <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart/Xen4Libvirt">Xen4 Libvirt for CentOS 6</a>.</p>
+
+<h1>Build Xen Server</h1>
+
+<p>The IP address of the Xen server (a Dell PC) is 10.32.1.112.
+First install CentOS 6.4 via Minimal CD (or LiveDVD) and install Xen on the new OS;</p>
+
+<pre><code>yum update
+yum groupinstall Virtualization
+yum install centos-release-xen   // unnecessary if install OS with LiveDVD
+yum install xen bridge-utils
+/usr/bin/grub-bootxen.sh
+reboot
+yum install libvirt python-virtinst libvirt-daemon-xen
+yum install rsync wget vim-enhanced openssh-clients   // unnecessary if install OS with LiveDVD
+reboot
+uname -r  // the kernel should be 3.x
+xm info
+useradd -m chad
+groupadd remote-libvirt
+usermod -G remote-libvirt chad
+cat &gt; /etc/polkit-1/localauthority/50-local.d/50-libvirt-remote-access.pkla &lt;&lt;EOF
+[Remote libvirt SSH access]
+Identity=unix-group:remote-libvirt
+Action=org.libvirt.unix.manage
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
+EOF
+</code></pre>
+
+<h2>Config network</h2>
+
+<p>Modify dom0 host file /etc/xen/xend-config.sxp:</p>
+
+<p>Comment out &ldquo;(network-script /bin/true)&rdquo; to &ldquo;(network-script &lsquo;network-bridge bridge=virbr0 netdev=eth0&rsquo;)&rdquo;.</p>
+
+<h1>Build Xen Client</h1>
+
+<p>We usually do not work on a Xen dom0 server. So here we install xen client on a Mint OS, and control Xen server with it:</p>
+
+<h2>GUI Client</h2>
+
+<p>First install with <code>sudo aptitude install virt-manager</code>, then run it with <code>virt-manager</code>. The &ldquo;Virtual Machine Manager&rdquo; window appears.</p>
+
+<p>[Edit -> Connect Details -> Storage], Location: /var/lib/libvirt/images. So copy an OS image file (here it&rsquo;s CentOS-6.5-x86_64-minimal.iso) to this folder, and press the refresh button after &ldquo;Volumns&rdquo;, the ISO file appears.</p>
+
+<p>Click &ldquo;New&rdquo; on toolbar, Name: Cloud21, check &ldquo;Local install media&rdquo; -> Use ISO image: /var/lib/libvirt/images/CentOS-6.5-x86_64-minimal.iso, OS type: Linux, Version: Red Hat Enterprise Linux 6 -> Memory: 1024 MB, CPUs: 1 -> Create a disk image &hellip;: 8.0 GB.</p>
+
+<p>Now install CentOS with Minimal ISO file.</p>
+
+<h2>Console Client</h2>
+
+<pre><code>sudo aptitude install libvirt-bin
+virsh -c xen+ssh://chad@10.32.1.112
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/20/105816/">Lightweight Web Browser Dwb</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-20T10:58:16+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>List all shortcuts: ga, then click &ldquo;Keys&rdquo;
+Open homepage: ga
+Open links of current page in current tab: f
+Open links of current page in new tab: F
+Open a url by input manually in current tab: o
+Open a url by input manually in a new tab: O
+Close tab: d
+Save current page to bookmark: M
+Show all Bookmarks: ga
+Save current page to quickmark: m
+Open quick mark: b
+Zoom in: +
+Zoom out: -
+Yank web page title: yt
+Yank web page url: yy
+Go to next tab: J
+Go to previous tab: K
+Go to previous page (history): H
+Go to next page: L
+Insert text: i</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -274,7 +456,7 @@ chmod 755 runme.sh
  # hwclock &ndash;systohc &ndash;utc
  # echo xenserver > /etc/hostname
  # vi /etc/hosts
- # systemctl enable <a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#111;&#x3a;&#x64;&#104;&#99;&#112;&#x63;&#100;&#x40;&#101;&#x6e;&#112;&#x32;&#x73;&#x30;&#x2e;&#x73;&#101;&#114;&#118;&#105;&#x63;&#x65;">&#x64;&#104;&#x63;&#x70;&#99;&#x64;&#64;&#101;&#x6e;&#x70;&#50;&#x73;&#x30;&#46;&#x73;&#x65;&#x72;&#x76;&#105;&#99;&#101;</a>
+ # systemctl enable <a href="&#109;&#x61;&#105;&#x6c;&#116;&#111;&#58;&#x64;&#104;&#x63;&#112;&#99;&#x64;&#x40;&#x65;&#x6e;&#x70;&#x32;&#x73;&#48;&#x2e;&#x73;&#x65;&#x72;&#x76;&#x69;&#x63;&#x65;">&#100;&#x68;&#99;&#x70;&#x63;&#100;&#64;&#x65;&#x6e;&#112;&#50;&#x73;&#x30;&#x2e;&#x73;&#x65;&#114;&#118;&#105;&#x63;&#x65;</a>
  # passwd
  # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
  # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
@@ -839,289 +1021,6 @@ If you can&rsquo;t get the ppa name, do it manually with <code>sudo rm /etc/apt/
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/09/03/150610/">Build BVT System Based on Docker</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-09-03T15:06:10+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>3:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>System: ArchLinux 64bit, IP address: 10.32.1.18.</p>
-
-<h1>Build</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>sudo docker -p 8080:8080 --name myjenkins jenkins</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now you can access <a href="http://10.32.1.18:8080">jenkins server</a> in browser.</p>
-
-<p>List running containers: <code>sudo docker ps</code> (so you can get the container&rsquo;s name for stoping and restarting later);</p>
-
-<p>Stop jenkins server: <code>sudo docker stop myjenkins</code>;</p>
-
-<p>Restart this server: <code>sudo docker start myjenkins</code>;</p>
-
-<h1>Backup and Restore</h1>
-
-<p>Backup image: <code>sudo docker save -o jenkins-docker.tar jenkins</code>;</p>
-
-<p>Restore image: <code>sudo docker load -i jenkins-docker.tar</code>;</p>
-
-<p>Backup container:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>(optional) sudo docker stop jenkins
-</span><span class='line'>sudo docker export myjenkins &gt; mybvt-system.tar
-</span><span class='line'>scp mybvt-system.tar chad@laptop:~/
-</span><span class='line'>ssh chad@laptop
-</span><span class='line'>cat mybvt-system.tar | sudo docker import - exampleimagelocal:new</span></code></pre></td></tr></table></div></figure>
-
-
-<p>But where is the imported container?</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/09/03/111703/">Automount USB Disk on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-09-03T11:17:03+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:17 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>ArchLinux</h1>
-
-<p>Install: <code>sudo pacman -S udiskie</code>;</p>
-
-<p>Start service: run <code>udiskie &amp;</code> manually when system startup, or add &ldquo;udiskie &amp;&rdquo; into ~/.xinitrc;</p>
-
-<p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
-
-<h2>Unmount USB disk</h2>
-
-<p>Create an executable script in /usr/local/bin:</p>
-
-<pre><code>$ cat /usr/local/bin/unmount
-#!/bin/sh
-
-# Global variables
-TITLE="Unmount Utility"
-COLUMNS=3 # TARGET,SOURCE,FSTYPE
-#IFS=$'\n'
-
-# Populate list of unmountable devices
-deviceList=($(findmnt -Do TARGET,SOURCE,FSTYPE | grep -e "sd[b-z]"))
-deviceCount=$((${#deviceList[@]} / $COLUMNS))
-
-# Start of program output
-echo $TITLE
-
-# Display list of devices that can be unmounted
-for ((device=0; device&lt;${#deviceList[@]}; device+=COLUMNS))
-do
-  printf "%4s)   %-25s%-13s%-10s\n"\
-    "$(($device / $COLUMNS))"\
-    "${deviceList[$device]}"\
-    "${deviceList[$(($device + 1))]}"\
-    "${deviceList[$(($device + 2))]}"
-done
-
-printf "%4s)   Exit\n" "x"
-
-# Get input from user
-read -p "Choose a menu option: " input
-
-# Input validation
-if [ "$input" = "X" ] || [ "$input" = "x" ]
-then
-  echo "Exiting"
-  exit 0
-fi
-
-if (( $input&gt;=0 )) &amp;&amp; (( $input&lt;$deviceCount ))
-then
-  echo "Unmounting: ${deviceList[$(($input * $deviceCount))]}"
-  sudo umount "${deviceList[$(($input * $deviceCount))]}"
-  exit 0
-else
-  echo "Invalid menu choice"
-  exit 1
-fi
-$ chmod 755 /usr/local/bin/unmount
-</code></pre>
-
-<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
-See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a> for details.
-Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
-
-<p>See <code>man udiskie</code> for more information.</p>
-
-<h1>Mint</h1>
-
-<p>Install: <code>sudo aptitude install udevil</code>;</p>
-
-<p>Start service: run <code>devmon</code> in dmenu when system startup, or add &ldquo;devmon &amp;&rdquo; into ~/.xsession;</p>
-
-<p>After plug USB key into computer, it will be automount to /media folder.
-If you do not startup devmon in background, you can run <code>devmon -a</code> to mount the USB key.</p>
-
-<p>Run <code>devmon -c</code> to unmount the USB key.</p>
-
-<p>See <code>man devmon</code> for more information.</p>
-
-<h1>Difference between .xinitrc and .xsession:</h1>
-
-<p>If you startup your system with <a href="https://wiki.archlinux.org/index.php/display_manager">display manager</a>, where you get a graphical login screen, it will read ~/.xsession.
-In case of you startup your system without display manager and login to shell, startup i3 (or other wm) with <code>startx</code>, then the <a href="http://en.wikipedia.org/wiki/Xinit">xinit</a> program will read ~/.xinitrc;</p>
-
-<p>See <a href="https://unix.stackexchange.com/questions/47359/what-is-xsession-for">What is “.xsession” for?</a> for details.</p>
-
-<p>See <a href="https://wiki.archlinux.org/index.php/Arch_boot_process">Arch boot process</a> for how Getty manage login process in system boot process.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/30/104928/">Docker Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-30T10:49:28+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:49 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Mint</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># sudo aptitude update
-</span><span class='line'># sudo aptitude install docker.io aufs-tools cgroup-lite apparmor-utils
-</span><span class='line'># sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
-</span><span class='line'># sudo sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
-</span><span class='line'># docker run ubuntu:14.04 echo 'hello ubuntu'
-</span><span class='line'># docker version
-</span><span class='line'>Client version: 0.9.1
-</span><span class='line'>Go version (client): go1.2.1
-</span><span class='line'>Git commit (client): 3600720
-</span><span class='line'>Server version: 0.9.1
-</span><span class='line'>Git commit (server): 3600720
-</span><span class='line'>Go version (server): go1.2.1
-</span><span class='line'>Last stable version: 1.2.0, please update docker</span></code></pre></td></tr></table></div></figure>
-
-
-<h1>ArchLinux</h1>
-
-<p>Docker is only available on X86_64 repository so far.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># pacman -S docker
-</span><span class='line'># systemctl enable docker
-</span><span class='line'># systemctl start docker
-</span><span class='line'># docker run ubuntu:14.04 echo 'hello world'
-</span><span class='line'># docker run -i -t ubuntu:14.04 /bin/bash
-</span><span class='line'># lsb_release -a
-</span><span class='line'>Distributor ID: Ubuntu
-</span><span class='line'>Description: Ubuntu 14.04.1 LTS
-</span><span class='line'>Release: 14.04
-</span><span class='line'>Codename: trusty
-</span><span class='line'># exit
-</span><span class='line'># docker version
-</span><span class='line'>Client version: 1.2.0
-</span><span class='line'>Go version (client): go1.3.1
-</span><span class='line'>OS/Arch (client): linux/amd64
-</span><span class='line'>Server version: 1.2.0
-</span><span class='line'>Server API version: 1.14
-</span><span class='line'>Go version (server): go1.3.1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So you can see at least for now Docker is much newer and easy to use on Arch than on Mint (Ubuntu).
-If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relogin, you will find the &ldquo;tree&rdquo; command disappeared.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/12">&larr; Older</a>
@@ -1139,23 +1038,23 @@ If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relo
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

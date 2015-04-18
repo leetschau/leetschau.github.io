@@ -9,9 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="60和61服务器根目录(/)50G空间全被占满，用du -shx /*查看，非挂载目录的空间加起来远达不到50GB，
-查了一下，怀疑原因是原来挂在/mnt下的data1和data2目录下的两块大容量磁盘由于某种原因没有挂载上，
-但cloudera &hellip;">
+  <meta name="description" content="Usually we can run shell command in Java program with Runtime.getRuntime.exec(shellName);.
+But if the shell command is java -cp "lib/*" MainClass, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +66,255 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-27T10:39:44+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Usually we can run shell command in Java program with <code>Runtime.getRuntime.exec(shellName);</code>.
+But if the shell command is <code>java -cp "lib/*" MainClass</code>, you can&rsquo;t get any output from &ldquo;line = reader.readLine()&rdquo;.</p>
+
+<p>You have to use ProcessBuilder instead of Runtime.exec to execute these commands.
+Maybe the reason is the double quotes after &ldquo;-cp&rdquo; option is mandatory, which are conflict with double quotes in parameters of Runtime.exec.</p>
+
+<pre><code>public static final String USER_PLUGIN_PATH = "plugins";
+public static final String USER_CLASSPATH = USER_PLUGIN_PATH + "/lib/*";
+public void runJavaProgram(String mainClass) {
+  logger.info("Running java program in class: " + mainClass);
+  try {
+    ProcessBuilder pb = new ProcessBuilder("java", "-cp", USER_CLASSPATH, mainClass);
+    pb.redirectErrorStream(true);
+    Process process = pb.start();
+    // Process process = Runtime.getRuntime().exec("java -cp " + USER_CLASSPATH + mainClass);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    String line = "";
+    String output = "";
+    while ((line = reader.readLine()) != null) {
+      logger.debug(line);
+      output += line + System.getProperty("line.separator");
+    }
+    process.waitFor();
+  } catch (IOException e) {
+    e.printStackTrace();
+  } catch (InterruptedException e) {
+    e.printStackTrace();
+  }
+}
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/25/100018/">Linux System Memory Probe</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-25T10:00:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:00 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="http://www.selenic.com/smem/">smem</a>  is a tool that can give numerous reports on memory usage on Linux systems.
+Install it with <code>sudo apt-get install smem</code>.</p>
+
+<p>List all process&rsquo;s memory consumption of a user with smem.</p>
+
+<h1>Using smem</h1>
+
+<p>Copy from <a href="http://www.selenic.com/smem/:">http://www.selenic.com/smem/:</a></p>
+
+<ul>
+<li><p>Show basic process information: <code>smem</code></p></li>
+<li><p>Show library-oriented view: <code>smem -m</code></p></li>
+<li><p>Show user-oriented view: <code>smem -u</code></p></li>
+<li><p>Show system view: <code>smem -R 4G -K /path/to/vmlinux -w</code></p></li>
+<li><p>Show totals and percentages: <code>smem -t -p</code></p></li>
+<li><p>Show different columns: <code>smem -c "name user pss"</code></p></li>
+<li><p>Sort by reverse RSS: <code>smem -s rss -r</code></p></li>
+<li><p>Show processes filtered by mapping: <code>smem -M libxml</code></p></li>
+<li><p>Show mappings filtered by process: <code>smem -m -P [e]volution</code></p></li>
+<li><p>Read data from capture tarball: <code>smem --source capture.tar.gz</code></p></li>
+<li><p>Show a bar chart labeled by pid: <code>smem --bar pid -c "pss uss"</code></p></li>
+<li><p>Show a pie chart of RSS labeled by name: <code>smem --pie name -s rss</code></p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/25/091714/">Mongodb Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-25T09:17:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:17 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Start mongodb server as a common user</h1>
+
+<p>The default data path of Mongodb is /data/db, which you have to create as root.</p>
+
+<p>If you just want play around mongodb with some test data, you can create a temporary folder as data directory:</p>
+
+<pre><code>$ mkdir ~/docs/tmp/mongodb-repo
+$ cd ~/apps/mongodb-linux-x86_64-2.6.5
+$ bin/mongod --dbpath ~/docs/tmp/mongodb-repo
+// in a new shell
+$ ~/apps/mongodb-linux-x86_64-2.6.5/bin/mongo
+</code></pre>
+
+<p>For convenience, add <code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH</code> into ~/.zshenvr,
+and <code>alias mongod='mongod --dbpath /home/chad/docs/tmp/mongodb-repo'</code> into ~/.bash_alias.</p>
+
+<p>Make sure the following lines exist in ~/.zshrc:</p>
+
+<pre><code>if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+</code></pre>
+
+<p>Now we can start mongo server and client anywhere in a shell.</p>
+
+<h1>Database Management</h1>
+
+<p>First start mongo server <code>mongod</code>. Then start the client with <code>mongo</code>.
+All the following commands is running in mongo shell, whose prompt is &lsquo;> &rsquo;.</p>
+
+<p>List all existing database: <code>show dbs</code>;</p>
+
+<p>Create a new database &ldquo;meteor&rdquo; and switch to it: <code>use meteor</code>;</p>
+
+<p>Remove database &ldquo;mydb&rdquo;: <code>use mydb</code>, then <code>db.dropDatabase()</code>;</p>
+
+<h1>Backup and Restore</h1>
+
+<ul>
+<li><p>Backup a database to a directory: <code>mongodump -d &lt;db_name&gt; -o &lt;bak_dir&gt;</code>;</p></li>
+<li><p>Backup a collection: <code>mongodump -d &lt;db_name&gt; -c &lt;collection_name&gt;</code>;</p></li>
+<li><p>Restore a collection: <code>mongorestore -d &lt;target_db_name&gt; -c &lt;target_collection_name&gt; &lt;target_collection_name&gt;.bson</code>;</p></li>
+</ul>
+
+
+<h2>Sync Database Remotely</h2>
+
+<p>Here we backup database &ldquo;test&rdquo; in local mongodb,
+transfer it to a remote host (we name it &ldquo;ld&rdquo;),
+and restore this database into host&rsquo;s mongodb.</p>
+
+<pre><code># on local host
+cd
+mongodump -d test -c fairs
+scp -r dump ld:~/
+rm -rf dump
+# on remote host ld
+cd ~/dump
+mongorestore -d meteor test
+</code></pre>
+
+<p>In the last command, the &ldquo;meteor&rdquo; is the target database,
+the following &ldquo;test&rdquo; is a folder name contains dumped data from local host.</p>
+
+<h1>Data Refinement</h1>
+
+<ul>
+<li><p>Remove duplicated documents in a collection (&ldquo;fairs&rdquo;) based on a key (&ldquo;chnName&rdquo;):
+  <code>db.fairs.ensureIndex({chnName:1}, {unique : true, dropDups : true})</code>;</p></li>
+<li><p>map-reduce example: the &ldquo;mapReduce&rdquo; function has 3 arguments:
+  the mapper, the reducer, and the definition of input (query) and output (out).</p>
+
+<p>  The &ldquo;emit&rdquo; function has 2 arguments, the first is the &ldquo;key&rdquo;, the 2nd is the value.</p>
+
+<p>  In the following demo, the first mapReducer calculates the average of all ranks of fair with id &ldquo;54cef40a191f3bb2ef12bdf7&rdquo;,
+  the second mapReducer calculates every fair&rsquo;s average of user ranks.</p>
+
+<p>  The result of mapReduce is put into a new collection, instead of returning a object.</p>
+
+<pre><code>  &gt; db.userComments.find()
+  { "_id" : "5fSQFR4kSLGLc9nLk", "fairId" : "54cef40a191f3bb2ef12bdf7", "userId" : "gpxst3JwJNPT33maf", "rank" : 4 }
+  { "_id" : "oRmXmdPnsvSQNSNK3", "fairId" : "54cef40a191f3bb2ef12bdf7", "userId" : "yiio2r3fQ64nqAC4j", "rank" : 5 }
+  { "_id" : "DePtvHcNvwMpLPdq8", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "yiio2r3fQ64nqAC4j", "rank" : 2 }
+  { "_id" : "eX9jWZt74cHMg3jAe", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "gpxst3JwJNPT33maf", "rank" : 5 }
+  { "_id" : "xntPL4Pnyasen2jcx", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "bc3iNrRpN7Wdi26zP", "rank" : 4 }
+  &gt; db.userComments.mapReduce(function(){ emit(this.fairId, this.rank); },
+                              function(key, values) { return Array.avg(values); },
+                              { query: { fairId: "54cef40a191f3bb2ef12bdf7" }, out: "rank_avg" } );
+  {
+    "result" : "rank_avg",
+    "timeMillis" : 60,
+    "counts" : {
+      "input" : 2,
+      "emit" : 2,
+      "reduce" : 1,
+      "output" : 1
+    },
+    "ok" : 1
+  }
+  &gt; db.rank_avg.find()
+  { "_id" : "54cef40a191f3bb2ef12bdf7", "value" : 4.5 }
+
+  &gt; db.userComments.mapReduce(function(){ emit(this.fairId, this.rank); },
+                              function(key, values) { return Array.avg(values); },
+                              { out: "rank_avg" } );
+  &gt; db.rank_avg.find()
+  { "_id" : "54cef40a191f3bb2ef12bdf7", "value" : 4.5 }
+  { "_id" : "54cef40a191f3bb2ef12bdf8", "value" : 3.6666666666666665 }
+</code></pre></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -348,7 +596,7 @@ in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DN
 
 <p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
 Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
-Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#x6d;&#x61;&#x69;&#108;&#116;&#x6f;&#58;&#x6c;&#99;&#64;&#x31;&#50;&#54;&#46;&#99;&#x6f;&#x6d;">&#108;&#99;&#x40;&#49;&#50;&#54;&#x2e;&#99;&#111;&#x6d;</a>&rdquo;.
+Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#x3a;&#x6c;&#99;&#x40;&#49;&#50;&#x36;&#46;&#99;&#x6f;&#x6d;">&#108;&#99;&#x40;&#x31;&#x32;&#x36;&#x2e;&#99;&#111;&#x6d;</a>&rdquo;.
 Then click &ldquo;Add a Master Zone&rdquo;.</p>
 
 <h2>Setting Reverse DNS</h2>
@@ -423,7 +671,7 @@ http {
 configure 3 places to make the mail server functional:</p>
 
 <ol>
-<li><p>In FastMail <a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#111;&#58;&#x6d;&#97;&#115;&#116;&#x65;&#114;&#117;&#115;&#x65;&#114;&#64;&#x6e;&#x69;&#117;&#x66;&#97;&#x69;&#x72;&#115;&#x2e;&#99;&#111;&#x6d;">&#109;&#x61;&#115;&#116;&#101;&#x72;&#117;&#115;&#x65;&#x72;&#64;&#x6e;&#105;&#x75;&#x66;&#x61;&#105;&#x72;&#x73;&#x2e;&#99;&#x6f;&#109;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
+<li><p>In FastMail <a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#x6f;&#58;&#109;&#97;&#x73;&#x74;&#101;&#114;&#117;&#115;&#101;&#114;&#64;&#x6e;&#x69;&#117;&#x66;&#x61;&#x69;&#114;&#115;&#x2e;&#99;&#x6f;&#x6d;">&#x6d;&#97;&#x73;&#x74;&#x65;&#114;&#117;&#115;&#101;&#114;&#x40;&#110;&#105;&#x75;&#102;&#97;&#105;&#114;&#x73;&#x2e;&#99;&#x6f;&#109;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
 <li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
 
 <p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
@@ -597,197 +845,6 @@ See <a href="http://css.maxdesign.com.au/selectutorial/selectors_class.htm">Clas
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/16/170917/">Scala的模式匹配</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-16T17:09:17+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面是一个RDD，每一个元素是一个Array，这个Array由几个tuple组成，
-现在需要将其中第二个元素是13的tuple（比如(-36522769,13)）的一个元素后面追加字符串&#8221;.000&#8221;，其余不变，
-实现方法如下：</p>
-
-<pre><code>val data = RDD[Array[(String, Int)]] = RDD(
-        Array((-36522769,13), (8014,14), (2014-09-19 00:10:47,17), (3,18), (FF-693960651,134)),
-        Array((-905910021.0000000000,13), (200,14), (2014-09-19 00:02:11,17), (3,18), (FF--112226702,134)),
-        Array((-2033866158.0000000000,13), (200,14), (2014-09-19 00:07:12,17), (3,18), (FF--112226702,134)),
-        Array((1712341836.0000000000,13), (200,14), (2014-09-19 00:07:06,17), (3,18), (FF--112226702,134)),
-        Array((-896432680.0000000000,13), (8014,14), (2014-09-19 00:12:17,17), (3,18), (FF-693960651,134)),
-        Array((-1205034451.0000000000,13), (200,14), (2014-09-19 00:07:21,17), (3,18), (FF--112226702,134)),
-        Array((-2117505875.0000000000,13), (15089,14), (2014-09-19 00:41:47,17), (2,18), (FF-1139491304,134))) 
-
-val res = data.map(x =&gt; x.map { case (y,13) =&gt; (y + ".000", 13)
-                                case z =&gt; z
-                              })
-</code></pre>
-
-<p>如果把13变为一个变量，比如<code>val BAD_NUM = 13</code>, 这时直接改写为<code>case (y, BAD_NUM) =&gt; ...</code>，将出现错误，
-因为解析器将BAD_NUM视为一个自由变量，而不是外部等于13的那个变量，解决方法是用反引号把BAD_NUM扩起来，写为：</p>
-
-<pre><code>case (y, `BAD_NUM`) =&gt; (y + ".000", BAD_NUM)
-</code></pre>
-
-<p>推荐文章：</p>
-
-<p><a href="http://kerflyn.wordpress.com/2011/02/14/playing-with-scalas-pattern-matching/">Playing with Scala’s pattern matching</a>;</p>
-
-<p><a href="http://docs.scala-lang.org/tutorials/tour/pattern-matching.html">Pattern Matching in Scala Documenation</a></p>
-
-<p><a href="http://docs.scala-lang.org/cheatsheets/">Pattern matching section in Scala cheatsheet</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/15/175800/">网站配色技术</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-15T17:58:00+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>颜色有多种表示方式，印刷业常用的CMYK方法是4种颜料的组合值表示一种颜色，
-RGB常用于显示器，用3原色的值表示一种颜色。</p>
-
-<p>HSL是用色调hue，纯度Saturation（也叫饱和度）和亮度lightness组合表示一种颜色，
-其中色调是平时所说的颜色；
-纯度可以理解为颜料的浓度，最小值是灰色（没有颜料），最大值是最纯净的颜色（比如完全的红色，完全的绿色等）；
-亮度是明亮程度，最小值是黑色，最大值的白色。</p>
-
-<p>RGB与HSL的相互关系可以在<a href="http://www.snook.ca/technical/colour_contrast/colour.html">Colour Contrast Check</a>上面通过拖动各个滑块来观察，
-这个网站主要用于检查背景色和文字颜色的对比度，用户输入两种颜色的值，它计算出亮度差(brightness difference)，色调差(color difference)，颜色是否匹配(color compliant)，以及是否符合WCAG 2规范等。</p>
-
-<p>亮度差和色调差的具体计算方法可以搜索关键词&#8221;calculate color brightness difference&#8221;.</p>
-
-<h1>搜索关键词</h1>
-
-<ul>
-<li><p>website color shemes</p></li>
-<li><p>text background contrast calculator</p></li>
-<li><p>文字 背景 对比</p></li>
-</ul>
-
-
-<h1>配色理论和实践</h1>
-
-<ul>
-<li><p><a href="http://www.had2know.com/technology/color-contrast-calculator-web-design.html">How to Calculate Color Contrast from RGB Values</a></p></li>
-<li><p><a href="http://jingyan.baidu.com/article/ed2a5d1f1170f109f6be1787.html">网页配色技巧：不同背景下文字颜色搭配</a></p></li>
-<li><p><a href="http://www.onextrapixel.com/2013/10/25/40-stunning-website-designs-with-great-color-schemes/">40 Stunning Website Designs with Great Color Schemes</a></p></li>
-<li><p><a href="http://www.dtelepathy.com/blog/inspiration/beautiful-color-palettes-for-your-next-web-project">50 Beautiful Color Palettes for Your Next Web Project</a></p></li>
-</ul>
-
-
-<h1>配色工具和软件</h1>
-
-<ul>
-<li><p><a href="http://www.gpick.org/">gpick</a></p></li>
-<li><p><a href="http://libregraphicsworld.org/blog/entry/creating-color-schemes-with-gpick">Creating color schemes with Gpick</a></p></li>
-<li><p><a href="http://www.456bereastreet.com/archive/200709/10_colour_contrast_checking_tools_to_improve_the_accessibility_of_your_design/">10 colour contrast checking tools to improve the accessibility of your design</a></p></li>
-<li><p><a href="http://www.snook.ca/technical/colour_contrast/colour.html">Colour Contrast Check</a>;</p></li>
-<li><p><a href="http://paletton.com/">paletton.com</a></p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/15/170422/">Build Color Theme for Website With Gpick</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-15T17:04:22+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:04 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>First install with <code>sudo aptitude install gpick</code>, and start it with <code>gpick</code>;</p>
-
-<h1>Build a color theme based on existing web page</h1>
-
-<p>Choose &ldquo;Color picker&rdquo; tag.</p>
-
-<p>Select a slot in color picker swatch (the six hexagons mark by 1 ~ 6).
-Start color picker by shortcut Ctrl-p, move mouse to the location,
-press SPACE to put the color into the slot.</p>
-
-<p>The highlighted slot become the next slot automatically.</p>
-
-<p>So you can select another color, and put it into the current highlighted slot by press SPACE.</p>
-
-<p>Right click the color picker swatch and select &ldquo;Add to palette&rdquo; or &ldquo;Add all to palette&rdquo;
-to put these color into the color palette on the right-hand side.</p>
-
-<h1>Generate Color theme based on existing color</h1>
-
-<p>Right click one or more colors in the color palette, select &ldquo;Generate&hellip;&rdquo;.
-Set &ldquo;Colors&rdquo; to 3, &ldquo;Type&rdquo; to &ldquo;triadic&rdquo;, you can find the triadic color group in &ldquo;Preview&rdquo; panel.
-If this is what you want, press &ldquo;OK&rdquo; button.</p>
-
-<p>In the same way you can build complementary color group with: Type: Complementary, Colors: 2.</p>
-
-<h1>Build a color theme from scratch</h1>
-
-<p>Choose &ldquo;Scheme Generation&rdquo; tag in upper-left corner.
-After you&rsquo;ve decided the value of hue, saturation, lightness and type,
-right click the color block and select &ldquo;Add to palette&rdquo; or &ldquo;Add all to palette&rdquo;.</p>
-
-<p>Find all built-in shortcuts on the &ldquo;HELP&rdquo; section of <a href="http://www.gpick.org/">gpick&rsquo;s website</a>.</p>
-
-<p>Ref: <a href="http://libregraphicsworld.org/blog/entry/creating-color-schemes-with-gpick">Creating color schemes with Gpick</a>;</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/7">&larr; Older</a>
@@ -805,23 +862,23 @@ right click the color block and select &ldquo;Add to palette&rdquo; or &ldquo;Ad
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>

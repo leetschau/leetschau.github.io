@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="ConfigParser模块读取的配置文件的基本格式是：分节，节名称用中括号括起来，每节内有key:value对，中间用冒号分隔，冒号前的空格会被忽略掉； [SectionName1] name1: value1 name2: value2 [SectionName2] name3: value3 &hellip;">
+  <meta name="description" content="原始数据如下图，现需对每一种语言分类汇总各项指标，例如需计算3个项目中所有java语言增加的总行数（Addition列的52881、4828、14621的和）。每一个项目中语言的种类和数量是不可预知的，但针对一种语言进行的各项统计是确定的（这里共进行8项统计，其中前7项要按语言汇总，即做和， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,6 +71,204 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2011/01/19/083210/">代码行汇总算法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-01-19T08:32:10+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:32 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>原始数据如下图，现需对每一种语言分类汇总各项指标，例如需计算3个项目中所有java语言增加的总行数（Addition列的52881、4828、14621的和）。每一个项目中语言的种类和数量是不可预知的，但针对一种语言进行的各项统计是确定的（这里共进行8项统计，其中前7项要按语言汇总，即做和，第8项RATE对某种语言是固定值，汇总时不要相加，照写即可）。</p>
+
+<p>算法分为3步：</p>
+
+<p>1、将取得的数据依次放入list中，形成一个一维list；</p>
+
+<p>2、顺序遍历该list，获得语言项的下标位置，每种语言的名字是字典的key，下标列表是对应的value；</p>
+
+<p>3、根据上面生成的字典依次对相同语言的对应条目进行做和，最后一项照写；</p>
+
+<p>下面是代码实现，其中 tested 是原始数据在第一步后形成的一维list， index_dict 是第二步后形成的下标列表字典， summary 是最终的汇总数据列表。</p>
+
+<pre><code>tested = ['java','4','5','0.41','xml','3','7','0.23','java','23','42','0.41','xml','63','82','0.23'] 
+index_dict = {} 
+for item in tested: 
+    if item.isalpha(): 
+        if not index_dict.has_key(item): index_dict[item] = [] 
+        index_dict[item].append(tested.index(item)) 
+        tested[tested.index(item)]='-' 
+print(index_dict) 
+summary=[] 
+for item in index_dict: 
+    summary.append(item) 
+    index_list = [k+1 for k in index_dict[item]] 
+    summary.append(sum(int(tested[k]) for k in index_list)) 
+    index_list = [k+2 for k in index_dict[item]] 
+    summary.append(sum(int(tested[k]) for k in index_list)) 
+    summary.append(tested[index_dict[item][0]+3]) 
+print(summary) 
+</code></pre>
+
+<p>输出是（python 2.6）：</p>
+
+<pre><code>{'xml': [4, 12], 'java': [0, 8]} 
+['xml', 66, 89, '0.23', 'java', 27, 47, '0.41']
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/18/113744/">用minidom解析xml文档</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-01-18T11:37:44+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:37 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>原始xml文档（下划线部分是要解析的数据）：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo;?></p>
+
+<p> &lt;!DOCTYPE coverage SYSTEM &ldquo;<a href="http://cobertura.sourceforge.net/xml/coverage-04.dtd">http://cobertura.sourceforge.net/xml/coverage-04.dtd</a>&rdquo;></p>
+
+<p> <coverage  line-rate="0.0" branch-rate="0.0" lines-covered="0" lines-valid="4358" branches-covered="0" branches-valid="1280" complexity="1.538085255066387"  version="1.9.1" timestamp="1294906695765"></p>
+
+<p> <packages /></p>
+
+<p> </coverage></p>
+
+<p>解析为list：</p>
+
+<p> test_datasets = []</p>
+
+<p> import xml.dom.minidom</p>
+
+<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
+
+<p> raw_test_res = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0]</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-covered&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-valid&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;line-rate&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-covered&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-valid&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branch-rate&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;complexity&rsquo;].value)</p>
+
+<p> return test_datasets</p>
+
+<p>解析为字典：</p>
+
+<p> test_datasets = {}</p>
+
+<p> import xml.dom.minidom</p>
+
+<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
+
+<p> raw_data_set = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0].attributes</p>
+
+<p> for the_attr in raw_data_set.values():</p>
+
+<p>  test_datasets[the_attr.name] = the_attr.value</p>
+
+<p> return test_datasets</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/17/083035/">关于Python的嵌套域（nested Scope）</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-01-17T08:30:35+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:30 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>周五下午因为嵌套函数的问题反复折腾了几个小时，今天终于搞明白了，python2.6手册里对“nested scope”有一段定义，并结合“OReilly - Python in a Nutshell”第4.10.6.2节，总结如下： 1 python支持嵌套函数；
+ 2 内层函数可以访问外层函数中定义的变量，但不能重新赋值（rebind）；
+ 3 内层函数的local namespace不包含外层函数定义的变量（见下面的演示程序）；
+ 4 避免出现低版本（&lt;=2.1）不支持nested scope问题的方法：在内层函数参数列表中使用默认参数：
+ (copied from &ldquo;OReilly - Python in a Nutshell&rdquo; section 4.10.6.2)
+ def make_adder_1(augend):    # works with any version
+ def add(addend, <em>augend=augend ): return addend+</em>augend
+ return add
+ 演示程序：
+ def outterfunc():
+  def innerfunc():
+   cc = bb+&lsquo;2&rsquo;
+   print &lsquo;inner:&rsquo;,locals()
+   # bb = 3 #这句会造成运行失败
+  bb = &lsquo;3&rsquo;
+  outer = &lsquo;out&rsquo;
+  innerfunc()
+  print &lsquo;outter:&rsquo;,locals()
+ bb=31
+ outterfunc()
+ 输出：
+ inner: {&lsquo;cc&rsquo;: &lsquo;32&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}
+ outter: {&lsquo;innerfunc&rsquo;: <function innerfunc at 0x01F0C1F0>, &lsquo;outer&rsquo;: &lsquo;out&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}</p>
+
+<p> 从输出可以看到，外层函数里定义的outer变量没有出现在内层函数的local namespace里，但被引用的变量bb却出现了，这一特点值得注意。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2011/01/13/152557/">python的ConfigParser模块使用方法</a></h1>
     
     
@@ -113,7 +311,7 @@
 
 <p>[mail]</p>
 
-<p>to_addr: <a href="&#109;&#x61;&#105;&#108;&#116;&#x6f;&#x3a;&#x6c;&#x69;&#99;&#104;&#97;&#111;&#49;&#64;&#x62;&#x6f;&#x63;&#111;&#46;&#x63;&#111;&#x6d;&#x2e;&#x63;&#x6e;">&#x6c;&#x69;&#x63;&#104;&#x61;&#x6f;&#x31;&#64;&#x62;&#x6f;&#x63;&#x6f;&#x2e;&#99;&#x6f;&#x6d;&#x2e;&#x63;&#110;</a> ;this is comments</p>
+<p>to_addr: <a href="&#109;&#x61;&#105;&#108;&#x74;&#x6f;&#x3a;&#x6c;&#105;&#x63;&#x68;&#97;&#111;&#x31;&#64;&#x62;&#x6f;&#x63;&#x6f;&#46;&#x63;&#x6f;&#109;&#46;&#x63;&#110;">&#108;&#105;&#99;&#x68;&#97;&#x6f;&#49;&#64;&#x62;&#x6f;&#x63;&#x6f;&#46;&#99;&#111;&#109;&#46;&#99;&#x6e;</a> ;this is comments</p>
 </div>
   
   
@@ -314,9 +512,9 @@
 
 <p>  #发送纯文本邮件</p>
 
-<p>  #from_addr = &lsquo;LiChao<a href="&#109;&#x61;&#105;&#108;&#116;&#111;&#58;&#x6c;&#105;&#99;&#x68;&#97;&#x6f;&#49;&#64;&#98;&#x6f;&#99;&#x6f;&#x2e;&#99;&#x6f;&#109;&#x2e;&#x63;&#x6e;">&#108;&#x69;&#99;&#104;&#97;&#x6f;&#49;&#64;&#x62;&#111;&#99;&#x6f;&#x2e;&#99;&#x6f;&#109;&#46;&#x63;&#110;</a>&rsquo;</p>
+<p>  #from_addr = &lsquo;LiChao<a href="&#x6d;&#97;&#x69;&#108;&#116;&#111;&#x3a;&#108;&#105;&#x63;&#x68;&#x61;&#x6f;&#x31;&#64;&#98;&#x6f;&#x63;&#111;&#46;&#x63;&#x6f;&#x6d;&#46;&#99;&#110;">&#108;&#105;&#x63;&#x68;&#x61;&#111;&#x31;&#x40;&#98;&#x6f;&#x63;&#x6f;&#46;&#99;&#111;&#x6d;&#x2e;&#x63;&#110;</a>&rsquo;</p>
 
-<p>  #to_addr = &lsquo;LiChao<a href="&#109;&#x61;&#x69;&#108;&#x74;&#x6f;&#58;&#108;&#x69;&#x63;&#104;&#x61;&#111;&#x31;&#x40;&#98;&#x6f;&#99;&#111;&#x2e;&#x63;&#111;&#x6d;&#x2e;&#x63;&#x6e;">&#108;&#105;&#x63;&#x68;&#97;&#x6f;&#x31;&#64;&#98;&#111;&#x63;&#111;&#46;&#99;&#111;&#109;&#x2e;&#99;&#x6e;</a>&rsquo;</p>
+<p>  #to_addr = &lsquo;LiChao<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#111;&#58;&#x6c;&#105;&#99;&#x68;&#97;&#111;&#x31;&#x40;&#x62;&#x6f;&#x63;&#111;&#46;&#x63;&#x6f;&#x6d;&#46;&#x63;&#x6e;">&#108;&#105;&#x63;&#x68;&#x61;&#111;&#x31;&#x40;&#x62;&#x6f;&#x63;&#x6f;&#46;&#x63;&#x6f;&#109;&#x2e;&#x63;&#x6e;</a>&rsquo;</p>
 
 <p>  #subj = &lsquo;hello&rsquo;</p>
 
@@ -330,13 +528,13 @@
 
 <p>  #msg = MIMEText (msg_body, &lsquo;html&rsquo;)</p>
 
-<p>  #msg[&lsquo;From&rsquo;] = &lsquo;LiChao<a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#x6f;&#x3a;&#x6c;&#105;&#99;&#x68;&#x61;&#111;&#x31;&#64;&#98;&#x6f;&#99;&#x6f;&#x2e;&#99;&#x6f;&#109;&#46;&#x63;&#x6e;">&#108;&#105;&#99;&#104;&#x61;&#x6f;&#x31;&#64;&#x62;&#111;&#x63;&#111;&#x2e;&#99;&#111;&#109;&#x2e;&#99;&#x6e;</a>&rsquo;</p>
+<p>  #msg[&lsquo;From&rsquo;] = &lsquo;LiChao<a href="&#109;&#97;&#105;&#x6c;&#116;&#111;&#58;&#108;&#105;&#99;&#x68;&#x61;&#111;&#49;&#64;&#98;&#x6f;&#x63;&#x6f;&#46;&#99;&#111;&#x6d;&#46;&#99;&#x6e;">&#x6c;&#105;&#99;&#x68;&#97;&#x6f;&#x31;&#64;&#98;&#111;&#x63;&#x6f;&#46;&#x63;&#x6f;&#x6d;&#46;&#99;&#x6e;</a>&rsquo;</p>
 
-<p>  #msg[&lsquo;To&rsquo;] = &lsquo;LiChao<a href="&#109;&#97;&#x69;&#108;&#x74;&#111;&#58;&#108;&#x69;&#99;&#104;&#97;&#x6f;&#49;&#64;&#x62;&#x6f;&#99;&#111;&#x2e;&#x63;&#111;&#x6d;&#x2e;&#99;&#x6e;">&#x6c;&#105;&#99;&#x68;&#97;&#111;&#49;&#x40;&#98;&#x6f;&#x63;&#111;&#46;&#99;&#x6f;&#109;&#46;&#99;&#110;</a>&rsquo;</p>
+<p>  #msg[&lsquo;To&rsquo;] = &lsquo;LiChao<a href="&#x6d;&#97;&#105;&#108;&#x74;&#111;&#58;&#x6c;&#105;&#99;&#x68;&#x61;&#111;&#49;&#x40;&#x62;&#111;&#99;&#111;&#46;&#x63;&#111;&#x6d;&#46;&#99;&#110;">&#x6c;&#105;&#x63;&#x68;&#x61;&#111;&#x31;&#64;&#98;&#111;&#99;&#111;&#x2e;&#99;&#x6f;&#x6d;&#x2e;&#x63;&#x6e;</a>&rsquo;</p>
 
 <p>  #msg[&lsquo;Subject&rsquo;] = &lsquo;hello&rsquo;</p>
 
-<p>  #mail_server.sendmail(&lsquo;LiChao<a href="&#x6d;&#x61;&#x69;&#x6c;&#116;&#x6f;&#58;&#108;&#105;&#x63;&#104;&#x61;&#111;&#x31;&#x40;&#x62;&#x6f;&#99;&#x6f;&#46;&#99;&#x6f;&#x6d;&#x2e;&#x63;&#110;">&#108;&#x69;&#99;&#104;&#x61;&#x6f;&#x31;&#64;&#98;&#x6f;&#x63;&#111;&#46;&#x63;&#x6f;&#109;&#46;&#x63;&#x6e;</a>&rsquo;, &lsquo;LiChao<a href="&#109;&#x61;&#105;&#108;&#116;&#111;&#58;&#x6c;&#105;&#x63;&#104;&#97;&#x6f;&#x31;&#64;&#x62;&#111;&#99;&#x6f;&#x2e;&#99;&#111;&#109;&#x2e;&#99;&#110;">&#108;&#x69;&#99;&#104;&#97;&#111;&#x31;&#x40;&#98;&#x6f;&#x63;&#x6f;&#x2e;&#x63;&#111;&#x6d;&#x2e;&#99;&#x6e;</a>&rsquo;, msg.as_string())</p>
+<p>  #mail_server.sendmail(&lsquo;LiChao<a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#x6c;&#x69;&#99;&#x68;&#x61;&#111;&#x31;&#64;&#x62;&#x6f;&#99;&#x6f;&#x2e;&#99;&#x6f;&#x6d;&#x2e;&#x63;&#110;">&#108;&#105;&#x63;&#x68;&#x61;&#111;&#x31;&#64;&#98;&#x6f;&#x63;&#111;&#46;&#99;&#x6f;&#109;&#46;&#x63;&#x6e;</a>&rsquo;, &lsquo;LiChao<a href="&#109;&#97;&#105;&#x6c;&#x74;&#x6f;&#x3a;&#x6c;&#x69;&#99;&#104;&#x61;&#111;&#49;&#64;&#x62;&#x6f;&#x63;&#111;&#x2e;&#x63;&#111;&#109;&#x2e;&#99;&#x6e;">&#108;&#105;&#x63;&#x68;&#97;&#x6f;&#49;&#64;&#98;&#x6f;&#99;&#111;&#46;&#x63;&#111;&#109;&#46;&#x63;&#110;</a>&rsquo;, msg.as_string())</p>
 
 <p>  #发送带附件的html格式邮件</p>
 
@@ -354,13 +552,13 @@
 
 <p>  msg. attach (att)</p>
 
-<p>  msg[&lsquo;From&rsquo;] = &lsquo;LiChao<a href="&#109;&#x61;&#x69;&#108;&#116;&#111;&#58;&#x6c;&#x69;&#x63;&#x68;&#x61;&#111;&#49;&#x40;&#98;&#x6f;&#99;&#x6f;&#46;&#99;&#111;&#x6d;&#x2e;&#x63;&#x6e;">&#108;&#x69;&#99;&#104;&#97;&#111;&#x31;&#x40;&#98;&#111;&#99;&#x6f;&#x2e;&#x63;&#111;&#109;&#46;&#99;&#x6e;</a>&rsquo;</p>
+<p>  msg[&lsquo;From&rsquo;] = &lsquo;LiChao<a href="&#109;&#97;&#x69;&#x6c;&#x74;&#111;&#58;&#x6c;&#x69;&#99;&#x68;&#97;&#111;&#49;&#x40;&#98;&#111;&#99;&#111;&#46;&#x63;&#x6f;&#109;&#x2e;&#99;&#x6e;">&#x6c;&#105;&#x63;&#104;&#x61;&#111;&#x31;&#64;&#x62;&#111;&#x63;&#111;&#x2e;&#99;&#111;&#109;&#46;&#99;&#110;</a>&rsquo;</p>
 
-<p>  msg[&lsquo;To&rsquo;] = &lsquo;LiChao<a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#111;&#58;&#108;&#x69;&#x63;&#x68;&#97;&#x6f;&#49;&#x40;&#x62;&#111;&#x63;&#x6f;&#46;&#99;&#x6f;&#109;&#x2e;&#99;&#x6e;">&#x6c;&#105;&#x63;&#104;&#x61;&#111;&#49;&#x40;&#98;&#111;&#x63;&#111;&#46;&#x63;&#x6f;&#x6d;&#x2e;&#x63;&#110;</a>&rsquo;</p>
+<p>  msg[&lsquo;To&rsquo;] = &lsquo;LiChao<a href="&#x6d;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#108;&#x69;&#x63;&#104;&#x61;&#x6f;&#49;&#64;&#x62;&#x6f;&#99;&#111;&#46;&#99;&#111;&#x6d;&#46;&#x63;&#x6e;">&#108;&#105;&#x63;&#104;&#97;&#111;&#x31;&#x40;&#x62;&#x6f;&#99;&#111;&#x2e;&#x63;&#x6f;&#x6d;&#46;&#99;&#110;</a>&rsquo;</p>
 
 <p>  msg[&lsquo;Subject&rsquo;] = &lsquo;hello&rsquo;</p>
 
-<p>  mail_server.sendmail(&lsquo;LiChao<a href="&#109;&#97;&#105;&#108;&#x74;&#111;&#58;&#108;&#105;&#x63;&#104;&#x61;&#111;&#x31;&#64;&#98;&#111;&#x63;&#x6f;&#46;&#x63;&#x6f;&#x6d;&#x2e;&#x63;&#110;">&#108;&#105;&#99;&#x68;&#97;&#111;&#49;&#x40;&#98;&#x6f;&#x63;&#111;&#46;&#99;&#x6f;&#109;&#x2e;&#99;&#x6e;</a>&rsquo;, &lsquo;LiChao<a href="&#109;&#97;&#105;&#x6c;&#x74;&#111;&#58;&#108;&#x69;&#x63;&#x68;&#97;&#x6f;&#49;&#64;&#x62;&#111;&#99;&#x6f;&#x2e;&#x63;&#111;&#x6d;&#x2e;&#99;&#x6e;">&#x6c;&#x69;&#99;&#x68;&#97;&#111;&#x31;&#64;&#x62;&#x6f;&#99;&#x6f;&#x2e;&#99;&#111;&#x6d;&#46;&#99;&#x6e;</a>&rsquo;, msg.as_string())</p>
+<p>  mail_server.sendmail(&lsquo;LiChao<a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#x6f;&#x3a;&#x6c;&#105;&#x63;&#104;&#x61;&#x6f;&#49;&#64;&#98;&#x6f;&#99;&#x6f;&#46;&#99;&#111;&#109;&#46;&#99;&#x6e;">&#x6c;&#x69;&#99;&#104;&#x61;&#x6f;&#49;&#x40;&#98;&#111;&#99;&#111;&#x2e;&#x63;&#x6f;&#109;&#46;&#x63;&#110;</a>&rsquo;, &lsquo;LiChao<a href="&#x6d;&#x61;&#x69;&#x6c;&#116;&#x6f;&#x3a;&#108;&#x69;&#x63;&#104;&#x61;&#x6f;&#49;&#x40;&#x62;&#x6f;&#99;&#x6f;&#46;&#99;&#x6f;&#x6d;&#46;&#x63;&#110;">&#108;&#x69;&#99;&#x68;&#x61;&#x6f;&#49;&#x40;&#x62;&#111;&#99;&#111;&#46;&#99;&#111;&#x6d;&#x2e;&#x63;&#x6e;</a>&rsquo;, msg.as_string())</p>
 
 <p>  mail_server.quit()</p>
 
@@ -739,125 +937,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/06/153443/">用ftplib的storlines上传文件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-06T15:34:43+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:34 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>上传文本文件：ftp_client.storlines(&ldquo;STOR &rdquo; + the_file, open(full_name, &ldquo;rt&rdquo;))</p>
-
-<p>上传二进制文件：ftp_client.storbinary(&ldquo;STOR &rdquo; + pkg_names[0], open(full_pkg_name, &ldquo;rb&rdquo;))</p>
-
-<p>需要用cwd首先设置好传文件的目标文件夹，然后用storlines命令上传，如果目标文件夹下已有同名文件，则不论上传的文件是否比已存在的新，都会覆盖已有的文件，下面的代码验证了以上结论，首先在F盘根目录下生成一个aa.txt文件，然后运行下面代码，然后修改aa.txt并再次运行下面的代码，可以看到ftp上的文件被更新了。</p>
-
-<p> import ftplib</p>
-
-<p> fc = ftplib.FTP(&lsquo;10.0.2.47&rsquo;,&lsquo;godu1&rsquo;,&lsquo;godu1&rsquo;)</p>
-
-<p> import os</p>
-
-<p> os.chdir(&lsquo;f:\&rsquo;)</p>
-
-<p> fc.storlines(&lsquo;STOR aa.txt&rsquo;,open(&lsquo;f:\aa.txt&rsquo;,&lsquo;rt&rsquo;))</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/04/161706/">在python中调用可执行程序时如何设置环境变量</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-04T16:17:06+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:17 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>首先以ant为例说明： 设置环境变量
-首先要设ANT_HOME，其次要设path（只设path不设ANT_HOME，ant会报错，所以ANT_HOME必须设）。</p>
-
-<p>os.environ[&lsquo;ANT_HOME&rsquo;] = os.path.join(root_path,&lsquo;tools&rsquo;,&lsquo;apache-ant-1.8.1&rsquo;)</p>
-
-<p>os.environ[&lsquo;path&rsquo;] = os.path.join(root_path,&lsquo;tools&rsquo;,&lsquo;apache-ant-1.8.1&rsquo;,&lsquo;bin&rsquo;)
- 调用格式
-output = os.popen(r&#8217;ant init&#8217;).read()</p>
-
-<p>print(output)</p>
-
-<p> 这里要注意的是 不能用 sys.path.append(ant_path)代替 os.environ[&lsquo;path&rsquo;]=&hellip;这一句，因为sys.path中虽然有ant的路径，但使用os.popen(&hellip;)时python只在系统的path里找可执行程序名，不会去sys.path里找（sys.path仅用于python找包，见博文“python添加新包的方法”），如果path中指定的ant路径不存在，python不会继续找sys.path，而是直接给出一个空结果（不会返回“程序名不存在”这样的提示信息，因为python直接调用操作系统底层的C API，而提示信息是cmd.exe加上的）。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/01/04/103251/">Python中两种拷贝目录方法的比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-01-04T10:32:51+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:32 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>首先是用python自己的api：
-shutil.copytree(&lsquo;./build/tested/doc&rsquo;, &lsquo;./build/tested/build/doc&rsquo;)</p>
-
-<p>优点是改变平台时不需要修改代码，缺点是doc文件夹下所有的东西都会被拷贝，包括隐藏目录；
- 其次是使用windows的api：
-result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;, &lsquo;.\build\tested\build\doc&rsquo;,&lsquo;/I&rsquo;])</p>
-
-<p>与上面的优缺点正好相反。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/95">&larr; Older</a>
@@ -875,23 +954,23 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/17/151844/">Linux Mint System Provision</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
       </li>
     
       <li class="post">
         <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/03/30/175224/">Scrapy Notes</a>
       </li>
     
   </ul>
