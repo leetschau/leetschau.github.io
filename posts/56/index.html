@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="协同方法 在所有开发人员中指定一个Server，类似于svn repo。其他人（Client）的代码是server的副本，修改、测试稳定后立即合并回server（最好通过server的pull方法实现，比client push更保险），server将client提交的更新与自己的更新合并（ &hellip;">
+  <meta name="description" content="In Ubuntu Desktop you have to modify /etc/environment and ${HOME}/.pam_environment instead of /etc/bash.bashrc and ${HOME}/.bashrc to set environment &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/04/25/124302/">基于hg的多用户单分支协同开发试验</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/05/07/101025/">Environment Variables of Ubuntu GUI Applications</a></h1>
     
     
       <p class="meta">
@@ -80,160 +80,16 @@
 
 
 
-<time class='entry-date' datetime='2013-04-25T12:43:02+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:43 pm</span></time>
+<time class='entry-date' datetime='2013-05-07T10:10:25+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:10 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>协同方法</h1>
+  <div class="entry-content"><p>In Ubuntu Desktop you have to modify /etc/environment and ${HOME}/.pam_environment instead of /etc/bash.bashrc and ${HOME}/.bashrc to set environment variables. See <a href="https://help.ubuntu.com/community/EnvironmentVariables">EnvironmentVariables</a> for details.</p>
 
-<p>在所有开发人员中指定一个Server，类似于svn repo。其他人（Client）的代码是server的副本，修改、测试稳定后立即合并回server（最好通过server的pull方法实现，比client push更保险），server将client提交的更新与自己的更新合并（merge）后立即push回client，要注意的是server在pull之前要确保working directory中没有未提交的更改（未完成功能，用&#8221;hg st&#8221;命令的输出是否为空来检验，为空说明没有未完成功能），因为merge后必须提交一个“合并版本”到版本库，如果有未完成功能，也会被提交到版本库中。</p>
-
-<p>A和B在同步过代码后，如果A提交了新changeset，而此期间B没有提交过，则A可以把变化push给B，这时B不需要merge，只update即可，update后可以用hg log -l 1 -v查看哪些文件发生了变化，以及A的提交说明；</p>
-
-<p>整个协同过程中不需要新建branch或者bookmark，估计是最简单的分布式版本控制系统的协同模型。</p>
-
-<h1>试验过程</h1>
-
-<p>Server（username: Li Chao）新建一个repo，添加文件，提交changeset，Client（username: chadOnPC）clone此repo，修改其中一个文件，与此同时Li Chao修改了另一个文件，chadOnPC将修改push回笔记本，Li Chao合并两部分修改，再修改这两个文件，push到Client，由于这期间Client没有修改，所以只要update就把Server push的内容更新到了working directory中。</p>
-
-<p>========== Server ================</p>
-
-<p>c:\tmp\HgRepo>hg init
-// 新建两个文件：forChadLaptop.txt和forChadPC.txt并写一些内容在文件里
-c:\tmp\HgRepo>hg add <em>.txt
-c:\tmp\HgRepo>hg stat
-A forChadLaptop.txt
-A forChadPC.txt
-c:\tmp\HgRepo>hg ci -m &ldquo;first checkin&rdquo;
-c:\tmp\HgRepo>hg log
-changeset: 0:fd200857b086
-tag:   tip
-user:  Li Chao
-date:  Thu Apr 25 11:32:24 2013 +0800
-summary:  first checkin
-c:\tmp\HgRepo>hg heads
-changeset: 0:fd200857b086
-tag:   tip
-user:  Li Chao
-date:  Thu Apr 25 11:32:24 2013 +0800
-summary:  first checkin
-c:\tmp\HgRepo>hg serve
-listening at <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a> (bound to </em>:8000)
-=========== Client ==============
-E:\lc\clonedRepo>hg clone <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a>
-&hellip;
-E:\lc\clonedRepo>hg log
-changeset: 0:fd200857b086
-tag:   tip
-user:  Li Chao
-date:  Thu Apr 25 11:32:24 2013 +0800
-files:  forChadLaptop.txt forChadPC.txt
-description:
-first checkin
-E:\lc\clonedRepo>hg st
-// edit file &ldquo;forChadPC.txt&rdquo;
-E:\lc\clonedRepo>hg st
-M forChadPC.txt
-E:\lc\clonedRepo>hg ci -m &ldquo;first on pc&rdquo;
-forChadPC.txt
-committed changeset 1:2c5fbbb6645b
-E:\lc\clonedRepo>hg log
-changeset: 1:2c5fbbb6645b
-tag:   tip
-user:  chadOnPC
-date:  Thu Apr 25 11:42:09 2013 +0800
-files:  forChadPC.txt
-description:
-first on pc
-changeset: 0:fd200857b086
-user:  Li Chao
-date:  Thu Apr 25 11:32:24 2013 +0800
-files:  forChadLaptop.txt forChadPC.txt
-description:
-first checkin
-/<strong> 需要在被push的repo的.hg/hgrc文件中增加如下内容（如果文件不存在新建之）：
- * [web]
- * push_ssl = false
- * allow_push = *
-</strong>/
-E:\lc\clonedRepo>hg push <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a>
-pushing to <a href="http://chadlaptop:8000/">http://chadlaptop:8000/</a>
-searching for changes
-1 changesets found
-remote: adding changesets
-remote: adding manifests
-remote: adding file changes
-remote: added 1 changesets with 1 changes to 1 files
-============= Server ==================
-// 修改forChadLaptop.txt文件
-c:\tmp\HgRepo>hg st
-M forChadLaptop.txt // 修改被感知到
-c:\tmp\HgRepo>hg heads
-changeset: 1:2c5fbbb6645b
-tag:   tip
-user:  chadOnPC
-date:  Thu Apr 25 11:42:09 2013 +0800
-summary:  first on pc // 与push之前笔记本上&#8221;hg heads&#8221;命令相比，head变成了push过来的那个changeset
-c:\tmp\HgRepo>hg st
-M forChadLaptop.txt // push不改变working dirctory中的文件
-c:\tmp\HgRepo>hg ci -m &ldquo;second commit on laptop&rdquo;
-created new head
-c:\tmp\HgRepo>hg heads
-changeset: 2:42809e7d6c58
-tag:   tip
-parent:  0:fd200857b086
-user:  Li Chao
-date:  Thu Apr 25 11:54:05 2013 +0800
-summary:  second commit on laptop
-changeset: 1:2c5fbbb6645b
-user:  chadOnPC
-date:  Thu Apr 25 11:42:09 2013 +0800
-summary:  first on pc  // head变成了两个
-c:\tmp\HgRepo>hg branch
-default   // branch始终只有default一个
-c:\tmp\HgRepo>hg merge
-1 files updated, 0 files merged, 0 files removed, 0 files unresolved
-(branch merge, don&rsquo;t forget to commit)
-c:\tmp\HgRepo>hg st
-M forChadPC.txt  // merge命令改变了working directory中文件的内容
-c:\tmp\HgRepo>hg ci -m &ldquo;merge from pc&rdquo;
-c:\tmp\HgRepo>hg log
-changeset: 3:ba028970a1d0
-tag:   tip
-parent:  2:42809e7d6c58
-parent:  1:2c5fbbb6645b
-user:  Li Chao
-date:  Thu Apr 25 11:57:17 2013 +0800
-summary:  merge from pc
-changeset: 2:42809e7d6c58
-parent:  0:fd200857b086
-user:  Li Chao
-date:  Thu Apr 25 11:54:05 2013 +0800
-summary:  second commit on laptop
-changeset: 1:2c5fbbb6645b
-user:  chadOnPC
-date:  Thu Apr 25 11:42:09 2013 +0800
-summary:  first on pc
-changeset: 0:fd200857b086
-user:  Li Chao
-date:  Thu Apr 25 11:32:24 2013 +0800
-summary:  first checkin
-=========== Client =====================</p>
-
-<p>E:\lc\clonedRepo>hg serve</p>
-
-<p>=========== Server ===================</p>
-
-<p>c:\tmp\HgRepo>hg push <a href="http://china-a9598ee91:8000/">http://china-a9598ee91:8000/</a></p>
-
-<p>&hellip;</p>
-
-<p>=========== Client ===============</p>
-
-<p>E:\lc\clonedRepo>hg update // 由于Client没有同时修改代码，所以不需要merge，update即可</p>
+<p>${HOME}/.pam_environment does not worked, don&rsquo;t know why.</p>
 </div>
   
   
@@ -246,7 +102,7 @@ summary:  first checkin
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/04/23/110349/">运行时动态指定文件名的日志工具实现方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/05/07/083620/">Frequently Used Shortcuts of Ubuntu</a></h1>
     
     
       <p class="meta">
@@ -255,445 +111,42 @@ summary:  first checkin
 
 
 
-<time class='entry-date' datetime='2013-04-23T11:03:49+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:03 am</span></time>
+<time class='entry-date' datetime='2013-05-07T08:36:20+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:36 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>网元日志的特点是：每个网元的日志要写在单独的文件中，文件名要能够唯一地确定一组“用户-网元”连接，因此不可能预先指定或者写在配置文件里，只能在运行时根据登录的用户名和连接网元的ID动态生成。</p>
+  <div class="entry-content"><p>Based on Ubuntu Desktop 12.04 LTS, &ldquo;super&rdquo; key is the windows logo key.</p>
 
-<p>使用JDK原生的java.io.FileOutputStream等类可以达到上述目的，但文件的关闭比较麻烦，由于JVM垃圾回收的特点，日志包装类被回收的时间是不确定的，如果它被回收的比较慢，文件句柄就不会被关闭，导致系统资源消耗变大。</p>
-
-<p>下面的代码基于Logback实现了运行时动态指定日志文件名的日志工具，并发500个线程写日志文件，大约耗时3s左右。</p>
-
-<p> import ch.qos.logback.classic.Logger;
- import ch.qos.logback.classic.LoggerContext;
- import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
- import ch.qos.logback.classic.spi.ILoggingEvent;
- import ch.qos.logback.core.FileAppender;
- public class DynamicLogWriter {
-  private String loggerName = null;
-  private final Logger logbackLogger;
-  public DynamicLogWriter(String logfileName) {
-   loggerName = logfileName;
-   LoggerContext loggerContext = new LoggerContext();
-   FileAppender<ILoggingEvent> fileAppender = new FileAppender<ILoggingEvent>();
-   fileAppender.setContext(loggerContext);
-   fileAppender.setName(&ldquo;logfile&rdquo;);
-   fileAppender.setFile(&ldquo;log/&rdquo; + loggerName + &ldquo;.log&rdquo;);
-   PatternLayoutEncoder encoder = new PatternLayoutEncoder();
-   encoder.setContext(loggerContext);
-   encoder.setPattern(&ldquo;%msg&rdquo;);
-   encoder.start();
-   fileAppender.setEncoder(encoder);
-   fileAppender.start();
-   logbackLogger = loggerContext.getLogger(&ldquo;nelogger&rdquo;);
-   logbackLogger.addAppender(fileAppender);
-   // OPTIONAL: print logback internal status messages
-   // StatusPrinter.print(loggerContext);
-  }
-  public void writeNeLog(String msg) {
-   logbackLogger.debug(msg);
-  }
-  public static void main(String[] args) {
-   for (int i = 0; i &lt; 500; i++) {
-    new Thread(new ThreadWrapper(i)).start();
-   }
-  }
- }
- class ThreadWrapper implements Runnable {
-  private final int id;
-  public ThreadWrapper(int i) {
-   id = i;
-  }
-  @Override
-  public void run() {
-   DynamicLogWriter logWriter = new DynamicLogWriter(&ldquo;192.168.0.2.&rdquo; + id);
-   logWriter.writeNeLog(&ldquo;Welcome t&rdquo;);
-   logWriter.writeNeLog(&ldquo;o Ubuntu 11.4\r\nlogi&rdquo;);
-   logWriter.writeNeLog(&ldquo;n:user\r\npasswor&rdquo;);
-   logWriter.writeNeLog(&ldquo;d:\r\nlast login&hellip;&rdquo;);
-  }
- }</p>
-
-<p>参考： <a href="http://stackoverflow.com/questions/7824620/logback-set-log-file-name-programatically">http://stackoverflow.com/questions/7824620/logback-set-log-file-name-programatically</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/22/131818/">Hg单用户操作的分支合并</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-04-22T13:18:18+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>1:18 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ hg init hgBranchTest // 新建一个名为hgBranchTest的repo，hg自动创建目录</p>
-
-<p>$ cd hgBranchTest</p>
-
-<p>$ vi readme.txt</p>
-
-<p>$ cat readme.txt
-this is the first version</p>
-
-<p>$ hg add readme.txt
-$ hg ci -m &ldquo;first time commit&rdquo; // or use &ldquo;hg ci -A -m &hellip;&rdquo; for add and commit
-$ vi readme.txt
-$ cat readme.txt
-this is the first version
-add a line
-$ hg st
-M readme.txt
-$ hg log
-修改集:  0:ffecf69346a5
-标签:  tip
-用户:  Li Chao
-日期:  Mon Apr 22 05:49:29 2013 +0100
-摘要:  first time commit
-$ hg diff
-diff -r ffecf69346a5 readme.txt
-&mdash; a/readme.txt  Mon Apr 22 05:49:29 2013 +0100
-+++ b/readme.txt  Mon Apr 22 05:51:03 2013 +0100
-@@ -1,1 +1,2 @@
-this is the first version
-+add a line
-$ hg ci -m &ldquo;第二次提交&rdquo;
-$ hg log
-修改集:  1:770a5cda1659
-标签:  tip
-用户:  Li Chao
-日期:  Mon Apr 22 05:51:42 2013 +0100
-摘要:  第二次提交
-修改集:  0:ffecf69346a5
-用户:  Li Chao
-日期:  Mon Apr 22 05:49:29 2013 +0100
-摘要:  first time commit
-$ hg branch
-default
-$ hg branches
-default      1:770a5cda1659
-$ hg branch red
-marked working directory as branch red
-(branches are permanent and global, did you want a bookmark?)
-$ vi readme.txt
-$ cat readme.txt
-this is the first version
-add a line
-add the 3rd line
-$ hg branches   // 没有提交（commit）之前分支不出现在branches列表中
-default      1:770a5cda1659
-$ hg branch   // 当前仍在red分支下
-red
-$ hg ci -m &ldquo;commit on branch red&rdquo;
-$ hg branches
-red       2:86e30b1564a9
-default      1:770a5cda1659 (inactive)
-$ hg log
-修改集:  2:86e30b1564a9
-分支:  red
-标签:  tip
-用户:  Li Chao
-日期:  Mon Apr 22 05:57:07 2013 +0100
-摘要:  commit on branch red
-修改集:  1:770a5cda1659
-用户:  Li Chao
-日期:  Mon Apr 22 05:51:42 2013 +0100
-摘要:  第二次提交
-修改集:  0:ffecf69346a5
-用户:  Li Chao
-日期:  Mon Apr 22 05:49:29 2013 +0100
-摘要:  first time commit
-$ hg log -b red // 只显示red分支上的changeset
-修改集:  2:86e30b1564a9
-分支:  red
-标签:  tip
-用户:  Li Chao
-日期:  Mon Apr 22 05:57:07 2013 +0100
-摘要:  commit on branch red
-$ hg tip  // tip是最近版本的意思
-修改集:  2:86e30b1564a9
-分支:  red
-标签:  tip
-用户:  Li Chao
-日期:  Mon Apr 22 05:57:07 2013 +0100
-摘要:  commit on branch red
-$ hg heads  // head表示各分支最近版本
-修改集:  2:86e30b1564a9
-分支:  red
-标签:  tip
-用户:  Li Chao
-日期:  Mon Apr 22 05:57:07 2013 +0100
-摘要:  commit on branch red
-修改集:  1:770a5cda1659
-用户:  Li Chao
-日期:  Mon Apr 22 05:51:42 2013 +0100
-摘要:  第二次提交
-$ hg up default   // 切换当前分支为default
-1 files updated, 0 files merged, 0 files removed, 0 files unresolved
-$ cat readme.txt  // 分支合并前文件内容
-this is the first version
-add a line
-$ hg merge red
-1 files updated, 0 files merged, 0 files removed, 0 files unresolved
-(branch merge, don&rsquo;t forget to commit)
-$ cat readme.txt  // 合并后文件内容改变
-this is the first version
-add a line
-add the 3rd line
-$ hg st
-M readme.txt
-$ hg ci -m &ldquo;after merge with branch red&rdquo;
-$ hg log
-修改集:  3:9a5f0a2b7b9c
-标签:  tip
-父亲:  1:770a5cda1659 // 合并后提交的版本的特点是有两个parent
-父亲:  2:86e30b1564a9
-用户:  Li Chao
-日期:  Mon Apr 22 06:00:31 2013 +0100
-摘要:  after merge with branch red
-修改集:  2:86e30b1564a9
-分支:  red
-用户:  Li Chao
-日期:  Mon Apr 22 05:57:07 2013 +0100
-摘要:  commit on branch red
-修改集:  1:770a5cda1659
-用户:  Li Chao
-日期:  Mon Apr 22 05:51:42 2013 +0100
-摘要:  第二次提交
-修改集:  0:ffecf69346a5
-用户:  Li Chao
-日期:  Mon Apr 22 05:49:29 2013 +0100
-摘要:  first time commit</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/20/105251/">局域网聊天和文件传输工具</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-04-20T10:52:51+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:52 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以前用飞秋在局域网内聊天、传文件，经常找不到目标，很难用，在网上找了一个开源、跨平台（Win, Linux &amp; Mac）的局域网聊天软件<a href="http://lanmsngr.sourceforge.net/">LAN Messenger</a>，以及<a href="http://portableapps.com/apps/internet/lan-messenger-portable">Portable版</a>，下载的文件是便携版LANMessengerPortable_1.2.35.paf.exe，聊天、传文件、群聊的功能都有，很方便。</p>
-
-<p>LANMessenger在Mint上安装后无法正常运行，发现Linux上的iptux（apt-get install iptux）实际山就是Windows上的FeiQ（下载压缩包FeiQ.rar后解压运行），目前工作良好。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/17/111523/">基于ScheduledExecutorService的并发定时任务处理能力测试</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-04-17T11:15:23+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:15 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>测试代码</h1>
-
-<h2>定时器类</h2>
-
-<p> package business.util;
- import java.util.concurrent.Executors;
- import java.util.concurrent.ScheduledExecutorService;
- import java.util.concurrent.ScheduledFuture;
- import java.util.concurrent.TimeUnit;
- import transfer.IUserParser;
- public class MyTimer {
-  private static ScheduledExecutorService ses = Executors
-    .newSingleThreadScheduledExecutor();</p>
-
-<p>   // .newScheduledThreadPool(10);
-  private MyTimer() {
-  }
-  /<strong>
-   * 设置某一parser正在执行脚本的超时时间
-   *
-   * @param parser
-   *   进行超时控制的解析器
-   * @param timeout
-   *   超时时间，单位：秒
-   * @return
-   */
-  public static ScheduledFuture&lt;?> set(IUserParser parser, int timeout) {
-   CloseRutine routine = new CloseRutine(parser);
-   ScheduledFuture&lt;?> job = ses.schedule(routine, timeout,
-     TimeUnit.SECONDS);
-   return job;
-  }
-  /</strong>
-   * 清除计时器
-   *
-   * @param unit
-   * @return
-   <em>/
-  public static boolean cancel(ScheduledFuture&lt;?> job) {
-   return job.cancel(true);
-  }
-  /**
-   * 关闭此计时器（进程）
-   </em>/
-  public static void shutdown() {
-   ses.shutdown();
-  }
- }
- class CloseRutine implements Runnable {
-  private final IUserParser parser;
-  CloseRutine(IUserParser parser) {
-   this.parser = parser;
-  }
-  @Override
-  public void run() {
-   parser.closePeer();
-  }
- }</p>
-
-<h1>#</h1>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/16/120452/">Java语言子类调用父类构造函数的规则</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-04-16T12:04:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:04 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>子类初始化时，调用父类构造函数的规则是：如果父类没有任何构造函数，系统会</p>
+<h1>Shortcuts Definitions</h1>
 
 <ul>
-<li><p>父类如果没有任何构造函数，系统会自动为父类生成一个无参构造函数，如果父类有带参构造函数，系统不会为父类生成无参构造函数；</p></li>
-<li><p>如果父类和子类的构造函数都有参数且参数列表一样（包括参数的个数、类型、顺序），子类如果想调用父类的构造方法，必须在构造函数第一行用super(params)显式调用，否则子类的构造函数会去找父类的默认（无参）构造函数；</p></li>
-<li><p>如果父类有无参构造函数，子类的构造函数除非显式用super(params)调用父类的带参构造函数，否则一定会执行父类的无参构造函数（不需要写super()）；</p></li>
+<li><p>System Settings -> Keyboard -> Shortcuts;</p></li>
+<li><p>Super(press): show system shortcut list;</p></li>
 </ul>
 
 
-<p>参考：google &ldquo;java constructor&rdquo;, <a href="http://www.leepoint.net/notes-java/oop/constructors/constructor.html">http://www.leepoint.net/notes-java/oop/constructors/constructor.html</a></p>
+<h1>Shortcuts list</h1>
 
-<h1>父类有默认构造函数时</h1>
+<p>Alt + mouse drag: move window (you can drag a window at any position within a window, not only at title bar)</p>
 
-<p> class SuperClass {
-  public SuperClass() {
-   System.out.println(&ldquo;I am the super class.&rdquo;);
-  }
-  public SuperClass (String name) {
-   System.out.println(&ldquo;I am the super class with a name: &rdquo; + name);
-  }</p>
+<p>Alt + F2: run a application in command line box</p>
 
-<p>  public SuperClass (int age) {
-   System.out.println(&ldquo;I am sub class with age: &rdquo; + age);
-  }</p>
+<p>Alt + F7: move window via arrow key;</p>
 
-<p> }
- public class TestedSubClass extends SuperClass {
-  public TestedSubClass(){
-   System.out.println(&ldquo;I am sub class&rdquo;);
-  }
-  public TestedSubClass(String name){
-   super(name);
-   System.out.println(&ldquo;I am sub class with a name: &rdquo; + name);
-  }
-  public TestedSubClass(int age) {
-   System.out.println(&ldquo;I am sub class with age: &rdquo; + age);
-  }</p>
+<p>Alt + F8: resize window via arrow key;</p>
 
-<p>  public static void main(String[] args) {
-   TestedSubClass tsc = new TestedSubClass();
-   TestedSubClass tsc2 = new TestedSubClass(&ldquo;chad&rdquo;);
-   TestedSubClass tsc3 = new TestedSubClass(33);
-  }
- }</p>
+<p>Ctrl + Alt + Num(1~9): move window to a position</p>
 
-<p>运行结果：</p>
+<p>Ctrl + Super + D: show/hide desktop (minimize/show all window)</p>
 
-<p> [java] I am the super class.
- [java] I am sub class
- [java] I am the super class with a name: chad
- [java] I am sub class with a name: chad
- [java] I am the super class.
- [java] I am sub class with age: 33</p>
+<p>Super(tap): show Dash Home;</p>
 
-<p>当父类有默认（无参数）构造函数情况下，子类初始化时，除非子类用super(param)显式调用其他构造函数，否则一定会执行父类的默认构造函数，不论子类初始化时有没有参数。</p>
+<p>Super + W: show a window list, you can use arrow key to select a window;</p>
 
-<h1>父类无默认构造函数</h1>
-
-<p>如果仅将父类的默认（无参）构造函数去掉重新运行，报找不到初始化方法错误，原因是当父类有带参构造函数时，系统不为父类生成构造函数，而第1次和第3次初始化子类对象时，会调用父类的无参构造方法，所以报错；</p>
-
-<p>如果去掉父类中所有的构造函数，子类中保留无参和int参数两个构造函数，运行正常；</p>
-
-<p>如果仅保留父类和子类的String参数构造方法，初始化运行正常；</p>
+<p>Super 1 to 9: same as click on the launcher icon, you can lock a frequently used application on launcher and launch/activate it via these shortcuts;</p>
 </div>
   
   
@@ -706,7 +159,7 @@ $ hg log
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/04/07/230132/">Sublime Text笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/05/06/170059/">局域网文本传输软件</a></h1>
     
     
       <p class="meta">
@@ -715,138 +168,320 @@ $ hg log
 
 
 
-<time class='entry-date' datetime='2013-04-07T23:01:32+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:01 pm</span></time>
+<time class='entry-date' datetime='2013-05-06T17:00:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:00 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Sublime Text作为一款文本编辑器，最强大的是快速响应能力和&#8221;Goto Anything&#8221;功能，用Ctrl+Shift+P执行编辑器功能，用Ctrl+P+@进行文件间与文件内部的跳转，目前的编辑器还没有类似的，Vintage将vi的强大编辑能力吸收了进来，更是如虎添翼。</p>
+  <div class="entry-content"><p>有时候两台机器间临时需要传输一些简单的文本，比如网页地址，指令之类的，专门找一个网内聊天软件太麻烦，简单的方法是使用命令行工具，下面是可选的工具。</p>
 
-<p>它不适合作为静态语言（如Java）的正式开发IDE，与“标准的”IDE（如Eclipse）比较，它不具备针对静态语言的代码重构功能；在代码自动补全方面，无法提供类库的类名/方法补全（能够提供语言关键字和变量的补全）；它无法提供调试环境，需要单独的代码调试器（如JSwat）。所以Sublime Text适合作为展现语言（如HTML，Latex等）或者动态语言（Python, PHP等）的开发工具。</p>
+<h1>利用write或者wall命令</h1>
 
-<p>但很多时候我们只是想浏览代码，或是写一些简单的试验程序，或是修改代码的一处细节，启动Eclipse太慢了，用Sublime text这样text editor处理正合适。</p>
+<p>Linux的内部指令，无需安装，但Windows上没法用。</p>
 
-<h1>借助Ant打造Java IDE</h1>
+<p>write适用于多次双向交互（两个人之间聊天的交互方式），格式：write <username> [tty]，其中username是用户名，tty通过运行&#8221;tty&#8221;指令获得，在只有两个用户登录情况下可以省略。当主机A和B需要交互时，B首先SSH登录A（ssh my_name@hostB，据说telnet也行），然后B上运行&#8221;write my_name&#8221;，就进入了聊天状态。</p>
 
-<p>项目目录结构：项目根目录（$PORJ_HOME）下存放源代码、编译后的class文件和需要引用的jar包（而不是分开放在src, bin, lib文件夹下，适合于技术验证式的小项目），以及sublime项目定义文件（ProjectName.sublime-project）和build.xml，通过Ant的javac和java指令编译和运行Java代码，源代码不论什么包名都放在$PORJ_HOME下（Ant的javac指令会根据源代码的包名创建class文件的目录结构）；</p>
+<p>wall是向所有tty广播，例如主机A要向B和C发送消息，需要B和C登录到A上（SSH），然后在A上运行wall，可以加回车写多行文本，写完后输入Ctrl+D，整段文本就被广播到了B和C在A的tty上，可以通过管道向wall输送指令，例如&#8221;cat file_name|wall&#8221;将文件内容广播给其他终端，或者&#8221;df|wall&#8221;将磁盘情况广播给其他终端。</p>
 
-<h2>准备工作</h2>
+<p>wall和write的主要区别是wall是单向的，write是双向的。</p>
 
-<ol>
-<li><p>指定用Ant做构建工具：修改[Preferences -> Browse Packages]打开packages文件夹，修改Java/JavaC.sublime-build文件，将原来&#8221;cmd&#8221;后面的&#8221;javac&#8221;改为&#8221;ant.bat&#8221;，如果ant所在目录没有加到系统的$Path里，这里需要写文件完整路径，例如&#8221;D:/Apps/apache-ant-1.8.1/bin/ant.bat&#8221;，然后将工作目录设置为项目根目录（默认的就是项目文件所在目录，因此这句不写也行）：&#8221;working_dir&#8221;: &ldquo;$project_path&#8221;；</p></li>
-<li><p>安装AdvancedNewFile插件：利用package control的install new package功能，装完后就可以用快捷键&#8221;Ctrl + Alt + N&#8221;在项目根目录下创建文件了；</p></li>
-</ol>
+<h1>利用netcat指令</h1>
+
+<p>netcat需要安装，Ubuntu上比较简单：apt-get install netcat，Windows上复杂些，需要下载nc111nt.zip这个文件，下载后报有病毒，但好像是误报。</p>
+
+<p>netcat的信息传输是Server-Client方式，启动Server的方法是&#8221;nc -l server_port&#8221;，server_port可以是任意没被占用的端口，例如nc -l 3456，启动Client的方法是&#8221;nc server_ip server_port&#8221;（例如nc 10.31.2.34 3456），之后不论哪一方输入文本回车后都会被发送到对端，可以先由发送端发送报文，再启动接收端。</p>
+
+<p>要传多行文本（比如一个文本文件），可以用下面的方法：</p>
+
+<p>发送端：cat some.txt|nc -l 3333</p>
+
+<p>接收端：nc 10.21.3.31 3333 > some.txt</p>
+
+<p>可以在Executor里定义一个任务，命令是&#8221;d:\Apps\ConEmu\ConEmu.exe&#8221;，参数是&#8221;d:\Apps\netcat\nc.exe&#8221;，启动nc之后再输入目标的ip地址和端口号。</p>
+</div>
+  
+  
 
 
-<h2>创建Java项目</h2>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/06/163137/">用Windows连接Ubuntu远程桌面</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<ol>
-<li><p>创建项目文件夹（TotalCMD），拷贝此文件夹的完整路径；</p></li>
-<li><p>Sublime Text -> Project -> Add Folder: 将上一步创建的文件夹加入到Project中；</p></li>
-<li><p>生成新的Sublime项目文件：Sublime Text -> Project -> Save Project As，这样项目文件就定义好了，如果希望隐藏不必要的文件和文件夹：[Project -> Save Project As]，用file_exclude_patterns和folder_exclude_patterns属性实现，例如：</p></li>
-</ol>
 
 
-<p> {
-  &ldquo;folders&rdquo;:
-  [
-   {
-    &ldquo;path&rdquo;: &ldquo;/e/workspace/PNProject&rdquo;,</p>
 
-<pre><code>"file_exclude_patterns": 
-[ 
-  "*.sublime*" 
-] 
+<time class='entry-date' datetime='2013-05-06T16:31:37+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:31 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>从Windows 7通过远程桌面连接Ubuntu 12.04，首先为Ubuntu安装xrdp协议：apt-get install xrdp，然后就可以用Windows的远程桌面连接Ubuntu了，如果连接时报错，可以在Ubuntu上执行</p>
+
+<pre><code>echo "gnome-session --session=ubuntu-2d" &gt; ~/.xsession
 </code></pre>
 
-<p>   }</p>
+<p>然后重启系统即可（参考<a href="http://www.liberiangeek.net/2012/05/connect-to-ubuntu-12-04-precise-pangolin-via-windows-remote-desktop/%EF%BC%89%E3%80%82">http://www.liberiangeek.net/2012/05/connect-to-ubuntu-12-04-precise-pangolin-via-windows-remote-desktop/%EF%BC%89%E3%80%82</a></p>
 
-<p>  ]
- }</p>
+<p>试用后发现主要问题是速度太慢，基本无法使用，不清楚是网速慢还是协议本身慢，另外xrdp不像windows远程桌面一个用户同时只能在一台机器上远程连接，它可以多台机器同时连接。</p>
+</div>
+  
+  
 
-<p>注：还可以用&#8221;folder_exclude_patterns&#8221;:[&ldquo;build&rdquo;]这样的方式去掉文件夹。</p>
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/04/111324/">基于多个本地仓库的功能点开发方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-04T11:13:24+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>软件开发过程中经常需要在现有的稳定版本上开发新性能，直接在原有的代码仓库上修改不是好办法，首先是由于新功能的开发具有比较大的不确定性，其次在原有的仓库中修改会影响使用该仓库的其他程序。比较好的办法是从稳定版仓库中clone一个副本到新的位置，然后开始新功能的开发，当新功能稳定后push到稳定版仓库中。</p>
+
+<p>Hg对上面的工作流程提供了很好的支持，下面以本地仓库间clone为例演示整个过程（如果副本与原版不在一台机器上，使用Hg内置的http server用hg serve启动服务即可实现不同机器间的开发协同）。</p>
+
+<p>假设稳定版仓库位置是c:\tmp\HgRepo下，tip的版本号是6，现在要开发新特性AutoSave，首先clone仓库：</p>
+
+<p> c:\tmp>hg clone HgRepo AutoSave</p>
+
+<p>如果希望从HgRepo的第4个版本开始开发，可以加-r参数：hg clone -r 4 HgRepo AutoSave，用这种方法可以实现比较安全的版本“回退”，比如提交到版本7后发现版本5～7有问题，可以用&#8221;clone -r 4&#8221;建立一个新的副本，原来的仓库可以视情况予以保留或丢弃。</p>
+
+<p>AutoSave中修改完毕后，可以用hg push直接同步到HgRepo中，这是因为AutoSave的默认仓库是其clone来源HgRepo，hg自动在AutoSave的.hg/hgrc中添加如下配置：</p>
+
+<p> [paths]
+ default = c:\tmp\HgRepo</p>
+
+<p>在push之前先用hg out比较一下AutoSave与HgRepo之间的区别，当有其他开发者向HgRepo中提交更新时，out就必不可少了。</p>
+
+<p>或者用pull的方法，在HgRepo下用hg in repoName比较两个仓库。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/03/233746/">将Netty源代码导入到eclipse中</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-03T23:37:46+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Netty官网上下载的发布包netty-3.6.5.Final-dist.tar.bz2中的源代码是maven格式的，使用eclipse的maven导入失败，只好用笨办法手工导入到eclipse中，过程如下：</p>
 
 <ol>
-<li>在项目根目录下新建一个build.xml文件，主要内容是编译和运行java代码（注意每个项目的启动类是不同的（java命令的classname参数），拷贝这个模板时需要修改）：</li>
+<li><p>解压Netty发布包在netty-3.6.5.Final目录下；</p></li>
+<li><p>在Eclipse中新建一个Java Project: NettyStudy；</p></li>
+<li><p>将netty-3.6.5.Final\src\main\java下的目录拷贝到NettyStudy/src下；</p></li>
+<li><p>将netty-3.6.5.Final\src\test\java下的目录拷贝到NettyStudy/test下；</p></li>
+<li><p>根据netty-3.6.5.Final\pom.xml中<dependency>&hellip; </dependency>中的内容，将下面的jar文件从<a href="http://search.maven.org/">Maven Central Repository</a>中下载下来，添加到NettyStudy/lib中：</p></li>
 </ol>
 
 
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
- <project name="ExProj" basedir="./" default="run">
-  <path id="lib.path">
-   <fileset dir="${basedir}">
-    <include name="**/*.jar"/>
-   </fileset>
-  </path>
-  <target name="compile">
-   <javac srcdir="${basedir}" destdir="${basedir}"
-    classpathref="lib.path" encoding="UTF-8" debug="true"/>
-  </target>
-  <target name="run" depends="compile">
-   <java classname="org.leechau.HelloWorld">
-    <classpath>
-     <pathelement path="${basedir}"/>
-    </classpath>
-   </java>
-  </target>
- </project></p>
+<p> slf4j-simple-1.7.5.jar
+ log4j-1.2.17.jar
+ jboss-logging-spi-2.2.0.CR1.jar
+ commons-logging-1.1.2.jar
+ slf4j-api-1.7.5.jar
+ org.osgi.foundation-1.2.0.jar
+ javax.servlet-1.0.0.jar
+ org.osgi.compendium-1.4.0.jar
+ org.osgi.core-1.4.0.jar
+ servlet-api-3.0-alpha-1.jar
+ protobuf-java-2.5.0.jar
+ jboss-marshalling-1.3.17.GA.jar
+ easymock-3.1.jar</p>
+
+<p>验证：</p>
 
 <ol>
-<li>运行构建：[Tools -> Build]（快捷键Ctrl+B）；</li>
+<li><p>启动org.jboss.netty.example.telnet.TelnetServer，默认绑定本机的8080端口；</p></li>
+<li><p>用kitty连接8080端口：&#8221;kitty -telnet -P 8080 localhost&#8221;，看到下面的报文说明连接成功：</p></li>
 </ol>
 
 
-<h1>打开Vintage模式</h1>
+<p> Welcome to chadlaptop!</p>
 
-<p>Vintage是vi风格的操作方式，当然要打开啦，方法是：</p>
-
-<ol>
-<li><p>在user preference里加上：&#8221;ignored_packages&#8221;: []</p></li>
-<li><p>如果希望打开文档时初始状态是命令模式而不是插入模式，再加上：&#8221;vintage_start_in_command_mode&#8221;: true</p></li>
-</ol>
+<p> It is Fri May 03 23:49:01 CST 2013 now.</p>
+</div>
+  
+  
 
 
-<h1>自定义代码模板</h1>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/03/111729/">修改Windows环境变量</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<ol>
-<li><p>[Tools -> New Snippet&hellip;];</p></li>
-<li><p>填写模板内容（content），触发器（写完触发器按tab键展开为content中定义的代码）和有效范围（定义那些文件中此模板有效）；</p></li>
-<li><p>保存模板文件：文件名统一约定为“范围名-触发器 .sublime-snippet”；</p></li>
-</ol>
 
 
-<p>参考<a href="http://www.granneman.com/webdev/editors/sublime-text/top-features-of-sublime-text/quickly-insert-text-and-code-with-sublime-text-snippets/#test">http://www.granneman.com/webdev/editors/sublime-text/top-features-of-sublime-text/quickly-insert-text-and-code-with-sublime-text-snippets/#test</a></p>
 
-<p>实例：Java代码中终端打印语句的代码模板（spl + <Tab> -> System.out.println(${1});）：</p>
+<time class='entry-date' datetime='2013-05-03T11:17:29+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:17 am</span></time>
+        
+      </p>
+    
+  </header>
 
-<p> <snippet>
-  <content>&lt;![CDATA[
- System.out.println(${1});
- ]]></content>
-  <!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
-  <tabTrigger>spl</tabTrigger>
-  <!-- Optional: Set a scope to limit where the snippet will trigger -->
-  <scope>source.java</scope>
- </snippet></p>
 
-<p>如果设置后不生效，检查各个标签的大小写是否正确（snippet文件是大小写敏感的），例如CDATA要大写，tabTrigger中T大写。</p>
+  <div class="entry-content"><p>修改Windows的环境变量比较麻烦，尤其是Path，下面这些软件配合Executor能略微简化对Path的修改：</p>
 
-<h1>Best Practice</h1>
+<p><a href="http://www.rapidee.com/">RapidEE</a>，free, portable，支持命令行，但好像没有效果，能修改所有windows变量。</p>
 
-<ul>
-<li>所有的个性化配置都写在&#8221;Settings - User&#8221;，不要修改&#8221;Settings -> Default&#8221;；</li>
+<p><a href="http://rix0rrr.github.io/WindowsPathEditor/">Windows Path Editor</a>，free, portable，通过拖拽方式修改Path变量，保存变量时有丢失现象，有时会异常退出，不要使用；</p>
+
+<p><a href="http://eveditor.com/">Eveditor</a>，free，但需要安装，没有试。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/02/183329/">添加局域网打印机</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-02T18:33:29+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>6:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>局域网内安装了打印机，但不知道它的IP地址，这时就需要搜索打印机了，Win7下方法如下：</p>
+
+<p>【开始 -> 设备和打印机】，点击上部的“添加打印机”按钮，Windows开始搜索局域网内的打印机，一般就可以找到了。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/26/184302/">Hg常用命令</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-26T18:43:02+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:43 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>hg add</p></li>
+<li><p>hg cat filename</p></li>
+<li><p>hg ci，简短的注释可以用hg ci -m &ldquo;short comment&#8221;直接提交，如果没有配置用户，会导致提交失败，配置用户方法见笔记“ hg的常用配置 ”；
+hg ci &ndash;amend: 修改上一次提交的备注信息</p></li>
+<li><p>hg diff file：显示某个版本所做的更改</p>
+
+<p>hg diff -c 19 filename；比较两个版本间的差异</p>
+
+<p>hg diff -r 19 -r 20 filename</p></li>
+<li><p>hg heads 列出所有头版本，用于合并分支(hg merge)前的查询</p></li>
+<li><p>hg help <command_name>: show help information of <command_name>;</p></li>
+<li><p>hg init：如果在非空目录中运行此命令，表示将已有的文件纳入到hg库中；</p></li>
+<li><p>hg log</p>
+
+<p>hg log -l n：只显示最近的n个changeset</p>
+
+<p>hg log -v: 包含文件变化列表和完整的提交注释</p>
+
+<p>hg log -k &ldquo;Your Name&#8221;：用户Your Name提交的changeset列表</p>
+
+<p>hg log -G: 用分支图的形式列出changeset，可与-l参数配合使用</p>
+
+<p>hg log filename: 列出与filename有关的各次提交的信息</p></li>
+<li><p>hg merge 合并分支</p></li>
+<li><p>hg pull <source_repo_url>：将<source_repo_url>中的change_set拉到本地repository中来，不影响working directory中的文件；</p>
+
+<p>hg pull -u &lt;=> hg pull &ndash;update &lt;=> &ldquo;hg pull; hg update&rdquo; &lt;=> svn update</p>
+
+<p>DVCS与SVN的区别在于DVCS存在两种类型的同步：repository之间以及本地repository与working directory之间，push/pull用于同步前者，update/commit用于同步后者；</p></li>
+<li><p>hg push</p></li>
+<li><p>hg rollback: 删除最近一次提交(commit)</p></li>
+<li><p>hg st: 无参数表示tip与working dir的区别</p>
+
+<p>hg st &ndash;rev 19：版本19的变化</p>
+
+<p>hg st &ndash;rev x:y：比较x和y版本的变化，x与y的顺序无所谓；</p></li>
+<li><p>hg update：用本地repository中的内容更新working_copy中的文件；</p>
+
+<p>hg update -C: 抛弃本地未提交的更改，用版本库中的文件更新working directory；</p></li>
 </ul>
 
-
-<h1>Trouble Shooting</h1>
-
-<ul>
-<li><p>&ldquo;Decode error - output not utf-8&rdquo; when build java files: this is caused by adding &ldquo;&#8221;shell&rdquo;: true&#8221; in JavaC.sublime-build. cmd.exe use GBK(cp936) for console output encoding, which is different with sublime&rsquo;s default output encoding utf-8. So adding &ldquo;&#8221;encoding&rdquo;: &ldquo;cp936&rdquo;&ldquo; in JavaC.sublime-build will resolve this problem. Reference: <a href="http://www.sublimetext.com/forum/viewtopic.php?f=3&amp;t=1535&amp;start=0">http://www.sublimetext.com/forum/viewtopic.php?f=3&amp;t=1535&amp;start=0</a></p></li>
-<li><p>Run Java without Ant: reference <a href="http://stackoverflow.com/questions/12030865/sublime-text-2-wont-run-java.">http://stackoverflow.com/questions/12030865/sublime-text-2-wont-run-java.</a> But when your java codes have package names, it&rsquo;s really difficult to compile and run them because package names are hardly get by sublime. So always use Ant to build java codes in sublime.</p></li>
-</ul>
-
 </div>
   
   
@@ -859,7 +494,7 @@ $ hg log
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/04/06/004608/">基于goagent的翻墙方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/04/26/181500/">Hg的常用配置</a></h1>
     
     
       <p class="meta">
@@ -868,140 +503,40 @@ $ hg log
 
 
 
-<time class='entry-date' datetime='2013-04-06T00:46:08+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:46 am</span></time>
+<time class='entry-date' datetime='2013-04-26T18:15:00+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:15 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>本机上使用</h1>
+  <div class="entry-content"><p>hg的配置文件分为全局配置和每个Repo自己的配置，
+Linux下全局配置文件是~/.hgrc，Win7系统下是C:\Users\chad\mercurial.ini，
+各repo的配置文件是$REPO_PATH/.hg/hgrc。</p>
 
-<p><a href="http://www.hiadmin.org/shares/goagent-switchyplus">为Chrome 安装GoAgent并配上SwitchyPlus畅游互联网</a></p>
+<h1>常用配置</h1>
 
-<p>Goagent的使用方式如下：</p>
+<h2>设置Repo的用户名</h2>
 
-<p>1、 申请一个Google App engine并创建一个appid（在申请的时候需要发送验证码到手机上面、所以手机号码一定得是真实的）</p>
+<pre><code>[ui] 
+username = Your Name
+</code></pre>
 
-<p>2、 申请到appid后下载GoAgent最新的程序</p>
+<h2>push/pull目标仓库</h2>
 
-<p>3、 将程序解压到硬盘上面、然后双击Serveruploader.bat文件、在弹出的界面中按照提示输入appid和你的Gmail 账号和密码。然后上传到服务端（如果出错多试几次）</p>
+<pre><code>[paths] 
+default = http://ip_or_hostname:8000/ 
+repo1 = = https://user@bitbucket.org/user/nep
+</code></pre>
 
-<p>4、 接着我们修改$GOAGENT_ROOT/local/proxy.ini文件、在[gae]配置项下面将appid=修改为你的appid，将[listen]下面的visible的值改为0，这样启动后最小化到托盘区；</p>
+<p>之后可以用hg push推送到default库，用hg push repo1推送到repo1库；</p>
 
-<p>5、 配置完成后我们可以直接运行Goagent.exe程序启动代理。是一个黑框框运行着的不要关掉</p>
+<h2>push目标禁用ssl验证</h2>
 
-<p>6、 打开谷歌浏览器、配置代理服务器IP:127.0.0.1 端口：8087</p>
-
-<h1>作为局域网代理服务器</h1>
-
-<p>将goagent部署在一台服务器上，其他机器上网时借助于这台服务器上的goagent，方法是：</p>
-
-<ol>
-<li><p>修改上面proxy.ini文件[listen]下的ip的值为0.0.0.0，port保持8087不变；</p></li>
-<li><p>其他机器要借助于此服务器上网，将proxy的ip设为服务器的IP地址，端口号设为8087即可；</p></li>
-<li><p>Ubuntu系统下可以定义系统级的代理服务器，这样使用apt-get这样的命令行下载也不受限制了，在 [System settings -> network -> network proxy]中设置；</p></li>
-</ol>
-
-
-<h1>修复403错误</h1>
-
-<p>如果用goagent连接时浏览器报403错误，将$GOAGENT_HOME/local/proxy.ini中[gae]下面的profile值从google_cn改为google_hk即可；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/06/000709/">自动将Evernote笔记发布到博客上</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-04-06T00:07:09+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:07 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Evernote笔记要自动分享到博客还真不那么容易，借鉴<a href="https://arjw.wordpress.com/2011/08/25/of-the-note/#">Using Evernote to Post to WordPress</a>，申请了一个Wordpress帐号，点击dashboard左边的“控制板” -> My Blogs -> Post by Email下面的&#8221;Enable&#8221;按钮，会出现一个email地址，向这个地址发送邮件就可以发布博客了，可以先将写好的笔记保存在一个文件里，然后通过python的email模块向这个地址发邮件的方法实现自动发布博客，然后用evernote的local api将这个文件变成一个新笔记保存在数据库中。</p>
-
-<p>对于现有的笔记，只能在菜单“笔记->分享->通过电子邮件发送”，填上Email地址的方法，刚才试验成功，但如果修改这个笔记重新发送一次，wordpress上不会覆盖原来的笔记，而是发一条新博文，还有一个问题是wordpress官网的<a href="http://wordpress.com">免费博客</a>虽然很好，但被GFW屏蔽了。</p>
-
-<p><a href="http://aaditya.info/blog/2012/08/clipboard-to-email-python-code/">Clipboard to Email – Python Code</a>演示了如果将剪贴板里的内容通过email发送出去，也是一种解决问题的方法。</p>
-
-<p>python 2.7.3 doc: <a href="http://docs.python.org/2/library/email-examples.html">18.1.11. email: Examples</a>有发送html文档的完整例子；</p>
-
-<p>126和163也支持邮件发博客，用自己的邮箱发送到blogmail@188.com，可以用python的smtplib，通过smtp.163.com发送；</p>
-
-<p>下面这个发送text邮件的实例在163博客上成功发布（sendmail方法如果返回一个空字典，说明发送成功）：</p>
-
-<p> import smtplib
- # Import the email modules we&rsquo;ll need
- from email.mime.text import MIMEText
- # Create a text/plain message
- msg = MIMEText(&lsquo;this is a test blog from email&rsquo;)
- me = &lsquo;<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#58;&#x6c;&#101;&#x65;&#95;&#x63;&#104;&#97;&#x75;&#x40;&#x31;&#x36;&#51;&#46;&#99;&#111;&#x6d;">&#108;&#101;&#101;&#95;&#x63;&#x68;&#97;&#117;&#64;&#x31;&#54;&#x33;&#46;&#x63;&#x6f;&#109;</a>&rsquo;
- you = &lsquo;<a href="&#109;&#x61;&#105;&#x6c;&#x74;&#111;&#x3a;&#98;&#x6c;&#111;&#103;&#109;&#x61;&#105;&#x6c;&#x40;&#49;&#x38;&#x38;&#x2e;&#99;&#x6f;&#109;">&#x62;&#108;&#111;&#103;&#x6d;&#x61;&#105;&#x6c;&#x40;&#x31;&#x38;&#x38;&#46;&#x63;&#111;&#109;</a>&rsquo;
- msg[&lsquo;Subject&rsquo;] = &lsquo;A Test Blog from Email&rsquo;
- msg[&lsquo;From&rsquo;] = me
- msg[&lsquo;To&rsquo;] = you
- # Send the message via our own SMTP server, but don&rsquo;t include the
- # envelope header.
- s = smtplib.SMTP(&lsquo;smtp.163.com&rsquo;)
- s.login(&lsquo;lee_chau&rsquo;, &lsquo;abaqus67&rsquo;)
- s.sendmail(me, [you], msg.as_string())
- s.quit()</p>
-
-<hr />
-
-<p>2013-04-13更新：</p>
-
-<p>参考<a href="http://fun.blog.ustc.edu.cn/?p=148">从Evernote自动发博客到WordPress</a>，可以用<a href="https://eatags.com/">eatags.com</a>将笔记发布到wordpress.com上，设置好共享之后，要发布的笔记只要加上标签“ eat.wordpress.post ”（参考<a href="https://eatags.com/features%EF%BC%89%E5%B0%B1%E4%BC%9A%E8%A2%AB%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E5%88%B0wordpress.com%E4%B8%8A%EF%BC%8C%E4%BB%8A%E5%A4%A9%E6%B5%8B%E8%AF%95%E7%9A%84%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BB%A5%E6%98%BE%E7%A4%BA%E5%9B%BE%E7%89%87%EF%BC%8C%E6%98%AF%E7%9B%AE%E5%89%8D%E6%89%80%E7%9F%A5%E6%9C%80%E5%A5%BD%E7%9A%84%E5%90%8C%E6%AD%A5%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%88%96%E8%80%85%E7%94%A8">https://eatags.com/features%EF%BC%89%E5%B0%B1%E4%BC%9A%E8%A2%AB%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E5%88%B0wordpress.com%E4%B8%8A%EF%BC%8C%E4%BB%8A%E5%A4%A9%E6%B5%8B%E8%AF%95%E7%9A%84%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BB%A5%E6%98%BE%E7%A4%BA%E5%9B%BE%E7%89%87%EF%BC%8C%E6%98%AF%E7%9B%AE%E5%89%8D%E6%89%80%E7%9F%A5%E6%9C%80%E5%A5%BD%E7%9A%84%E5%90%8C%E6%AD%A5%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%88%96%E8%80%85%E7%94%A8</a><a href="http://www.evreblog.us">everblog.us</a>也能将evernote笔记发布到everblog.us网站上，但不能显示图片，everblog选中一个笔记本后会将该笔记本下所有的笔记都发布到everblog网站上，适合批量发布；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/01/150952/">NoClassDefFoundError与ClassNotFoundException的区别</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-04-01T15:09:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>3:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>NoClassDefFoundError是一个Error，严重级别高，它导致JVM加载失败，通常是由于class loader在classpath中找不到被引用的class文件引起；</p>
-
-<p>ClassNotFoundException是一个异常，严重级别低（相比于Error），通常在利用反射机制加载类时找不到指定的类引起，由于是异常，是可以被catch语句扑捉然后在代码中进行处理的。</p>
-
-<p>参考：<a href="http://stackoverflow.com/questions/1457863/what-is-the-difference-between-noclassdeffounderror-and-classnotfoundexception">http://stackoverflow.com/questions/1457863/what-is-the-difference-between-noclassdeffounderror-and-classnotfoundexception</a></p>
+<pre><code>[web] 
+push_ssl = false 
+allow_push = *
+</code></pre>
 </div>
   
   
@@ -1026,23 +561,23 @@ $ hg log
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/17/151844/">Linux Mint System Backup and Restore</a>
+        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
+        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
+        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
       </li>
     
   </ul>

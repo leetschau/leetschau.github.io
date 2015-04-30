@@ -9,8 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Some Theory http://stackoverflow.com/questions/368472/linux-benchmarking-tools
-Linux Benchmarking HOWTO. Tools Disk IO Benchmark Writing Speed $ dd &hellip;">
+  <meta name="description" content="sysbench Install: yum install sysbench or apt-get install sysbench; Usage $ man sysbench
+$ sysbench --help
+$ sysbench --test=cpu --cpu-max-prime= &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +73,7 @@ Linux Benchmarking HOWTO. Tools Disk IO Benchmark Writing Speed $ dd &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/08/170400/">Linux Benchmarking</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/04/16/185522/">System Benchmark Utility on Linux</a></h1>
     
     
       <p class="meta">
@@ -81,80 +82,56 @@ Linux Benchmarking HOWTO. Tools Disk IO Benchmark Writing Speed $ dd &hellip;">
 
 
 
-<time class='entry-date' datetime='2014-04-08T17:04:00+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:04 pm</span></time>
+<time class='entry-date' datetime='2014-04-16T18:55:22+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:55 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Some Theory</h1>
+  <div class="entry-content"><h1>sysbench</h1>
 
-<ul>
-<li><p><a href="http://stackoverflow.com/questions/368472/linux-benchmarking-tools">http://stackoverflow.com/questions/368472/linux-benchmarking-tools</a></p></li>
-<li><p><a href="http://tldp.org/HOWTO/Benchmarking-HOWTO.html">Linux Benchmarking HOWTO</a>.</p></li>
-</ul>
+<p>Install: <code>yum install sysbench</code> or <code>apt-get install sysbench</code>;</p>
 
+<h2>Usage</h2>
 
-<h1>Tools</h1>
-
-<h2>Disk IO Benchmark</h2>
-
-<h3>Writing Speed</h3>
-
-<pre><code>$ dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync
+<pre><code>$ man sysbench
+$ sysbench --help
+$ sysbench --test=cpu --cpu-max-prime=20000 run
+$ sysbench --test=memory help
+$ sysbench --test=memory run
+$ sysbench --test=fileio --file-total-size=150G prepare
 </code></pre>
 
-<p>from <a href="http://systembash.com/content/simple-disk-benchmarking-in-linux-using-dd/">Simple Disk Benchmarking in Linux Using &lsquo;dd&rsquo;</a></p>
+<h1>Phoronix Test Suite</h1>
 
-<h3>Reading Speed</h3>
+<h2>Installation</h2>
 
-<pre><code>$ hdparm -tT $(df $HOME|awk 'FNR == 2 {print $1}')
+<ol>
+<li><p>Download phoronix-test-suite-5.0.0.tar.gz from its <a href="http://www.phoronix-test-suite.com/">homepage</a></p></li>
+<li><p>Unzip it and run &ldquo;install-sh&rdquo; in it;</p></li>
+<li><p>It will prompt you install php-cli and php-xml (on CentOS 6.4) if you haven&rsquo;t install them.</p></li>
+</ol>
+
+
+<h2>Usage</h2>
+
+<pre><code>$ phoronix-test-suite --help
+$ phoronix-test-suite list-tests
+$ phoronix-test-suite list-tests | grep '[Mm]emory'
+$ phoronix-test-suite install pts/ramspeed
+$ phoronix-test-suite run pts/ramspeed
 </code></pre>
 
-<p>where &ldquo;df $HOME|awk &lsquo;FNR == 2 {print $1}&rsquo;&rdquo; get the disk name of the $HOME folder. For example, on my laptop it is /dev/sda1, on 49 server it is /dev/mapper/vg_bocoty49-lv_root. In awk command, &ldquo;FNR == 2&rdquo; means the second line.
-This is the &ldquo;origin&rdquo; version:</p>
+<p>Ref:</p>
 
-<pre><code>$ hdparm -tT /dev/sda
-</code></pre>
+<p><a href="http://www.howtoforge.com/how-to-benchmark-your-system-cpu-file-io-mysql-with-sysbench">How To Benchmark Your System (CPU, File IO, MySQL) With sysbench</a></p>
 
-<p>from <a href="http://www.lostsaloon.com/technology/how-to-test-the-read-and-write-speeds-of-a-hard-disk-in-linux/">How to Test the Read and Write Speeds of a Hard Disk in Linux</a>.</p>
+<p><a href="http://code.google.com/p/byte-unixbench/">UnixBench</a></p>
 
-<p>Another reference: <a href="https://wiki.archlinux.org/index.php/Hdparm">https://wiki.archlinux.org/index.php/Hdparm</a></p>
+<p><a href="http://stackoverflow.com/questions/368472/linux-benchmarking-tools">Linux benchmarking tools</a></p>
 
-<h2>Network Throughput Benchmark</h2>
-
-<p>Run the following command on the &ldquo;server&rdquo; host, not the &ldquo;client&rdquo; host which is testd.</p>
-
-<pre><code>$ cat testspeed.sh
-
-filesize=$3
-dd bs=1M count=$filesize if=/dev/zero of=test
-timeres=$(/usr/bin/time -p scp test $1@$2:/home/$1/ 2&gt;&amp;1 &gt;/dev/null)
-echo timeres: $timeres
-duration=$(echo $timeres|awk 'FNR == 1 {print $2}')
-echo duration: $duration
-speed=$(echo "scale=2; $filesize / $duration" | bc -l)
-echo $speed MB/s
-</code></pre>
-
-<p>The output format of &ldquo;time&rdquo; and &ldquo;bc&rdquo; command varies depending on distro of OS, so I only implements above on my OS: Linux Mint 14.
-The &ldquo;-p&rdquo; options give a better output format of this command.
-The output of &ldquo;scp&rdquo; is in stdout, while that of &ldquo;time&rdquo; in stderr, so I hide stdout and redirect stderr to stdout, so the output can be processed by the following &ldquo;awk&rdquo;.
-&ldquo;bc -l&rdquo; do a float division instead of a integer division.
-&ldquo;scale=2&rdquo; set the division scale (precision) to 2 digits after the period.</p>
-
-<p>Run this scprit with a 64MB test file:</p>
-
-<pre><code>$ ./speed.sh chad 10.0.2.49 64
-</code></pre>
-
-<p>Now with a 128MB test file:</p>
-
-<pre><code>$ ./testspeed.sh 128
-</code></pre>
-
-<p>Note: iperf is network throughput tool, but it has to be installed. So it&rsquo;s a little complicated.</p>
+<p><a href="http://www.interworx.com/community/benchmarking-tools-for-linux-servers/">Benchmarking Tools For Linux Servers</a></p>
 </div>
   
   
@@ -167,7 +144,7 @@ The output of &ldquo;scp&rdquo; is in stdout, while that of &ldquo;time&rdquo; i
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/04/120436/">Ruby on Rails Note</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/04/16/182303/">Find Out Linux Version You Are Running</a></h1>
     
     
       <p class="meta">
@@ -176,49 +153,324 @@ The output of &ldquo;scp&rdquo; is in stdout, while that of &ldquo;time&rdquo; i
 
 
 
-<time class='entry-date' datetime='2014-04-04T12:04:36+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:04 pm</span></time>
+<time class='entry-date' datetime='2014-04-16T18:23:03+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:23 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Installation</h1>
+  <div class="entry-content"><p>Find the &ldquo;release&rdquo; file and print its content:</p>
 
-<h2>Install Javascript runtime</h2>
-
-<p>Install <a href="https://github.com/creationix/nvm">nvm</a>, then add a node.js version:</p>
-
-<pre><code>$ nvm install 0.10.26
-$ nvm use 0.10.26
+<pre><code>$ ls -ld /etc/*release
+$ cat ... # the *-release file
 </code></pre>
 
-<h2>Install Ruby environment</h2>
+<p>This is valid for most Linux distros, such as CentOS, Debian, Gentoo, Fedora, Ubuntu, Mint &hellip;</p>
 
-<p>Install <a href="https://rvm.io/">rvm</a>, then add a ruby version:</p>
+<p>Or get the information from the login screen:</p>
 
-<pre><code>$ rvm install 2.1.0
-$ rvm use 2.1.0
+<pre><code>$ cat /etc/issue
 </code></pre>
 
-<h2>Install Ruby on rails</h2>
+<p>For Debian family distros, like Ubuntu, Mint:</p>
 
-<pre><code>$ gem install rails
-$ rails new first_app
+<pre><code>$ ls -ld /etc/*version
+$ cat ...
 </code></pre>
 
-<h1>Start RoR server</h1>
+<p>The final solution is lsb command, but not all distros support it.</p>
 
-<pre><code>$ cd first_app; rails server
+<pre><code>$ lsb_release -a
 </code></pre>
 
-<p>Note:</p>
+<p>Ref: <a href="http://superuser.com/questions/11008/how-do-i-find-out-what-version-of-linux-im-running">How do I find out what version of Linux I&rsquo;m running?</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/15/160953/">Curl Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-15T16:09:53+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ref:</p>
+
+<p><a href="http://httpkit.com/resources/HTTP-from-the-Command-Line/">9 uses for cURL worth knowing</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/14/151742/">Note About Load Balancing</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-14T15:17:42+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:17 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>There are 2 kinds of load balancing: transport-level and application-level load balancing.</p>
+
+<p>The former load balancer deals with every <strong>tcp</strong> connection. The load balancing decision is made on the TCP level (Layer 4 of the OSI Reference Model). One of the routing mode Network Address Translation (NAT) routing.</p>
+
+<p>The latter load balancer deals with every HTTP request. The load balancing decision is made on the content of the HTTP request.</p>
+
+<p>Ref:
+<a href="http://www.javaworld.com/article/2077921/architecture-scalability/server-load-balancing-architectures--part-1--transport-level-load-balancing.html">Server load balancing architectures, Part 1: Transport-level load balancing</a>
+<a href="http://www.javaworld.com/article/2077922/architecture-scalability/server-load-balancing-architectures-part-2-application-level-load-balanci.html">Server load balancing architectures, Part 2: Application-level load balancing</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/13/004522/">Baidu PCS Account</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-13T00:45:22+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:45 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>PCS是“百度个人云存储“，可以提供类似Dropbox文件同步功能，今天晚上用Dropbox Uploader试验文件的列表，速度太慢，遂尝试用百度作为云端文件中转服务。
+PCS主页是<a href="http://developer.baidu.com/wiki/index.php?title=docs/pcs%E3%80%82">http://developer.baidu.com/wiki/index.php?title=docs/pcs%E3%80%82</a></p>
+
+<h1>权限申请</h1>
+
+<p><a href="http://developer.baidu.com/">http://developer.baidu.com/</a></p>
+
+<p>Login: ltsc</p>
+
+<p>管理控制台 -> 开发者服务管理 -> DSNote</p>
+
+<p>这里可以看到创建工程的ID, API Key 和 Secret Key，但使用PCS API需要Access Token，这个需要申请后才能获得，申请方法是：</p>
+
+<p>项目页面左下角：其他API -> PCS API</p>
+
+<p>也可以在这里创建新工程，类型选择“移动客户端“。</p>
+
+<h1>文档操作API文档</h1>
+
+<p><a href="http://developer.baidu.com/">http://developer.baidu.com/</a></p>
+
+<p>帮助文档首页 -> PCS -> REST API -> 文件API列表</p>
+
+<p><a href="http://developer.baidu.com/wiki/index.php?title=docs/pcs/rest/file_data_apis_list">http://developer.baidu.com/wiki/index.php?title=docs/pcs/rest/file_data_apis_list</a></p>
+
+<p>Ref:</p>
+
+<p><a href="http://www.haiyun.me/archives/859.html">Linux VPS使用百度网盘API上传备份文件</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/11/155519/">Vim on openSUSE</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-11T15:55:19+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:55 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>You need install &ldquo;vim-data&rdquo; for syntax coloring in vim. Run command <code>zypper in vim-data</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/10/201906/">Install Fabric 1.8.3 on a Internet-blocked CentOS 6.4</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-10T20:19:06+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:19 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This host can&rsquo;t access internet directly, but I built a tinyproxy server on 10.21.3.31:8888. So on this host I setup a HTTPS proxy:</p>
+
+<pre><code># export https_proxy=http://10.21.3.31:8888
+# export http_proxy=http://10.21.3.31:8888
+</code></pre>
+
+<p>Then pip can use this proxy to install fabric.</p>
+
+<p>The following installation process is based on <a href="http://toomuchdata.com/2014/02/16/how-to-install-python-on-centos/">How to install Python 2.7 and Python 3.3 on CentOS 6</a></p>
 
 <ol>
-<li><p>You will need to <code>apt-get -f install; apt-get install apt-get install libsqlite3-dev</code> on Linux Mint to create RoR project.</p></li>
-<li><p>If you didn&rsquo;t install javascript runtime, or didn&rsquo;t add it to current session with <code>nvm use ...</code>, you will get the following error when starting rails server:</p>
+<li><h1>yum groupinstall development</h1></li>
+<li><h1>yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel</h1></li>
+<li><p>Download Python 2.7.6 source code tarball from <a href="http://python.org/ftp/python/2.7.6/Python-2.7.6.tar.xz">http://python.org/ftp/python/2.7.6/Python-2.7.6.tar.xz</a></p></li>
+<li><h1>tar xf Python-2.7.6.tar.xz</h1></li>
+<li><h1>cd Python-2.7.6</h1></li>
+<li><h1>./configure &ndash;prefix=/usr/local &ndash;enable-unicode=ucs4 &ndash;enable-shared LDFLAGS=&ldquo;-Wl,-rpath /usr/local/lib&rdquo;</h1></li>
+<li><h1>make &amp;&amp; make altinstall</h1></li>
+<li><p>Verify: <code>which python2.7</code></p></li>
+<li><p>Download setuptools-3.4.3.zip from <a href="https://pypi.python.org/pypi/setuptools">https://pypi.python.org/pypi/setuptools</a></p></li>
+<li><h1>unzip setuptools-3.4.3.zip</h1></li>
+<li><h1>cd setuptools-3.4.3</h1></li>
+<li><h1>python2.7 setup.py install</h1></li>
+<li><p>Download pip-1.5.4.tar.gz from <a href="https://pypi.python.org/pypi/pip">https://pypi.python.org/pypi/pip</a></p></li>
+<li><h1>tar zxvf pip-1.5.4.tar.gz</h1></li>
+<li><h1>cd pip-1.5.4</h1></li>
+<li><h1>python2.7 setup.py install</h1></li>
+<li><p>Verify: <code>which pip2.7</code>;</p></li>
+<li><h1>pip2.7 install fabric</h1></li>
+</ol>
 
-<p> rails server autodetect could not find a javascript runtime&hellip;</p></li>
+
+<p>If it doesn&rsquo;t work, download <a href="https://pypi.python.org/pypi/Fabric/1.8.3">Fabric-1.8.3.tar.gz</a>, paramiko-1.12.3.tar.gz and pycrypto-2.6.1.tar.gz on PYPI, the install them locally:</p>
+
+<pre><code># pip2.7 install pycrypto-2.6.1.tar.gz
+# pip2.7 install paramiko-1.12.3.tar.gz
+# pip2.7 install Fabric-1.8.3.tar.gz
+</code></pre>
+
+<ol>
+<li>Verify: <code>fab --version</code>;</li>
+</ol>
+
+
+<p>Bingo!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/10/173432/">Disable Certain Package Updates Using YUM in CentOS</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-10T17:34:32+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:34 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Get the Exclusion List</h1>
+
+<pre><code># yum update
+</code></pre>
+
+<p>yum list all updates, choose which you don&rsquo;t want update.</p>
+
+<h1>Update without some packages</h1>
+
+<h2>In command line</h2>
+
+<pre><code># yum --exclude=firefox\* --exclude=thunderbird\* update
+</code></pre>
+
+<p>or:</p>
+
+<pre><code># yum -x 'firefox*' -x 'thunderbird*' update
+</code></pre>
+
+<h2>Disable them permanently</h2>
+
+<p>Add the following line into /etc/yum.conf:</p>
+
+<pre><code>exclude=firefox* thunderbird*
+</code></pre>
+
+<p>Ref:</p>
+
+<ol>
+<li><p><a href="http://www.tecmint.com/disable-certain-package-updates-using-yum-in-rhel-centos-fedora/">Disable Certain Package Updates using YUM in RHEL / CentOS / Fedora</a></p></li>
+<li><p><a href="http://www.cyberciti.biz/faq/yum-update-except-kernel-package-command/">RHEL/CentOS: yum Update All Packages Except the Linux Kernel</a></p></li>
+<li><p><a href="http://www.cyberciti.biz/faq/redhat-centos-linux-yum-update-exclude-packages/">Force yum update Command To Exclude Certain Packages</a></p></li>
 </ol>
 
 </div>
@@ -233,7 +485,7 @@ $ rails new first_app
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/04/102033/">Java Memory Schedule</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/04/10/095838/">Awk Notes</a></h1>
     
     
       <p class="meta">
@@ -242,62 +494,22 @@ $ rails new first_app
 
 
 
-<time class='entry-date' datetime='2014-04-04T10:20:33+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:20 am</span></time>
+<time class='entry-date' datetime='2014-04-10T09:58:38+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:58 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Test program (TestFreeMemory.java):</p>
+  <div class="entry-content"><ul>
+<li><p>Print the last line: awk &lsquo;END{print $0}&rsquo;</p></li>
+<li><p>Print the second last field: awk &lsquo;{print $(NF-1)}&rsquo;</p></li>
+<li><p>Print the second last field of last line: awk &lsquo;END{print $(NF-1)}&rsquo;</p></li>
+<li><p>Set a complex delimiter: awk -F &lsquo;, &rsquo; &lsquo;END{print $(NF-1)}&rsquo;</p></li>
+</ul>
 
-<pre><code>public class TestFreeMemory {
-    public static void main(String[] args){
-        long maxMem = Runtime.getRuntime().maxMemory()/(1024*1024);
-        System.out.println("Max Mem: " + maxMem);
-        long freeMem = Runtime.getRuntime().freeMemory()/(1024*1024);
-        System.out.println("Free Mem: " + freeMem);
-        long totalMem = Runtime.getRuntime().totalMemory()/(1024*1024);
-        System.out.println("Total Mem: " + totalMem);
-    }
-}
-</code></pre>
 
-<p>$ javac TestFreeMemory.java
-$ java -Xms32m -Xmx500m TestFreeMemory
-Max Mem: 444
-Free Mem: 30
-Total Mem: 30</p>
-
-<p>$ java -Xms64m -Xmx500m TestFreeMemory
-Max Mem: 444
-Free Mem: 61
-Total Mem: 61</p>
-
-<p>$ java -Xms64m -Xmx1024m TestFreeMemory
-Max Mem: 910
-Free Mem: 61
-Total Mem: 61</p>
-
-<p>$ java -Xms32m -Xmx2048m TestFreeMemory
-Max Mem: 1820
-Free Mem: 30
-Total Mem: 30</p>
-
-<p>You can see (444/500)=(910/1024)=(1820/2048), so Runtime.getRuntime().maxMemory() is determined by &ldquo;-Xmx&rdquo;, which presents the upper limit of java process. The Runtime.getRuntime().totalMemory() is the initial memory capacity, which is determined by &ldquo;-Xms&rdquo; , it will grow when needed by program, until to &ldquo;-Xmx&rdquo;.</p>
-
-<p>$ java -Xms32m -Xmx20480m TestFreeMemory
-Max Mem: 18204
-Free Mem: 30
-Total Mem: 30</p>
-
-<p>$ free -m
-             total       used       free     shared    buffers     cached
-Mem:         15937      15759        178          0        248       3068
--/+ buffers/cache:      12443       3494
-Swap:         8039        641       7398</p>
-
-<p>The upper limit of physical memory is 15GB, while I declared 20GB max memory for java process. This shows that the &ldquo;-Xmx&rdquo; is a <strong>nominal</strong> value, which means java won&rsquo;t check its realizability when startup.</p>
+<p>Note: You can&rsquo;t use double quotes instead of single quotes, or an error raises.</p>
 </div>
   
   
@@ -310,7 +522,7 @@ Swap:         8039        641       7398</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/03/175002/">Groovy Develop Environment Based on GVM</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/04/09/153003/">Use Apt Fast to Speedup Apt-get</a></h1>
     
     
       <p class="meta">
@@ -319,7 +531,7 @@ Swap:         8039        641       7398</p>
 
 
 
-<time class='entry-date' datetime='2014-04-03T17:50:02+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:50 pm</span></time>
+<time class='entry-date' datetime='2014-04-09T15:30:03+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:30 pm</span></time>
         
       </p>
     
@@ -328,480 +540,20 @@ Swap:         8039        641       7398</p>
 
   <div class="entry-content"><h1>Install</h1>
 
-<pre><code>yum install -y java-1.7.0-openjdk-devel
-curl -s get.gvmtool.net|bash
-source "/root/.gvm/bin/gvm-init.sh"
-gvm i groovy 2.2.1
+<pre><code># apt-get install axel aria2
+# apt-get install python-software-properties
+# add-apt-repository ppa:apt-fast/stable
+# apt-get update
+# apt-get install apt-fast
+# apt-fast update
 </code></pre>
 
 <h1>Usage</h1>
 
-<pre><code>groovysh
-groovy hw.groovy
+<pre><code># apt-fast python-dev
 </code></pre>
 
-<p>All files and installed components are in folder ~/.gvm. So simply remove this folder for uninstallation of gvm.</p>
-
-<p>gvm is portable, so if you install gvm as root, just copy .gvm folder to $HOME, chown, then <code>gvm c</code> to show the current groovy version. If it&rsquo;s not what you want, <code>gvm use groovy 2.2.1</code> to update it.</p>
-
-<p>Install gvm to another host, first copy .gvm folder, then add &ldquo;source ~/.gvm/bin/gvm-init.sh&rdquo; into .bashrc(or .zshrc), then check and setup in new host as above.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/02/143204/">Linux System Log</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-02T14:32:04+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>2:32 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>ArchLinux</h1>
-
-<pre><code># journalctl -f
-</code></pre>
-
-<h1>CentOS</h1>
-
-<p><code>sudo tail -f /var/log/messages</code> or <code>sudo tail -f /var/log/syslog</code>;</p>
-
-<h2>System logs</h2>
-
-<p>The login/logout of every user (including root) is recorded in /var/log/secure. All system logs are under the folder /var/log:</p>
-
-<ul>
-<li><p>cron &ndash; Logs for all cronjobs that are run on the server</p></li>
-<li><p>dmesg &ndash; Logs from dmesg program which is used to examine or control the kernel ring buffer.</p></li>
-<li><p>lastlog &ndash; The binary log that contains all of the last login information. (Type &ldquo;last&rdquo; to view)</p></li>
-<li><p>messages &ndash; System logs from syslogd</p></li>
-<li><p>mysqld.log &ndash; Logs from the mysqld process</p></li>
-<li><p>secure &ndash; Access logs from the sshd process</p></li>
-<li><p>yum.log &ndash; Logs from system updates via yum</p></li>
-</ul>
-
-
-<p>Who loged in as root? <code>cd /var/log; grep 'session opened for user root by' *</code></p>
-
-<p>Get the user gaia last 5 login records:</p>
-
-<pre><code>$ last -5 gaia
-gaia     pts/5        10.21.2.82       Wed Apr  2 10:30 - 15:04  (04:33)
-...
-</code></pre>
-
-<p>So you can get the login source IP, login duration, etc.</p>
-
-<h3>Configure logs</h3>
-
-<p>File &ldquo;/etc/logrotate.conf&rdquo; define the log file rotation frequency, count, etc.</p>
-
-<p>If you want to add a system log, add a definition file in /etc/logrotate.d/.</p>
-
-<h2>Command history</h2>
-
-<p>Add &ldquo;export HISTTIMEFORMAT=&lsquo; %F %T &rsquo;&rdquo; into /etc/profile, then when use command <code>history</code>, you will see the command with a timestamp.
-This only works for bash, it&rsquo;s invalid for zsh.</p>
-
-<h2>A use case</h2>
-
-<p>A couple of days ago, some users find they can&rsquo;t write in their $HOME folder. I found it&rsquo;s because the owner of their home folder is changed to another user. Obviously this is done by root, but who and when do this actually? The following is how I worked it out.</p>
-
-<ol>
-<li><p>Find out when this happened?</p>
-
-<p> $ su -
- # history|grep chown
-   &hellip;
-   804   2014-03-12 11:24:33 chown -R gcp /home
-   &hellip;</p></li>
-<li><p>Who did this?</p>
-
-<p> # cd /var/log; grep &lsquo;session opened for user root by&rsquo; *
- &hellip;
- secure-20140316:Mar 12 09:44:12 bocoty49 su: pam_unix(su:session): session opened for user root by gcp(uid=501)
- &hellip;</p></li>
-<li><p>Who is the &lsquo;gcp&rsquo;?</p>
-
-<p> # last -10 gcp
- &hellip;
- gcp      pts/6        10.21.2.106      Wed Mar 12 08:33 - 13:35  (05:01)
- &hellip;</p></li>
-</ol>
-
-
-<p>This whole story: the man with IP &ldquo;10.21.2.106&rdquo; ssh to the server at 08:33, switch to root with &ldquo;su&rdquo; at 09:44:12, run &ldquo;chown -R gcp /home&rdquo; at 11:24:33.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/31/115253/">Distribute SSH Pubkey to Multiple Hosts With Fabric</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-31T11:52:53+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:52 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Generate ssh keys on source host with <code>ssh-keygen</code>;</p></li>
-<li><p>Disable known_hosts prompt(optional): add &ldquo;StrictHostKeyChecking no&rdquo; into ~/.ssh/config;</p></li>
-<li><p>Run fabric script to distribute pubkey, you have to input password manually: <code>fab distkey</code>;</p></li>
-</ol>
-
-
-<p>$ cat fabfile.py
-from fabric.api import local, task
-env.hosts = [&lsquo;10.0.2.48&rsquo;, &lsquo;10.0.2.49&rsquo;, &lsquo;10.0.7.141&rsquo;, &lsquo;10.0.7.142&rsquo;, &lsquo;10.0.7.143&rsquo;]
-@task
-def distkey():
-    env.user = &lsquo;gcp&rsquo;
-    local(&lsquo;ssh-copy-id %(user)s@%(host)s&rsquo; % env)</p>
-
-<p>You have to input password for every host. So try to use uniform password for all hosts. It will save you lots of times.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/28/182817/">Task Management in Fabric</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-28T18:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. So there are 2 strategies:</p>
-
-<ul>
-<li><p>Define global hosts, when detections over, modify the hosts to none, so report and send email will only run once;</p></li>
-<li><p>Use &ldquo;report&rdquo; as entrance, invoke detection within &ldquo;report&rdquo; task.</p></li>
-</ul>
-
-
-<h1>Global hosts style</h1>
-
-<p>fabfile.py:</p>
-
-<pre><code>from fabric.api import run, env, hosts
-import re
-
-env.hosts = ['Chad@10.0.2.47', 'chad@10.0.2.49']
-env.password = 'abaqus67'
-env['report'] = {}
-
-def checkJDK():
-    res = run('java -version')
-    cre = 'java version .*1.6.0.*Java\(TM\)'
-    return len(re.findall(cre, res, re.S)) &gt; 0
-
-def checkMem(str):
-    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
-
-def checkOS():
-    res = run('uname -a')
-    return res.split()[0]
-
-def detect():
-    host_report = {}
-    host_report['os'] = checkOS()
-    host_report['jdk'] = checkJDK()
-    env['report'][env.host] = host_report
-    env.hosts = []    # make following tasks run once
-
-def report():
-    print('Test Report:')
-    print(env.report)
-
-def sendmail():
-    print('send mail...')
-</code></pre>
-
-<p>Run it:</p>
-
-<pre><code>$ fab --hide=everything detect report sendmail
-Test Report:
-{'10.0.2.49': {'os': 'Linux', 'jdk': True}, '10.0.2.47': {'os': 'Linux', 'jdk': False}}
-send mail...
-</code></pre>
-
-<h1>&ldquo;execute&rdquo; style</h1>
-
-<p>fab2.py:</p>
-
-<pre><code>from fabric.api import run, env, task, execute
-import re
-
-def checkJDK():
-    res = run('java -version')
-    cre = 'java version .*1.6.0.*Java\(TM\)'
-    return len(re.findall(cre, res, re.S)) &gt; 0
-
-def checkMem(str):
-    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
-
-def checkOS():
-    res = run('uname -a')
-    return res.split()[0]
-
-def detect():
-    env.password = env.loginfo[env.host_string]
-    host_report = {}
-    host_report['os'] = checkOS()
-    host_report['jdk'] = checkJDK()
-    return host_report
-
-@task
-def report():
-    env.hosts= ['gcp@10.0.2.48', 'gcp@10.0.2.49', 'gcp@10.0.7.141', 'gcp@10.0.7.142', 'gcp@10.0.7.143:22']
-    pwds = ['gcp', 'gcp', 'gcp@123', 'gcp@123', 'gcp@123']
-    env.loginfo = dict(zip(env.hosts, pwds))
-    res = execute(detect, hosts=host_list)
-    print('Test Report:')
-    print(res)
-
-@task
-def sendmail():
-    print('send mail...')
-</code></pre>
-
-<p>Run it:</p>
-
-<pre><code>$ fab -f fab2.py --hide=everything report sendmail
-Test Report:
-{'gcp@10.0.2.47': {'os': 'Linux', 'jdk': False}, 'gcp@10.0.2.49': {'os': 'Linux', 'jdk': True}, ... }
-send mail...
-</code></pre>
-
-<p>You can see there is no definition and modification of global hosts, no need to maintain global variable env[&lsquo;report&rsquo;] manually in &ldquo;report&rdquo; style, and the &ldquo;detect&rdquo; function is hide from &ldquo;fab&rdquo; command line with the help of &ldquo;@task&rdquo; decorator. If you run &ldquo;fab detect&rdquo;, it will complain &ldquo;Command(s) not found&rdquo;, which provides more accurate visibility control. So I think it&rsquo;s better than the &ldquo;global hosts&rdquo; style.</p>
-
-<p>Notes:</p>
-
-<ol>
-<li><p>Yuo can add attributes to &ldquo;env&rdquo; directly like &ldquo;env.loginfo = &hellip;&rdquo; above. And use this attribute with &ldquo;env.loginfo[&hellip;]&rdquo;;</p></li>
-<li><p>The format of host string is &ldquo;user@ip:port&rdquo;, or &ldquo;user@ip&rdquo; if port is 22;</p></li>
-<li><p>The function &ldquo;execute&rdquo; returns a dict, the key is the host_string, the value is the return value of the function executed (&ldquo;detect&rdquo; in this case). The return value of &ldquo;detect&rdquo; is a dict, so the &ldquo;execute&rdquo; function returns a nested dict.</p></li>
-<li><p>the return value of &ldquo;run&rdquo; is the stdout and stderr of the remote command.</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/28/085154/">System Memory Cost of Several Linux Distros</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-28T08:51:54+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:51 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The 3 numbers after the distro name is: used memory, free memory and used percent(= used/(used + free)).</p>
-
-<p>Scientific Linux Gnome 64bit:   286 1560 15.49
-CentOS 6.4 Gnome 64bit:         281 1565 15.22
-Mint 14 Xfce 64bit:             249 1596 13.50
-openSUSE13 Gnome 64bit :        454 1392 24.59
-openSUSE12 KDE 64bit:           404 1442 21.89</p>
-
-<p>You can see Mint Xfce has smallest memory cost, while openSUSE has biggest.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/27/120107/">A Python Environment Detector</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-27T12:01:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
-
-<p>The application module, detapp.py:</p>
-
-<pre><code>import logging
-from envdet import rcmd
-
-logger = logging.getLogger('DetectApp')
-logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('detect.log')
-fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-fh.setFormatter(formatter)
-logger.addHandler(ch)
-logger.addHandler(fh)
-
-
-def isOracleJDK(str):
-    return 'Java(TM)' in str
-
-res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
-logger.info('Check result:%s' % res)
-</code></pre>
-
-<p>The environment detection module, envdet.py:</p>
-
-<pre><code>from subprocess import Popen, PIPE, STDOUT
-import signal
-import logging
-
-logger = logging.getLogger('DetectApp.envdet')
-
-def handler(signum, frame):
-    logger.error('Signal handler called with signal: %d' % signum)
-    raise IOError("Command execution timeout!")
-
-def rcmd(user, host, cmd, check_handler, timeout=10):
-    signal.signal(signal.SIGALRM, handler)
-    signal.alarm(timeout)
-
-    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
-
-    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
-
-    fullres = line = ''
-    while p.poll() is None:
-        out = p.stdout.read(1)
-        fullres = fullres + out
-        if out=='\n':
-            logger.debug(line)
-            line = ''
-        else:
-            line = line + out
-    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
-    return check_handler(fullres)
-</code></pre>
-
-<p>The technical points here are:</p>
-
-<ul>
-<li><p>Run shell command in Python and retrieve output and return code;</p></li>
-<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
-<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/27/115808/">Run Script on Remote Host via SSH</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-27T11:58:08+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>user=&lsquo;bvt&rsquo;
-host=&lsquo;10.0.2.47&rsquo;
-ssh $user@$host &lsquo;bash&rsquo; &lt;&lt;EOF
-source /etc/profile
-java -version
-hostname
-EOF</p>
-
-<p>You need copy your ssh pub key to target host before hand, or you will have to enter the password at runtime.</p>
+<p>Not very fast.</p>
 </div>
   
   
@@ -826,23 +578,23 @@ EOF</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/18/140631/">4月17日讲座文字稿</a>
+        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/17/151844/">Linux Mint System Backup and Restore</a>
+        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a>
+        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a>
+        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/08/161006/">Python的Generator和yield</a>
+        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
       </li>
     
   </ul>
