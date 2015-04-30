@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="以下修改均在${SCITE_PATH}\user\SciTEUser.properties文件中进行。 调整编辑区的字体和字号： style.*.32=font:Consolas,size:14 ； 编辑区背景颜色： style.*.32= font:Consolas,size:14, back &hellip;">
+  <meta name="description" content="有些私有方法有很明确的功能，算法比较复杂，不测可能会出问题。测的话最简单的方法是把测试用例写在类内部，例如下面的类： package com.boco.godu.gapi; import static org.junit.Assert.assertEquals; import org.junit. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,78 +65,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/25/114027/">SciTE使用笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-02-25T11:40:27+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:40 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以下修改均在${SCITE_PATH}\user\SciTEUser.properties文件中进行。</p>
-
-<p>调整编辑区的字体和字号： style.*.32=font:Consolas,size:14 ；</p>
-
-<p>编辑区背景颜色： style.*.32= font:Consolas,size:14, back:#CCCCCC ；
- 取消自动生成备份文件： make.backup=0 （如果原来已设此值为1则将其改为0）；</p>
-
-<p> 删除空行：Ctrl+L</p>
-
-<p> 自动补全：autocompleteword.automatic=1</p>
-
-<p> 选中部分的颜色加深：selection.alpha=80（值越大颜色越深）</p>
-
-<p> 自动缩进使用4个空格，不用tab：options->change indentation settings,uncheck &ldquo;Use tabs&rdquo;</p>
-
-<p>显示行号：line.margin.visible=1</p>
-
-<p> 显示状态栏：statusbar.visible=1</p>
-
-<p> 多行注释/反注释：Ctrl+Q</p>
-
-<p>待完善的功能：</p>
-
-<p>9 怎样转换编码格式？</p>
-
-<p>10 怎样实现自动编号？</p>
-
-<p>11 SciTE的主要问题是如果一个包含汉字的ANSI编码的文件在SciTE里打开会出现乱码，必须用npp或者UE转换为utf-8编码才行；</p>
-
-<p>12 SciTE的优点是有内置的python运行命令，基本可以取代IDLE；</p>
-
-<p>13 如何进行跨行替换？</p>
-
-<p>例如要把</p>
-
-<p>23</p>
-
-<p>34</p>
-
-<p>54</p>
-
-<p>替换为：23 34 54，【替换】对话框中勾选“使用反斜线”，将&#8221;\r&#8221;替换为空即可。</p>
-
-<p>再比如删除空行，将&#8221;\r&#8221;替换为空即可。</p>
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -763,6 +691,74 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/19/111508/">Python发送邮件时的抄送问题</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-01-19T11:15:08+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:15 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>python使用smtp模块的sendmail()方法发送邮件时，并不区分是“发送给”、“抄送给”还是“密送给”，都一视同仁的放在该方法的第二个参数中，但邮件头（也就是收到的邮件中头部“收件人”、“抄送”等信息）却是由第三个参数决定，也就是说邮件的表现形式是在邮件头里定义的，所以如果想“密送”给某人，只要把他的地址加在第二个参数里，而不要在邮件头里出现就行了。下面是代码实例。</p>
+
+<pre><code>import smtplib, ConfigParser, datetime 
+from email.mime.text import MIMEText 
+from email.mime.multipart import MIMEMultipart 
+config = ConfigParser.ConfigParser() 
+config.read('build.cfg') 
+try: 
+    mail_server = smtplib.SMTP(config.get('mail','server_addr')) 
+    mail_server.set_debuglevel(1) 
+    mail_server.login(config.get('mail','username'), config.get('mail','password')) 
+except Exception,e: 
+    exit() 
+from_addr = config.get('mail','from_addr') 
+to_addr = config.get('mail','to_addr') 
+copyto_addr = config.get('mail','copyto_addr') 
+sending_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M") 
+message_body = '&lt;html&gt;&lt;body&gt;aa&lt;/body&gt;&lt;/html&gt;' 
+msg = MIMEMultipart() 
+msg.add_header('From',from_addr) 
+msg.add_header('To',to_addr) 
+msg.add_header('Cc',copyto_addr) 
+msg.add_header('Subject',config.get('mail','subject')) 
+msg.add_header('Date',sending_date) 
+msg.attach(MIMEText(message_body, 'html')) 
+mail_server.sendmail(from_addr, to_addr.split()+copyto_addr.split(), msg.as_string()) 
+mail_server.quit() 
+</code></pre>
+
+<p>在代码所在文件夹下写一个build.cfg文件，内容如下：</p>
+
+<pre><code>[mail] 
+server_addr: 124.127.106.5 
+username: lichao1 
+password: aba... 
+from_addr: LiChao&lt;lichao1@boco.com.cn&gt; 
+to_addr: lichao1@boco.com.cn zhaohuaqiao_kkk@boco.com.cn 
+copyto_addr: leechau@126.com liu_xin_kkk@boco.com.cn 
+subject: BVT Reports
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/95">&larr; Older</a>
@@ -784,10 +780,6 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -797,6 +789,10 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>

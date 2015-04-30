@@ -9,7 +9,10 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="一般认为Stream（包括InputStream和OutputStream）不是线程安全的（如 这篇 ），但下面的程序运行多次后未观察到OutputStream.write()方法的原子性被破坏的现象：每个线程向文件输出长度为1000的字符组（从A到），20个线程并发没有出现字符组交错输出。 &hellip;">
+  <meta name="description" content="格式控制中的“-”号表示对齐空格出现在内容的右边，例如下面的“相对时间”（%r）设置为“&hellip;ConversionPattern=% -6 r %c”，效果见下面的第一列： 0 PoolServer
+7429 BQServer
+7430 BQServer
+7434 Write2User &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,84 +68,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/08/10/094240/">Stream和BlockingQueue的线程安全问题</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-08-10T09:42:40+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>一般认为Stream（包括InputStream和OutputStream）不是线程安全的（如 这篇 ），但下面的程序运行多次后未观察到OutputStream.write()方法的原子性被破坏的现象：每个线程向文件输出长度为1000的字符组（从A到），20个线程并发没有出现字符组交错输出。</p>
-
-<p>StreamQueueTest.java
- package streamVsQueue;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-public class StreamQueueTest {
- public static void main(String[] args) {
-  OutputStream out = null;
-  try {
-   out = new FileOutputStream(&ldquo;concurrentout.txt&rdquo;, false);
-  } catch (FileNotFoundException e) {
-   e.printStackTrace();
-  }
-  for (int i = 0; i &lt; 20; i++) {
-   IntCounter cc = new IntCounter(i, out);
-   new Thread(cc).start();
-  }
- }
-}</p>
-
-<p>IntCounter.java</p>
-
-<p> package streamVsQueue;
-import java.io.IOException;
-import java.io.OutputStream;
-public class IntCounter implements Runnable {
- private final int cnt;
- OutputStream out;
- public IntCounter(int i, OutputStream oup) {
-  cnt = i;
-  out = oup;
- }
- @Override
- public void run() {
-  int bytelen = 1000;
-  byte[] buf = new byte[bytelen];
-  for (int i = 0; i &lt; bytelen; i++) {
-   buf[i] = (byte) (65 + cnt);
-  }
-  try {
-   out.write(buf);
-  } catch (IOException e) {
-   e.printStackTrace();
-  }
- }
-}</p>
-
-<p>至于BlockingQueue，文档明确说明是线程安全的，各个读取操作都有内部锁，所以就不测试了，安全起见，新版本的GODU就用这个数据结构吧。</p>
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -746,6 +671,52 @@ new Thread(o, "thread2").start();
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/07/12/143712/">使用Eclipse下载CRaSH源代码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-07-12T14:37:12+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Eclipse for Java Developers (Juno)本身有一个eGit组件，通过它可以直接从Git源码库中下载源代码，以下载 CRaSH 为例说明：</p>
+
+<ol>
+<li><p>从主页上的&#8221;Develop: GitHub&#8221;找到 源码页 ，得到此项目的GitHub地址是：<a href="https://github.com/vietj/crash.git%EF%BC%9B">https://github.com/vietj/crash.git%EF%BC%9B</a></p></li>
+<li><p>Eclipse -> Import -> Git -> Projects from Git -> URI -> <a href="https://github.com/vietj/crash.git">https://github.com/vietj/crash.git</a></p></li>
+</ol>
+
+
+<p>（Host和Repo path是自动解析出来的，下面的所有参数都不变）</p>
+
+<ol>
+<li>选好本地的下载位置（不要在Workspace中，因为后面还要导入），一路Next即可。</li>
+</ol>
+
+
+<p>到这一步只是将源码下载到本地，要在Eclipse里引入此项目，还需要继续下面的导入过程：</p>
+
+<p>Eclipse -> Maven -> Existing maven projects，选择刚才下载的位置，导入即可，</p>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/73">&larr; Older</a>
@@ -767,10 +738,6 @@ new Thread(o, "thread2").start();
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -780,6 +747,10 @@ new Thread(o, "thread2").start();
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>

@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Create VPS First build a vps on DigitalOcean, and name it &ldquo;MeteorUpEx&rdquo;.
-Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page &hellip;">
+  <meta name="description" content="Discovery Scanning This step find the IP address of a website, most frequently with ping tools. Port scanning This step find the openning ports on a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,117 +65,6 @@ Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page &hellip;">
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-03-25T19:53:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:53 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Create VPS</h1>
-
-<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
-Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
-Get its root password in you email.
-Add the following section into ~/.ssh/config:</p>
-
-<pre><code>Host do
-Hostname 128.199.72.206
-User root
-</code></pre>
-
-<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
-
-<h1>Publish Meteor App</h1>
-
-<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
-
-<p>Create a mup project:</p>
-
-<pre><code>cd ~/docs/tmp
-mkdir nfDeploy
-cd nfDeploy
-mup init
-</code></pre>
-
-<p>Now you can see a mup.json file, edit it as follows:</p>
-
-<pre><code>{
-  "servers": [
-    {
-      "host": "128.199.72.xxx",
-      "username": "root",
-      "pem": "~/.ssh/id_rsa"
-    }
-  ],
-
-  "setupMongo": true,
-  "setupNode": true,
-  "nodeVersion": "0.10.36",
-  "setupPhantom": true,
-  "appName": "newfairs",
-
-  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
-
-  "env": {
-    "PORT": 80,
-    "ROOT_URL": "http://niufairs.biz"
-  },
-
-  "deployCheckWaitTime": 15
-}
-</code></pre>
-
-<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
-&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
-mup will bundle codes in it, and publish them to host on vps.</p>
-
-<p>You can only use key authentication.
-If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
-
-<p>Setup production environment: <code>mup setup</code>;
-Delpoy app: <code>mup deploy</code>;</p>
-
-<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
-
-<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
-</code></pre>
-
-<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
-
-<h1>Import Data</h1>
-
-<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
-
-<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
-scp -r mynf do:~/
-ssh do
-cd mynf
-mongorestore -d newfairs meteor
-</code></pre>
-
-<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -896,6 +784,73 @@ If the test is past, remove the test data from fair B:</p>
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/20/224401/">Test Underscore Functions of Meteor App</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-20T22:44:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:44 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When you add some underscore functions to your meteor app, you can&rsquo;t test it in browser console.
+So we need test it somewhere else.</p>
+
+<ol>
+<li><p>Create a new folder as the test project root;</p></li>
+<li><p>Install underscore package locally, which means the package is specific for this project;</p></li>
+<li><p>Create a node script to test the underscore functions.</p></li>
+</ol>
+
+
+<p>The whole work flow is like this:</p>
+
+<pre><code>$ mkdir myapp
+$ cd myapp
+$ npm install underscore
+$ cat &lt;&lt; EOF &gt; myfunc.js
+var _ = require('underscore');
+var res = _.map([1, 2, 3], function(num){ return num * 3; });
+console.log(res);
+EOF
+$ node myfunc
+[ 3, 6, 9 ]
+</code></pre>
+
+<p>Note:</p>
+
+<ol>
+<li><p>See <a href="https://docs.npmjs.com/misc/faq#why-cant-npm-just-put-everything-in-one-place-like-other-package-managers">Why can&rsquo;t npm just put everything in one place, like other package managers? on npm&rsquo;s FAQ</a>
+for the reason why npm not install pakcage globally like pip.</p></li>
+<li><p>For node, how to determine install a package locally or globally?
+According to <a href="http://blog.nodejs.org/2011/03/23/npm-1-0-global-vs-local-installation/">npm 1.0: Global vs Local installation</a></p>
+
+<ol type="a">
+<li><p> If you’re installing something that you want to use in your program, using require(&lsquo;whatever&rsquo;), then install it locally, at the root of your project.</p></li>
+<li><p> If you’re installing something that you want to use in your shell, on the command line or something, install it globally, so that its binaries end up in your PATH environment variable. For example, install <a href="http://bower.io/">bower</a> with <code>npm install bower -g</code>.</p></li>
+</ol>
+</li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -917,10 +872,6 @@ If the test is past, remove the test data from fair B:</p>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -930,6 +881,10 @@ If the test is past, remove the test data from fair B:</p>
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>

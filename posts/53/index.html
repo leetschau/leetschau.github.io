@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="I added coverage test with cobertura and test the demo project built yesterday. Then I add Sonar Ant task in the ant script and saved test result &hellip;">
+  <meta name="description" content="Workflow of Unit Test without Cobertura compile source code;
+compile test code;
+run unit test; Workflow of Uniit Test with Cobertura compile source &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,155 +67,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/29/183259/">Code Metrics Management With Sonar</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-29T18:32:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:32 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I added coverage test with cobertura and test the demo project built yesterday. Then I add Sonar Ant task in the ant script and saved test result into Sonar database.</p>
-
-<p>The following is a standard build script(add junit-4.*.jar and cobertura.jar to $ANT_HOME/lib, in Ubuntu it is /usr/share/ant/lib):</p>
-
-<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
-    &lt;property name="build.dir" value="${basedir}/build" /&gt;
-    &lt;target name="init"&gt;
-        &lt;delete dir="${build.dir}"/&gt;
-        &lt;mkdir dir="${build.dir}"/&gt;
-    &lt;/target&gt;
-
-    &lt;property name="src.dir" value="${basedir}/src" /&gt;
-    &lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
-    &lt;target name="compile-src" depends="init"&gt;
-        &lt;mkdir dir="${src.class.dir}"/&gt;
-        &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
-    &lt;/target&gt;
-    &lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
-    &lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
-    &lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
-
-    &lt;target name="instrument" depends="compile-src"&gt;
-        &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
-        &lt;fileset dir="${src.class.dir}"&gt;
-            &lt;include name="**/*.class" /&gt;
-        &lt;/fileset&gt;
-        &lt;/cobertura-instrument&gt;
-    &lt;/target&gt;
-
-    &lt;property name="test.dir" value="${basedir}/test" /&gt;
-    &lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
-    &lt;target name="compile-test" depends="instrument"&gt;
-        &lt;mkdir dir="${test.class.dir}"/&gt;
-        &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
-            &lt;classpath&gt;
-                &lt;pathelement location="${instrumented.class.dir}"/&gt;
-                &lt;pathelement location="${src.class.dir}"/&gt;
-            &lt;/classpath&gt;
-        &lt;/javac&gt;
-    &lt;/target&gt;
-
-    &lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
-    &lt;property name="lib.dir" value="${basedir}/lib" /&gt;
-    &lt;target name="unittest" depends="compile-test"&gt;
-        &lt;mkdir dir="${unittest.report.dir}"/&gt;
-        &lt;junit printsummary="yes" fork="yes"&gt;
-            &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
-            &lt;classpath&gt;
-                &lt;pathelement location="${instrumented.class.dir}"/&gt;
-                &lt;pathelement location="${src.class.dir}"/&gt;
-                &lt;pathelement location="${test.class.dir}"/&gt;
-                &lt;pathelement location="${src.dir}"/&gt;
-                &lt;path refid="lib.path"/&gt;
-            &lt;/classpath&gt;
-            &lt;formatter type="xml"/&gt;
-            &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
-                &lt;fileset dir="${test.dir}"&gt;
-                    &lt;include name="**/*.java" /&gt;
-                &lt;/fileset&gt;
-            &lt;/batchtest&gt;
-        &lt;/junit&gt;
-    &lt;/target&gt;
-
-    &lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
-    &lt;target name="coverage-report" depends="unittest"&gt;
-        &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
-    &lt;/target&gt;
-
-    &lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
-    &lt;property name="sonar.jdbc.username" value="sonar" /&gt;
-    &lt;property name="sonar.jdbc.password" value="sonar" /&gt;
-    &lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
-    &lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
-    &lt;property name="sonar.projectVersion" value="2.1" /&gt;
-    &lt;property name="sonar.language" value="java" /&gt;
-    &lt;property name="sonar.sources" value="src" /&gt;
-    &lt;property name="sonar.tests" value="test" /&gt;
-    &lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
-    &lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
-    &lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
-    &lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
-    &lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
-    &lt;target name="sonar" depends="coverage-report"&gt;
-        &lt;taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"&gt;
-            &lt;classpath path="/usr/share/ant/lib/sonar-ant-task-2.1.jar" /&gt;
-        &lt;/taskdef&gt;
-        &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
-    &lt;/target&gt;
-&lt;/project&gt;
-</code></pre>
-
-<p>To run this script successfully:</p>
-
-<ol>
-<li><p>build a demo java project and put this script at project root;</p></li>
-<li><p>copy sonar-ant-task-2.1.jar and junit-4.11.jar to $ANT_HOME/lib;</p></li>
-<li><p>start Sonar server: $SONAR_HOME/bin/sonar.sh console;</p></li>
-<li><p>run this script: ant sonar;</p></li>
-</ol>
-
-
-<p>Note1: you have to add &ldquo;sonar.core.codeCoveragePlugin&rdquo; or coverage result can&rsquo;t be collected by Sonar. This is not mentioned in official documents<a href="http://docs.codehaus.org/display/SONAR/Code+Coverage+by+Unit+Tests+for+Java+Project">Code Coverage by Unit Tests for Java Project</a>;</p>
-
-<p>Note2: take care of the spelling: &ldquo;sonar.surefire.report<strong>s</strong>Path&rdquo; while &ldquo;sonar.cobertura.reportPath&rdquo;;</p>
-
-<p>Note3: the &ldquo;xmlns:sonar=&#8221;antlib:org.sonar.ant&rdquo; in &ldquo;sonar:sonar&rdquo; is necessary or the prefix &ldquo;sonar&rdquo; would be unbound;</p>
-
-<p>Note4: if unit test results can&rsquo;t be collected by Sonar, try to specify &ldquo;sonar.binaries&rdquo; carefully as above shows;</p>
-
-<p>Note5: the value of junit report path &ldquo;sonar.surefire.reportsPath&rdquo; is a <strong>directory</strong>(because there are lots of reports under this folder), while the value of cobertura report is a <strong>file</strong>, if sonar can not get junit or cobertura report, verify these settings;</p>
-
-<p>Note6: if there are &ldquo;class &hellip; is not accessible through the ClassLoader.&rdquo; in output of sonar task, there are two solutions:</p>
-
-<ol>
-<li><p>remove property &ldquo;sonar.binaries&rdquo;, where Sonar will not check bytecode;</p></li>
-<li><p>in case you want Sonar check bytecodes, add property &ldquo;sonar.libraries&rdquo; like follows:</p>
-
-<p> <property name="sonar.libraries" value="src/lib/*.jar,src/lib/dom4j/*.jar"/></p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -713,6 +566,92 @@ Command: rabbitvcs browser <a href="http://10.0.2.59:8118/svn/%s">http://10.0.2.
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/22/183331/">归并目录的Python实现</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-22T18:33:31+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>6:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>待分析项目是OSGi结构，源代码目录src散布在多个模块目录下（如origin目录所示），现在需要分析整个项目的源代码，要将各个src目录下的所有内容合并到一起，</p>
+
+<p>origin
+├── mod1
+│ ├── conf
+│ │ └── app.conf
+│ ├── lib
+│ │ └── dep.jar
+│ └── src
+│  └── com
+│   └── boco
+│    └── d21.java
+├── mod2
+│ ├── conf
+│ │ └── app.conf
+│ ├── lib
+│ │ └── dep.jar
+│ └── src
+│  └── com
+│   └── boco
+│    └── d22.java
+└── build.xml</p>
+
+<p>合并后的目录结构如下：</p>
+
+<p>final
+├── mod1
+│ ├── conf
+│ │ └── app.conf
+│ └── lib
+│  └── dep.jar
+├── mod2
+│ ├── conf
+│ │ └── app.conf
+│ └── lib
+│  └── dep.jar
+├── build.xml
+└── src
+ └── com
+  └── boco
+   ├── d21.java
+   └── d22.java</p>
+
+<p>Python实现如下：</p>
+
+<p> import os
+ import distutils.dir_util
+ basedir = &lsquo;/home/chad/tmp/final&rsquo;
+ src_name = &lsquo;src&rsquo;
+ for root, dirs, files in os.walk(basedir):
+  print &lsquo;root = &rsquo;, root
+  if root.endswith(src_name):
+   dst = basedir+&lsquo;/&rsquo;+src_name
+   distutils.dir_util.copy_tree(root, dst)
+   distutils.dir_util.remove_tree(root)
+   print &lsquo;move &rsquo;, root, &lsquo; to &rsquo;, dst</p>
+
+<p>可以注释掉remove_tree一行，从而验证拷贝过程中是否丢失了文件。</p>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/54">&larr; Older</a>
@@ -734,10 +673,6 @@ Command: rabbitvcs browser <a href="http://10.0.2.59:8118/svn/%s">http://10.0.2.
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -747,6 +682,10 @@ Command: rabbitvcs browser <a href="http://10.0.2.59:8118/svn/%s">http://10.0.2.
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-04-30T15:40:38+08:00</updated>
+  <updated>2015-04-30T16:21:37+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -58,24 +58,6 @@ You have to download the installer, extract it and run.</p>
 
 <p>gitg is the first choice.
 SmartGit is good except its license restriction.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Git GUI Tools]]></title>
-    <link href="http://leetschau.github.io/blog/2015/04/30/095418/"/>
-    <updated>2015-04-30T09:54:18+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/04/30/095418</id>
-    <content type="html"><![CDATA[<h1>gitk</h1>
-
-<p>Come with git. Good for view info of the repo.
-Not very intuitive for viewing the branches.</p>
-
-<h1>git gui</h1>
-
-<p>Install with <code>aptitude install git-gui</code></p>
-
-<p>Use gitk&rsquo;s visualization interface.</p>
 ]]></content>
   </entry>
   
@@ -924,6 +906,97 @@ npm install
 对应主机最右边，&#8221;管理 升级 续费 更多&#8221;中点击&#8221;更多&#8221;，
 首先点击&#8221;停止&#8221;来停止实例运行，然后点击&#8221;重新初始化磁盘&#8221;，
 将系统盘和数据盘都初始化。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Deploy Meteor App With MUP]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/25/195307/"/>
+    <updated>2015-03-25T19:53:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/25/195307</id>
+    <content type="html"><![CDATA[<h1>Create VPS</h1>
+
+<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
+Get its root password in you email.
+Add the following section into ~/.ssh/config:</p>
+
+<pre><code>Host do
+Hostname 128.199.72.206
+User root
+</code></pre>
+
+<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
+
+<h1>Publish Meteor App</h1>
+
+<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
+
+<p>Create a mup project:</p>
+
+<pre><code>cd ~/docs/tmp
+mkdir nfDeploy
+cd nfDeploy
+mup init
+</code></pre>
+
+<p>Now you can see a mup.json file, edit it as follows:</p>
+
+<pre><code>{
+  "servers": [
+    {
+      "host": "128.199.72.xxx",
+      "username": "root",
+      "pem": "~/.ssh/id_rsa"
+    }
+  ],
+
+  "setupMongo": true,
+  "setupNode": true,
+  "nodeVersion": "0.10.36",
+  "setupPhantom": true,
+  "appName": "newfairs",
+
+  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
+
+  "env": {
+    "PORT": 80,
+    "ROOT_URL": "http://niufairs.biz"
+  },
+
+  "deployCheckWaitTime": 15
+}
+</code></pre>
+
+<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
+&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
+mup will bundle codes in it, and publish them to host on vps.</p>
+
+<p>You can only use key authentication.
+If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
+
+<p>Setup production environment: <code>mup setup</code>;
+Delpoy app: <code>mup deploy</code>;</p>
+
+<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
+
+<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
+</code></pre>
+
+<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
+
+<h1>Import Data</h1>
+
+<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
+
+<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
+scp -r mynf do:~/
+ssh do
+cd mynf
+mongorestore -d newfairs meteor
+</code></pre>
+
+<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
 ]]></content>
   </entry>
   

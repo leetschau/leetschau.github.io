@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="netstat -ano 通过命令结果中的PID号对应到Windows进程上。 参考：“利用Windows内置功能轻松查看端口使用情况”（ http://li-donghui123-163-com.iteye.com/blog/248028 ）
-">
+  <meta name="description" content="一次连接唯一的标识符是ip+port。当 首先，GAPI的日志中要有session，例如： logger.info(session + &ldquo; has login GODU&rdquo;); 对应的日志输出为： 2011-07-31 15:55:02,859 [pool-5-thread- &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,39 +65,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/08/11/180420/">Check Port Usage in Windows</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-08-11T18:04:20+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>6:04 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>netstat -ano</p>
-
-<p>通过命令结果中的PID号对应到Windows进程上。</p>
-
-<p>参考：“利用Windows内置功能轻松查看端口使用情况”（ <a href="http://li-donghui123-163-com.iteye.com/blog/248028">http://li-donghui123-163-com.iteye.com/blog/248028</a> ）</p>
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -968,6 +934,95 @@ throw new GapiException(e);
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/07/19/164331/">日期格式转换的正则表达式实现</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-07-19T16:43:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:43 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>原始文本：</p>
+
+<blockquote><p>2011年7月18日：修改密码的核心功能开发完毕；
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<p>目标格式文本：</p>
+
+<blockquote><p>2011-7-18：修改密码的核心功能开发完毕；
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
+
+<h1>vim实现</h1>
+
+<pre><code>:%s/\(\d\{4}\).\(\d\{1,2}\).\(\d\{1,2}\)./\1-\2-\3/g 
+</code></pre>
+
+<p>说明： 采用 :%s/old/new/g 命令进行替换，其中%表示对所有行进行替换操作，最后的g参数表明对一行中所有的new均替换为old。\d代表任意数字，old pattern中每个括号（即(&hellip;)）中的内容构成一个group member，new pattern中对group member的引用用\1、\2、\3&hellip;代表，即&#8221;BRE&#8221;, back references.</p>
+
+<h1>Groovy实现</h1>
+
+<pre><code>oriStr = '''2011年7月18日：修改密码的核心功能开发完毕； 
+2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；'''; 
+pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+matcher = oriStr =~ pattern; 
+matcher.each { all,y,m,d-&gt; 
+    println 'Patten is: '+all; 
+    println 'Replaced by: '+y+'-'+m+'-'+d; 
+}; 
+println '*****'; 
+println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;}; 
+</code></pre>
+
+<p>运行结果：</p>
+
+<pre><code>Patten is: 2011年7月18日 
+Replaced by: 2011-7-18 
+Patten is: 2011年7月19日 
+Replaced by: 2011-7-19 
+***** 
+2011-7-18：修改密码的核心功能开发完毕； 
+2011-7-19：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<p>说明： 跨行字符串用三引号括起来；匹配模式用“ /&hellip;/” 括起来；用模式匹配字符串时，每一次成功匹配构成了matcher的一个元素（代码中用matcher.each得到），如果模式当中包含group（可以matcher.hasGroup()判断），则这个元素本身也是一个List，其中第一个元素是符合模式的substring（代码中的all），各个group member可以用下标引用，也可以分别起名字（代码中分别为y、m、d）。这部分内容可参见《Groovy in Action》（2007版）第3.5节“Working with regular expressions”。Groovy的String.replaceAll方法包括两个参数，第一个是要被代替的pattern，第二个是用来代替pattern的closure，该closure的返回结果是最后一行代码的值。</p>
+
+<p>例如：<code>println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;return 'Date'};</code> 的输出是：</p>
+
+<pre><code>Date：修改密码的核心功能开发完毕； 
+Date：上午换座位，下午提交了著作权文档的电子流程； 
+</code></pre>
+
+<h1>基于文件读写的Groovy实现</h1>
+
+<pre><code>pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
+convStr = ''; 
+new File('f:/Edit3.txt').eachLine{ 
+    convStr += (it.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d})+'\n' 
+} 
+new File('f:/conv.txt').write convStr; 
+</code></pre>
+
+<p>说明： 第4行的it表示此行文本（字符串）。</p>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/89">&larr; Older</a>
@@ -989,10 +1044,6 @@ throw new GapiException(e);
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -1002,6 +1053,10 @@ throw new GapiException(e);
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>

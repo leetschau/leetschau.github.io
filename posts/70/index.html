@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="基于DVCS的版本控制策略 总体架构：主仓库（origin）中有两个永久分支：master和develop，master用来对外发布版本，所有的发布包都是从这个分支上打的；develop用来收集可用的开发特性，BVT系统是从这个分支上获取代码做nightly builds的； &hellip;">
+  <meta name="description" content="mvn archetype:generate -DgroupId=org.leechau.maven -DartifactId=HelloWorldApp
+mvn validate, mvn compile, mvn package, mvn test, &hellip; = maven &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,99 +66,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/27/201234/">源代码版本管理策略</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-27T20:12:34+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>基于DVCS的版本控制策略</h1>
-
-<p>总体架构：主仓库（origin）中有两个<strong>永久</strong>分支：master和develop，master用来对外发布版本，所有的发布包都是从这个分支上打的；develop用来收集可用的开发特性，BVT系统是从这个分支上获取代码做nightly builds的；</p>
-
-<p>每个开发者可能发起3种<strong>临时</strong>分支：feature, release和hotfix，临时的意思是这3中分支最终都要被合并到某个永久分支（master/develop）中。</p>
-
-<p>下面是总体架构的图示：</p>
-
-<ul>
-<li><p>feature用来开发新产品特性的分支，只能从develop分支上分出，特性测试稳定之后合并回develop中去。命名规范：&lt;特征名>；</p></li>
-<li><p>release用来准备发布的分支，当develop中的特性已经满足当前发布版本的所有要求时，就得分一个release分支出来供测试部门测试，所有测试过程中发现的bug都在这个分支上修改，修完所有bug可以发布时，将这个分支合并到develop上和master上，这个分支就消失了。在release上修改bug的同时，不影响为未来版本开发的feature合并到develop中。命名规范：release-<Rev>，Rev是计划的版本号，例如release-1.2；</p></li>
-<li><p>hotfix用来修改master上代码发布到现场后出现的bug，修完后同时合并到develop和master上，master从1.2变为1.2p1或者1.2.1，然后删掉这个hotfix分支。命名规范：hotfix-&lt;目标版本号>，例如hotfix-1.2.1；</p></li>
-</ul>
-
-
-<p>各分支间的关系见下图：</p>
-
-<p>以上基于<a href="http://nvie.com/posts/a-successful-git-branching-model/">A successful Git branching model</a>。</p>
-
-<h2>评价</h2>
-
-<ul>
-<li><p>结构清晰，易于理解和使用；</p></li>
-<li><p>不同现场的特殊需求问题：如果某个A现场使用v1.0，B现场使用v2.0，现在A报了bug，则只能给A使用高版本（v2.1），而不能通过在v1.0上打patch的方法解决，因为如果从master的tag v1.0处签出代码，修改bug，得到v1.0p1，还得将修改再合并到v2.0上，而且v1.0p1将变成一个无法合并的分支，但如果采用升级版本的方式改bug，就要求版本间功能具备连续性，如果为A现场的v1.0开发了一个特殊的功能X，又不能合并到master里去（因为其他现场不需要这个功能），升级将导致A无法使用X。所以怎样将各现场的特殊需求与版本控制结合起来仍然是一个未解决的问题。</p></li>
-</ul>
-
-
-<h2>后续工作</h2>
-
-<ul>
-<li><p>怎样在分支上打tag?</p></li>
-<li><p>在Hg上重现上面的流程；</p></li>
-</ul>
-
-
-<h1>Hg的工作流程</h1>
-
-<ol>
-<li><p>在中心服务器origin上建立一个branch name为develop的分支；</p></li>
-<li><p>假设开发者chad负责在现有版本上增加一个“使用正则表达式的预期-发送”功能，则chad先从origin上clone一份代码到&#8221;f:\ghost\tmpFiles\myProj&#8221;文件夹中；</p></li>
-<li><p>将这份代码导入到Eclipse中，项目路径为d:\workspace\myProj，注意&#8221;.hg&#8221;文件夹也要导入；</p></li>
-<li><p>删除&#8221;f:\ghost\tmpFiles\myProj&#8221;中的仓库，打开新的d:\workspace\myProj仓库，新建一个branch命名为&#8221;exp-send-regex&#8221;；</p></li>
-<li><p>Eclipse中开发功能，提交本地版本；</p></li>
-<li><p>当功能稳定后由origin将chad的代码pull到自己的代码库中：</p>
-
-<ol type="a">
-<li><p>启动chad的hg web server；</p></li>
-<li><p>在origin上用&#8221;pull selected changes from selected URL&#8221;，将chad上面测试稳定的“使用正则表达式的预期-发送”功能分支拉过来；</p></li>
-<li><p>合并到develop分支中：在exp-send-regex分支顶端的changeset上右键->merge with local；</p></li>
-</ol>
-</li>
-</ol>
-
-
-<h1>其他资料</h1>
-
-<p><a href="http://www.51testing.com/?uid-300987-action-viewspace-itemid-823031">版本控制的分支策略及初步实践</a></p>
-
-<p><a href="http://juvenshun.iteye.com/blog/376422">Maven最佳实践：版本管理</a></p>
-
-<p><a href="http://www.infoq.com/articles/agile-version-control">Version Control for Multiple Agile Teams</a></p>
-
-<p><a href="http://stackoverflow.com/questions/597707/best-branching-strategy-when-doing-continuous-integration">Best branching strategy when doing continuous integration</a></p>
-
-<p><a href="http://www.hillside.net/plop/plop98/final_submissions/P37.doc">Streamed Lines: Branching Patterns for Parallel Software Development</a></p>
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -701,6 +609,54 @@ mvn validate, mvn compile, mvn package, mvn test, &hellip; = maven install</p>
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/11/112449/">Hg切换到SVN</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-11T11:24:49+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:24 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>刚开始代码一般都是自己一个人写，建一个本地的Hg库，等代码到一定程度时，其他人加入开发团队，需要将代码提交到SVN库中以实现与其他人共同开发，实现这个切换的同时又不丢掉之前Hg库的版本历史，方法如下：</p>
+
+<ol>
+<li><p>将Hg库里的源代码提交到SVN库里；</p></li>
+<li><p>从SVN库里checkout代码到A文件夹下；</p></li>
+<li><p>将原来Hg库中的.hg文件夹和.hgignore文件拷贝到A文件夹下；</p></li>
+</ol>
+
+
+<p>Hg( Mercurial )能够实现版本库“迁移”的原因是Hg里并不记载版本之间的变化，而是文件的全部内容，所以当版本库（.hg文件夹）被拷贝到另一个位置后，只要文件内容不变，即使其他元信息（如建立、修改时间等）不一样，Hg就认为是同一个文件。</p>
+
+<p>其他方法：</p>
+
+<p>方法1：首先在本地开发，建立hg库，当需要提交时svn库时，用hg的回退版本（update）功能，从hg中挑选出想提交的代码发布到svn中，之后代码开发切换到在svn的checkout版本中。好处：一开始不用规划svn库位置；缺点：各次提交的时间点信息丢失（可以在提交说明里加上原始提交时间）；</p>
+
+<p>方法2：首先在svn库中建好文件夹，然后checkout到本地，然后在这个文件夹里建立hg库；</p>
+
+<p> 方法3：始终在本地hg库中开发，挑选出一些版本手工提交到svn库中，当其他开发人员修改代码提交svn后，还要更新本地svn代码，然后手工同步到hg代码中。这个方法只要安装TortoiseSVN，Eclipse不需要安装subclipse插件，适合在有自动测试配合的情况下使用；</p>
+
+<p> 总结：如果一开始就计划svn/hg双库，最好用方法2；如果一开始没有计划，后来才要纳入svn版本控制，用方法1；方法3太过于繁琐，且手工同步难以杜绝操作失误，不建议使用。</p>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/71">&larr; Older</a>
@@ -722,10 +678,6 @@ mvn validate, mvn compile, mvn package, mvn test, &hellip; = maven install</p>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -735,6 +687,10 @@ mvn validate, mvn compile, mvn package, mvn test, &hellip; = maven install</p>
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>

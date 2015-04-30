@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="原文本： public static final int GODU_CMD_PORT = 1234; public static final int GODU_MONITOR_PORT = 5678; public static final int GODU_SUBSCRIBE_PORT = &hellip;">
+  <meta name="description" content="VIM的自带的脚本功能很强，但只能用在VIM自己上，如果让它支持Python脚本，那简直就无敌了，这个想法当然不是我想出来的，应该说英雄所见略同，于是乎vim7.2就内建了对python2.4的支持，这么有前途的功能当然得尝尝鲜啦，下面就是实现过程： 1 检查vim是否支持python；用: &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,62 +65,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/07/06/141019/">VIM文本格式转换一例</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-07-06T14:10:19+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:10 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>原文本：
- public static final int GODU_CMD_PORT = 1234;
- public static final int GODU_MONITOR_PORT = 5678;
- public static final int GODU_SUBSCRIBE_PORT = 6789;
- public static final String LOGIN = &ldquo;login:&rdquo;;
- public static final String LOGIN_PASSWORD = &ldquo;password:&rdquo;;
- public static final String GODU_PROMPT = &ldquo;[GODU-CMD]&rdquo;;
- public static final String GODU_OPT_START = &ldquo;BOCOGODUACKSTART&rdquo;;
- public static final String GODU_OPT_END = &ldquo;BOCOGODUACKEND&rdquo;;
- public static final String NE_OPT_START = &ldquo;BOCOGODUCMDSTART&rdquo;;
- public static final String NE_OPT_END = &ldquo;BOCOGODUCMDEND&rdquo;;
-目标文本：
- godu.cmd.port = 1234
- godu.monitor.port = 5678
- godu.subscribe.port = 6789
- login = login:
- login.password = password:
- godu.prompt = [GODU-CMD]
- godu.opt.start = BOCOGODUACKSTART
- godu.opt.end = BOCOGODUACKEND
- ne.opt.start = BOCOGODUCMDSTART
- ne.opt.end = BOCOGODUCMDEND
-操作过程：
-1. 删除前导空格：:%s/^\s*//g
-1. 删除每行的前4个单词，将第5个单词转化为小写（使用宏）： qad4wguwjq 9@a
-1. 将下划线改为点号：:%s/_/./g
-1. 删除行尾分号：:%s/;$//g
-1. 删除双引号：:%s/”//g</p>
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -981,6 +925,84 @@ Ctrl+Alt+↑ 复制当前行到上一行(复制增加)</p>
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/05/21/110953/">Eclipse中使用SLF4J的一个例子</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-05-21T11:09:53+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2010</span></span> <span class='time'>11:09 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。对于类库型的Java应用，例如GAPI，本身没有main程序，总是被其他程序调用，这类系统如果自身使用log4j记录日志，会出现自身的日志系统与调用程序的日志系统冲突的问题，解决的方法就是把GAPI的日志用一个“门面”实现，运行时由调用程序实现日志的输出，slf4j就是这样的一个解决方案。</p>
+
+<p>在Eclipse中新建一个Project名为Ex1，创建包com.leechau，创建类MySLF4J，代码如下：</p>
+
+<p>package com.leechau;
+ import org.slf4j.Logger;
+import org.slf4j.LoggerFactory; public class MySLF4J {
+ public static void main(String[] args) {
+  Logger logger = LoggerFactory.getLogger(HelloWorld.class);
+  logger.info(&ldquo;Hello World&rdquo;);
+ }
+ }
+} 提示无法解析包名slf4j，【Project->Properties->Java Build Path->Libraries】中，【Add External JARs】,加上log4j-1.2.14.jar、slf4j-api-1.5.0.jar、slf4j-log4j12-1.5.0.jar三个文件即可。 运行文件，出现报错：WARN No appenders could be found for logger&hellip;
+这是因为slf4j需要读取一个叫log4j.properties的文件，以确定logger的行为，例如Log文件放在什么位置，文件名是什么等等，如果没有这个文件就会出现上面的问题，在使用logger的类文件所在的source folder下新建一个名为“log4j.properties”的文件，文件内容为： log4j.rootCategory=DEBUG,stdout,R,errorlogger</p>
+
+<h4>第1个 appender将log写到屏幕</h4>
+
+<p>log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n
+log4j.appender.stdout.Threshold=DEBUG
+log4j.logger.org.apache.mina.filter.executor.OrderedThreadPoolExecutor=WARN
+log4j.logger.org.apache.mina.core.filterchain.IoFilterEvent=WARN
+log4j.logger.org.apache.mina.filter.codec.ProtocolCodecFilter=WARN</p>
+
+<h1>第1个配置文件，用于输出运行时调试信息</h1>
+
+<p>log4j.appender.R=org.apache.log4j.RollingFileAppender
+log4j.appender.R.layout=org.apache.log4j.PatternLayout</p>
+
+<h1>true表示每次在文件尾写入新的日志信息，false表示新的日志覆盖旧的日志文件</h1>
+
+<p>log4j.appender.R.Append=true
+log4j.appender.R.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n
+log4j.appender.R.Threshold=INFO log4j.appender.R.File=./log/Test.log #此参数设置log文件名
+log4j.appender.R.MaxFileSize=8000KB
+log4j.appender.R.MaxBackupIndex=5</p>
+
+<h1>第2个配置文件，用于输出运行时错误信息</h1>
+
+<p>log4j.appender.errorlogger=org.apache.log4j.RollingFileAppender
+log4j.appender.errorlogger.layout=org.apache.log4j.PatternLayout
+log4j.appender.errorlogger.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n
+log4j.appender.errorlogger.Threshold=ERROR
+log4j.appender.errorlogger.File=./log/error.log
+log4j.appender.errorlogger.MaxFileSize=8000KB
+log4j.appender.errorlogger.MaxBackupIndex=5
+更新一下项目，运行即可。每一个source folder可以拥有自己的“log4j.properties”文件，在此文件中指定不同的log文件名，即可为每一个source folder建立自己的日志文件。</p>
+
+<p>关于log4j的使用方法以及log4j.properties文件设置方法的详细说明见笔记“log4j使用笔记”。</p>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/107">&larr; Older</a>
@@ -1002,10 +1024,6 @@ Ctrl+Alt+↑ 复制当前行到上一行(复制增加)</p>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -1015,6 +1033,10 @@ Ctrl+Alt+↑ 复制当前行到上一行(复制增加)</p>
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>

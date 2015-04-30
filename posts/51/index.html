@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Use ENScript.exe help to print all available Evernote command: Use ENScript.exe shownotes /? to see detailed info about command shownotes.
-">
+  <meta name="description" content="Install Evernote Install Evernote in Wine: wine Evernote_xxx.exe; Backup Evernote Database File Locally Database file location is: ~/.wine/drive_c/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,37 +65,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/21/105647/">Evernote Command Line Options</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-06-21T10:56:47+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>10:56 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Use <code>ENScript.exe help</code> to print all available Evernote command:</p>
-
-<p>Use <code>ENScript.exe shownotes /?</code> to see detailed info about command shownotes.</p>
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -706,6 +674,86 @@ If you are not sure about which is the related packages, use <code>sudo aptitude
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/07/082016/">Install Postgresql Database for Sonar</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-06-07T08:20:16+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:20 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Setup Postgresql Server</h1>
+
+<p>Use &ldquo;cross distribution packages&rdquo; postgres_9.2.4-1.i386.openscg.deb and install it on Mint 14. This kind of installer can be installed without GUI environment, suitable for Ubuntu Server. Installer of Postgresql is much smaller than its mysql counterpart.</p>
+
+<p>You can follow <a href="http://wiki.openscg.com/index.php/Postgres_9.1_DEB">the instructions at OpenSCG</a> to setup server and manipulate data.</p>
+
+<ol>
+<li><p>Download &ldquo;cross distribution packages&rdquo; postgres_9.2.4-1.i386.openscg.deb;</p></li>
+<li><p>install it with <code>dpkg -i</code>;</p></li>
+<li><p>start service: <code>/etc/init.d/postgres-9.2-openscg start</code>;</p></li>
+<li><p>verify service: <code>invoke-rc.d postgres-9.2-openscg status</code>, and <code>su postgres</code> to verify if user postgres has been created;</p></li>
+<li><p><code>. /opt/postgres/9.2/pg92-openscg.env</code></p></li>
+<li><p>verify connection: <code>psql</code>, then you can see the postgresql prompt &ldquo;postgres=#&rdquo;, use &ldquo;\l&rdquo; to list all databases;</p></li>
+</ol>
+
+
+<h1>Setup Connection between Sonar and Postgresql database</h1>
+
+<ol>
+<li><p>build sonar database in Postgresql</p>
+
+<ol type="a">
+<li>create user sonar: <code>postgres=# create user sonar with password 'sonar';</code>, notice you must &ldquo;;&rdquo; at end of command,</li>
+<li>verify: <code>postgres=# \du</code>;</li>
+<li>create database: <code>postgres-# create database sonar with owner sonar encoding 'UTF8';</code></li>
+<li>verify: <code>postgres=# \l</code>;</li>
+</ol>
+</li>
+<li><p>modify sonar jdbc url: modify &ldquo;sonar.jdbc.url&rdquo; as &ldquo;jdbc:postgresql://localhost/sonar&rdquo; in file $SONAR_HOME/conf/sonar.properties (remember comment out default h2 jdbc url);</p></li>
+<li><p>start sonar server: <code>$SONAR_HOME/bin/sonar.sh console</code>;</p></li>
+<li><p>verify: <code>psql -h localhost -d sonar -U sonar</code>, then <code>sonar=&gt; select table_name from information_schema.tables where table_schema='public';</code>, you can see &ldquo;49 rows&rdquo; at the bottom of the output;</p></li>
+</ol>
+
+
+<p>Note 2: When upgrade or reinstall SonarQube, and after modifying configuration file, you have to goto <a href="http://10.0.2.74:9000/setup">http://10.0.2.74:9000/setup</a> to upgrade database manually, or you will see &ldquo;sonar is under maintenance. please check back later&rdquo;.</p>
+
+<h1>Enable Remote Access to Postgresql Server(unnecessary for Sonar)</h1>
+
+<p>(updated at 2013.12.23: The following operation is very <strong>dangerous</strong> and not preferred.</p>
+
+<p>Ref: <a href="http://serverfault.com/questions/110154/whats-the-default-superuser-username-password-for-postgres-after-a-new-install/325596#325596">http://serverfault.com/questions/110154/whats-the-default-superuser-username-password-for-postgres-after-a-new-install/325596#325596</a></p>
+
+<ol>
+<li><p>setup password for user postgres: <code>sudo passwd postgres</code>;</p></li>
+<li><p>login as postgres: <code>su postgres</code> (the $HOME on Ubuntu should be /etc/postgres/9.2);</p></li>
+<li><p>add a line in data/pg_hba.conf: &ldquo;host all all 0.0.0.0/0 md5&rdquo;;</p></li>
+<li><p>modify listen_addresses=&ldquo;127.0.0.1&rdquo; to &ldquo;*&rdquo; in data/postgresql.conf;</p></li>
+<li><p>verify(on client machine): <code>psql -h 10.21.3.31 -U postgres -d postgres</code> (-U means username, -d means database);</p></li>
+</ol>
+
+
+<p>or use squirrel-sql client: download driver jar postgresql-9.2-1002.jdbc4.jar at jdbc.postgresql.org and copy to $SQUIRREL_HOME/lib, start squirrel-sql, create a connection with url=&ldquo;jdbc:postgresql://10.21.3.31/postgres&rdquo;, username=&ldquo;postgres&rdquo; and password=&ldquo;&hellip;&rdquo;;</p>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/posts/52">&larr; Older</a>
@@ -727,10 +775,6 @@ If you are not sure about which is the related packages, use <code>sudo aptitude
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/30/095418/">Git GUI Tools</a>
-      </li>
-    
-      <li class="post">
         <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
       </li>
     
@@ -740,6 +784,10 @@ If you are not sure about which is the related packages, use <code>sudo aptitude
     
       <li class="post">
         <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
       </li>
     
   </ul>
