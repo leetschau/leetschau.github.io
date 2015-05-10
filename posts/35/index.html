@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Some helpful resources: A Visual Git Reference; git - the simple guide; Git has 3 places to store files: working dir, stage and history.
-The last &hellip;">
+  <meta name="description" content="Backup (On CentOS 6.4) Enable backup as user &ldquo;sonar&rdquo;: modify authentication file pg_hba.conf following SonarQube and Postgresql on Linux &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,6 +71,271 @@ The last &hellip;">
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2013/11/29/100558/">Backup and Restore Postgresql Database</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-29T10:05:58+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:05 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Backup</h1>
+
+<p>(On CentOS 6.4)</p>
+
+<p>Enable backup as user &ldquo;sonar&rdquo;: modify authentication file pg_hba.conf following SonarQube and Postgresql on Linux ;</p>
+
+<p>Then you can backup a database: $ pg_dump -U sonar -F c -v -f sonar.bak sonar</p>
+
+<p>Synopsis: pg_dump [options] <db_name>. &ldquo;-F c&rdquo; means using &ldquo;custom&rdquo; file format. -f specifies the output file name.</p>
+
+<p>Or backup all: $ pg_dumpall -U postgres -f totalbackup.sql -v -c</p>
+
+<p>The &ldquo;-c&rdquo; will print drop commands to remove existing databases or roles. So you can restore them without cleaning existing databases in your backup server first.</p>
+
+<h1>Restore</h1>
+
+<p>Install and start postgresql server. Then you can restore a full backup:</p>
+
+<p> $ psql -U postgres -f totalbackup.sql</p>
+
+<p>Or restore a specific database:</p>
+
+<ol>
+<li><p>$ psql -U postgres (modify pg_hba.conf for authenticaiton);</p></li>
+<li><p>create role &ldquo;sonar&rdquo; and database &ldquo;sonar&rdquo;:</p></li>
+</ol>
+
+
+<p> create role sonar login password &lsquo;sonar&rsquo;;</p>
+
+<p> create database sonar owner sonar;</p>
+
+<ol>
+<li>$ pg_restore -U sonar -d sonar -j 4 -v sonar.bak</li>
+</ol>
+
+
+<h1>Verify</h1>
+
+<ul>
+<li>Print database size of &ldquo;sonar&rdquo;:</li>
+</ul>
+
+
+<p> $ psql -U sonar -c &ldquo;\l+&rdquo; sonar|grep sonar</p>
+
+<ul>
+<li>Print all tables and sizes in database &ldquo;sonar&rdquo;:</li>
+</ul>
+
+
+<p> $ psql -U sonar -c &ldquo;\d+&rdquo; sonar</p>
+
+<p>Or run a psql console ($ psql -U sonar), and use the following commands to verify:</p>
+
+<ul>
+<li><p>\d // list all tables</p></li>
+<li><p>select * from projects; // print contents of table &ldquo;projects&rdquo;</p></li>
+<li><p>select pg_size_pretty(pg_database_size(&lsquo;sonar&rsquo;)); // print the human_readable size of database &ldquo;sonar&rdquo;</p></li>
+<li><p>select pg_database_size(&lsquo;sonar&rsquo;); // give the exact size of database &ldquo;sonar&rdquo;</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/28/143902/">Rsync Omit `core` Folder</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-28T14:39:02+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:39 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Problem Description</h1>
+
+<p>Test script:</p>
+
+<pre><code>mkdir {gsp,dst,dst2,dst3} 
+svn co http://10.0.2.59:8118/svn/gsp/Development-Area/3-SCL/Trunk/TaskServer_Gsp gsp
+rsync -auC gsp/* dst/
+rsync -au gsp/* dst2/
+rsync -auC --include=core gsp/ dst3/
+rsync -au gsp/ dst4/
+diff -rq gsp dst
+</code></pre>
+
+<p>Output:</p>
+
+<p>Only in gsp/com.boco.gdpp.taskserver.core/src/com/boco/gdpp/taskserver: core</p>
+
+<h1>Cause and Solution</h1>
+
+<p>The -C option looks &ldquo;core&rdquo; as a <em>source version control</em> folder, and exclude it. See man page for details.</p>
+
+<p>The size of the &ldquo;.svn&rdquo; folder is similar to the host folder. So &ldquo;-C&rdquo; option is necessary. Becase &ldquo;.svn&rdquo; is not &ldquo;<em>&rdquo;, so there is no &ldquo;.svn&rdquo; in dst2. But it will also exclude other &ldquo;.</em>&rdquo; folder in gsp. So the right answer is:</p>
+
+<pre><code>rsync -auC --include=core gsp/ dst3/
+</code></pre>
+
+<p>The dst4 is a completely copy.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/26/175603/">Note About `What Does Functional Programming Mean`</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-26T17:56:03+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:56 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Tony Morris: What Does Functional Programming Mean?</p>
+
+<p>From: <a href="http://stackoverflow.com/questions/159797/is-ruby-a-functional-language">http://stackoverflow.com/questions/159797/is-ruby-a-functional-language</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/26/170955/">Notes About Why Functional Programming Matters</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-26T17:09:55+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>John Hughes: Why Functional Programming Matters</p>
+
+<ul>
+<li><p>The key points of a programming language is its modularization capability: it can divide a big problem into some smaller sub-problems; then glue them together. &ldquo;Modularity is the key to successful programming. Languages that aim to improve productivity must support modular programming well.&rdquo;</p></li>
+<li><p>FP language has 2 ways to glue sub-problems together:</p></li>
+<li><p>High-order functions: the functions using other functions as its parameter(s);</p></li>
+<li><p>Lazy evaluation: the generator-selector model;</p></li>
+</ul>
+
+
+<h1>Analysis of &ldquo;4.1 Newton-Raphson Square Roots&rdquo;</h1>
+
+<p>Convert the functions of Newton-Raphson algorithm in this paper into Clojure functions:</p>
+
+<p> next n x = (x + n/x)/2 => #(/ (+ % (/ n %)) 2)</p>
+
+<p> repeat (next n) a0 => (iterate #(/ (+ % (/ n %)) 2) a0)</p>
+
+<p>So the 8th iteration in decimal is:</p>
+
+<p> (double (nth (iterate #(/ (+ % (/ n %)) 2) a0) 8))</p>
+
+<p>Here the point is the function &ldquo;iterate&rdquo; returns a <strong>lazy</strong> sequence, which is to say, if you evaluate &ldquo;(iterate inc 5)&rdquo; in clojure repl, you got a infinite list (you have to press Ctrl-c to interrupt the output). You use &ldquo;nth&rdquo; to get the nth element in this list without worrying about your memory space.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/26/155129/">Run Ruby Shell on Android</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-26T15:51:29+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:51 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Installation: Install Ruboto Core and IRB from Google Play;</p></li>
+<li><p>Run irb: double click &ldquo;Ruboto IRB&rdquo; icon;</p></li>
+<li><p>Verify: input &ldquo;Dir.pwd&rdquo;, my got the output: &ldquo;/storage/sdcard0/jruby&rdquo;;</p></li>
+</ol>
+
+
+<p>Verify device: HUAWEI C8813D (mobile phone), Android 4.1.1.</p>
+
+<p>bingo.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2013/11/25/144450/">Git Commands and Configurations</a></h1>
     
     
@@ -89,6 +353,8 @@ The last &hellip;">
 
 
   <div class="entry-content"><p>Some helpful resources:</p>
+
+<p><a href="http://ndpsoftware.com/git-cheatsheet.html">Git Cheatsheet</a></p>
 
 <p><a href="http://marklodato.github.io/visual-git-guide/index-en.html">A Visual Git Reference</a>;</p>
 
@@ -589,465 +855,6 @@ godu    hard nofile   10000</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/20/151654/">Evernote Development in Python</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-20T15:16:54+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Follow <a href="http://dev.evernote.com/doc/start/python.php">The Evernote SDK for Python Quick-start Guide</a>:</p>
-
-<ol>
-<li><p>Get an account on sandbox.evernote.com and an API key;</p></li>
-<li><p>Download Evernote SDK for python:</p></li>
-</ol>
-
-
-<p> $ sudo pip install evernote;</p>
-
-<ol>
-<li>A simple demo:</li>
-</ol>
-
-
-<p> from evernote.api.client import EvernoteClient</p>
-
-<p> dev_token = &hellip; # get it from evernote dev server</p>
-
-<p> client = EvernoteClient(token=dev_token)</p>
-
-<p> userStore = client.get_user_store()</p>
-
-<p> user = userStore.getUser()</p>
-
-<p> type(user) # evernote.edam.type.ttypes.User</p>
-
-<p> user.username # your user name of sandbox account</p>
-
-<p> noteStore = client.get_note_store()</p>
-
-<p> type(noteStore) # evernote.api.client.Store</p>
-
-<p> notebooks = noteStore.listNotebooks()</p>
-
-<p> for n in notebooks:</p>
-
-<p>  print n.name</p>
-
-<p>Now add a notebook in your account via web page, then run:</p>
-
-<p> notebooks = noteStore.listNotebooks()</p>
-
-<p> for n in notebooks:</p>
-
-<p>  print n.name</p>
-
-<p>You can get the list with newly added notebook.</p>
-
-<ol>
-<li>Create a new note:</li>
-</ol>
-
-
-<p> import evernote.edam.type.ttypes as Types</p>
-
-<p> note = Types.Note()</p>
-
-<p> note.title = &ldquo;Test note from EDAMTest.py&rdquo;</p>
-
-<p> # set note content &hellip;</p>
-
-<p> created_note = note_store.createNote(note)</p>
-
-<p>Ref: <a href="https://github.com/evernote/evernote-sdk-python/blob/master/sample/client/EDAMTest.py">EDAMTest.py on github</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/20/092952/">Python Interactive Development Workflow</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-20T09:29:52+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:29 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The key of interactive programming is &ldquo;declarative programming&rdquo;, which can be expressed as following principles:</p>
-
-<ol>
-<li><p>Try to write all business logic in functions or classes, instead of procedures;</p></li>
-<li><p>Express the result as return values of functions, instead of printing them to console;</p></li>
-</ol>
-
-
-<p>Then you store these functions or classes in your files. Then you start the REPL shell, load your function file, declare your inputs, run your functions with the inputs, evaluate the output; modify the function in file, reload your file in shell, run your functions again, reevaluate the output, continue this loop, until you get the expected output.</p>
-
-<p>Between these loops, you have 2 window: an editor and a shell, the former for write &ldquo;real&rdquo; production code, the latter for loading file and doing some experiments, while switching between them with Alt-Tab. You only declare inputs once. Using shortcuts (Ctrl-p) to reload function file and re-test your function. So the loop will be very fast, and you can concentrate on the business logic itself.</p>
-
-<p>emacs-for-python and IPython are the preferred editor and shell, both have powerful code completion functionality.</p>
-
-<h1>Linux Shell</h1>
-
-<p>Save some fundamental functions in a python file, say &ldquo;myfunc.py&rdquo;, Then use &ldquo;python -i myfunc.py&rdquo; to load all functions in myfunc.py and enter interactive shell.</p>
-
-<h1>Python Console</h1>
-
-<p>&ldquo;execfile(&lsquo;filename.py&rsquo;)&rdquo; to load (or reload) file;</p>
-
-<p>&ldquo;dir()&rdquo; to list all variables;</p>
-
-<p>&ldquo;del(variable)&rdquo; to clear a variable;</p>
-
-<p>C-p, C-n to traverse in command history;</p>
-
-<h1>IPython</h1>
-
-<h2>Installation</h2>
-
-<pre><code>sudo apt-get install ipython-notebook
-</code></pre>
-
-<h2>Command history traverse and back reference</h2>
-
-<p>History inputs: all in dictionary &ldquo;In&rdquo;, use &ldquo;%hist -n&rdquo; list all previous command;</p>
-
-<p>Output: all in dictionary &ldquo;Out&rdquo;, <em>1, </em>2, &hellip;</p>
-
-<p>C-p, C-n, %rep <command_num></p>
-
-<p>While all shortcuts supported by bash are available in IPython (See Command Line Shortcuts in Linux Shell for details).</p>
-
-<h2>Command</h2>
-
-<p>To line magic command, &ldquo;%&rdquo; can be omitted.</p>
-
-<p>%pwd: pwd</p>
-
-<p>!<cmd>: run shell command;</p>
-
-<p>%run <file_name>: equals to &ldquo;execfile()&rdquo; in standard python shell;</p>
-
-<p>%reset: clear all user defined variables;</p>
-
-<p>%pycat <file_name>: show file content with syntax coloring;</p>
-
-<p>%edit <file_name>: edit file;</p>
-
-<p>%pdb or %run -d <file_name>: debug file;</p>
-
-<h2>log utility</h2>
-
-<p>%logstate: get the current state of log: on/off</p>
-
-<p>%logstart -o <file_name></p>
-
-<p>%logstop</p>
-
-<h1>Emacs</h1>
-
-<p><a href="https://github.com/gabrielelanaro/emacs-for-python">emacs-for-python</a></p>
-
-<h1>Difference between &ldquo;import&rdquo; and &ldquo;run&rdquo;</h1>
-
-<p>You can put some code after</p>
-
-<pre><code>if __name__ == '__main__':
-</code></pre>
-
-<p>in a python file &ldquo;test.py&rdquo;. Then if you want run these codes, use &ldquo;run test.py&rdquo; in ipython or &ldquo;execfile(&lsquo;test.py&rsquo;)&rdquo; in python shell. If you don&rsquo;t want to run these code, use &ldquo;import test&rdquo;. But this is not a best practice. Try to put all things in functions and classes.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/19/173101/">Manage Historical Snapshots in Sonarqube</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-19T17:31:01+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Login as admin, go to a dashboard of a project, then click &ldquo;Configuration -> History&rdquo; at the upper-right corner of the panel.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/19/101234/">Work on Remote Git Repository</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-19T10:12:34+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Create New Branch</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ git clone https://github.com/hackrole/pyevernote.git
-</span><span class='line'>$ cd pyevernote
-</span><span class='line'>$ git branch    // list all existing branches
-</span><span class='line'>$ git checkout -b leetschau     // create new branch "leetschau" and checkout it</span></code></pre></td></tr></table></div></figure>
-
-
-<h1>Push to remote repository</h1>
-
-<p><code>$ git push origin leetschau</code>, where &ldquo;origin&rdquo; is repository name, &ldquo;leetschau&rdquo; is branch name.</p>
-
-<p>When you push your branch the first time, add &ldquo;-u&rdquo; to specify that the current branch is associated with the remote branch.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/6089294/why-do-i-need-to-do-set-upstream-all-the-time.">http://stackoverflow.com/questions/6089294/why-do-i-need-to-do-set-upstream-all-the-time.</a></p>
-
-<h1>Push all branches to remote repository</h1>
-
-<p><code>$ git push origin --all</code>.</p>
-
-<h1>Sync with remote repository</h1>
-
-<p>If there&rsquo;s no local changes, the first command is unnecessary.</p>
-
-<pre><code>git checkout -- .
-git pull --all
-</code></pre>
-
-<h1>Discard local changes</h1>
-
-<p>Discard all local changes and keep the same with last commit in repo.</p>
-
-<pre><code>git reset --hard HEAD
-</code></pre>
-
-<p>We need discard all local changes and keep the same with remote repository. Provided that you want sync with &ldquo;master&rdquo; branch in remote repository &ldquo;origin&rdquo;:</p>
-
-<pre><code>$ git fetch orgin
-$ git reset --hard origin/master
-</code></pre>
-
-<p>Note that files not in stage area (not been &ldquo;add&rdquo;) will remains, while files in stage area or committed will be removed.
-If your remote repo is developed with git flow, your synchronized repo also need install git flow.
-On CentOS, install it with <code>yum install gitflow</code>. See installation doc on <a href="https://github.com/nvie/gitflow">gitflow</a> for details.</p>
-
-<h1>Remove Existing Branch</h1>
-
-<pre><code>$ git push origin :leetchao
-</code></pre>
-
-<h1>Create, query and remove remote repository alias</h1>
-
-<pre><code>$ git remote add pyevernote-repo https://github.com/hackrole/pyevernote.git
-$ git remote -v
-$ git remote rm pyevernote-repo
-</code></pre>
-
-<h1>Checkout from a existing repository and branch</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ git clone https://github.com/hackrole/pyevernote.git
-</span><span class='line'>$ cd pyevernote
-</span><span class='line'>$ git branch -r               // list all local and remote branches
-</span><span class='line'>  origin/leetschau
-</span><span class='line'>  ...
-</span><span class='line'>$ git checkout leetschau      // or "git checkout -b leetschau origin/leetschau" for old version git</span></code></pre></td></tr></table></div></figure>
-
-
-<p>For verification, you can find &lsquo;remote=origin &hellip; under [branch &ldquo;leetschau&rdquo;]&rsquo; in file .git/config.</p>
-
-<h1>Update from remote repository</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ git fetch origin
-</span><span class='line'>$ git status
-</span><span class='line'>  Your branch is **behind** 'origin/develop' by 3 commits... (which means your local branch need to be updated with remote one)
-</span><span class='line'>$ git merge origin/develop</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Or simply <code>git pull origin develop</code>, where develop is the branch name we want to sync.</p>
-
-<p>Note: Be careful to use &ldquo;git pull&rdquo; for &ldquo;pull&rdquo; is too &ldquo;smart&rdquo;.
-<a href="http://longair.net/blog/2009/04/16/git-fetch-and-merge/">git: fetch and merge, donât pull</a> gives the reason and provides an excellent explanation of what is &ldquo;branch&rdquo;.</p>
-
-<h1>Move a git repository from Bitbucket to Github</h1>
-
-<p>Based on <a href="http://www.blackdogfoundry.com/blog/moving-repository-from-bitbucket-to-github/">Moving Repository from Bitbucket to GitHub</a>.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>cd $DSNOTE_HOME
-</span><span class='line'>git remote rename origin bitbucket
-</span><span class='line'>// create a new repository "dsnote" on Github
-</span><span class='line'>git remote add origin https://github.com/leetschau/dsnote.git
-</span><span class='line'>git push -u origin master
-</span><span class='line'>git remote -v
-</span><span class='line'>git branch -r</span></code></pre></td></tr></table></div></figure>
-
-
-<h1>Other</h1>
-
-<p>Always use <code>git status</code> to get current status, such as the difference between CWD and stage area, difference between stage area and local repository, and difference between local repository and remote repository.
-Use <code>git log</code> to show commit history.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/14/160706/">Add Multiple Classpath Items in One Tag</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-14T16:07:06+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:07 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I have to add many jar files to a &ldquo;javac&rdquo; and a &ldquo;junit&rdquo; task from command line arguments. The <pathemelent path/> inside <classpath/> tag is suited for this situation.</p>
-
-<p>Ant script:</p>
-
-<p> &lt;javac srcdir=&ldquo;${test.dir}&rdquo;</p>
-
-<p>  destdir=&ldquo;${test.class.dir}&rdquo;
-  encoding=&ldquo;UTF-8&rdquo;
-  debug=&ldquo;true&rdquo;
-  failonerror=&ldquo;true&rdquo;>
-  <classpath>
-   <pathelement location="${instrumented.class.dir}"/>
-   <pathelement location="${src.class.dir}"/>
-   <pathelement path="${pdegen.classpath}"/>
-  </classpath>
- </javac></p>
-
-<p> <junit printsummary="yes" fork="yes">
-  <sysproperty key="net.sourceforge.cobertura.datafile"
-   file="${cobertura.data.file}" />
-  <classpath>
-   <pathelement location="${instrumented.class.dir}"/>
-   <pathelement location="${src.class.dir}"/>
-   <pathelement location="${test.class.dir}"/>
-   <pathelement location="${src.dir}"/>
-   <pathelement location="${cobertura.path}"/>
-   <pathelement path="${pdegen.classpath}"/>
-  </classpath>
-  <formatter type="xml"/>
-  <batchtest todir="${unittest.report.dir}" haltonerror="yes">
-   <fileset dir="${test.dir}">
-    <include name="**/*.java" />
-   </fileset>
-  </batchtest>
- </junit></p>
-
-<p>The corresponding command line is:</p>
-
-<p> ant -Dpdegen.classpath=/path/to/jar1:/path/to/jar2 target_name</p>
-
-<p>Here is the working Python script:</p>
-
-<p>  from subprocess import call</p>
-
-<p>  test_cmd = &lsquo;ant -buildfile unittest.xml -Drootdir=&rsquo;+ base_dir + \</p>
-
-<pre><code>pkg_name +' -Dcobertura.path=/usr/share/ant/lib/cobertura.jar -Dpdegen.classpath='+classpath[pkg_name] 
-</code></pre>
-
-<p>  ret = call(test_cmd.split())</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/36">&larr; Older</a>
@@ -1065,23 +872,23 @@ Use <code>git log</code> to show commit history.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Shell | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/shell/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-04-30T16:21:37+08:00</updated>
+  <updated>2015-05-10T10:22:47+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,62 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Run Mongo Scripts in Shell]]></title>
+    <link href="http://leetschau.github.io/blog/2015/05/08/155132/"/>
+    <updated>2015-05-08T15:51:32+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/05/08/155132</id>
+    <content type="html"><![CDATA[<p>You can query a remote mongoDB with a mongo script, print output to stdout.
+Then manipulate the output data with other shell utilities.</p>
+
+<p>For example, the following scripts get all fair names from a remote server,
+compare them with a local fair name set,
+to find out which are conflicted with the existing fair names in the local name.</p>
+
+<p>Some key points:</p>
+
+<ol>
+<li><p>&ldquo;db&rdquo; is a built-in global variable refers to the connected database,
+specified by the -h, -d options in mongo command line.
+It can be override by &ldquo;connect&rdquo; function.
+For example, with or without the first line, the script produce the same result
+when running <code>mongo test.js</code>:</p>
+
+<pre><code> $ cat test.js
+ // db = connect("localhost/test")
+ print(db.getCollectionNames())
+ db.myCollection.find().forEach(function(item) {
+   print(item.name)
+ })
+</code></pre></li>
+<li><p>Use &ldquo;print&rdquo; function to print result to stdout.</p></li>
+<li><p>To get command line arguments in mongo script, you must compose the evaluation string before(outside) <code>mongo</code> command,
+and you must add double quotes surrounding $exp.</p>
+
+<pre><code> #!/bin/bash
+
+ TargetDB=$1
+ TargetCol=$2
+ TargetField=$3
+
+ exp="db.${TargetCol}.find().forEach( function(item) \
+   { print(item.$TargetField); });"
+
+ mongo localhost/$TargetDB --eval "$exp"
+</code></pre></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/write-scripts-for-the-mongo-shell/">Write Scripts for the mongo Shell</a></p>
+
+<p><a href="http://stackoverflow.com/questions/8971151/file-write-operations-in-mongo-script">http://stackoverflow.com/questions/8971151/file-write-operations-in-mongo-script</a></p>
+
+<p><a href="http://stackoverflow.com/questions/14478304/redirect-output-of-mongo-query-to-a-csv-file">http://stackoverflow.com/questions/14478304/redirect-output-of-mongo-query-to-a-csv-file</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Fzf让命令行更方便]]></title>
@@ -223,75 +279,6 @@ public void runJavaProgram(String mainClass) {
   }
 }
 </code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Spark任务自动执行脚本]]></title>
-    <link href="http://leetschau.github.io/blog/2014/11/03/171108/"/>
-    <updated>2014-11-03T17:11:08+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/11/03/171108</id>
-    <content type="html"><![CDATA[<p>当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin：</p>
-
-<p>runJobs:</p>
-
-<pre><code>#!/bin/bash
-
-BMIN_CNT_WEI_LIST='0.5 0.3'
-MIN_SUP_LIST='0.004 0.0002'
-
-rm -rf {result,script}
-mkdir {result,script}
-origin_job=wfp-origin
-for bmin_cnt_wei in $BMIN_CNT_WEI_LIST; do
-    for min_sup in $MIN_SUP_LIST; do
-        echo MIN_SUP is: $min_sup , Bmin count weight is: $bmin_cnt_wei
-        new_script_name=wfp-bmin-${bmin_cnt_wei}-sup-${min_sup}
-        sed "4s/xxx/$min_sup/" $origin_job &gt; script/tmp
-        sed "11s/xxx/$bmin_cnt_wei/" script/tmp &gt; script/$new_script_name
-        rm script/tmp
-        echo Run shell script/$new_script_name
-        spark-shell -i script/$new_script_name
-        echo ------Calc is over------
-    done
-done
-</code></pre>
-
-<p>wfp-origin:</p>
-
-<pre><code>import Math.ceil
-import scala.io
-
-val MIN_SUP = xxx
-val MIN_CONF = 0.1
-val MAX_RELATION_ORDER = 3
-val DATA_FILE = "input"
-val SEP = "\001"
-val WEI_IDX = 5
-val MIN_INT_ID_LEN = 5
-val BMIN_CNT_WEI = xxx
-
-val RES_FILE = "result/wfp-result-bmin-" + BMIN_CNT_WEI.toString + "-sup-" + MIN_SUP.toString
-
-val rawData = sc.textFile(DATA_FILE).distinct
-val data = rawData.filter(x =&gt; x.split(SEP)(1).split("_")(0).size &gt; MIN_INT_ID_LEN)   
-val item_count = data.map(_.split(SEP)(1)).map(w =&gt; (w,1)).reduceByKey(_+_)
-val wids = data.map(_.split(SEP)(0))
-val MAX_ITEM = wids.map(w =&gt; (w,1)).reduceByKey(_+_).map(_._2).max
-val T = wids.distinct.count
-
-val weight = data.map(x =&gt; (x.split(SEP)(1), x.split(SEP)(WEI_IDX).toFloat)).distinct
-val rule_sets = weight.top(2000)
-scala.tools.nsc.io.File(RES_FILE).writeAll(rule_sets.map(_.toString).reduce(_ + "\n" + _))
-exit
-</code></pre>
-
-<p>这里的wfp-orgin只是一个示例，根据自己的脚本调整具体内容，但最后一行&#8221;exit&#8221;必须有，否则不能退出spark shell执行后面的任务。</p>
-
-<p>需要修改的参数用空格分开定义在一个字符串里，例如上面的BMIN_CNT_WEI_LIST和MIN_SUP_LIST，
-脚本创建script目录，保存新生成的脚本，以及result目录，保存计算结果。</p>
-
-<p>配合tmux，可以在tmux上运行runJobs.sh，下班时从tmux上detach出来，第二天上班时在attach上去看结果。</p>
 ]]></content>
   </entry>
   

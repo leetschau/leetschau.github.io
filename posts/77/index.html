@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="以下是paramiko-1.7.7.1的安装过程，可以看到整个过程分为步，第一步是build，就是拷贝源文件到build文件夹里， F:\VMFiles\tmpFiles\paramiko-1.7.7.1>F:\Software\Python27\python.exe setup.py &hellip;">
+  <meta name="description" content="例如现在要启动3个Server，每个都监听一个端口，因此需要在调用脚本之外的进程里运行，这就需要start命令： start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10000 poetry &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,407 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/20/083747/">Bat脚本的非阻塞调用</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-20T08:37:47+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:37 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>例如现在要启动3个Server，每个都监听一个端口，因此需要在调用脚本之外的进程里运行，这就需要start命令：</p>
+
+<p> start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10000 poetry/ecstasy.txt &ndash;num-bytes 30
+start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10001 poetry/fascination.txt
+start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10002 poetry/science.txt</p>
+
+<p>如果用call取代start，脚本会阻塞在第一个调用中，直到第一个调用返回才启动第二个。</p>
+
+<p>使用set为变量赋值时，注意等号左右不要留空格，否则变量名和变量值会包括这些空格。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/18/161616/">为什么Python不需要接口</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-18T16:16:16+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:16 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>尽管为Python增加接口的呼声一直存在，zope也为实现python的“面向协议编程”提供了接口（详见 zope文档 ），但Java中为了实现多态性而提供的接口对于Python而言是不需要的。首先看一个简单例子的Java版：</p>
+
+<p> InterfaceFunc.java</p>
+
+<p>  public class InterfaceFunc {
+  public static void main(String[] args) {
+   MyInterface a = new CA();
+   MyInterface b = new CB();
+   deal(a);
+   deal(b);
+  }
+  private static void deal(MyInterface instance) {
+   instance.func();
+  }
+ }</p>
+
+<p>MyInterface.java</p>
+
+<p>  public interface MyInterface {
+  void func();
+ }</p>
+
+<p>CA.java</p>
+
+<p>  public class CA implements MyInterface {
+  public void func() {
+   System.out.println(&ldquo;I am A&rdquo;);
+  }
+ }</p>
+
+<p>CB.java</p>
+
+<p>  public class CB implements MyInterface {
+  public void func() {
+   System.out.println(&ldquo;I am B&rdquo;);
+  }
+ }</p>
+
+<p>对应的Python代码：</p>
+
+<p>  class A:
+  def func(self):
+   print &lsquo;I am A&rsquo;
+ class B:
+  def func(self):
+   print &lsquo;I am B&rsquo;
+ def deal(obj):
+  obj.func()
+ a = A()
+ b = B()
+ deal(a)
+ deal(b)</p>
+
+<p>可以看到Python不需要接口的原因是其函数参数无需声明类型，只要参数能够完成函数要求其执行的操作就行，这就是 duck typing （中文叫“ 鸭子类型 ”）。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/18/102624/">Egg包使用方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-18T10:26:24+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:26 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Python的egg文件相当于java的jar文件（实际上二者都是zip文件），Java中可以通过设置classpath（设置环境变量 $CLASSPATH或者java命令的 -cp参数）的方法引用jar包，python中则是通过设置$PYTHONPATH环境变量或者sys.path的方法引用egg文件，如果需要引用多个egg，在 $PYTHONPATH中以分号隔开。下面以 zope egg 为例说明引用egg文件的方法，首先下载egg文件：d:\Apps\SharedLibs\zope.interface-3.8.0-py2.7-win32.egg。</p>
+
+<p> 命令行使用方法</p>
+
+<p> F:\ghost\tempFiles\twisted-intro> set PYTHONPATH=d:\Apps\SharedLibs\zope.interface-3.8.0-py2.7-win32.egg
+F:\ghost\tempFiles\twisted-intro> python twisted-deferred/defer-1.py
+Your poem is served:
+This poem is short.
+Finished</p>
+
+<p> 运行trial测试：</p>
+
+<p> F:\ghost\tempFiles\twisted-intro\tests> set PYTHONPATH=d:\Apps\SharedLibs\zope.interface-3.8.0-py2.7-win32.egg
+F:\ghost\tempFiles\twisted-intro\tests> python d:\Apps\Python27\Scripts\trial.py test_poetry.py
+ Eclipse中引用egg
+Eclipse->Window->Preference->PyDev->Interpreter - Python->System PYTHONPATH中添加这个文件即可；</p>
+
+<p> 制作egg包方法 setuptools安装方法</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/17/105950/">来自Python世界的一篇优秀的异步通信框架博文</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-17T10:59:50+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:59 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Twisted Introduction from KRONDO by Dave Peticolas.</p>
+
+<p>Part 1: 非常好的解释了同步与异步处理方式的区别，以及适用的场合。</p>
+
+<p>Part 2: 给出了基于socket的同步和异步客户端如何接收数据，随后引出了reactor模式，有利于理解twisted中的reactor对象。</p>
+
+<p>Part 6:</p>
+
+<p>twisted-client-3\get-poetry.py中回调的实现方法见“ 动态和静态类型语言中实现回调的方法 ”，另外twisted-client-3/get-poetry-1.py中的PoetryClientFactory.clientConnectionFailed方法定义在twisted.internet.protocol.ClientFactory（PoetryClientFactory的父类）中，所以它也是一个回调方法；</p>
+
+<p>Part 7:</p>
+
+<p>twisted-deferred/defer-1.py中：d.callback(arg)中的arg会作为参数传给got_poem，这个参数一般在got_poem方法中起“结果”的作用。got_poem可以带多个参数，但callback方法只能传一个，例如下面的代码可以运行通过：</p>
+
+<p>def got_poem(res, r2 = &lsquo;default&rsquo;):</p>
+
+<p> print &lsquo;Your poem is served:&rsquo;</p>
+
+<p> print res + &lsquo;: &rsquo; + r2</p>
+
+<p>&hellip;</p>
+
+<p>d.callback(&lsquo;This poem is so short.&rsquo;)</p>
+
+<p>但下面的代码会报参数个数错误：</p>
+
+<p> d.callback(&lsquo;This poem is so short.&rsquo;, &lsquo;default&rsquo;)</p>
+
+<p> Part 10:</p>
+
+<p> get-poetry中，生成deferred是在get_poetry方法中，fire deferred是在PoetryClientFactory的方法中，违反了第13节提到的对deferred“谁生成，谁fire”原则；</p>
+
+<p> Part 11:</p>
+
+<p> 本节的Discussion中，对Figure 26的说明里提到了file descriptors，根据此处的说明，我猜想p ython网络编程中的file descriptors可以理解为一个socket；</p>
+
+<p> Part 12:</p>
+
+<p> &ldquo;A Simple Client&#8221;一节里的client用到了netcat工具，不能在Windows平台上运行，也不是linux预安装的工具，需要手工下载安装，所以我们用XShell或者SecureCRT充当客户端，运行这个例子的方法是：首先启动Server：</p>
+
+<p> python twisted-server-1/transformedpoetry.py &ndash;port 11000</p>
+
+<p>然后客户端里运行： telnet localhost 11000 ，连上后（有&#8221;Connection established.&ldquo;）发送： 27:cummingsify.HERE IS MY POEM,</p>
+
+<p>可以收到信息： 15:here is my poem,</p>
+
+<p>上面发送的信息是 netstring 格式，&#8221;cummingsify.HERE IS MY POEM&#8221;是真正的报文，cummingsify是协议名称，&#8221;HERE IS MY POEM&#8221;是诗句，收到的信息也是netstring格式，可以看到返回诗句（here is my poem）就是发送诗句的cummingsify变换（变为小写）。</p>
+
+<p> 变换流程是：</p>
+
+<p> main-></p>
+
+<p>  TransformFactory-></p>
+
+<p>   TransformProtocol.stringReceived（接收报文，解析出协议名称为 cummingsify）-></p>
+
+<p>   TransformFactory.transform(用getattr方法组装出xform_cummingsify方法名，然后调用xform_cummingsify方法处理poem)-></p>
+
+<pre><code>TransformFactory.xform_cummingsify-&gt;
+
+ TransformService.cummingsify（实际完成变换为小写的动作）-&gt;
+</code></pre>
+
+<p>   返回TransformProtocol.stringReceived继续运行，发送处理后的报文（self.sendString）；</p>
+
+<p>   关闭连接。</p>
+
+<p> Part 13:</p>
+
+<p> 通过分析twisted-deferred/defer-10.py以及3个变体的输出的变化，观察嵌套deferred的行为：</p>
+
+<p> 变体1：倒数第二行&#8221;deferred_2.callback(3)&ldquo;改为&#8221;deferred_2.callback(5)&#8221;，对应部分的输出变为
+ Notice the output from the third callback is missing.
+callback_3 got 5</p>
+
+<p> Note the argument to the inner deferred&rsquo;s callback()</p>
+
+<p> 说明inner deferred的输出将作为N+1 outer deferred的输入，本例中 deferred_2没有callback，所以输入5直接作为输出，送给callback_3作为输入；</p>
+
+<p>变体2：倒数第二行&#8221;deferred_2.callback(3)&ldquo;改为&#8221;deferred_2.errback(5)&#8221;，对应部分的输出变为：</p>
+
+<p>Notice the output from the third callback is missing.</p>
+
+<p>Note the argument to the inner deferred&rsquo;s callback()</p>
+
+<p>Unhandled error in Deferred:</p>
+
+<p>Unhandled Error</p>
+
+<p>Traceback (most recent call last):</p>
+
+<p>Failure: <strong>builtin</strong>.int: 5</p>
+
+<p>说明inner deferred失败的时候将运行N+1 outer deferred的errback，由于本例中N+1 outer deferred没有实现errback，所以异常作为Unhandled error在程序运行完后由系统输出，这一机制在Part 9对twisted-deferred/defer-unhandled.py的说明中进行了阐述；</p>
+
+<p>变体3：在变体2的基础上，将&#8221;d.addCallback(callback_3)&ldquo;变为&#8221;d.addCallbacks(callback_3, errback_3)&#8221;，同时增加对errback_3的定义：</p>
+
+<p> def errback_3(res):</p>
+
+<p>  print &lsquo;errback_3 got&rsquo;, res</p>
+
+<p>  return 33</p>
+
+<p> 对应部分的输出变为：</p>
+
+<p> Notice the output from the third callback is missing.</p>
+
+<p> errback_3 got [Failure instance: Traceback (failure with no frames): <type 'int'>: 5 ]</p>
+
+<p> Note the argument to the inner deferred&rsquo;s callback()</p>
+
+<p> 由于outer deferred链的第3对增加了errback（errback_3），所以errback_3以inner deferred失败返回的结果（一个Failure对象）作为输入开始运行。</p>
+
+<p> twisted-client-6\get-poetry.py （简写为p6） 与 twisted-client-5\get-poetry.py（简写为p5）比较，p5从服务器下载诗句后自己进行转换，p6首先从服务器下载诗句，然后上传到服务器上进行转换，再下载下来；p6的3个参数分别是transform服务器的端口、下载诗句的服务器端口（可以有多个），例如&#8221;python twisted-client-6/get-poetry.py 10001 10002 10003&#8221;是首先从10002和10003服务器上下载诗句，然后上传到10001服务器上进行转换，再下载下来；</p>
+
+<p>Part 14:</p>
+
+<p>deferred.pause()使得pause之后的所有动作都推迟到unpause之后开始运行，所以pause之后addCallback(定义deferred)与callback(fire deferred)先后顺序是无所谓的。</p>
+
+<p>service = ProxyService(*server_addr)中的星号是什么意思？</p>
+
+<p>twisted-server-2/poetry-proxy.py代码分析：</p>
+
+<p>这个proxy由3部分组成：server, service, client。server接收用户的连接请求，包括PoetryProxyFactory和PoetryProxyProtocol两个类；service是连接server和client的纽带，由ProxyService类实现；client从external server处下载诗句，由PoetryClientFactory和PoetryClientProtocol类实现。server通过调用service的get_poem方法从client中取诗句，然后送到用户端，做到这一点是由两套“异步”过程保证的：client端（下载诗句）过程和server端（下载完成后缓存并发送给用户）过程，两个过程的纽带是PoetryClientFactory.deferred（以下简称pcd）。</p>
+
+<p>client过程是：当有数据发送过来时，缓存到poem中，当external server与自己断开时，认为诗句下载完毕，调用PoetryClientFactory.poem_finished(poem)方法fire pcd；</p>
+
+<p>server过程是：当与用户建立连接（PoetryProxyProtocol.connectionMade）时，初始化一个service，调用service.get_poem()方法（在pcd中增加第一层callback set_poem：缓存诗句，并把诗句向下层callback传送，然后初始化client，开始client过程），然后向pcd增加第二层callback（向用户端传送诗句）和第三层callback（断开与客户端的连接）。</p>
+
+<p>至此“诗句下载完毕后怎么办”就设置好了，只等下载完毕（client fire pcd），pcd的callback链开始运行。我们可以认为pcd是“当诗句下载完成时”。</p>
+
+<p>我认为proxy2.0用defer.succeed实现“同步过程defer化”比1.0用maybeDeferred实现更优雅，至少maybeDeferred这个词不达意的名字（应该叫alwaysDeferred）就很容易误导开发者；</p>
+
+<p>Part 15:
+tests/test_poetry.py的test_client方法中，被测试的是返回值d，d在PoetryClientFactory的构造函数中初始化（第43行），其callback链在test_client方法中设置（第87行），在PoetryClientFactory.poem_finished方法中fire（第48行），fire的参数是（已下载完毕的）poem，所以进入callback链后运行got_poem(poem)，此方法将实际结果poem与预期结果TEST_POEM进行比较，验证二者是否一致。据此可知trial中测试的一般过程是（设生成测试结果（实际值）的对象为TDO，实际值（由TDO生成）为actual，预期值为exp，测试方法为TM）：TDO负责生成d，在条件达到时以actual为参数fire d，TM在d的callback链上配置测试条件（如assertEquals(actual,exp)之类验证测试通过与否的方法），并且&trade;返回d，这样当运行测试时trial执行reactor.run()方法（所以测试代码里没有reactor.run()），一切开始运转。</p>
+
+<p> 高并发网络服务的思考 by Lucifer探讨了reactor模式与多线程模式各自的优缺点，但说的好像不是很清楚；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/16/170053/">Add Multiple Jar Files Into Classpath</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-16T17:00:53+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>运行java程序的脚本经常要将conf文件夹和lib文件夹中所有jar包加入到classpath里，送给java命令的-cp参数，当使用JDK6及以上版本时，可以写成：</p>
+
+<p> java -cp lib/*:conf com.boco.nep.Server</p>
+
+<p>其中<em>代表</em>.jar或者*.JAR，参考&#8221;<a href="http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath">http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath</a>&#8220;；</p>
+
+<p>如果上面的方法无效，也可以采用遍历方法加入jar包：</p>
+
+<h1>bash on Unix (start.sh in $APP_HOME/bin folder)</h1>
+
+<p> JARS=&ldquo;./conf&rdquo;
+ for i in <code>ls ./lib/*.jar</code>; do
+  JARS=&ldquo;$JARS&rdquo;:$i
+ done
+ exec &ldquo;${JAVA_HOME}/bin/java&rdquo; -cp $JARS com.boco.nep.Server</p>
+
+<h1>Windows (start.bat in $APP_HOME\bin folder)</h1>
+
+<p> @echo off
+ cd ../lib
+ set jars=
+ SETLOCAL ENABLEDELAYEDEXPANSION
+ for /f %%i in (&lsquo;dir /b *.jar&rsquo;) do set jars=%%i;!jars!</p>
+
+<p> call java -cp %jars% com.boco.nes.mina.Server</p>
+
+<p>注意jar包文件中不能有空格，否则jars中只有空格前的那一部分文件名；</p>
+
+<h2>语法解释</h2>
+
+<p>&ldquo;dir /b *.jar&#8221;以紧凑格式列出lib文件夹下所有的jar包文件（不包括文件大小、修改时间等信息）；</p>
+
+<p>%%i是声明的循环变量（bat脚本中循环变量以%%开头加一个字母组成）；</p>
+
+<p>&ldquo;for /f <var_name> in (set) do <command>&#8220;循环执行set中的每一个元素（详细语法可在命令行中指令&#8221;for /?&#8221;查看）；</p>
+
+<p>&ldquo;SETLOCAL ENABLEDELAYEDEXPANSION&#8221;与&rdquo;!jars!&ldquo;配合实现变量jars的延迟赋值，其作用参考<a href="http://www.jb51.net/article/29323.htm">批处理中setlocal enabledelayedexpansion的作用详细整理</a>。</p>
+
+<p>Windows版中使用语法的含义可参考<a href="http://topmanopensource.iteye.com/blog/506634">Windows bat命令编写大全</a>；for命令的用法；</p>
+
+<h1>多层目录遍历</h1>
+
+<p>Windows多层目录遍历可以用&#8221;for /r&#8221;或者&#8221;for /f %%i (&lsquo;dir /ad dir_name&rsquo;) do command&#8221;，其中&#8221;dir /ad&#8221;表示只列出目录，参考<a href="http://ss64.com/nt/for_d.html">FOR /D</a>。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -540,536 +941,6 @@ public class EchoProtocolHandler extends IoHandlerAdapter {
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/01/091245/">Customize Code Template in Eclipse</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-01T09:12:45+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>9:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Window->Preferences->Java->Code Style->Code Templates:</p>
-
-<p>  Comments->Types: Javadoc style of class, use Alt+Shift+J create;</p>
-
-<p>  Code->New Java Files: Code Template of New Created Java Class File;</p>
-
-<p>Check &ldquo;Automatically add comments for new methods and types&rdquo; if you want javadoc added to your new created java file automatically.</p>
-
-<p>Here is my javadoc template of types:</p>
-
-<p> /**</p>
-
-<ul>
-<li><p>${type_name}</p></li>
-<li><p>@author <a href="mailto:leetschau@gmail.com">Chad</a></p></li>
-<li><p>Created: ${date}</p></li>
-<li><p>Last Modified: ${date}</p></li>
-<li><p>${tags}</p></li>
-</ul>
-
-
-<p> */</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/31/113320/">Mina读写事件的发生顺序</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-31T11:33:20+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>11:33 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。</p>
-
-<p>import java.net.InetSocketAddress;</p>
-
-<p>import org.apache.mina.transport.socket.SocketAcceptor;</p>
-
-<p>import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
-
-<p>public class Main {</p>
-
-<p>public static void main(String[] args) throws Exception {</p>
-
-<p>SocketAcceptor acceptor = new NioSocketAcceptor();</p>
-
-<p>acceptor.getFilterChain().addLast(&ldquo;myfilter1&rdquo;, new MyFilter1());</p>
-
-<p>acceptor.getFilterChain().addLast(&ldquo;myfilter2&rdquo;, new MyFilter2());</p>
-
-<p>acceptor.setHandler(new EchoProtocolHandler());</p>
-
-<p>acceptor.bind(new InetSocketAddress(8293));</p>
-
-<p>System.out.println(&ldquo;Listening on port &rdquo; + PORT);</p>
-
-<p>}</p>
-
-<p>}</p>
-
-<p>import org.apache.mina.core.filterchain.IoFilter;</p>
-
-<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
-
-<p>import org.apache.mina.core.session.IdleStatus;</p>
-
-<p>import org.apache.mina.core.session.IoSession;</p>
-
-<p>import org.apache.mina.core.write.WriteRequest;</p>
-
-<p>import org.slf4j.Logger;</p>
-
-<p>import org.slf4j.LoggerFactory;</p>
-
-<p>public class MyFilter1 implements IoFilter {</p>
-
-<p>private static final Logger LOGGER = LoggerFactory</p>
-
-<p>.getLogger(MyFilter1.class);</p>
-
-<p>public void messageReceived(NextFilter nextFilter, IoSession session,</p>
-
-<p>Object message) throws Exception {</p>
-
-<p>LOGGER.info(&ldquo;MessageReceived!&rdquo;);</p>
-
-<p>nextFilter.messageReceived(session, message);</p>
-
-<p>}</p>
-
-<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
-
-<p>WriteRequest writeRequest) throws Exception {</p>
-
-<p>LOGGER.info(&ldquo;messageSent!&rdquo;);</p>
-
-<p>nextFilter.messageSent(session, writeRequest);</p>
-
-<p>}</p>
-
-<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
-
-<p>WriteRequest writeRequest) throws Exception {</p>
-
-<p>LOGGER.info(&ldquo;filterWrite!&rdquo;);</p>
-
-<p>nextFilter.filterWrite(session, writeRequest);</p>
-
-<p>}</p>
-
-<p>  // some other methods must implemented.</p>
-
-<p>}</p>
-
-<p>import org.apache.mina.core.filterchain.IoFilter;</p>
-
-<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
-
-<p>import org.apache.mina.core.session.IdleStatus;</p>
-
-<p>import org.apache.mina.core.session.IoSession;</p>
-
-<p>import org.apache.mina.core.write.WriteRequest;</p>
-
-<p>import org.slf4j.Logger;</p>
-
-<p>import org.slf4j.LoggerFactory;</p>
-
-<p>public class MyFilter2 implements IoFilter {</p>
-
-<p>private static final Logger LOGGER = LoggerFactory</p>
-
-<p>.getLogger(MyFilter2.class);</p>
-
-<p>  public void messageReceived(NextFilter nextFilter, IoSession session,</p>
-
-<p>Object message) throws Exception {</p>
-
-<p>LOGGER.info(&ldquo;MessageReceived!&rdquo;);</p>
-
-<p>nextFilter.messageReceived(session, message);</p>
-
-<p>}</p>
-
-<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
-
-<p>WriteRequest writeRequest) throws Exception {</p>
-
-<p>LOGGER.info(&ldquo;messageSent!&rdquo;);</p>
-
-<p>nextFilter.messageSent(session, writeRequest);</p>
-
-<p>}</p>
-
-<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
-
-<p>WriteRequest writeRequest) throws Exception {</p>
-
-<p>LOGGER.info(&ldquo;filterWrite!&rdquo;);</p>
-
-<p>nextFilter.filterWrite(session, writeRequest);</p>
-
-<p>}</p>
-
-<p>   // some other methods must implemented.</p>
-
-<p>}</p>
-
-<p>import org.apache.mina.core.buffer.IoBuffer;</p>
-
-<p>import org.apache.mina.core.service.IoHandlerAdapter;</p>
-
-<p>import org.apache.mina.core.session.IoSession;</p>
-
-<p>import org.slf4j.Logger;</p>
-
-<p>import org.slf4j.LoggerFactory;</p>
-
-<p>public class EchoProtocolHandler extends IoHandlerAdapter {</p>
-
-<p>private static final Logger LOGGER = LoggerFactory</p>
-
-<p>.getLogger(EchoProtocolHandler.class);</p>
-
-<p>@Override</p>
-
-<p>public void exceptionCaught(IoSession session, Throwable cause) {</p>
-
-<p>session.close(true);</p>
-
-<p>}</p>
-
-<p>@Override</p>
-
-<p>public void messageReceived(IoSession session, Object message)</p>
-
-<p>throws Exception {</p>
-
-<p>LOGGER.info(&ldquo;Received : &rdquo; + message);</p>
-
-<p>session.write(((IoBuffer) message).duplicate());</p>
-
-<p>}</p>
-
-<p>@Override</p>
-
-<p>public void messageSent(IoSession session, Object message) {</p>
-
-<p>LOGGER.info(&ldquo;messageSent &rdquo; + message);</p>
-
-<p>}</p>
-
-<p>}</p>
-
-<p>用XShell运行telnet localhost 8293，发一个字符串&#8221;hi&#8221;，运行结果如下：</p>
-
-<p>Listening on port 8293</p>
-
-<p>[INFO] [2012-03-31 14:03:38,575] [com.leechau.mina.echoServer.MyFilter1] - [MessageReceived!]</p>
-
-<p>[INFO] [2012-03-31 14:03:38,576] [com.leechau.mina.echoServer.MyFilter2] - [MessageReceived!]</p>
-
-<p>[INFO] [2012-03-31 14:03:38,577] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
-
-<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter2] - [filterWrite!]</p>
-
-<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter1] - [filterWrite!]</p>
-
-<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter1] - [messageSent!]</p>
-
-<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter2] - [messageSent!]</p>
-
-<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.EchoProtocolHandler] - [messageSent HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
-
-<p>可以看到messageReceived事件从Filter链顶端传播到handler；filterWrite事件发生在handler开始发送消息，但还未写入socket时，仅对Filter链有效，不作用于handler，从链尾向链首传播；messageSent事件发生在socket已被写入之后，从链顶端传播到handler；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/30/174213/">Mina的JMX支持</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-30T17:42:13+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:42 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以下是一个增加了JMX支持的Mina Echo Server.</p>
-
-<p> package org.apache.mina.echoServer;</p>
-
-<p> import java.lang.management.ManagementFactory;</p>
-
-<p> import java.net.InetSocketAddress;</p>
-
-<p> import javax.management.MBeanServer;</p>
-
-<p> import javax.management.ObjectName;</p>
-
-<p> import org.apache.mina.transport.socket.SocketAcceptor;</p>
-
-<p> import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
-
-<p> import org.apache.mina.integration.jmx.IoServiceMBean;</p>
-
-<p> public class Main {
- public static void main(String[] args) throws Exception {
-  SocketAcceptor acceptor = new NioSocketAcceptor();
-  acceptor.setHandler(new EchoProtocolHandler());
-  acceptor.bind(new InetSocketAddress(PORT));
-  System.out.println(&ldquo;Listening on port &rdquo; + 8293);
-  MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-  IoServiceMBean acceptorMBean = new IoServiceMBean(acceptor);
-  ObjectName acceptorName = new ObjectName(acceptor.getClass().getPackage().getName()
-    + &ldquo;:type=acceptor,name=&rdquo; + acceptor.getClass().getSimpleName());
-  mBeanServer.registerMBean(acceptorMBean, acceptorName);
- }
-}</p>
-
-<p> package org.apache.mina.echoServer;</p>
-
-<p> import org.apache.mina.core.buffer.IoBuffer;</p>
-
-<p> import org.apache.mina.core.service.IoHandlerAdapter;</p>
-
-<p> import org.apache.mina.core.session.IdleStatus;</p>
-
-<p> import org.apache.mina.core.session.IoSession;</p>
-
-<p> import org.apache.mina.filter.ssl.SslFilter;</p>
-
-<p> import org.slf4j.Logger;</p>
-
-<p> import org.slf4j.LoggerFactory;</p>
-
-<p> public class EchoProtocolHandler extends IoHandlerAdapter {
- private static final Logger LOGGER = LoggerFactory.getLogger(EchoProtocolHandler.class);
- @Override
- public void exceptionCaught(IoSession session, Throwable cause) {
-  session.close(true);
- }
- @Override
- public void messageReceived(IoSession session, Object message) throws Exception {
-  LOGGER.info(&ldquo;Received : &rdquo; + message);
-  session.write(((IoBuffer) message).duplicate());
- }
-}</p>
-
-<p>ivy.xml:</p>
-
-<p> <dependency org="javassist" name="javassist" rev="3.12.1.GA" conf="compile->master&#8221;/>
-<dependency org="log4j" name="log4j" rev="1.2.15" conf="compile->master&#8221;/>
-<dependency org="ognl" name="ognl" rev="3.0.4" conf="compile->master&#8221;/>
-<dependency org="org.apache.mina" name="mina-core" rev="2.0.4" conf="compile->master&#8221;/>
-<dependency org="org.apache.mina" name="mina-integration-beans" rev="2.0.4" conf="compile->master&#8221;/>
-<dependency org="org.apache.mina" name="mina-integration-jmx" rev="2.0.4" conf="compile->master&#8221;/>
-<dependency org="org.apache.mina" name="mina-integration-ognl" rev="2.0.4" conf="compile->master&#8221;/>
-<dependency org="org.easymock" name="easymock" rev="2.5.1" conf="master->master&#8221;/>
-<dependency org="org.slf4j" name="slf4j-api" rev="1.5.0" conf="compile->master&#8221;/>
-<dependency org="org.slf4j" name="slf4j-log4j12" rev="1.5.0" conf="compile->master&#8221;/></p>
-
-<p>启动服务是需要加VM参数-Dcom.sun.management.jmxremote：</p>
-
-<p>命令行启动：java -Dcom.sun.management.jmxremote -classpath <CLASSPATH> org.apache.mina.echoServer.Main</p>
-
-<p>Eclipse中启动：Run->Debug configuration中，Name: Main , VM arguments: -Dcom.sun.management.jmxremote</p>
-
-<p>启动JConsole，连接org.apache.mina.echoServer.Main；</p>
-
-<p>进入Main的监控窗口后MBean->操作，可以手工运行acceptor的方法，例如点击Dispose，会关闭acceptor。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/30/155535/">Java的Buffer读取操作</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-30T15:55:35+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>3:55 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Buffer用于从channel中读（或者向channel写）数据，它有3个标记，分别是capacity, limit &amp; position，其中capacity是此buffer的容量（固定值），buffer初始化时（使用allocate方法）设定；limit是有效数据的边界，即0~limit之间是可读/写的数据，position是下一个应该被读/写的位置。</p>
-
-<p>Buffer有两种模式：写模式和读模式，写模式是向buffer中写数据（例如socketChannel.read(buffer)），读模式是从buffer中读出数据。</p>
-
-<p>写模式下limit总等于capacity，读模式下limit是最近一次写入的数据位置。</p>
-
-<p>使用buffer读写数据的基本过程是一个4步循环：</p>
-
-<ol>
-<li><p>向buffer写入数据；</p></li>
-<li><p>buffer.flip(); // 把buffer从写模式切换到读模式</p></li>
-<li><p>从buffer中读出数据；</p></li>
-<li><p>if (buffer.hasRemaining()) {buffer.compact();} else {buffer.clear();} // compact和clear方法将buffer切换回写模式，下面有解释</p></li>
-</ol>
-
-
-<p>以上解释来自于<a href="http://tutorials.jenkov.com/java-nio/buffers.html">Java NIO Buffer</a>。</p>
-
-<h1>compact和clear方法</h1>
-
-<p>compact方法将未读完的数据（position与limit之间的数据）平移到buffer头部，然后将position设到这段数据的尾部，这样后面的写操作将在这段数据后追加（见SocketChannel.read()方法的javadoc），而不会覆盖这段数据，然后将limit设为capacity；clear方法令position=0; limit=capacity;从而为读数据做好准备，详见二者的javadoc。</p>
-
-<h1>wrap方法</h1>
-
-<p> ByteBuffer buffer = ByteBuffer.allocate(10);
- byte[] content = { 27, 91, 75, 116, 117 };
- buffer = ByteBuffer.wrap(content);
- assertEquals(0, buffer.position());
- assertEquals(5, buffer.limit());
- assertEquals(5, buffer.capacity());</p>
-
-<p>以上表明wrap方法会改变ByteBuffer对象的容量（capacity），并将其置为读模式；</p>
-
-<h1>实例演示</h1>
-
-<p>下面以ByteBuffer为例说明Java的buffer读写操作，以及对相关的几个参数的影响；</p>
-
-<p> import java.nio.ByteBuffer;
- public class GetPutByteBuffer {
-  public static void main(String[] args) {
-   ByteBuffer byteBuffer = ByteBuffer.allocate(10);
-   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit() + &ldquo; capacity=&rdquo; + byteBuffer.capacity());
-   // pos=0 limit=10 capacity=10
-   byteBuffer.put((byte) 20);
-   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
-   // pos=1 limit=10
-   byteBuffer.put((byte) 33);
-   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
-   // pos=2 limit=10
-   byteBuffer.put((byte) 55);
-   byteBuffer.flip();
-   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
-   // pos=0 limit=3
-   System.out.println(byteBuffer.get());
-   // 20
-   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
-   // pos=1 limit=3
-   byteBuffer.rewind();
-   System.out.println(byteBuffer.get());
-   // 20
-   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
-   // pos=1 limit=3
-   System.out.println(&ldquo;the remaining is: &rdquo; + byteBuffer.remaining());
-   // the remaining is: 2
-   while (byteBuffer.hasRemaining()) {
-    System.out.println(byteBuffer.get());
-    System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
-   }
-   /<em>
-   * 33
-   * pos=2 limit=3
-   * 55
-   * pos=3 limit=3
-   </em>/
-  }
- }</p>
-
-<p>可以看到buffer的capacity是一个固定值，初始化时设定，pos初始为0，limit初始等于capacity，一次读（get）或写（put）都使pos加一，limit不变，flip使limit=pos，pos=0，接收完数据开始读取时这个动作是必须的，rewind使pos=0，相当于重新开始读数据。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/27/090454/">Mina与netty的区别</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-27T09:04:54+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:04 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li>从messageReceived的参数上可以看出： netty是在channel上传递event，mina是在iosession中传递message（默认是iobuffer类型）；</li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/78">&larr; Older</a>
@@ -1087,23 +958,23 @@ public class EchoProtocolHandler extends IoHandlerAdapter {
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

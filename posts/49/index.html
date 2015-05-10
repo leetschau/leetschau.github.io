@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Repo format in VisualSVN is fsfs. It can&rsquo;t import bdb format repo directly. So you have to import is in the following 2 steps: Dump old repo to &hellip;">
+  <meta name="description" content="System-wide File Descriptor Limit Get current value: sysctl fs.file-max
+modify max fd limit: sysctl -w fs.file-max=10000 User File Descriptor Limit &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,341 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/12/084919/">Modify File Descriptor Limit on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-07-12T08:49:19+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>System-wide File Descriptor Limit</h1>
+
+<ul>
+<li><p>Get current value: <code>sysctl fs.file-max</code></p></li>
+<li><p>modify max fd limit: <code>sysctl -w fs.file-max=10000</code></p></li>
+</ul>
+
+
+<h1>User File Descriptor Limit</h1>
+
+<ul>
+<li><p>Get current value: <code>ulimit -n</code></p></li>
+<li><p>modify max fd limit: <code>ulimit -n 10000</code></p></li>
+<li><p>use <code>ulimit -a</code> to print all limits of a user, such as fd, processes, etc.</p></li>
+</ul>
+
+
+<p>Based on <a href="http://www.cyberciti.biz/faq/linux-increase-the-maximum-number-of-open-files/">http://www.cyberciti.biz/faq/linux-increase-the-maximum-number-of-open-files/</a></p>
+
+<p>Ref:</p>
+
+<p><a href="http://unix.stackexchange.com/questions/29577/ulimit-difference-between-hard-and-soft-limits">http://unix.stackexchange.com/questions/29577/ulimit-difference-between-hard-and-soft-limits</a>
+<a href="http://ss64.com/bash/ulimit.html">http://ss64.com/bash/ulimit.html</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/09/171311/">利用email-ext插件自动提取Sonar项目数据的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-07-09T17:13:11+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:13 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的自动提取数据方法需要Jenkins项目名称与Sonar项目的projectKey属性一致，因为Sonar的Web Service API可以通过projectKey属性指定项目，这样我们用${PROJECT_NAME}标记在email-ext的Pre-send Script中指定Sonar项目，获取项目数据，具体实现过程如下：</p>
+
+<ol>
+<li><p>新建BVT项目USB-TEST，此项目的BVT脚本build.xml中定义对应的Sonar项目的projectKey：</p>
+
+<pre><code> &lt;property name="sonar.projectKey" value="USB-TEST" /&gt;
+</code></pre></li>
+<li><p>Jenkins -> Manage Jenkins -> Configure System -> Extended E-mail Notification -> Default Pre-send Script</p></li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import groovy.json.JsonSlurper
+</span><span class='line'>sonarUrl = 'http://10.0.2.74:9000/api/resources?resource=${PROJECT_NAME}' +
+</span><span class='line'>  '&metrics=ncloc,classes,violations,coverage,tests,' +
+</span><span class='line'>  'test_success_density,comment_lines_density,duplications_data,' +
+</span><span class='line'>  'function_complexity'
+</span><span class='line'>def conn = new URL(sonarUrl).getText()
+</span><span class='line'>def project = new JsonSlurper().parseText(conn)
+</span><span class='line'>String report = ''  // 一定要声明为String，否则Jenkins执行脚本时报错
+</span><span class='line'>def result = project.msr[0]
+</span><span class='line'>result.each { item -&gt; report = report + nameMapping(item.key) + ': ' + item.frmt_val + '&lt;br /&gt;' }
+</span><span class='line'>String detail = 'See project &lt;a href="http://10.0.2.74:9000"&gt;${PROJECT_NAME} on Sonar&lt;/a&gt; for detail information.'
+</span><span class='line'>msg.setContent(report+detail, 'text/html')
+</span><span class='line'>def nameMapping (input) {
+</span><span class='line'> switch (input) {
+</span><span class='line'>  case "ncloc":
+</span><span class='line'>   result = "Total Lines of Code"
+</span><span class='line'>   break
+</span><span class='line'>  case "classes":
+</span><span class='line'>   result = "Total Classes"
+</span><span class='line'>   break
+</span><span class='line'>  case "violations":
+</span><span class='line'>   result = "Total Violations"
+</span><span class='line'>   break
+</span><span class='line'>  case "tests":
+</span><span class='line'>   result = "Total Test Cases"
+</span><span class='line'>   break
+</span><span class='line'>  case "test_success_density":
+</span><span class='line'>   result = "Test Success Rate"
+</span><span class='line'>   break
+</span><span class='line'>
+</span><span class='line'>  case "coverage":
+</span><span class='line'>   result = "Average Test Coverage"
+</span><span class='line'>   break
+</span><span class='line'>  case "comment_lines_density":
+</span><span class='line'>   result = "Average Comment Lines Rate"
+</span><span class='line'>   break
+</span><span class='line'>  case "function_complexity":
+</span><span class='line'>   result = "Average Function Complexity"
+</span><span class='line'>   break
+</span><span class='line'>  default:
+</span><span class='line'>   reuslt = input
+</span><span class='line'> }
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Jenkins中新建一个名为&#8221;USB-TEST&#8221;的项目，Configure -> Post-build Actions -> Advanced -> Pre-send Script: ${DEFAULT_PRESEND_SCRIPT}. Note that this token is case sensitive; This template is stored in the file $JENKINS_HOME/hudson.plugins.emailext.ExtendedEmailPublisher.xml;</p>
+
+<p>上面脚本中的msg变量是JDK的javax.mail.internet.MimeMessage对象，用setText()方法设置邮件正文，详细介绍见email-ext官网；</p>
+
+<p>当修改默认Pre-send Script后，各项目的Pre-send Scrpit不会自动更新，需要手工改为${DEFAULT_PRESEND_SCRIPT}；</p>
+
+<p>构建项目后Jenkins会自动发送邮件。</p>
+
+<p>如果邮件正文中没有超链接，将文本格式设为text/plain更简洁，相应地上面的代码改为：</p>
+
+<pre><code>result.each { item -&gt; report = report + nameMapping(item.key) + ': ' + item.frmt_val + '\n' } 
+msg.setText(report)
+</code></pre>
+
+<h1>调试Groovy脚本的方法</h1>
+
+<h2>利用Jenkins的Groovy引擎</h2>
+
+<p>在&#8221;<a href="http://10.0.2.74:8088/script">http://10.0.2.74:8088/script</a>&#8220;中用Web API调试代码，例如：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import groovy.json.JsonSlurper 
+</span><span class='line'>sonarUrl = 'http://10.0.2.74:9000/api/resources?resource=ESB' + 
+</span><span class='line'>  '&metrics=ncloc,classes,violations,coverage,tests,' + 
+</span><span class='line'>  'test_success_density,comment_lines_density,duplications_data,' + 
+</span><span class='line'>  'function_complexity' 
+</span><span class='line'>def conn = new URL(sonarUrl).getText() 
+</span><span class='line'>def project = new JsonSlurper().parseText(conn) 
+</span><span class='line'>println project
+</span><span class='line'>
+</span><span class='line'>println project.id</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>命令行中调试</h2>
+
+<p>在命令行中执行<code>groovy myscript.groovy</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/09/110533/">Set Classpath for Groovy on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-07-09T11:05:33+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:05 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The &ldquo;-cp&rdquo; option of groovy is the same with Java.</p>
+
+<p>Wildcards can be used on JDK6 or later. For example:</p>
+
+<p> groovy -cp &ldquo;/home/chad/apps/http-builder-0.6/<em>:/home/chad/apps/http-builder-0.6/dependencies/</em>&rdquo; httpex.groovy</p>
+
+<p>Note1: &ldquo;**&rdquo; is not supported, which means above command can not written as:</p>
+
+<p> groovy -cp &ldquo;/home/chad/apps/http-builder-0.6/**&rdquo; httpex.groovy</p>
+
+<p>Note2: &ldquo;<em>.jar&rdquo; is not supported, which means &ldquo;/home/chad/apps/http-builder-0.6/</em>.jar&rdquo; is invalid;</p>
+
+<p>Note3: the double quotes of classpath is necessary;</p>
+
+<p>Note4: &ldquo;/home/chad&rdquo; in classpath can not be replaced by &ldquo;~&rdquo;;</p>
+
+<p>See: <a href="http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath">http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/08/154203/">`package com.sun.xml.internal.bind. V2 Does Not Exist` Solution</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-07-08T15:42:03+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:42 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When execute javac task in ant under openjdk(I also find this problem in Oracle JDK 1.6, 2014-3-21), you may encounter &ldquo;package com.sun.xml.internal.bind.v2 does not exist&rdquo; error, which is because this package only exists in Oracle (Sun) JDK, but not in openjdk. To resolve this problem, add compiler arguments &ldquo;-XDignore.symbol.file=true&rdquo; to javac task:</p>
+
+<pre><code>&lt;javac destdir="${src.class.dir}" encoding="UTF-8" debug="true" classpathref="lib.path" failonerror="true"&gt; 
+    &lt;src path="${src.dir}"/&gt; 
+    &lt;compilerarg line="-XDignore.symbol.file=true" /&gt; 
+&lt;/javac&gt; 
+</code></pre>
+
+<p>This is also valid when using javac in command line.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/08/151108/">用vi删除utf-8文件中的BOM标记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-07-08T15:11:08+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:11 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>BOM (Byte-Order Mark)用来表示Unicode文件的字节顺序（参考<a href="http://blog.csdn.net/shixing_11/article/details/6976900">编译工程时报java:[1,0] illegal character: \65279问题排查与解决过程</a>中对BOM作用的说明），在UTF-8文件中已没有作用，而且这个标记会导致javac编译失败（但在Eclipse中却能够正常编译，原因不明），用vi打开这个文件，执行<code>:setlocal bomb?</code>检查是否有bom，如果有，用<code>:setlocal nobomb</code>去掉它。
+ 或者用vi -b <filename>以binary方式打开文件，就可以看到文件头上的BOM标记，删之。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -444,256 +780,6 @@ zsh-mime-setup
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/02/100138/">Start Console Vi From a Launcher on Xfce</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-02T10:01:38+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:01 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Alt+F3 (App Finder) -> Keyboard -> Application Shortcuts -> Add:</p>
-
-<p>Command: terminator -e vi;</p>
-
-<p>Shortcut: <Super>v (&ldquo;Win&rdquo; key + v);</p>
-
-<p>Now you can use &ldquo;Win + v&rdquo; to launch vi without installing something like gVim.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/02/091625/">Desktop Search Utility on Xfce</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-02T09:16:25+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>9:16 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>There is no Linux equivalent of Everything on Windows. All search tools have no incremental search funtion like that in Everthing.</p>
-
-<p>The fastest filename search tool is &ldquo;find&rdquo; command and catfish. Pay attention that you have to do a &ldquo;Deep Search&rdquo; in catfish to perform a &ldquo;real&rdquo; search, or it only use &ldquo;locate&rdquo; command to search in the database.</p>
-
-<p>This bug will be fixed in next release of catfish. By default catfish will not search files in hidden directories. So you have to use &ldquo;find&rdquo; command if you want getting all results including those in hidden directories.</p>
-
-<p>Some Window Manager like Konqueror, Dolphin have filename search function, but they are too slow.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/01/180139/">Window Border Disappeared on Xfce</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-01T18:01:39+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>6:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>From last week all the window on Mint 14 Xfce has no title bar. There is no background image. No icons on task bar. Some shortcuts are invalid, including Alt+Drag(move window), Alt+F9(minimize), Alt+F4(close window), etc.</p>
-
-<p>Solution:</p>
-
-<p>In terminal:</p>
-
-<pre><code>xfdesktop &amp;
-</code></pre>
-
-<p>taking back the background image;</p>
-
-<pre><code>xfwm4 &amp;
-</code></pre>
-
-<p>taking back window border.</p>
-
-<p>bingo.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/01/144244/">A Minimal Gen_fsm Example</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-01T14:42:44+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:42 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I implemented a super simple 2-state FSM based on gen_fsm. You can press this light between on and off.</p>
-
-<p>light_fsm.erl:</p>
-
-<p> module(light_fsm).
- -hehavior(gen_fsm).
- -export([start/1, press_light/1]).
- -export([init/1, on/2, off/2]).
- -record(state, {name=&ldquo;&rdquo;}).
- start(Name) ->
-  gen_fsm:start(?MODULE, [Name], []).
- press_light(Pid) ->
-  gen_fsm:send_event(Pid, press).
- init(Name) ->
-  io:format(&ldquo;~p in init state: off.~n&rdquo;, [Name]),
-  {ok, off, #state{name=Name}}.
- off(press, S=#state{}) ->
-  io:format(&ldquo;~p rec msg press, turned on.~n&rdquo;, [S]),
-  {next_state, on, S#state{}}.
- on(press, S=#state{}) ->
-  io:format(&ldquo;~p rec msg press, turned off.~n&rdquo;, [S]),
-  {next_state, off, S#state{}}.
-Use this FSM:</p>
-
-<p>Eshell V5.10.2 (abort with ^G)
-1> c(light_fsm).
-{ok,light_fsm}
-2> {ok, Light1} = light_fsm:start(&ldquo;Light1&rdquo;).
-[&ldquo;Light1&rdquo;] in init state: off.
-{ok,&lt;0.39.0>}
-3> light_fsm:press_light(Light1).
-{state,[&ldquo;Light1&rdquo;]} rec msg press, turned on.
-ok
-4> light_fsm:press_light(Light1).
-{state,[&ldquo;Light1&rdquo;]} rec msg press, turned off.
-ok</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/28/091322/">Development With Vim on Multiple Layers Project</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-06-28T09:13:22+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:13 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>ctrlp</h1>
-
-<p>Install <a href="https://github.com/kien/ctrlp.vim">ctrlp</a> with pathogen.
-Then add the following to .vimrc,
-which map C-u to search in most recently used files,
-and C-i to search in all opened buffers:</p>
-
-<pre><code>" ctrlp
-nnoremap &lt;C-i&gt; :CtrlPBuffer&lt;CR&gt;
-nnoremap &lt;C-u&gt; :CtrlPMRU&lt;CR&gt;
-</code></pre>
-
-<p>which is more powerful, faster than FuzzyFinder, and easier to install and use.</p>
-
-<h1>FuzzyFinder</h1>
-
-<p><a href="https://github.com/vim-scripts/FuzzyFinder">FuzzyFinder</a> (created by Takeshi NISHIDA)
-is a powerful search tool like &ldquo;go to everything&rdquo; in sublime text 2.
-Command-T is a similar tool. But it need ruby and have to compile it.</p>
-
-<p>L9 plugin (also created by Takeshi NISHIDA) is needed to use this plugin.</p>
-
-<h1>Search and Open File</h1>
-
-<h2>CoverageFile Mode</h2>
-
-<p>This mode is invoked by command :FufCoverageFile.
-It includes all files in current working directory and subdirectories.
-Note it only matches characters in one name.</p>
-
-<p>Say you have a file at ./abc/def/stu.xyz,
-you can find it with &ldquo;suyz&rdquo;, &ldquo;sxyz&rdquo; or any combinations of characters in &ldquo;stu.xyz&rdquo;.
-But &ldquo;ads&rdquo; and &ldquo;des&rdquo; will match nothing.
-You can find it with partial name, in this case &ldquo;d/s&rdquo; will get stu.xyz.</p>
-
-<p>Add <code>nnoremap &lt;C-o&gt; :FufCoverageFile&lt;CR&gt;</code> in ~/.vimrc to map ctrl-o to invoke Coverage File command,
-then input the filename pattern, then press <CR>.
-Cancel it with <ESC> key.</p>
-
-<h2>File Mode</h2>
-
-<p>This mode is invoked by command :FufFile.
-It only includes files in current working directory, without files in subdirectories (so not very useful).</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/50">&larr; Older</a>
@@ -711,23 +797,23 @@ It only includes files in current working directory, without files in subdirecto
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

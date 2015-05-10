@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Go to specific tab with text by extension &ldquo;Tabhunter&rdquo; Setup the invoking key in its preference page. I use F1 as the key. Every time F1 &hellip;">
+  <meta name="description" content="Autocomplete function in text box provides instant response to user input text, which is very powerful and user-friendly. For meteor, this function &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,608 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/04/230146/">Text Box Autocomplete in Meteor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-04T23:01:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Autocomplete function in text box provides instant response to user input text, which is very powerful and user-friendly.</p>
+
+<p>For meteor, this function is called typeahead.
+Run <code>meteor search typeahead</code>, you can find <a href="https://github.com/sergeyt/meteor-typeahead">sergeyt:typeahead</a>.
+Clone it to your computer with git, in the &ldquo;demo&rdquo; subfolder, run <code>meteor</code> and open <a href="http://localhost:3000/.">http://localhost:3000/.</a>
+When typing in the first text box (&ldquo;NBA teams&rdquo; in it), it will provide instant response.</p>
+
+<p>sergeyt:typeahead&rsquo;s Bootstrap counterpart is called typeahead, too. That of jQuery is called &ldquo;Autocomplete&rdquo;.</p>
+
+<p>The following is a minimal working demo of sergeyt:typeahead:</p>
+
+<pre><code>$ meteor create meteorapp
+$ cd meteorapp
+$ meteor add sergeyt:typeahead
+$ cat meteorapp.html
+&lt;head&gt;
+  &lt;title&gt;meteorapp&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;input "p" in the following text box&lt;/h1&gt;
+
+&lt;/body&gt;
+
+&lt;template name="sti"&gt;
+  &lt;input class="form-control typeahead" name="team"
+      type="text" placeholder="NBA teams"
+      autocomplete="off" spellcheck="off"
+      data-source="nba"/&gt;
+&lt;/template&gt;
+
+$ cat meteorapp.js
+Nba = new Meteor.Collection("nba");
+
+if (Meteor.isClient) {
+  Template.sti.helpers({
+    nba: function(){
+        return Nba.find().fetch().map(
+                function(it){
+                  return it.name;
+                });
+    }
+  });
+
+  Meteor.startup(function(){
+      Meteor.typeahead.inject();
+  });
+}
+
+if (Meteor.isServer) {
+  Meteor.startup(function () {
+    Nba.insert({name:'Philadelphia 76ers'});
+    Nba.insert({name:'Detroit Pistons'});
+    Nba.insert({name:'Portland Trail Blazers'});
+  });
+}
+</code></pre>
+
+<p>Note:</p>
+
+<ol>
+<li><p>Every time start the server, the 3 items will be added into collection Nba. So if you don&rsquo;t clear data (with <code>meteor reset</code>), you will see many identical items in candidate list;</p></li>
+<li><p>No matter &ldquo;on&rdquo; or &ldquo;off&rdquo; of the value of the &ldquo;autocomplete&rdquo; attribute of the text box, the autocomplete function always works. So what is the function of this attribute?</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/04/110411/">Username Disappeared in Meteor Official Tutorial</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-04T11:04:11+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In the 9th step (Adding user accounts) of official tutorial &ldquo;simple-todos&rdquo; of Meteor 1.0,
+if you start server while leaving some old data (todo items) created in previous steps,
+you will find that there&rsquo;s no username before the todo text.</p>
+
+<p>But if you clear all old data (click remove button on web page, or use <code>meteor reset</code>),
+and create new todo items with a signed in username, you will find the username appear.</p>
+
+<h1>Data binding between Template and Collection</h1>
+
+<p>The following modified version simple-todos works:</p>
+
+<p>simple-todos.html:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;head&gt;
+</span><span class='line'>  &lt;title&gt;Todo List&lt;/title&gt;
+</span><span class='line'>&lt;/head&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;body&gt;
+</span><span class='line'>  &lt;div class="container"&gt;
+</span><span class='line'>    &lt;header&gt;
+</span><span class='line'>      &lt;h1&gt;Todo List&lt;/h1&gt;
+</span><span class='line'>      &lt;label class="hide-completed"&gt;
+</span><span class='line'>        &lt;input type="checkbox" checked="" /&gt;
+</span><span class='line'>        Hide Completed Tasks
+</span><span class='line'>      &lt;/label&gt;
+</span><span class='line'>
+</span><span class='line'>      
+</span><span class='line'>
+</span><span class='line'>      
+</span><span class='line'>        &lt;form class="new-task"&gt;
+</span><span class='line'>          &lt;input type="text" name="text" placeholder="Type to add tasks" /&gt;
+</span><span class='line'>        &lt;/form&gt;
+</span><span class='line'>      
+</span><span class='line'>    &lt;/header&gt;
+</span><span class='line'>    &lt;ul&gt;
+</span><span class='line'>      
+</span><span class='line'>        
+</span><span class='line'>      
+</span><span class='line'>    &lt;/ul&gt;
+</span><span class='line'>  &lt;/div&gt;
+</span><span class='line'>&lt;/body&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;template name="todo"&gt;
+</span><span class='line'>  &lt;li class="checked"&gt;
+</span><span class='line'>    &lt;button class="delete"&gt;&times;&lt;/button&gt;
+</span><span class='line'>    &lt;input type="checkbox" checked="" class="toggle-checked" /&gt;
+</span><span class='line'>    &lt;span class="text"&gt;&lt;strong&gt;&lt;/strong&gt; -  at &lt;/span&gt;
+</span><span class='line'>  &lt;/li&gt;
+</span><span class='line'>&lt;/template&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>simple-todos.js:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Tasks = new Mongo.Collection("tododb");
+</span><span class='line'>
+</span><span class='line'>if (Meteor.isClient) {
+</span><span class='line'>  Template.body.helpers({
+</span><span class='line'>    todoitems: function () {
+</span><span class='line'>      if (Session.get("hideCompleted")) {
+</span><span class='line'>        return Tasks.find({checked: {$ne: true}}, {sort: {createdAt: -1}});
+</span><span class='line'>      } else {
+</span><span class='line'>        return Tasks.find({}, {sort: {createdAt: -1}});
+</span><span class='line'>      }
+</span><span class='line'>    },
+</span><span class='line'>    hideCompleted: function () {
+</span><span class='line'>      return Session.get("hideCompleted");
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.body.events({
+</span><span class='line'>    "submit .new-task": function (event) {
+</span><span class='line'>      var text = event.target.text.value;
+</span><span class='line'>
+</span><span class='line'>      Tasks.insert({
+</span><span class='line'>        text: text,
+</span><span class='line'>        createdAt : new Date(),
+</span><span class='line'>        owner: Meteor.userId(),
+</span><span class='line'>        username: Meteor.user().username
+</span><span class='line'>      });
+</span><span class='line'>
+</span><span class='line'>      event.target.text.value = "";
+</span><span class='line'>
+</span><span class='line'>      return false;
+</span><span class='line'>    },
+</span><span class='line'>
+</span><span class='line'>    "change .hide-completed input": function (event) {
+</span><span class='line'>        Session.set("hideCompleted", event.target.checked);
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.todo.helpers({
+</span><span class='line'>    creDate: function () {
+</span><span class='line'>      return this.createdAt;
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.todo.events({
+</span><span class='line'>    "click .toggle-checked": function () {
+</span><span class='line'>      Tasks.update(this._id, {$set: {checked: ! this.checked}});
+</span><span class='line'>    },
+</span><span class='line'>    "click .delete": function () {
+</span><span class='line'>      Tasks.remove(this._id);
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Accounts.ui.config({
+</span><span class='line'>    passwordSignupFields: "USERNAME_ONLY"
+</span><span class='line'>  });
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>if (Meteor.isServer) {
+</span><span class='line'>  Meteor.startup(function () {
+</span><span class='line'>    // code to run on server at startup
+</span><span class='line'>  });
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So we can conclude (the left hand side of &ldquo;&lt;=>&rdquo; is template in html file, while js codes on the right hand side):</p>
+
+<ol>
+<li><p>The name after #each is a <strong>helper function</strong> which defined in js file, and returns a subset of a collection:</p>
+
+<pre><code>  &lt;=&gt; Template.body.helpers -&gt; todoitems: function () {...}; 
+</code></pre></li>
+<li><p>Variables in  in a template is the attributes of the object in collection, represented by the template:</p>
+
+<pre><code> &lt;strong&gt;&lt;/strong&gt; -  &lt;=&gt; Tasks.insert({ text: text, ..., username: Meteor.user().username }); 
+</code></pre>
+
+<p>or a helper function ( here).</p></li>
+<li><p>&ldquo;this&rdquo; in helper function refers to the template the function based on.</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/03/180421/">Meteor Codes Auto Completion in Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-03T18:04:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>On ArchLinux</h1>
+
+<ol>
+<li><p>Install node.js: <code>sudo pacman -S nodejs</code>;</p></li>
+<li><p>Install <a href="https://github.com/marijnh/tern_for_vim">tern_for_vim</a>:</p>
+
+<pre><code> $ cd ~/.vim/bundle
+ $ git clone https://github.com/marijnh/tern_for_vim.git
+ $ cd tern_for_vim
+ $ npm install
+</code></pre></li>
+<li><p>Install meteor plugin for tern <a href="https://github.com/Slava/tern-meteor">tern-meteor</a>: download meteor.js from this site to folder ~/.vim/bundle/tern_for_vim/node_modules/tern/plugins;</p></li>
+<li><p>Create a meteor project, create a .tern-project file under the project home:</p>
+
+<pre><code> {
+   "libs": [
+     "browser",
+     "jquery",
+     "underscore"
+   ],
+   "loadEagerly": [ "*.js", "*/*.js", "*/*/*.js", "*/*/*/*.js" ],
+   "dontLoad": [ ".meteor" ],
+   "plugins": {
+     "meteor": {}
+   }
+ }
+</code></pre></li>
+<li><p>Now when you edit .js file, use C-x,C-o to trigger autocompletion.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="https://github.com/joyent/node/wiki/installing-node.js-via-package-manager#arch-linux">Installing Node.js via package manager</a>;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/03/113214/">Use Template.dynamic to Create Dynamic Pages for Meteor Application</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-03T11:32:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:32 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>For a SPA (single page app), it&rsquo;s a common practice to switch between templates instead of pages.
+The following codes demonstrate how to switching between 2 templates according to 2 buttons&#8217; clicking events.</p>
+
+<pre><code>$ meteor create multipage
+$ cd multipage
+$ cat &lt;&lt; EOF &gt; multipage.html
+&lt;head&gt;
+  &lt;title&gt;multiple-view-example&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;button class="pageHome"&gt;Home&lt;/button&gt;
+  &lt;button class="pageAbout"&gt;About&lt;/button&gt;
+
+&lt;/body&gt;
+
+&lt;template name="home"&gt;
+  &lt;p&gt;Home!&lt;/p&gt;
+&lt;/template&gt;
+
+&lt;template name="about"&gt;
+  &lt;p&gt;About!&lt;/p&gt;
+&lt;/template&gt;
+EOF
+
+$ cat &lt;&lt; EOF &gt; multipage.js
+if ( Meteor.isClient ) {
+  Meteor.startup(function () {
+    Session.set("page", "home");
+    console.log("session key: " + Session.get("page"));
+  });
+
+  Template.body.helpers({
+    whichOne: function(){
+      console.log("session key: " + Session.get("page"));
+      return Session.get("page");
+    }
+  });
+
+  Template.body.events({
+    "click .pageHome": function () {
+      Session.set("page", "home");
+    },
+    "click .pageAbout": function () {
+      Session.set("page", "about");
+    }
+  });
+}
+
+if ( Meteor.isServer ) {
+  Meteor.startup( function() {
+  } );
+}
+EOF
+
+$ meteor
+</code></pre>
+
+<p>Open <a href="http://localhost:3000,">http://localhost:3000,</a> clicking &ldquo;Home&rdquo; button, the &ldquo;home&rdquo; template is shown.
+While clicking &ldquo;about&rdquo; button, the &ldquo;about&rdquo; template is shown.</p>
+
+<p>Template.dynamic is better than Meteor&rsquo;s route package, for it&rsquo;s a built-in function of Meteor.
+No need to install a package with <code>meteor add ...</code>.</p>
+
+<p>And you can put big templates into a new html file, which make the struture more flexible.</p>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js">http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/01/103921/">Use Bootstrap Themes in Meteor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-01T10:39:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://www.meteor.com/">Meteor</a> is awesome for build dynamic web apps.
+However it&rsquo;s a &ldquo;baremetal&rdquo; without templates.
+On the other hand, <a href="http://getbootstrap.com/">Bootstrap</a> is a powerful front-end framework with many beautiful themes.
+So we have to combine these two.</p>
+
+<p>First of all we need to get the bootstrap.min.js
+from the latest precompiled version of bootstrap release package (bootstrap-x.x.x-dist.zip).
+<a href="http://bootswatch.com/">Bootswatch</a> provides free bootstrap themes.
+Download &ldquo;bootstrap.min.css&rdquo; file with clicking &ldquo;Download&rdquo; button of prefered theme,
+and put it under client folder of meteor app.
+Then all DOM element will be styled.</p>
+
+<pre><code>cd ~/docs/tmp
+meteor create mywebapp
+cd mywebapp
+rm *.js *.css *.html
+mkdir -p {server,client/{css,lib}}
+wget https://github.com/twbs/bootstrap/releases/download/v3.3.1/bootstrap-3.3.1-dist.zip
+unzip bootstrap-3.3.1-dist.zip -d bootstrap
+cp bootstrap/dist/js/bootstrap.min.js client/lib
+rm -rf bootstrap*
+wget http://bootswatch.com/readable/bootstrap.min.css client/css/bootstrap.min.css
+cat &lt;&lt; EOF &gt; client/mywebapp.html
+&lt;head&gt;
+  &lt;title&gt;sousouzhan&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;Welcome to Meteor!&lt;/h1&gt;
+
+
+&lt;/body&gt;
+
+&lt;template name="hello"&gt;
+  &lt;button type="button" class="btn btn-default"&gt;Click Me&lt;/button&gt;
+  &lt;div class="searchform"&gt;
+    &lt;form role="form"&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputEmail1"&gt;Email address&lt;/label&gt;
+        &lt;input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email"&gt;
+      &lt;/div&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputPassword1"&gt;Password&lt;/label&gt;
+        &lt;input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password"&gt;
+      &lt;/div&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputFile"&gt;File input&lt;/label&gt;
+        &lt;input type="file" id="exampleInputFile"&gt;
+        &lt;p class="help-block"&gt;Example block-level help text here.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class="checkbox"&gt;
+        &lt;label&gt;
+          &lt;input type="checkbox"&gt; Check me out
+        &lt;/label&gt;
+      &lt;/div&gt;
+      &lt;button type="submit" class="btn btn-default"&gt;Submit&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+  &lt;p&gt;You've pressed the button  times.&lt;/p&gt;
+&lt;/template&gt;
+EOF
+meteor
+</code></pre>
+
+<p>Then open <a href="http://localhost:3000">http://localhost:3000</a> to view the result.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -338,304 +940,6 @@ pub get
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/07/111321/">Virtualizations Based on XenServer</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-07T11:13:21+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:13 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Today I tried to build a vm groups on my PC with XenServer.</p>
-
-<h1>Server</h1>
-
-<p>Download XenServer 6.2.0 installation iso (XenServer-6.2.0-install-cd.iso) from <a href="http://xenserver.org/">XenServer.org</a>.
-Use this iso to install on the bare metal OS of VM host.
-Setup network with dhcp.</p>
-
-<p>After installation and reboot, the Configuration window of XenServer 6.2 appears.
-Under &ldquo;Network and Management Interface&rdquo;, I got the IP of the host is 10.31.4.89.</p>
-
-<h1>Client</h1>
-
-<p>So far the linux client is much poor than its Windows couterpart.
-For example, the &ldquo;console&rdquo; tab and context menu (right click menu) can&rsquo;t work properly on OpenXenManager.
-It&rsquo;s recommended to use XenCenter on Windows as GUI tool,
-and <code>xe</code> command on host as CLI tool to perform VM management,
-Use <code>xe help --all</code> to list all available subcommands.
-<code>xl</code> is also a good tool.</p>
-
-<h2>Linux Client</h2>
-
-<p>On LinuxMint 17, install <a href="http://sourceforge.net/projects/openxenmanager/">OpenXenManager</a> with <code>sudo aptitude install openxenmanager</code>;</p>
-
-<p>Start it with <code>openxenmanager</code>, create a new server with &ldquo;Hostname&rdquo; 10.31.4.89, &ldquo;User name&rdquo; root, and &ldquo;Password&rdquo; the one set previously.
-Connect to this server.</p>
-
-<p>On my laptop, run following commands to add a new SR (storage repository) to provide guest installation ISO files.</p>
-
-<pre><code>$ ssh root@10.31.4.89
-# mkdir /vms
-# xe sr-create name-label=Local type=iso device-config:legacy_mode=true content-type=iso device-config:location=/vms
-# exit
-$ scp ~/warez/OS/CentOS-6.5-x86_64-minimal.iso root@10.31.4.89:~/vms/
-$ ssh root@10.31.4.89
-# openxenmanager
-</code></pre>
-
-<p>You can use <code>xe sr-detach</code>, then <code>xe sr-forget</code> to remove SR.
-Use <code>lvs</code> to list LVM information about vm&rsquo;s disks.</p>
-
-<h2>Windows Client</h2>
-
-<p>Download XenCenter Windows Management Console (XenServer-6.2.0-XenCenter.msi) from Download page of <a href="http://xenserver.org/">XenServer.org</a>.
-Install and start it.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/04/145629/">JavaScript Development Environment Setup</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-04T14:56:29+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:56 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>vim</h1>
-
-<ol>
-<li><p>Install nvm;</p></li>
-<li><p>Install node with nvm;</p></li>
-<li><p>Install jshint with npm, which is a tool in node: <code>npm install -g jshint</code>;</p></li>
-<li><p>Check syntax with <code>jshint myfile.js</code>;</p></li>
-<li><p>Check html syntax with Tidy, which is installed on Ubuntu with <code>apt-get install tidy</code>;</p></li>
-</ol>
-
-
-<p>Ref: <a href="http://stackoverflow.com/questions/473478/vim-jslint">VIM + JSLint?</a></p>
-
-<h1>Eclipse</h1>
-
-<p>Eclipse&rsquo;s javascript development tools JSDT is part of WTP (web tools platform),
-which is a built-in plugin of &ldquo;Eclipse JEE&rdquo; (Eclipse for Java EE Developers).</p>
-
-<p>Its editor has auto syntax checker. Config it in [Window -> Preferences -> JavaScript -> Editor].
-Config its code style (tab size, for example) at [Window -> Preferences -> JavaScript -> Code Style -> Formatter].</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-03T17:11:08+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin：</p>
-
-<p>runJobs:</p>
-
-<pre><code>#!/bin/bash
-
-BMIN_CNT_WEI_LIST='0.5 0.3'
-MIN_SUP_LIST='0.004 0.0002'
-
-rm -rf {result,script}
-mkdir {result,script}
-origin_job=wfp-origin
-for bmin_cnt_wei in $BMIN_CNT_WEI_LIST; do
-    for min_sup in $MIN_SUP_LIST; do
-        echo MIN_SUP is: $min_sup , Bmin count weight is: $bmin_cnt_wei
-        new_script_name=wfp-bmin-${bmin_cnt_wei}-sup-${min_sup}
-        sed "4s/xxx/$min_sup/" $origin_job &gt; script/tmp
-        sed "11s/xxx/$bmin_cnt_wei/" script/tmp &gt; script/$new_script_name
-        rm script/tmp
-        echo Run shell script/$new_script_name
-        spark-shell -i script/$new_script_name
-        echo ------Calc is over------
-    done
-done
-</code></pre>
-
-<p>wfp-origin:</p>
-
-<pre><code>import Math.ceil
-import scala.io
-
-val MIN_SUP = xxx
-val MIN_CONF = 0.1
-val MAX_RELATION_ORDER = 3
-val DATA_FILE = "input"
-val SEP = "\001"
-val WEI_IDX = 5
-val MIN_INT_ID_LEN = 5
-val BMIN_CNT_WEI = xxx
-
-val RES_FILE = "result/wfp-result-bmin-" + BMIN_CNT_WEI.toString + "-sup-" + MIN_SUP.toString
-
-val rawData = sc.textFile(DATA_FILE).distinct
-val data = rawData.filter(x =&gt; x.split(SEP)(1).split("_")(0).size &gt; MIN_INT_ID_LEN)   
-val item_count = data.map(_.split(SEP)(1)).map(w =&gt; (w,1)).reduceByKey(_+_)
-val wids = data.map(_.split(SEP)(0))
-val MAX_ITEM = wids.map(w =&gt; (w,1)).reduceByKey(_+_).map(_._2).max
-val T = wids.distinct.count
-
-val weight = data.map(x =&gt; (x.split(SEP)(1), x.split(SEP)(WEI_IDX).toFloat)).distinct
-val rule_sets = weight.top(2000)
-scala.tools.nsc.io.File(RES_FILE).writeAll(rule_sets.map(_.toString).reduce(_ + "\n" + _))
-exit
-</code></pre>
-
-<p>这里的wfp-orgin只是一个示例，根据自己的脚本调整具体内容，但最后一行&#8221;exit&#8221;必须有，否则不能退出spark shell执行后面的任务。</p>
-
-<p>需要修改的参数用空格分开定义在一个字符串里，例如上面的BMIN_CNT_WEI_LIST和MIN_SUP_LIST，
-脚本创建script目录，保存新生成的脚本，以及result目录，保存计算结果。</p>
-
-<p>配合tmux，可以在tmux上运行runJobs.sh，下班时从tmux上detach出来，第二天上班时在attach上去看结果。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/03/134818/">SparkR in Action</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-03T13:48:18+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Getting online manual: > help(map)</p>
-
-<blockquote><p>sc &lt;- sparkR.init(&ldquo;local&rdquo;)
-lines &lt;- textFile(sc, &ldquo;/home/boco/datamine/alarm_bd_05.txt&rdquo;)
-count(lines)
-14/11/03 09:45:43 INFO FileInputFormat: Total input paths to process : 1
-[1] 7963078</p></blockquote>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-31T09:23:40+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>9:23 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I think the default LinuxMint login screen is not cool, need a new backgroud picture.
-How to change this backgroud picture? In LinuxMint 17 this is done by creating a new login &ldquo;Theme&rdquo; and use it.
-According to <a href="http://www.windows-to-linux.com/2014/07/custom-login-screen-background-linux-mint-17/">Custom Login Screen Background On Linux Mint 17</a>
-there is 3 steps to achieve this:</p>
-
-<ol>
-<li><p>Create a new theme based on the default theme;</p></li>
-<li><p>Pack this theme;</p></li>
-<li><p>Set it as the login theme.</p></li>
-</ol>
-
-
-<p>Firstly I choose a picture from Variety&rsquo;s Favorites folder as the new backgroud.
-Then run following commands:</p>
-
-<pre><code>sudo cp -r /usr/share/mdm/html-themes/Mint-X ~/StarWorld
-cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/bg.jpg
-cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/screenshot.jpg
-# modify name &amp; description in ~/StarWorld/theme.info
-tar czf star-world.tar.gz ~/StarWorld
-</code></pre>
-
-<p>Next login to Xfce desktop, startup &ldquo;Login Manager&rdquo;, add a new theme, choose star-world.tar.gz.</p>
-
-<p>Now logout and see the effect.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/10">&larr; Older</a>
@@ -653,23 +957,23 @@ tar czf star-world.tar.gz ~/StarWorld
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

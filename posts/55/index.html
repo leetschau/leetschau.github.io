@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Verified on Ubuntu Desktop 12.04. Move window buttons to upper-right corner: gconftool -s /apps/metacity/general/button_layout -t string menu: &hellip;">
+  <meta name="description" content="Lightweight Security Management Start Jenkins;
+Jenkins -> Manage Jenkins -> Global Security -> enable security;
+Select &ldquo;Security Realm -> &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +67,315 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/20/180356/">Jenkins User Account Configurations</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-20T18:03:56+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:03 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Lightweight Security Management</h1>
+
+<ol>
+<li><p>Start Jenkins;</p></li>
+<li><p>Jenkins -> Manage Jenkins -> Global Security -> enable security;</p></li>
+<li><p>Select &ldquo;Security Realm ->Jenkins&rsquo;s own user database&rdquo;;</p></li>
+<li><p>Check &ldquo;Allow user to sign up&rdquo;;</p></li>
+<li><p>Check Authorization -> Logged-in users can do anything;</p></li>
+<li><p>Click &ldquo;Save&rdquo;;</p></li>
+<li><p>Sign in as &ldquo;admin&rdquo;;</p></li>
+<li><p>Manage Jenkins -> Global Security -> uncheck &ldquo;Allow user to sign up&rdquo;;</p></li>
+</ol>
+
+
+<p>Now anonymous users are read-only for Jenkins. This security strategy are suitable for one user scenario.</p>
+
+<p>===Deprecated===</p>
+
+<ol>
+<li><p>Start Jenkins Service: nohup java -jar jenkins.war 1>jenkins.log 2>jenkins.log &amp;</p></li>
+<li><p>Jenkins -> Manage Jenkins -> Global Security -> enable security;</p></li>
+<li><p>Select &ldquo;Security Realm ->Jenkins&rsquo;s own user database&rdquo;;</p></li>
+<li><p>Check &ldquo;Allow user to sign up&rdquo;;</p></li>
+<li><p>Select &ldquo;Matrix-based security&rdquo; as the authorization;</p></li>
+<li><p>Give anonymous user the read access;</p></li>
+<li><p>In Textbox follow &ldquo;User/group to add&rdquo;, write &ldquo;admin&rdquo; and click &ldquo;add&rdquo; button;</p></li>
+<li><p>Give admin full access right by checking all items in the row;</p></li>
+<li><p>Click &ldquo;save&rdquo; button at the bottom;</p></li>
+<li><p>Now you should be locked out of Jenkins. But you can find a &ldquo;sign up&rdquo; link at the upper-right corner on the main page;</p></li>
+<li><p>Sign up a user named &ldquo;admin&rdquo;(the same you config at preceding steps), set password, then you can login as administrator.</p></li>
+</ol>
+
+
+<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Quick+and+Simple+Security">Quick and Simple Security</a> does not work on my Ubuntu Desktop PC.</p>
+
+<p>Reference:</p>
+
+<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Standard+Security+Setup">Standard Security Setup</a>;</p>
+
+<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/Disable+security">Help! I locked myself out!</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/20/161756/">Code Quality Check Based on Jenkins and Sonar</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-20T16:17:56+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:17 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Based on Jenkins 1.5 with Sonar plugins, Ubuntu 12.04.</p>
+
+<h1>Installation and System Configuration</h1>
+
+<ul>
+<li><p>Install and config Jenkins: see note &ldquo; Install Jenkins and plugins by hand &rdquo;;</p></li>
+<li><p>Install and config Sonar and Sonar Runner: see note &ldquo; Analyze Java Code with Sonar on Ubuntu &rdquo;;</p></li>
+</ul>
+
+
+<h2>Jenkins System Configuration</h2>
+
+<p>Manage Jenkins -> Configure System:</p>
+
+<pre><code>Sonar Runner: Name: MySonarRunner; SONAR_RUNNER_HOME: parent folder of "bin/sonar-runner" script;
+Sonar -&gt; Sonar Installations -&gt; Advanced:
+Name: MySonar;
+Sonar account login/password: admin/admin;
+Server URL: leave blank(http://localhost:9000, if sonar server is not at the same server with jenkins, notice no "/" at the end of this url);
+Database URL: jdbc:mysql://localhost:3306/sonar?useUnicode=true&amp;characterEncoding=utf8&amp;rewriteBatchedStatements=true(equals to "sonar.jdbc.url" in $SONAR_SERVER/conf/sonar.properties, notice "localhost" can not be writen as ip address);
+Database login/password: sonar/sonar;
+Database Driver: com.mysql.jdbc.Driver;
+</code></pre>
+
+<h1>Project-specific Sonar Runner Configuration</h1>
+
+<p>Creating file /opt/sonar-server/gcp.properties as followings: see note &ldquo; Analyze Java Code with Sonar on Ubuntu &rdquo; and notice:</p>
+
+<pre><code>sonar.sources=src (a relative path name whose root directory is $PROJECT_WORKSPACE);
+sonar.sourceEncoding=GBK (determined by source file encoding, default is UTF-8);
+</code></pre>
+
+<h1>Jenkins Project Configuration</h1>
+
+<p>Source Code Management: Subversion -> enter subversion url;</p>
+
+<p>Build:</p>
+
+<pre><code>Execute Shell: cp /opt/sonar-server/gcp.properties ./sonar-project.properties
+Invoke Standalone Sonar Analysis
+</code></pre>
+
+<p>Do not add post-build actions &ldquo;Sonar&rdquo; because it&rsquo;s bounded with Maven. If there is no pom.xml at the root of the project, an error raises.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/19/153646/">Erlang IDE Setup</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-19T15:36:46+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Windows Console</h1>
+
+<ol>
+<li><p>add erl.exe and vim.exe to %PATH%;</p></li>
+<li><p>start ConEmu, split window vertically (see note &ldquo; Multiple terminals operation on Windows and Ubuntu &rdquo; for spliting window detail);</p></li>
+<li><p>start erlang shell with <code>erl.exe</code> at left and <code>vim erlSrc.erl</code> at the right window;</p></li>
+</ol>
+
+
+<h1>Ubuntu Console</h1>
+
+<ol>
+<li><p>start Terminator and split window;</p></li>
+<li><p><code>erl</code> at left and <code>vi erlSrc.erl</code> at right;</p></li>
+</ol>
+
+
+<h1>IDE based on Sublime Text 2</h1>
+
+<p>Use package control install two package: SublimErl and SublimeREPL.</p>
+
+<p>Run erlang REPL: Sublime Text Menu / Tools / SublimeREPL / Erlang. If you got a error message, it&rsquo;s most probably caused by not adding werl.exe in $PATH. So Sublime Text Menu / Preferences / Package Settings / SublimeREPL / Settings-User, add <code>{ "default_extend_env": {"PATH": "{PATH};C:/Program Files/erl5.10/bin"} }</code>.</p>
+
+<p>alt+shift+2(shortcut in View / Layout): split window with 2 column;</p>
+
+<p>key shortcuts defs in sublime text 2:</p>
+
+<p><a href="http://docs.sublimetext.info/en/latest/reference/keyboard_shortcuts_win.html#">http://docs.sublimetext.info/en/latest/reference/keyboard_shortcuts_win.html#</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/17/094431/">去掉文件中的^M</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-17T09:44:31+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:44 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>一般情况下用:set ff=unix就可以解决问题，如果无效，用下面的方法手工完成：</p>
+
+<pre><code>:%s/[ctrl+v] [ctrl+m]//g
+</code></pre>
+
+<p>ctrl+v表示按住Ctrl键再按下v键。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/17/084555/">Analyze Java Code With Sonar on Ubuntu</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-17T08:45:55+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:45 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install Sonar Service</h1>
+
+<ol>
+<li><p><code>set JAVA_HOME=/usr/lib/jvm/default-java</code>(optional);</p></li>
+<li><p>install database: <code>apt-get install mysql-server</code>;</p></li>
+<li><p>download sonar-3.5.1.zip and extract to /opt/sonar-server;</p></li>
+<li><p>test startup: <code>$SONAR_HOME/bin/linux-x86-32/sonar.sh console</code>, web browser: <a href="http://localhost:9000;">http://localhost:9000;</a></p></li>
+<li><p>build database: root@chadpc56:/opt/sonar-server/sonar-3.5.1/extras/database/mysql# <code>mysql -u root -p &lt; create_database.sql</code>;</p></li>
+<li><p>modify db config: comment out &ldquo;sonar.jdbc.url: jdbc:h2&hellip;&rdquo;, uncomment &ldquo;sonar.jdbc.url: jdbc:mysql&hellip;&rdquo; in $SONAR_SERVER/conf/sonar.properties;</p></li>
+<li><p>verify db operations: <code>$SONAR_HOME/bin/linux-x86-32/sonar.sh console</code>, you can see many tables are created in mysql db, then <code>mysqlshow sonar -u sonar -p</code>, with password &ldquo;sonar&rdquo;, you can see a list of tables created;</p></li>
+<li><p>start sonar service: <code>nohup $SONAR_HOME/bin/linux-x86-32/sonar.sh start 1&gt;/dev/null &amp;</code>, you can monitor its startup via <code>tail -f $SONAR_HOME/logs/sonar.log</code>;</p></li>
+</ol>
+
+
+<p>Note: If using zsh, you have to add <code>disown %1</code> to detach background job from current shell, or your background jobs will be killed when you logged out, even it was nohupped. (or you can add &ldquo;setopt nohup&rdquo; in .zshrc to the same effect).</p>
+
+<h1>First Login Configuration</h1>
+
+<ol>
+<li>login <a href="http://localhost:9000">http://localhost:9000</a> with admin/admin;</li>
+</ol>
+
+
+<h1>Analyse Java Project with Sonar Runner</h1>
+
+<ol>
+<li><p><a href="http://docs.codehaus.org/display/SONAR/Installing+and+Configuring+Sonar+Runner">Installing and Configuring Sonar Runner</a>: download, extract, set environment variables, add to path, modify config file, verify (sonar-runner -h);</p></li>
+<li><p><a href="http://docs.codehaus.org/display/SONAR/Analyzing+with+Sonar+Runner">Analyzing with Sonar Runner</a>: create sonar-project.properties under project root folder, run sonar runner at project root folder (sonar-runner), see result in sonar dashboard;</p></li>
+</ol>
+
+
+<p>Note: add sonar.login &amp; sonar.password in sonar-project.properties;</p>
+
+<h1>Analyse Java Project with Ant Task</h1>
+
+<h2>Build a Demo Java Project</h2>
+
+<ol>
+<li><p>apt-get install ant;</p></li>
+<li><p>copy junit-4.11.jar and hamcrest-core-1.3.jar to lib folder of ant(/usr/share/ant/lib);</p></li>
+<li><p>create build.xml:</p></li>
+</ol>
+
+
+<h2>Run Sonar</h2>
+
+<ol>
+<li><p>Download sonar-ant-task-2.1.jar;</p></li>
+<li><p>Add sonar tasks into above build.xml;</p></li>
+<li><p>Run sonar with <code>ant sonar</code>;</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -376,244 +687,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/09/172351/">基于Jenkins+Gradle的自动构建系统搭建笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-09T17:23:51+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:23 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>前期准备：</h1>
-
-<ol>
-<li><p>搭建SVN服务器，参考笔记“ SVN服务器搭建笔记 ”；</p></li>
-<li><p>新建一个基于Gradle的测试项目，参考“ 定制Gradle的项目文件目录结构 ”；</p></li>
-<li><p>将此项目提交到SVN服务器；</p></li>
-<li><p>启动Jenkins服务器：java -jar jenkins.war;</p></li>
-<li><p>安装Gradle插件：在Jenkins管理面板的 [系统管理 -> 管理插件] 中在线安装；</p></li>
-<li><p>指定Gradle位置：[系统管理 -> 系统设置 -> Gradle]中指定服务器上Gradle的安装位置（取消勾选“自动安装”）；</p></li>
-</ol>
-
-
-<h1>搭建过程</h1>
-
-<ol>
-<li><p>New Job -> “构建一个自由风格的软件项目”；</p></li>
-<li><p>配置此项目：</p></li>
-<li><p>项目名称；</p></li>
-<li><p>源码管理 -> Subversion -> Repository URL: svn://localhost/JenkinsGradleTest/quickstart2</p></li>
-<li><p>构建触发器 -> check &ldquo;Build periodically&rdquo; -> 日程表：H/15 * * * * （每15分钟构建一次）</p></li>
-<li><p>构建 -> 增加构建对象 -> Invoke Gradle script -> Tasks: build；</p></li>
-<li><p>构建后操作 -> Add post-build action -> Publish JUnit test result report -> Test report XMLs: <em>*/test-results/</em>Test.xml</p></li>
-<li><p>构建后操作 -> Add post-build action -> Email Notification -> Recipients: <a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#111;&#58;&#x75;&#115;&#x65;&#114;&#x40;&#x63;&#x6f;&#109;&#112;&#x61;&#x6e;&#x79;&#x2e;&#99;&#x6f;&#x6d;">&#117;&#x73;&#101;&#x72;&#x40;&#x63;&#111;&#x6d;&#x70;&#97;&#x6e;&#121;&#46;&#x63;&#111;&#x6d;</a></p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/09/100304/">定制Gradle的项目文件目录结构</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-09T10:03:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:03 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>参考Gradle文档chapter 23: The Java Plugin, 23.4: Project Layout, 23.4.1: Changing the project layout。
-根据此说明，基于文档自带的$GRADLE-1.5_HOME\samples\java\quickstart进行的一个实验：</p>
-
-<p>首先将原示例的项目文件结构修改为如下形式：</p>
-
-<pre><code>$ tree 
-. 
-|-- build.gradle 
-|-- conf 
-| `-- db.properties 
-|-- src 
-| `-- org 
-|  `-- gradle 
-|   `-- Person.java 
-`-- test 
- `-- org 
-  `-- gradle 
-   `-- PersonTest.java 
-</code></pre>
-
-<p>然后在build.gradle中增加如下对sourceSets的定制：</p>
-
-<pre><code>... 
-apply plugin: 'eclipse' 
-sourceSets { 
-    main { 
-        java { 
-            srcDir 'src' 
-        } 
-        resources { 
-            srcDir 'conf' 
-        } 
-    } 
-    test { 
-        java { 
-            srcDir 'test' 
-        } 
-    } 
-} 
-sourceCompatibility = 1.5 
-... 
-</code></pre>
-
-<p>然后就可以用gradle build或者gradle uploadArchives执行构建任务了。</p>
-
-<hr />
-
-<p>2014-8-11更新：</p>
-
-<p>基于Grale 2.0，创建一个新Java项目的方法是在一个空文件夹中运行<code>gradle init --type basic</code>，然后修改build.gradle文件，去掉其中的全文注释，添加&#8221;apply plugin: &lsquo;eclipse&rsquo;&ldquo;和目录结构定义，然后运行<code>gradle eclipse</code>，并在Eclipse中导入这个项目。如果是为一个已有(Eclipse)项目增加Gradle管理，则只要在项目根目录下创建build.gradle文件，然后就可以用<code>gradle build</code>等命令构建项目了。</p>
-
-<p>与在Eclipse中安装Gradle插件，然后完全在Eclipse中完成Grale构建相比，这种方法不需要在Eclipse中安装Gradle插件，在命令行中进行项目的构建，Eclipse只是一个代码编写和调试环境，相对更灵活一些。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/08/183307/">Windows命令行中使用代理的方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-08T18:33:07+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:33 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用Gradle做自动构建时，需要从Maven库里获取依赖包，由于网络限制导致获取失败，只能加代理，Windows命令行使用代理需要借助于微软的netsh工具在管理员权限下设置：</p>
-
-<ol>
-<li><p>启动ConEmu，在标题栏上右键 -> Active Console -> Restart as Admin；</p></li>
-<li><p>执行&#8221;netsh winhttp set proxy localhost:8087&#8221;；</p></li>
-</ol>
-
-
-<p>验证代理设置成功：netsh winhttp show proxy。</p>
-
-<p>参考：<a href="http://cclah.com/2013/03/19/more-about-cmd-console-start-delay-and-set-proxy-2/">MORE ABOUT CMD CONSOLE START , DELAY AND SET PROXY</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/07/143223/">从脚本启动图形界面程序</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-07T14:32:23+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:32 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Ubuntu上如果从脚本启动图形界面程序，会有一个终端窗口始终开启，如果在脚本里用nohup启动，就可以关闭这个窗口了，例如下面的脚本演示了启动eclipse程序：</p>
-
-<p> export PATH=$PATH:/opt/jre1.6.0_14/bin</p>
-
-<p> nohup /opt/eclipse/eclipse 1>/dev/null 2>/dev/null</p>
-
-<p>参考： <a href="http://askubuntu.com/questions/10547/how-to-clean-launch-a-gui-app-via-the-terminal-so-it-doesnt-wait-for-terminati">http://askubuntu.com/questions/10547/how-to-clean-launch-a-gui-app-via-the-terminal-so-it-doesnt-wait-for-terminati</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/07/101025/">Environment Variables of Ubuntu GUI Applications</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-05-07T10:10:25+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:10 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In Ubuntu Desktop you have to modify /etc/environment and ${HOME}/.pam_environment instead of /etc/bash.bashrc and ${HOME}/.bashrc to set environment variables. See <a href="https://help.ubuntu.com/community/EnvironmentVariables">EnvironmentVariables</a> for details.</p>
-
-<p>${HOME}/.pam_environment does not worked, don&rsquo;t know why.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/56">&larr; Older</a>
@@ -631,23 +704,23 @@ sourceCompatibility = 1.5
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

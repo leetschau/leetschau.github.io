@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Create ISO Image File from CD genisoimage -o Unix_Program.iso -V Unix_Linux_Programming -R -J /media/lichao/NEW SYNOPSIS: genisoimage -o -V -R -J Ref &hellip;">
+  <meta name="description" content="https://puppetlabs.com/blog/a-deployment-pipeline-for-infrastructure Installation On Linux Mint 14 Xfce. OS verification $ lsb_release -a The &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,556 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/10/10/180521/">A Deployment Pipeline Based on Puppet</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-10-10T18:05:21+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:05 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://puppetlabs.com/blog/a-deployment-pipeline-for-infrastructure">https://puppetlabs.com/blog/a-deployment-pipeline-for-infrastructure</a></p>
+
+<h1>Installation</h1>
+
+<p>On Linux Mint 14 Xfce.</p>
+
+<h2>OS verification</h2>
+
+<pre><code>$ lsb_release -a
+</code></pre>
+
+<p>The codename of Linux Mint 14 is &ldquo;Nadia&rdquo;. Google &ldquo;linux mint release&rdquo; shows Nadia based on Ubuntu Quantal(12.10), which is in the supported version of puppet 3.</p>
+
+<h2>Install it in standalone mode</h2>
+
+<pre><code>$ wget https://apt.puppetlabs.com/puppetlabs-release-quantal.deb
+$ sudo dpkg -i puppetlabs-release-quantal.deb
+$ sudo apt-get update
+$ sudo apt-get install puppet-common
+</code></pre>
+
+<p>You have to run puppet command as root: <code>puppet apply -e 'notice ("Hello World")'</code>.</p>
+
+<h2>On Master Node</h2>
+
+<p>After update apt repo:</p>
+
+<pre><code># apt-get install puppetmaster
+# puppet master --version
+# apt-get install puppetmaster-passenger (failed on my laptop)
+</code></pre>
+
+<p>Verify as root:</p>
+
+<pre><code># service puppetmaster status
+</code></pre>
+
+<p>Start it in foreground:</p>
+
+<pre><code># service puppetmaster stop
+# puppet master --no-daemonize --verbose
+</code></pre>
+
+<h2>On Agent Node</h2>
+
+<pre><code># apt-get install puppet
+</code></pre>
+
+<p>Verify as root:</p>
+
+<pre><code># service puppet status
+# puppet agent --test --server=10.21.2.7
+</code></pre>
+
+<p>You will meet a &ldquo;no certificate found and waitforcert is disabled&rdquo; error. So we let master sign the certificate for the agent.</p>
+
+<h2>Signing the Certificate</h2>
+
+<p>On master:</p>
+
+<pre><code># puppet cert list
+</code></pre>
+
+<p>You get the agent&rsquo;s name. It&rsquo;s OK.</p>
+
+<pre><code># puppet cert sign chadpc527.boco.com
+</code></pre>
+
+<p>On agent:</p>
+
+<pre><code># puppet apply -e '...'
+</code></pre>
+
+<h1>Trouble Shooting</h1>
+
+<p>Log file: /var/log/puppet/masterhttp.log</p>
+
+<p>Default puppet master port: 8140</p>
+
+<p>Port detection: lsof -wni tcp:8140</p>
+
+<p>Regenerate certificate request of agent: rm -rf /var/lib/puppet/ssl</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/10/10/114908/">Clojure Namespaces</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-10-10T11:49:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Now we have a 2-dimensional vector glider(as follows) in our own namespace. And we want use clojure.pprint/pprint to print it out.</p>
+
+<p>(def glider (vec (repeat 3 (vec (repeat 6 nil)))))</p>
+
+<h1>Declare require as a common function</h1>
+
+<p> (def glider (vec (repeat 3 (vec (repeat 6 nil)))))</p>
+
+<p> (require &lsquo;clojure.pprint)
+ (clojure.pprint/pprint glider)</p>
+
+<p> (require &lsquo;[clojure.data.json :as json])</p>
+
+<p> (defn get-data [url] (json/read-str (slurp url)))</p>
+
+<h1>Put require in namespace declaration</h1>
+
+<p> (ns conways-game-of-life.core (:require clojure.pprint))</p>
+
+<p> (def glider (vec (repeat 3 (vec (repeat 6 nil)))))</p>
+
+<p> (clojure.pprint/pprint glider)</p>
+
+<h1>Give required namespace a alias name</h1>
+
+<p> (ns conways-game-of-life.core (:require [clojure.pprint :as ppr]))</p>
+
+<p> (def glider (vec (repeat 3 (vec (repeat 6 nil)))))</p>
+
+<p> (ppr/pprint glider)</p>
+
+<p> (ns sonar-parser.core
+  (:require [clojure.data.json :as json]))</p>
+
+<p> (defn get-data [url] (json/read-str (slurp url)))</p>
+
+<p>Ref: <a href="http://blog.8thlight.com/colin-jones/2010/12/05/clojure-libs-and-namespaces-require-use-import-and-ns.html">http://blog.8thlight.com/colin-jones/2010/12/05/clojure-libs-and-namespaces-require-use-import-and-ns.html</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/10/06/091558/">Notes of `reduce-by` in `Clojure Programming`</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-10-06T09:15:58+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:15 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In page 120 of &ldquo;Clojure Programming&rdquo;.</p>
+
+<p>(reduce-by :customer #(+ %1 (:total %2)) 0 orders) =></p>
+
+<p>key-fn: :customer</p>
+
+<p>f: #(+ %1 (:total %2))</p>
+
+<p>init: 0</p>
+
+<p>coll: orders</p>
+
+<p>user=> (doc reduce)</p>
+
+<hr />
+
+<p>clojure.core/reduce
+([f coll] [f val coll])
+ f should be a function of 2 arguments. If val is not supplied,
+ returns the result of applying f to the first 2 items in coll, then
+ applying f to that result and the 3rd item, etc. If coll contains no
+ items, f must accept no arguments as well, and reduce returns the
+ result of calling f with no arguments. If coll has only 1 item, it
+ is returned and f is not called. <strong>If val is supplied, returns the
+ result of applying f to val and the first item in coll, then
+ applying f to that result and the 2nd item, etc. If coll contains no
+ items, returns val and f is not called.</strong></p>
+
+<p>According to above definition, summaries is the second argument of reduce ({}), x is the first element of coll (orders).</p>
+
+<p>user=> (doc assoc)</p>
+
+<hr />
+
+<p>clojure.core/assoc
+([map key val] [map key val &amp; kvs])
+ assoc[iate]. When applied to a map, returns a new map of the
+ same (hashed/sorted) type, that contains the mapping of key(s) to
+ val(s). When applied to a vector, returns a new vector that
+ contains val at index. Note - index must be &lt;= (count vector).</p>
+
+<p>The run the following script in repl:</p>
+
+<p>(def orders</p>
+
+<p> [{:product &ldquo;Clock&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 6, :total 300}</p>
+
+<p>{:product &ldquo;Dynamite&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 20, :total 5000}</p>
+
+<p>{:product &ldquo;Shotgun&rdquo;, :customer &ldquo;Elmer Fudd&rdquo;, :qty 2, :total 800}</p>
+
+<p>{:product &ldquo;Shells&rdquo;, :customer &ldquo;Elmer Fudd&rdquo;, :qty 4, :total 100}</p>
+
+<p>{:product &ldquo;Hole&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 1, :total 1000}</p>
+
+<p>{:product &ldquo;Anvil&rdquo;, :customer &ldquo;Elmer Fudd&rdquo;, :qty 2, :total 300}</p>
+
+<p>{:product &ldquo;Anvil&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 6, :total 900}])</p>
+
+<p>(defn reduce-by</p>
+
+<p> [key-fn f init coll]</p>
+
+<p> (println &ldquo;key-fn:&rdquo; key-fn)</p>
+
+<p> (println &ldquo;f:&rdquo; f)</p>
+
+<p> (println &ldquo;init:&rdquo; init)</p>
+
+<p> (println &ldquo;coll:&rdquo; coll)</p>
+
+<p> (println &ldquo;==========&rdquo;)</p>
+
+<p> (reduce (fn [summaries x]</p>
+
+<p>   (let [k (key-fn x)]</p>
+
+<pre><code>(println "summaries:" summaries)
+
+(println "k:" k)
+
+(println "x:" x)
+
+(println "(key-fn x):" (key-fn x))
+
+(println "value for k:" (f (summaries k init) x))
+
+(println "---------")
+
+(assoc summaries k (f (summaries k init) x))))
+</code></pre>
+
+<p>   {} coll))</p>
+
+<p>(reduce-by :customer #(+ %1 (:total %2)) 0 orders)</p>
+
+<p>And the output:</p>
+
+<p>key-fn: :customer</p>
+
+<p>f: #&lt;core$eval1500$fn<strong>1501 startclojure.core$eval1500$fn</strong>1501@10d78ec></p>
+
+<p>init: 0</p>
+
+<p>coll: [{:total 300, :customer Wile Coyote, :qty 6, :product Clock} {:total 5000, :customer Wile Coyote, :qty 20, :product Dynamite} {:total 800, :customer Elmer Fudd, :qty 2, :product Shotgun} {:total 100, :customer Elmer Fudd, :qty 4, :product Shells} {:total 1000, :customer Wile Coyote, :qty 1, :product Hole} {:total 300, :customer Elmer Fudd, :qty 2, :product Anvil} {:total 900, :customer Wile Coyote, :qty 6, :product Anvil}]</p>
+
+<hr />
+
+<p>summaries: {}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 300, :customer Wile Coyote, :qty 6, :product Clock}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 300</p>
+
+<hr />
+
+<p>summaries: {Wile Coyote 300}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 5000, :customer Wile Coyote, :qty 20, :product Dynamite}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 5300</p>
+
+<hr />
+
+<p>summaries: {Wile Coyote 5300}</p>
+
+<p>k: Elmer Fudd</p>
+
+<p>x: {:total 800, :customer Elmer Fudd, :qty 2, :product Shotgun}</p>
+
+<p>(key-fn x): Elmer Fudd</p>
+
+<p>value for k: 800</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 800, Wile Coyote 5300}</p>
+
+<p>k: Elmer Fudd</p>
+
+<p>x: {:total 100, :customer Elmer Fudd, :qty 4, :product Shells}</p>
+
+<p>(key-fn x): Elmer Fudd</p>
+
+<p>value for k: 900</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 900, Wile Coyote 5300}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 1000, :customer Wile Coyote, :qty 1, :product Hole}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 6300</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 900, Wile Coyote 6300}</p>
+
+<p>k: Elmer Fudd</p>
+
+<p>x: {:total 300, :customer Elmer Fudd, :qty 2, :product Anvil}</p>
+
+<p>(key-fn x): Elmer Fudd</p>
+
+<p>value for k: 1200</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 1200, Wile Coyote 6300}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 900, :customer Wile Coyote, :qty 6, :product Anvil}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 7200</p>
+
+<hr />
+
+<p>Verified on Eclipse Juno SR2 with Counterclockwise plugin, Mint 14 Xfce, 2013-10-6.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/10/01/195354/">Note About `Start Clojure` on Youtube</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-10-01T19:53:54+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>7:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>0:28:36 in &ldquo;Start Clojure&rdquo; by Chas Emerick on Youtube:</p>
+
+<p>You have to start app in texteditor of app.clj instead of the project &ldquo;startclojure&rdquo;. Otherwise you have to use</p>
+
+<pre><code>(def server (ring.adapter.jetty/jetty/run-jetty #'startclojure.app/app {:port 8080 :join? false}))
+</code></pre>
+
+<p>instead of</p>
+
+<pre><code>(def server (jetty/run-jetty #'app {:port 8080 :join? false}))
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/29/172020/">Converting an Imperative Algorithm Into Functional Style</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-29T17:20:20+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:20 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Question and Python Solution</h1>
+
+<p>The follow is a question I posted on stackoverflow.com and the Python imperative style solution:</p>
+
+<p>I wrote a simple procedure to calculate the average of the test coverage of some specific packages in a Java project. The raw data in a huge html file is like this:</p>
+
+<pre><code>&lt;body&gt; 
+package pkg1 &lt;line_coverage&gt;11/111,&lt;branch_coverage&gt;44/444&lt;end&gt; 
+package pkg2 &lt;line_coverage&gt;22/222,&lt;branch_coverage&gt;55/555&lt;end&gt; 
+package pkg3 &lt;line_coverage&gt;33/333,&lt;branch_coverage&gt;66/666&lt;end&gt; 
+... 
+&lt;/body&gt; 
+</code></pre>
+
+<p>Given the specified packages &ldquo;pkg1&rdquo; and &ldquo;pkg3&rdquo;, for example, the average line coverage is:</p>
+
+<pre><code>(11+33)/(111+333) 
+</code></pre>
+
+<p>and average branch coverage is:</p>
+
+<pre><code>(44+66)/(444+666) 
+</code></pre>
+
+<p>I wrote the follow procedure to get the result and it works well. But how to implement this calculation in a functional style? Something like &ldquo;(x,y) for x in &hellip; for b in &hellip; if&hellip;&rdquo;. I know a little Erlang, Haskell and Clojure, So solutions in these languages are also appreciated. Thanks a lot!</p>
+
+<pre><code>from __future__ import division 
+import re 
+datafile = ('abc', 'd&gt;11/23d&gt;34/89d', 'e&gt;25/65e&gt;13/25e', 'f&gt;36/92f&gt;19/76') 
+core_pkgs = ('d', 'f') 
+covered_lines, total_lines, covered_branches, total_branches = 0, 0, 0, 0 
+for line in datafile: 
+    for pkg in core_pkgs: 
+        ptn = re.compile('.*'+pkg+'.*'+'&gt;(\d+)/(\d+).*&gt;(\d+)/(\d+).*') 
+        match = ptn.match(line) 
+        if match is not None: 
+            cvln, tlln, cvbh, tlbh = match.groups() 
+            covered_lines += int(cvln) 
+            total_lines += int(tlln) 
+            covered_branches += int(cvbh) 
+            total_branches += int(tlbh) 
+print 'Line coverage:', '{:.2%}'.format(covered_lines / total_lines) 
+print 'Branch coverage:', '{:.2%}'.format(covered_branches/total_branches) 
+</code></pre>
+
+<h1>Functional Style Solution in Clojure</h1>
+
+<p> (defn extract-data
+  &ldquo;extract 4 integer from a string line according to a package name&rdquo;
+  [pkg line]
+  (map read-string
+   (rest (first
+     (re-seq
+     (re-pattern
+     (str pkg &ldquo;.<em>>(\d+)/(\d+).</em>>(\d+)/(\d+)&rdquo;))
+     line)))))
+ (defn scan-lines-by-pkg
+  &ldquo;scan all string lines and extract all data as integer sequences
+  according to package names&rdquo;
+  [pkgs lines]
+  (filter seq (for [pkg pkgs
+      line lines]
+     (extract-data pkg line))))
+ (defn sum-data
+  &ldquo;add all data in valid lines together&rdquo;
+  [pkgs lines]
+  (apply map + (scan-lines-by-pkg pkgs lines)))
+ (defn get-percent
+  [covered all]
+  (str (format &ldquo;%.2f&rdquo; (float (/ (* covered 100) all))) &ldquo;%&rdquo;))
+ (defn get-cov
+  [pkgs lines]
+  {:line-cov (apply get-percent (take 2 (sum-data pkgs lines)))
+  :branch-cov (apply get-percent (drop 2 (sum-data pkgs lines)))})
+ (get-cov [&ldquo;d&rdquo; &ldquo;f&rdquo;] [&ldquo;abc&rdquo; &ldquo;d>11/23d>34/89d&rdquo; &ldquo;e>25/65e>13/25e&rdquo; &ldquo;f>36/92f>19/76&rdquo;])</p>
+
+<h1>clojure solutions with load file and command line args</h1>
+
+<p>core-pkgs=&hellip;+&hellip;+&hellip;</p>
+
+<p>clojure get-cov.clj $core-pkgs</p>
+
+<p>(def s (slurp &ldquo;frame-summary.html&rdquo;))</p>
+
+<p>(use &lsquo;clojure.string)</p>
+
+<p>(def lines (split s #&ldquo;\n&rdquo;))</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -313,339 +863,6 @@ Another difference is in the class of the return value:
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/25/205914/">Use Selenium for Web UI Test Automation</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-09-25T20:59:14+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:59 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Follow tutorial on <a href="https://pypi.python.org/pypi/selenium">selenium python client</a> official site. This webdriver is much better than remote control (selenium 1.x) for it need no server. A short python function can do all the automation jobs. And it has assertion functions. Cool.</p>
-
-<p>I am trying to automate Fetion auto-login with webdriver. But the new firefox browser has not default Fetion username inputed before hand. So I will finish this script some day.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/25/174532/">Org Mode of Emacs</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-09-25T17:45:32+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:45 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>use &ldquo;*&rdquo; as level-1 title, &ldquo;**&rdquo; as level 2 title, and so on;</p></li>
-<li><p>M-S-Ret: create a new TODO item;</p></li>
-<li><p>M-S-Left/Right: up/down a title level;</p></li>
-<li><p>M-S-Up/Down: make paragraph move forward/backward;</p></li>
-<li><p>C-c C-t: mark a task between &ldquo;DONE&rdquo;, &ldquo;TODO&rdquo; or none; If you want to cancel a task, just remove its &ldquo;TODO&rdquo; use this command;</p></li>
-<li><p>C-c C-s: add schedule (this short cut works in all modes);</p></li>
-<li><p>Use S-Tab to collapse/expand all level titles and contents;</p></li>
-<li><p>Use <Tab> to cycle between the level under cursor;</p></li>
-<li><p>Only show TODO: C-c / t;</p></li>
-</ul>
-
-
-<p> Only show DONE: C-c / T;</p>
-
-<p> Show all: C-u C-u C-u <TAB>;</p>
-
-<ul>
-<li><p>Set task priority: C-c , a/b/c</p></li>
-<li><p>Add &ldquo;(setq org-agenda-files &lsquo;(&rdquo;~/docs/orgs&#8221;))&ldquo; into ~/.emacs to setup org files repository;</p></li>
-</ul>
-
-
-<p>&ldquo;(setq org-agenda-files (list &rdquo;~/docs/orgs/*.org&#8221;))&ldquo; doesn&rsquo;t work;</p>
-
-<ul>
-<li><p>Add &ldquo;(define-key global-map &rdquo;\C-ca&#8221; &lsquo;org-agenda)&ldquo; to ~/.emacs to enable global agenda;</p></li>
-<li><p>C-c C-l: create a new link or edit link at cursor;</p></li>
-<li><p>C-c C-o: open link at cursor;</p></li>
-<li><p>In Agenda view, press &ldquo;I&rdquo; to start clock, &lt;<C-c C-x C-o>> to stop clock;</p></li>
-</ul>
-
-
-<h1>Repeat tasks</h1>
-
-<ul>
-<li><p>Ordinary repeat</p></li>
-<li><p>TODO Test repeat tasks
-SCHEDULED: <2013-10-28 Mon 15:50 +1h></p></li>
-<li><p>Accumulative repeat</p></li>
-<li><p>TODO Call Father
-SCHEDULED: <2008-02-10 Sun ++1w></p></li>
-<li><p>Float repeat</p></li>
-<li><p>TODO Recharge the batteries</p></li>
-</ul>
-
-
-<p>  SCHEDULED: <2008-02-10 Sun .+1d></p>
-
-<p>For detail explanation of &ldquo;Accumulative&rdquo; and &ldquo;Float&rdquo; repeat, see section &ldquo;8.3.2 Repeated tasks&rdquo; in org manual;</p>
-
-<p>Ref:</p>
-
-<p><a href="http://orgmode.org/worg/org-tutorials/orgtutorial_dto.html">David O&#8217;Toole Org tutorial</a></p>
-
-<p><a href="http://doc.norang.ca/org-mode.html#git-sync">Org Mode - Organize Your Life In Plain Text!</a></p>
-
-<p><a href="http://orgmode.org/worg/org-tutorials/">Org Mode Official Docs</a></p>
-
-<p><a href="http://orgmode.org/orgcard.txt">Org-Mode Reference Card</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/25/162133/">Color Theme of Emacs</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-09-25T16:21:33+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:21 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Choose color theme interactively: M-x customize-themes, or M-x color-theme-select (use key &ldquo;q&rdquo; to quit);</p></li>
-<li><p>Theme &ldquo;manoj-dark&rdquo; is a good dark theme;</p></li>
-<li><p>Customize default color theme: add &ldquo;(load-theme &lsquo;manoj-dark t)&rdquo; in ~/.emacs;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/24/193318/">Define Keymap on Ubuntu</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-09-24T19:33:18+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>7:33 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Swap Caps lock and Escape Key</h1>
-
-<p>Write the following text into file swapCapsEsc:</p>
-
-<pre><code>remove Lock = Caps_Lock 
-keysym Escape = Caps_Lock 
-keysym Caps_Lock = Escape 
-add Lock = Caps_Lock
-</code></pre>
-
-<p>$ xmodmap swapCapsEsc</p>
-
-<p>Ref: <a href="http://vim.wikia.com/wiki/Map_caps_lock_to_escape_in_XWindows">http://vim.wikia.com/wiki/Map_caps_lock_to_escape_in_XWindows</a></p>
-
-<h1>Swap Ctrl and Alt Key</h1>
-
-<pre><code>remove mod1 = Alt_L Alt_R 
-remove control = Control_L Control_R 
-keycode 64 = Control_L 
-keycode 37 = Alt_L 
-keycode 108 = Control_R 
-keycode 105 = Alt_R 
-add control = Control_L Control_R 
-add mod1 = Alt_L Alt_R 
-</code></pre>
-
-<p>64, 37, etc are determined by &ldquo;xev&rdquo; command, see below for usage.</p>
-
-<h1>Reset Key Map to Initial State</h1>
-
-<p>setxkbmap -layout us</p>
-
-<h1>Define key swap shortcuts</h1>
-
-<p>It&rsquo;s mainly for emacs operation convenience to swap Ctrl and Alt key, and vi operation convenience to swap Caps Lock and Escape key. When you are not in emacs and vi, swap keys always lead confusions. So it&rsquo;s necessary to switch key definition quickly. The following are some basic method to achieve key swap shortcuts</p>
-
-<ol>
-<li><p>Create a file named &ldquo;swapCapsEsc&rdquo; in /home/lichao/docs/swapkeys</p>
-
-<p> remove Lock = Caps_Lock
- keysym Escape = Caps_Lock
- keysym Caps_Lock = Escape
- add Lock = Caps_Lock</p></li>
-</ol>
-
-
-<p>and a file named &ldquo;swapCtrlAlt&rdquo; in /home/lichao/docs/swapkeys:</p>
-
-<pre><code>remove mod1 = Alt_L Alt_R 
-remove control = Control_L Control_R 
-keycode 64 = Control_L 
-keycode 37 = Alt_L 
-keycode 108 = Control_R 
-keycode 105 = Alt_R 
-add control = Control_L Control_R 
-add mod1 = Alt_L Alt_R 
-</code></pre>
-
-<ol>
-<li><p>Create keyboard shortcuts in &ldquo;Application Finder (Alt + F3) -> Preferences -> Custom Actions&rdquo;:</p>
-
-<p> Type: Regular Expression; Pattern: swce; Command: xmodmap /home/lichao/docs/swapkeys/swapCapsEsc
- Type: Regular Expression; Pattern: swca; Command: xmodmap /home/lichao/docs/swapkeys/swapCtrlAlt
- Type: Regular Expression; Pattern: swres; Command: setxkbmap -layout us</p></li>
-</ol>
-
-
-<p>Now you can use [Alt-F2 swce] to swap Caps lock and escape key, use [Alt-F2 swca] to swap Ctrl and Alt key, use [Alt-F2 swres] to make all keys to their original state (If you have swaped ctrl and alt key, the shortcut is [Ctrl-F2 swres]).</p>
-
-<h1>Usage of xev</h1>
-
-<p>Run &ldquo;xev&rdquo; in command line. A little window appear. Make it active window and press some key, the keycode will show in the window.</p>
-
-<h1>Usage of xmodmap</h1>
-
-<p>Run &ldquo;xmodmap -pm&rdquo; we got:</p>
-
-<p>shift  Shift_L (0x32), Shift_R (0x3e)
-lock  Caps_Lock (0x42)
-control  Control_L (0x25), Control_R (0x69)
-mod1  Alt_L (0x40), Alt_R (0x6c), Meta_L (0xcd)
-mod2  Num_Lock (0x4d)
-mod3
-mod4  Super_L (0x85), Super_R (0x86), Super_L (0xce), Hyper_L (0xcf)
-mod5  ISO_Level3_Shift (0x5c), Mode_switch (0xcb)</p>
-
-<p>Here the names in the left column (shift, lock, control, etc) are called &ldquo;Modifier Name&rdquo;, while the names in the right column (Shift_L, Caps_Lock, Control_R, Meta_L, etc) are called keysym. Shift_L means left shift key, while Shift_R means right shift key. Every physical key (on keyboard) has a identity (integer number) called keycode. You can use &ldquo;xmodmap -pk&rdquo; to investigate these relationships. And use <code>xmodmap -e "keycode &lt;to_be_modified&gt; = &lt;target_key&gt;"</code> to modify these relationships. For example, the following command make F2 key print &ldquo;m&rdquo; in gedit panel:</p>
-
-<pre><code>xmodmap -e "keycode 68 = m":
-</code></pre>
-
-<p>Before command:</p>
-
-<p> 58   0x006d (m)
- 68   0xffbf (F2)</p>
-
-<p>(get by &ldquo;xmodmap -pk&rdquo;). After command:</p>
-
-<p> 58   0x006d (m)
- 68   0x006d (m)</p>
-
-<p>Use <code>xmodmap -e "keycode 68 = F2"</code> to modify F2 back to F2 key.</p>
-
-<p>The right hand side of this assignment is keysym name. So</p>
-
-<pre><code>xmodmap -e "keycode 16 = 7"
-</code></pre>
-
-<p>will map character &ldquo;7&rdquo; to physical key which has keycode 16.</p>
-
-<p>&ldquo;clear <ModifierName>&rdquo; means all keysyms will be detached from this <ModifierName>. So after <code>xmodmap -e "clear control"</code>, all control keys (left and right) are disabled.</p>
-
-<p>&ldquo;remove <ModifierName> = <keysym>&rdquo; means remove <keysym> from the list of current keysym list of the <ModifierName>. So after <code>xmodmap -e "remove Control = Control_R"</code> makes right control key be disabled. When you run <code>xmodmap -e "add Control = Control_R"</code>, the right control key is enabled again. You can use &ldquo;xmodmap -pm&rdquo; to verify.</p>
-
-<p>&ldquo;keysym name1=name2&rdquo; means binding the keys (previous binded to name2) to name1;</p>
-
-<h1>Auto load xmodmap files when system start</h1>
-
-<p>xmodmap ~/.Xmodmap</p>
-
-<p>Ref: <a href="http://earthviaradio.wordpress.com/2012/02/06/swapping-the-left-alt-and-ctrl-keys-in-ubuntu-11-10/">http://earthviaradio.wordpress.com/2012/02/06/swapping-the-left-alt-and-ctrl-keys-in-ubuntu-11-10/</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/24/183100/">Use W3m as Web Browser</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-09-24T18:31:00+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Installation: apt-get install w3m.</p>
-
-<p>use &ldquo;a&rdquo; to input text, &ldquo;tab&rdquo; to jump between hyper-links, &ldquo;enter&rdquo; to click the hyper-link.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/41">&larr; Older</a>
@@ -663,23 +880,23 @@ mod5  ISO_Level3_Shift (0x5c), Mode_switch (0xcb)</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

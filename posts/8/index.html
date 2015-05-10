@@ -9,10 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="颜色有多种表示方式，印刷业常用的CMYK方法是4种颜料的组合值表示一种颜色，
-RGB常用于显示器，用3原色的值表示一种颜色。 HSL是用色调hue，纯度Saturation（也叫饱和度）和亮度lightness组合表示一种颜色，
-其中色调是平时所说的颜色；
-纯度可以理解为颜料的浓度，最小值是灰色（ &hellip;">
+  <meta name="description" content="Setup Virtual Host Buy a Linode instance on linode. Note its IP address on the home page in your user account.
+Install a Linux system and secure it. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +66,360 @@ RGB常用于显示器，用3原色的值表示一种颜色。 HSL是用色调hue
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/23/084146/">Deploy Web Server on Linode</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-23T08:41:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>8:41 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Setup Virtual Host</h1>
+
+<p>Buy a Linode instance on <a href="https://www.linode.com/">linode</a>. Note its IP address on the home page in your user account.
+Install a Linux system and <a href="https://www.linode.com/docs/security/securing-your-server/">secure it</a>.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/getting-started">Getting Started</a> for instructions.</p>
+
+<h1>Connect domain name and IP address</h1>
+
+<p>Here we link multiple Domain names to the same IP address.
+Then direct different domain requests to its corresponding port using nginx.</p>
+
+<p>First register (purchase) a domain name, if you haven’t already.
+Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
+
+<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 ->  解析设置 -> 设置网站解析 -> 把域名指向我的网站-添加IP地址&rdquo;,
+add your Linode instance IP address as &ldquo;A&rdquo; record,
+Then wait up to 24 hours for the changes to take effect.
+I waited about 30 minutes to take effect.</p>
+
+<p>Next set your domain name to use Linode’s name servers (&ldquo;ns1.linode.com&rdquo; to &ldquo;ns5.linode.com&rdquo;)
+in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DNS服务器 -> 修改域名DNS&rdquo;.</p>
+
+<p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
+Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
+Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#x6f;&#x3a;&#108;&#99;&#64;&#49;&#x32;&#x36;&#x2e;&#x63;&#111;&#x6d;">&#x6c;&#x63;&#x40;&#49;&#50;&#54;&#x2e;&#x63;&#111;&#109;</a>&rdquo;.
+Then click &ldquo;Add a Master Zone&rdquo;.</p>
+
+<h2>Setting Reverse DNS</h2>
+
+<p>On linode instance dashboard -> Remote access -> Reverse DNS, enter &ldquo;niufairs.com&rdquo;, and press &ldquo;Look up&rdquo;.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/websites/hosting-a-website">Hosting a website</a>.</p>
+
+<h1>Config Relationship betwwen domain and port</h1>
+
+<p>Fist install nginx.</p>
+
+<p>Edit /etc/nginx/nginx.conf as follows:</p>
+
+<pre><code>events {
+  worker_connections  1024;
+}
+
+http {
+  server {
+    server_name niufairs.cn;
+
+    location / {
+      proxy_pass http://localhost:3000/;
+    }
+  }
+
+  server {
+    server_name niufairs.com;
+
+    location / {
+      proxy_pass http://localhost:4000/;
+    }
+  }
+
+  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+  '$status $body_bytes_sent "$http_referer" '
+  '"$http_user_agent" "$http_x_forwarded_for"';
+
+  access_log  /var/log/nginx/access.log  main;
+}
+</code></pre>
+
+<p>Test if this conf is right: <code>nginx -t</code>;</p>
+
+<p>If test ok, reload conf: <code>nginx -s reload</code>;</p>
+
+<p>Now start 2 meteor app on port 3000 and 4000, and you can use niufairs.cn and niufairs.com to visit them respectively.</p>
+
+<p>If you want server some static files, add a new &ldquo;server&rdquo; section in &ldquo;http&rdquo; of nginx.conf:</p>
+
+<pre><code>http {
+  server {
+    server_name newfairs.cn;
+    location / {
+      root /data/www;
+    }
+    location /images/ {
+      root /data;
+    }
+  }
+
+  server {
+    ...
+  }
+}
+</code></pre>
+
+<h1>Configure Email Server</h1>
+
+<p>I bought an <strong>business</strong> account on <a href="https://www.fastmail.com/">FastMail</a>, and
+configure 3 places to make the mail server functional:</p>
+
+<ol>
+<li><p>In FastMail <a href="&#x6d;&#97;&#x69;&#108;&#x74;&#111;&#58;&#x6d;&#x61;&#115;&#116;&#x65;&#114;&#117;&#x73;&#x65;&#x72;&#64;&#110;&#105;&#x75;&#x66;&#x61;&#x69;&#114;&#x73;&#x2e;&#x63;&#111;&#x6d;">&#109;&#x61;&#x73;&#x74;&#x65;&#x72;&#x75;&#115;&#101;&#x72;&#64;&#110;&#105;&#117;&#102;&#97;&#x69;&#114;&#115;&#x2e;&#99;&#111;&#109;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
+<li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
+
+<p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
+<li><p>Add the following record on &ldquo;niufairs.com&rdquo; on Linode.com:</p>
+
+<p> MX Records ->  Mail Server: in1-smtp.messagingengine.com, Preference: 10, TTL: Default.</p></li>
+</ol>
+
+
+<p>Refs:</p>
+
+<ul>
+<li><p><a href="http://stackoverflow.com/questions/15678224/nginx-proxy-several-domains-to-different-ports">Nginx proxy several domains to different ports</a></p></li>
+<li><p><a href="http://nginx.org/en/docs/beginners_guide.html#static">Serving Static Content</a></p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/21/110312/">CSS and LESS Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-21T11:03:12+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>CSS selector rules: <a href="http://www.w3schools.com/cssref/css_selectors.asp">CSS Selectors</a></p>
+
+<p>CSS Combination rules: <a href="http://www.w3schools.com/css/css_combinators.asp">CSS Combinators</a></p>
+
+<p>Addition to the above rules, you can use &ldquo;element.class&rdquo; to specify a specified elment.
+For example, &ldquo;p.bluecolor&rdquo; will select &ldquo;all p elements with class bluecolor&rdquo;.
+A <div class="bluecolor"> will not be included.
+See <a href="http://css.maxdesign.com.au/selectutorial/selectors_class.htm">Class selectors</a> for details.</p>
+
+<p>LESS introduction: <a href="http://www.elated.com/articles/less-is-more-make-your-css-coding-easier-with-less/">LESS Is More: Make Your CSS Coding Easier with LESS</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/20/230618/">Meteor MongoDB Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-20T23:06:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:06 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>Connect to a mongodb of a Meteor app: run <code>meteor</code> at the project root. Start another shell, go to this folder, and run <code>meteor mongo</code>;</p></li>
+<li><p>List all available commands: <code>help</code>;</p></li>
+<li><p>List DB operation methods: <code>db.help()</code>;</p></li>
+<li><p>List all existing collection names: <code>show collections</code>;</p></li>
+<li><p>List all available commands of a collection: <code>db.&lt;collection-name&gt;.help()</code>;</p></li>
+<li><p>Show collection information: <code>db.&lt;collection-name&gt;.stats()</code>;</p></li>
+<li><p>Print all &ldquo;name&rdquo; field of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {name_chn: 1})</code>;</p></li>
+<li><p>Print all fields except &ldquo;name_chn&rdquo; of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {products: 0})</code>;</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/17/114238/">Meteor Resources</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-17T11:42:38+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:42 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Learning Resources</h1>
+
+<h2>Published Books</h2>
+
+<ul>
+<li><p>Instant Meteor JavaScript Framework Starter by Gabriel Manricks of PACKT, 2013;</p></li>
+<li><p>Getting Started with Meteor.js JavaScript Framework by Isaac Strack of PACKT, 2012;</p></li>
+</ul>
+
+
+<h2>Upcoming Books</h2>
+
+<ul>
+<li><p>Beginning Meteor by Aaron Gray of APress, march 25, 2015;</p></li>
+<li><p>Building Single-page Web Apps with Meteor by Fabian Vogelsteller of PACKT, december 26, 2014;</p></li>
+</ul>
+
+
+<h2>Free Resources</h2>
+
+<p><a href="https://bulletproofmeteor.com/">Bulletproof Meteor</a></p>
+
+<p><a href="http://themeteorchef.com/">The Meteor Chef</a></p>
+
+<p><a href="http://eventedmind.com/">Evented Mind</a></p>
+
+<p><a href="http://meteortips.com/">Meteor Tips</a></p>
+
+<p><a href="https://www.udemy.com/build-your-first-real-time-web-application-with-meteorjs">Build Your First Real-Time Web Application with MeteorJS</a></p>
+
+<p><a href="http://meteorjs.club/">Josh Owen&rsquo;s Meteor Club</a></p>
+
+<h2>Paid Resources</h2>
+
+<p><a href="https://www.discovermeteor.com/">Discover Meteor</a></p>
+
+<p>Ref: <a href="http://www.sitepoint.com/9-ways-meteor-1-0-will-take-world/">9 Ways Meteor 1.0 Will Take You Out of This World</a></p>
+
+<h1>For Meteor Jobs</h1>
+
+<p><a href="http://www.weworkmeteor.com/">We Work Meteor</a></p>
+
+<h1>Test Tools</h1>
+
+<p><a href="https://kadira.io/">Kadira</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/16/170917/">Scala的模式匹配</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-16T17:09:17+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面是一个RDD，每一个元素是一个Array，这个Array由几个tuple组成，
+现在需要将其中第二个元素是13的tuple（比如(-36522769,13)）的一个元素后面追加字符串&#8221;.000&#8221;，其余不变，
+实现方法如下：</p>
+
+<pre><code>val data = RDD[Array[(String, Int)]] = RDD(
+        Array((-36522769,13), (8014,14), (2014-09-19 00:10:47,17), (3,18), (FF-693960651,134)),
+        Array((-905910021.0000000000,13), (200,14), (2014-09-19 00:02:11,17), (3,18), (FF--112226702,134)),
+        Array((-2033866158.0000000000,13), (200,14), (2014-09-19 00:07:12,17), (3,18), (FF--112226702,134)),
+        Array((1712341836.0000000000,13), (200,14), (2014-09-19 00:07:06,17), (3,18), (FF--112226702,134)),
+        Array((-896432680.0000000000,13), (8014,14), (2014-09-19 00:12:17,17), (3,18), (FF-693960651,134)),
+        Array((-1205034451.0000000000,13), (200,14), (2014-09-19 00:07:21,17), (3,18), (FF--112226702,134)),
+        Array((-2117505875.0000000000,13), (15089,14), (2014-09-19 00:41:47,17), (2,18), (FF-1139491304,134))) 
+
+val res = data.map(x =&gt; x.map { case (y,13) =&gt; (y + ".000", 13)
+                                case z =&gt; z
+                              })
+</code></pre>
+
+<p>如果把13变为一个变量，比如<code>val BAD_NUM = 13</code>, 这时直接改写为<code>case (y, BAD_NUM) =&gt; ...</code>，将出现错误，
+因为解析器将BAD_NUM视为一个自由变量，而不是外部等于13的那个变量，解决方法是用反引号把BAD_NUM扩起来，写为：</p>
+
+<pre><code>case (y, `BAD_NUM`) =&gt; (y + ".000", BAD_NUM)
+</code></pre>
+
+<p>推荐文章：</p>
+
+<p><a href="http://kerflyn.wordpress.com/2011/02/14/playing-with-scalas-pattern-matching/">Playing with Scala’s pattern matching</a>;</p>
+
+<p><a href="http://docs.scala-lang.org/tutorials/tour/pattern-matching.html">Pattern Matching in Scala Documenation</a></p>
+
+<p><a href="http://docs.scala-lang.org/cheatsheets/">Pattern matching section in Scala cheatsheet</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -392,608 +744,6 @@ Next check the json file with <code>jsonlint myfile.json</code>.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/04/230146/">Text Box Autocomplete in Meteor</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-04T23:01:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Autocomplete function in text box provides instant response to user input text, which is very powerful and user-friendly.</p>
-
-<p>For meteor, this function is called typeahead.
-Run <code>meteor search typeahead</code>, you can find <a href="https://github.com/sergeyt/meteor-typeahead">sergeyt:typeahead</a>.
-Clone it to your computer with git, in the &ldquo;demo&rdquo; subfolder, run <code>meteor</code> and open <a href="http://localhost:3000/.">http://localhost:3000/.</a>
-When typing in the first text box (&ldquo;NBA teams&rdquo; in it), it will provide instant response.</p>
-
-<p>sergeyt:typeahead&rsquo;s Bootstrap counterpart is called typeahead, too. That of jQuery is called &ldquo;Autocomplete&rdquo;.</p>
-
-<p>The following is a minimal working demo of sergeyt:typeahead:</p>
-
-<pre><code>$ meteor create meteorapp
-$ cd meteorapp
-$ meteor add sergeyt:typeahead
-$ cat meteorapp.html
-&lt;head&gt;
-  &lt;title&gt;meteorapp&lt;/title&gt;
-&lt;/head&gt;
-
-&lt;body&gt;
-  &lt;h1&gt;input "p" in the following text box&lt;/h1&gt;
-
-&lt;/body&gt;
-
-&lt;template name="sti"&gt;
-  &lt;input class="form-control typeahead" name="team"
-      type="text" placeholder="NBA teams"
-      autocomplete="off" spellcheck="off"
-      data-source="nba"/&gt;
-&lt;/template&gt;
-
-$ cat meteorapp.js
-Nba = new Meteor.Collection("nba");
-
-if (Meteor.isClient) {
-  Template.sti.helpers({
-    nba: function(){
-        return Nba.find().fetch().map(
-                function(it){
-                  return it.name;
-                });
-    }
-  });
-
-  Meteor.startup(function(){
-      Meteor.typeahead.inject();
-  });
-}
-
-if (Meteor.isServer) {
-  Meteor.startup(function () {
-    Nba.insert({name:'Philadelphia 76ers'});
-    Nba.insert({name:'Detroit Pistons'});
-    Nba.insert({name:'Portland Trail Blazers'});
-  });
-}
-</code></pre>
-
-<p>Note:</p>
-
-<ol>
-<li><p>Every time start the server, the 3 items will be added into collection Nba. So if you don&rsquo;t clear data (with <code>meteor reset</code>), you will see many identical items in candidate list;</p></li>
-<li><p>No matter &ldquo;on&rdquo; or &ldquo;off&rdquo; of the value of the &ldquo;autocomplete&rdquo; attribute of the text box, the autocomplete function always works. So what is the function of this attribute?</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/04/110411/">Username Disappeared in Meteor Official Tutorial</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-04T11:04:11+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:04 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In the 9th step (Adding user accounts) of official tutorial &ldquo;simple-todos&rdquo; of Meteor 1.0,
-if you start server while leaving some old data (todo items) created in previous steps,
-you will find that there&rsquo;s no username before the todo text.</p>
-
-<p>But if you clear all old data (click remove button on web page, or use <code>meteor reset</code>),
-and create new todo items with a signed in username, you will find the username appear.</p>
-
-<h1>Data binding between Template and Collection</h1>
-
-<p>The following modified version simple-todos works:</p>
-
-<p>simple-todos.html:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;head&gt;
-</span><span class='line'>  &lt;title&gt;Todo List&lt;/title&gt;
-</span><span class='line'>&lt;/head&gt;
-</span><span class='line'>
-</span><span class='line'>&lt;body&gt;
-</span><span class='line'>  &lt;div class="container"&gt;
-</span><span class='line'>    &lt;header&gt;
-</span><span class='line'>      &lt;h1&gt;Todo List&lt;/h1&gt;
-</span><span class='line'>      &lt;label class="hide-completed"&gt;
-</span><span class='line'>        &lt;input type="checkbox" checked="" /&gt;
-</span><span class='line'>        Hide Completed Tasks
-</span><span class='line'>      &lt;/label&gt;
-</span><span class='line'>
-</span><span class='line'>      
-</span><span class='line'>
-</span><span class='line'>      
-</span><span class='line'>        &lt;form class="new-task"&gt;
-</span><span class='line'>          &lt;input type="text" name="text" placeholder="Type to add tasks" /&gt;
-</span><span class='line'>        &lt;/form&gt;
-</span><span class='line'>      
-</span><span class='line'>    &lt;/header&gt;
-</span><span class='line'>    &lt;ul&gt;
-</span><span class='line'>      
-</span><span class='line'>        
-</span><span class='line'>      
-</span><span class='line'>    &lt;/ul&gt;
-</span><span class='line'>  &lt;/div&gt;
-</span><span class='line'>&lt;/body&gt;
-</span><span class='line'>
-</span><span class='line'>&lt;template name="todo"&gt;
-</span><span class='line'>  &lt;li class="checked"&gt;
-</span><span class='line'>    &lt;button class="delete"&gt;&times;&lt;/button&gt;
-</span><span class='line'>    &lt;input type="checkbox" checked="" class="toggle-checked" /&gt;
-</span><span class='line'>    &lt;span class="text"&gt;&lt;strong&gt;&lt;/strong&gt; -  at &lt;/span&gt;
-</span><span class='line'>  &lt;/li&gt;
-</span><span class='line'>&lt;/template&gt;</span></code></pre></td></tr></table></div></figure>
-
-
-<p>simple-todos.js:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>Tasks = new Mongo.Collection("tododb");
-</span><span class='line'>
-</span><span class='line'>if (Meteor.isClient) {
-</span><span class='line'>  Template.body.helpers({
-</span><span class='line'>    todoitems: function () {
-</span><span class='line'>      if (Session.get("hideCompleted")) {
-</span><span class='line'>        return Tasks.find({checked: {$ne: true}}, {sort: {createdAt: -1}});
-</span><span class='line'>      } else {
-</span><span class='line'>        return Tasks.find({}, {sort: {createdAt: -1}});
-</span><span class='line'>      }
-</span><span class='line'>    },
-</span><span class='line'>    hideCompleted: function () {
-</span><span class='line'>      return Session.get("hideCompleted");
-</span><span class='line'>    }
-</span><span class='line'>  });
-</span><span class='line'>
-</span><span class='line'>  Template.body.events({
-</span><span class='line'>    "submit .new-task": function (event) {
-</span><span class='line'>      var text = event.target.text.value;
-</span><span class='line'>
-</span><span class='line'>      Tasks.insert({
-</span><span class='line'>        text: text,
-</span><span class='line'>        createdAt : new Date(),
-</span><span class='line'>        owner: Meteor.userId(),
-</span><span class='line'>        username: Meteor.user().username
-</span><span class='line'>      });
-</span><span class='line'>
-</span><span class='line'>      event.target.text.value = "";
-</span><span class='line'>
-</span><span class='line'>      return false;
-</span><span class='line'>    },
-</span><span class='line'>
-</span><span class='line'>    "change .hide-completed input": function (event) {
-</span><span class='line'>        Session.set("hideCompleted", event.target.checked);
-</span><span class='line'>    }
-</span><span class='line'>  });
-</span><span class='line'>
-</span><span class='line'>  Template.todo.helpers({
-</span><span class='line'>    creDate: function () {
-</span><span class='line'>      return this.createdAt;
-</span><span class='line'>    }
-</span><span class='line'>  });
-</span><span class='line'>
-</span><span class='line'>  Template.todo.events({
-</span><span class='line'>    "click .toggle-checked": function () {
-</span><span class='line'>      Tasks.update(this._id, {$set: {checked: ! this.checked}});
-</span><span class='line'>    },
-</span><span class='line'>    "click .delete": function () {
-</span><span class='line'>      Tasks.remove(this._id);
-</span><span class='line'>    }
-</span><span class='line'>  });
-</span><span class='line'>
-</span><span class='line'>  Accounts.ui.config({
-</span><span class='line'>    passwordSignupFields: "USERNAME_ONLY"
-</span><span class='line'>  });
-</span><span class='line'>}
-</span><span class='line'>
-</span><span class='line'>if (Meteor.isServer) {
-</span><span class='line'>  Meteor.startup(function () {
-</span><span class='line'>    // code to run on server at startup
-</span><span class='line'>  });
-</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So we can conclude (the left hand side of &ldquo;&lt;=>&rdquo; is template in html file, while js codes on the right hand side):</p>
-
-<ol>
-<li><p>The name after #each is a <strong>helper function</strong> which defined in js file, and returns a subset of a collection:</p>
-
-<pre><code>  &lt;=&gt; Template.body.helpers -&gt; todoitems: function () {...}; 
-</code></pre></li>
-<li><p>Variables in  in a template is the attributes of the object in collection, represented by the template:</p>
-
-<pre><code> &lt;strong&gt;&lt;/strong&gt; -  &lt;=&gt; Tasks.insert({ text: text, ..., username: Meteor.user().username }); 
-</code></pre>
-
-<p>or a helper function ( here).</p></li>
-<li><p>&ldquo;this&rdquo; in helper function refers to the template the function based on.</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/03/180421/">Meteor Codes Auto Completion in Vim</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-03T18:04:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:04 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>On ArchLinux</h1>
-
-<ol>
-<li><p>Install node.js: <code>sudo pacman -S nodejs</code>;</p></li>
-<li><p>Install <a href="https://github.com/marijnh/tern_for_vim">tern_for_vim</a>:</p>
-
-<pre><code> $ cd ~/.vim/bundle
- $ git clone https://github.com/marijnh/tern_for_vim.git
- $ cd tern_for_vim
- $ npm install
-</code></pre></li>
-<li><p>Install meteor plugin for tern <a href="https://github.com/Slava/tern-meteor">tern-meteor</a>: download meteor.js from this site to folder ~/.vim/bundle/tern_for_vim/node_modules/tern/plugins;</p></li>
-<li><p>Create a meteor project, create a .tern-project file under the project home:</p>
-
-<pre><code> {
-   "libs": [
-     "browser",
-     "jquery",
-     "underscore"
-   ],
-   "loadEagerly": [ "*.js", "*/*.js", "*/*/*.js", "*/*/*/*.js" ],
-   "dontLoad": [ ".meteor" ],
-   "plugins": {
-     "meteor": {}
-   }
- }
-</code></pre></li>
-<li><p>Now when you edit .js file, use C-x,C-o to trigger autocompletion.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="https://github.com/joyent/node/wiki/installing-node.js-via-package-manager#arch-linux">Installing Node.js via package manager</a>;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/03/113214/">Use Template.dynamic to Create Dynamic Pages for Meteor Application</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-03T11:32:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:32 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>For a SPA (single page app), it&rsquo;s a common practice to switch between templates instead of pages.
-The following codes demonstrate how to switching between 2 templates according to 2 buttons&#8217; clicking events.</p>
-
-<pre><code>$ meteor create multipage
-$ cd multipage
-$ cat &lt;&lt; EOF &gt; multipage.html
-&lt;head&gt;
-  &lt;title&gt;multiple-view-example&lt;/title&gt;
-&lt;/head&gt;
-
-&lt;body&gt;
-  &lt;button class="pageHome"&gt;Home&lt;/button&gt;
-  &lt;button class="pageAbout"&gt;About&lt;/button&gt;
-
-&lt;/body&gt;
-
-&lt;template name="home"&gt;
-  &lt;p&gt;Home!&lt;/p&gt;
-&lt;/template&gt;
-
-&lt;template name="about"&gt;
-  &lt;p&gt;About!&lt;/p&gt;
-&lt;/template&gt;
-EOF
-
-$ cat &lt;&lt; EOF &gt; multipage.js
-if ( Meteor.isClient ) {
-  Meteor.startup(function () {
-    Session.set("page", "home");
-    console.log("session key: " + Session.get("page"));
-  });
-
-  Template.body.helpers({
-    whichOne: function(){
-      console.log("session key: " + Session.get("page"));
-      return Session.get("page");
-    }
-  });
-
-  Template.body.events({
-    "click .pageHome": function () {
-      Session.set("page", "home");
-    },
-    "click .pageAbout": function () {
-      Session.set("page", "about");
-    }
-  });
-}
-
-if ( Meteor.isServer ) {
-  Meteor.startup( function() {
-  } );
-}
-EOF
-
-$ meteor
-</code></pre>
-
-<p>Open <a href="http://localhost:3000,">http://localhost:3000,</a> clicking &ldquo;Home&rdquo; button, the &ldquo;home&rdquo; template is shown.
-While clicking &ldquo;about&rdquo; button, the &ldquo;about&rdquo; template is shown.</p>
-
-<p>Template.dynamic is better than Meteor&rsquo;s route package, for it&rsquo;s a built-in function of Meteor.
-No need to install a package with <code>meteor add ...</code>.</p>
-
-<p>And you can put big templates into a new html file, which make the struture more flexible.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js">http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/01/103921/">Use Bootstrap Themes in Meteor</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-01T10:39:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="https://www.meteor.com/">Meteor</a> is awesome for build dynamic web apps.
-However it&rsquo;s a &ldquo;baremetal&rdquo; without templates.
-On the other hand, <a href="http://getbootstrap.com/">Bootstrap</a> is a powerful front-end framework with many beautiful themes.
-So we have to combine these two.</p>
-
-<p>First of all we need to get the bootstrap.min.js
-from the latest precompiled version of bootstrap release package (bootstrap-x.x.x-dist.zip).
-<a href="http://bootswatch.com/">Bootswatch</a> provides free bootstrap themes.
-Download &ldquo;bootstrap.min.css&rdquo; file with clicking &ldquo;Download&rdquo; button of prefered theme,
-and put it under client folder of meteor app.
-Then all DOM element will be styled.</p>
-
-<pre><code>cd ~/docs/tmp
-meteor create mywebapp
-cd mywebapp
-rm *.js *.css *.html
-mkdir -p {server,client/{css,lib}}
-wget https://github.com/twbs/bootstrap/releases/download/v3.3.1/bootstrap-3.3.1-dist.zip
-unzip bootstrap-3.3.1-dist.zip -d bootstrap
-cp bootstrap/dist/js/bootstrap.min.js client/lib
-rm -rf bootstrap*
-wget http://bootswatch.com/readable/bootstrap.min.css client/css/bootstrap.min.css
-cat &lt;&lt; EOF &gt; client/mywebapp.html
-&lt;head&gt;
-  &lt;title&gt;sousouzhan&lt;/title&gt;
-&lt;/head&gt;
-
-&lt;body&gt;
-  &lt;h1&gt;Welcome to Meteor!&lt;/h1&gt;
-
-
-&lt;/body&gt;
-
-&lt;template name="hello"&gt;
-  &lt;button type="button" class="btn btn-default"&gt;Click Me&lt;/button&gt;
-  &lt;div class="searchform"&gt;
-    &lt;form role="form"&gt;
-      &lt;div class="form-group"&gt;
-        &lt;label for="exampleInputEmail1"&gt;Email address&lt;/label&gt;
-        &lt;input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email"&gt;
-      &lt;/div&gt;
-      &lt;div class="form-group"&gt;
-        &lt;label for="exampleInputPassword1"&gt;Password&lt;/label&gt;
-        &lt;input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password"&gt;
-      &lt;/div&gt;
-      &lt;div class="form-group"&gt;
-        &lt;label for="exampleInputFile"&gt;File input&lt;/label&gt;
-        &lt;input type="file" id="exampleInputFile"&gt;
-        &lt;p class="help-block"&gt;Example block-level help text here.&lt;/p&gt;
-      &lt;/div&gt;
-      &lt;div class="checkbox"&gt;
-        &lt;label&gt;
-          &lt;input type="checkbox"&gt; Check me out
-        &lt;/label&gt;
-      &lt;/div&gt;
-      &lt;button type="submit" class="btn btn-default"&gt;Submit&lt;/button&gt;
-    &lt;/form&gt;
-  &lt;/div&gt;
-  &lt;p&gt;You've pressed the button  times.&lt;/p&gt;
-&lt;/template&gt;
-EOF
-meteor
-</code></pre>
-
-<p>Then open <a href="http://localhost:3000">http://localhost:3000</a> to view the result.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/9">&larr; Older</a>
@@ -1011,23 +761,23 @@ meteor
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

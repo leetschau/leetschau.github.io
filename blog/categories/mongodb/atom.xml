@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Mongodb | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/mongodb/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-04-30T16:21:37+08:00</updated>
+  <updated>2015-05-10T10:22:47+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,107 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Run Mongo Scripts in Shell]]></title>
+    <link href="http://leetschau.github.io/blog/2015/05/08/155132/"/>
+    <updated>2015-05-08T15:51:32+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/05/08/155132</id>
+    <content type="html"><![CDATA[<p>You can query a remote mongoDB with a mongo script, print output to stdout.
+Then manipulate the output data with other shell utilities.</p>
+
+<p>For example, the following scripts get all fair names from a remote server,
+compare them with a local fair name set,
+to find out which are conflicted with the existing fair names in the local name.</p>
+
+<p>Some key points:</p>
+
+<ol>
+<li><p>&ldquo;db&rdquo; is a built-in global variable refers to the connected database,
+specified by the -h, -d options in mongo command line.
+It can be override by &ldquo;connect&rdquo; function.
+For example, with or without the first line, the script produce the same result
+when running <code>mongo test.js</code>:</p>
+
+<pre><code> $ cat test.js
+ // db = connect("localhost/test")
+ print(db.getCollectionNames())
+ db.myCollection.find().forEach(function(item) {
+   print(item.name)
+ })
+</code></pre></li>
+<li><p>Use &ldquo;print&rdquo; function to print result to stdout.</p></li>
+<li><p>To get command line arguments in mongo script, you must compose the evaluation string before(outside) <code>mongo</code> command,
+and you must add double quotes surrounding $exp.</p>
+
+<pre><code> #!/bin/bash
+
+ TargetDB=$1
+ TargetCol=$2
+ TargetField=$3
+
+ exp="db.${TargetCol}.find().forEach( function(item) \
+   { print(item.$TargetField); });"
+
+ mongo localhost/$TargetDB --eval "$exp"
+</code></pre></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/write-scripts-for-the-mongo-shell/">Write Scripts for the mongo Shell</a></p>
+
+<p><a href="http://stackoverflow.com/questions/8971151/file-write-operations-in-mongo-script">http://stackoverflow.com/questions/8971151/file-write-operations-in-mongo-script</a></p>
+
+<p><a href="http://stackoverflow.com/questions/14478304/redirect-output-of-mongo-query-to-a-csv-file">http://stackoverflow.com/questions/14478304/redirect-output-of-mongo-query-to-a-csv-file</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Find Verified User in MongoDB]]></title>
+    <link href="http://leetschau.github.io/blog/2015/05/07/151147/"/>
+    <updated>2015-05-07T15:11:47+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/05/07/151147</id>
+    <content type="html"><![CDATA[<p>Find a user whose email is verified.
+The &ldquo;emails&rdquo; field is an array.
+The function of &ldquo;$elemMatch&rdquo; operator is:</p>
+
+<p>Find a element in an array (here is emails),
+whose feature obey the value after &ldquo;$elemMatch&rdquo; (here its &ldquo;verified&rdquo; key is &ldquo;true&rdquo;).</p>
+
+<p>The code:</p>
+
+<pre><code>&gt; db.users.findOne({'emails': {$elemMatch: {verified: true}}})
+{
+  "_id" : "rKawn5jCiuGcsPHdP",
+  "createdAt" : ISODate("2015-05-07T01:04:23.375Z"),
+  "services" : {
+    "password" : {
+      "bcrypt" : "$2a$10$T07N74DUrVrRtVGPT9dzleZlpRTlULfb9OrlWveW4NbcNpi.HkiAK"
+    },
+    "resume" : {
+      "loginTokens" : [
+        {
+          "when" : ISODate("2015-05-07T01:04:23.902Z"),
+          "hashedToken" : "Xbt2ASQF61artSmrYX1Gn6DLUNvbIrz9DW0sE4tbJh4="
+        }
+      ]
+    },
+    "email" : {
+      "verificationTokens" : [ ]
+    }
+  },
+  "emails" : [
+    {
+      "address" : "leechau@126.com",
+      "verified" : true
+    }
+  ]
+}
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Update Data in MongoDB]]></title>
@@ -101,259 +202,6 @@ then add ssh-auto-login with <code>ssh-copy-id ...</code>.</p>
 <h1>Import new data</h1>
 
 <h1>Update website codes</h1>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[The Algorithm of Related Fairs]]></title>
-    <link href="http://leetschau.github.io/blog/2015/02/25/141712/"/>
-    <updated>2015-02-25T14:17:12+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/02/25/141712</id>
-    <content type="html"><![CDATA[<p>For a given fair A, it&rsquo;s <em>major category</em> are a set of its cat.major subdocuments.</p>
-
-<p>For example, for the fair:</p>
-
-<pre><code>{ cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] }
-</code></pre>
-
-<p>its major categories are set [&ldquo;abc, &#8220;xyz&rdquo;].
-Here we say the major categories of fair X is <code>majorCat(X)</code>.</p>
-
-<p>If the intersection of set <code>majorCat(X)</code> and <code>majorCat(Y)</code> are not empty,
-we say fair X and Y are <em>related</em>.</p>
-
-<p>So for a given fair X, how to find all its related fairs in a collection?</p>
-
-<p>Here is the demonstration:</p>
-
-<p>In mongodb, create a test collection with the following codes:</p>
-
-<pre><code>db.cats.insert( { cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] } );
-db.cats.insert( { cat: [ { major: "abcd", minor: [ 1,23,3] }, { major: "xyzu", minor: [ 87, 987, 343]} ] } );
-db.cats.insert( { cat: [ { major: "bcd", minor: [ 1,23,3] }, { major: "abc", minor: [ 3, 23, 876]} ] } );
-db.cats.insert( { cat: [ { major: "xyz", minor: [ 8,83,5] }, { major: "axc", minor: [ 34, 3, 76]} ] } );
-</code></pre>
-
-<p>Create a new Meteor app with <code>meteor create relatedFairs</code>, and its files:</p>
-
-<p>relatedFairs.html</p>
-
-<pre><code>&lt;head&gt;
-  &lt;title&gt;relatedFairs&lt;/title&gt;
-&lt;/head&gt;
-
-&lt;body&gt;
-  &lt;h1&gt;Find related fairs&lt;/h1&gt;
-  
-&lt;/body&gt;
-
-&lt;template name="hello"&gt;
-  &lt;ul&gt;
-    
-      &lt;li&gt; 
-        &lt;b&gt;:&lt;/b&gt;
-        
-          ,
-        
-      &lt;/li&gt;
-    
-  &lt;/ul&gt;
-  
-    &lt;p&gt;Related fairs of the first fair &lt;/p&gt;
-    &lt;ul&gt;
-      
-        &lt;li&gt;
-          &lt;b&gt;:&lt;/b&gt;
-          
-            ,
-          
-        &lt;/li&gt;
-      
-    &lt;/ul&gt;
-  
-&lt;/template&gt;
-</code></pre>
-
-<p>relatedFairs.js:</p>
-
-<pre><code>Fairs = new Mongo.Collection("cats");
-
-if (Meteor.isClient) {
-  Template.hello.helpers({
-    allFairs: function () {
-      return Fairs.find();
-    },
-    related: function () {
-      var theXrd = 0,
-          theFair = Fairs.findOne( {}, {skip: theXrd } );
-      if (! theFair) {
-        return null;
-      }
-      var majors = _.map(theFair.cat, function(i) { return i.major; } );
-      var rels = Fairs.find( { cat: { $elemMatch: { major: { $in: majors } } },
-                               _id: { $ne: theFair._id } } );
-      return {firstID: theFair._id._str, relatedFairs: rels };
-    }
-  });
-}
-</code></pre>
-
-<p>Here we use <a href="http://underscorejs.org/">Underscore.js</a>,
-so install this package with <code>meteor add underscore</code> to run our demo app
-(with <code>MONGO_URL="mongodb://localhost:27017/test" meteor</code> in project root folder).</p>
-
-<p>Modify the value of &ldquo;theXrd&rdquo; above, you can see the related fairs of each fair.</p>
-
-<p>To make a demo in a production collection,
-in fair &ldquo;A&rdquo; we find a major category called &ldquo;垃圾车与运输车&#8221;，
-then choose a fair B, whose id is &#8220;54e71a5642fb549b1389ae6f&rdquo;.</p>
-
-<p>Let&rsquo;s add the major cateory to fair B:</p>
-
-<pre><code>db.fairs.update( { _id: ObjectId("54e71a5642fb549b1389ae6f") }, { $push: {category: {major: "垃圾车与运输车"}} } );
-</code></pre>
-
-<p>Now fair A and B is related. Test them on your web site.
-If the test is past, remove the test data from fair B:</p>
-
-<pre><code>db.fairs.update( { _id: ObjectId("54e71a6642fb549b1389ae6f") }, { $pop: { category: 1 } } );
-</code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Import Data for Newfairs.com]]></title>
-    <link href="http://leetschau.github.io/blog/2015/02/20/194901/"/>
-    <updated>2015-02-20T19:49:01+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/02/20/194901</id>
-    <content type="html"><![CDATA[<h1>Prerequisites</h1>
-
-<p>First install MongoDB, node.js and csvkit.</p>
-
-<p>For node.js, download node binary package (node-v0.10.33-linux-x64.tar.gz in my case) from its website,
-extract and add binary folder into $PATH. For example, add the following line into ~/.zshenv:</p>
-
-<pre><code>PATH=$HOME/apps/node-v0.10.33-linux-x64/bin:$PATH
-</code></pre>
-
-<p>For MongoDB, download its binary package (mongodb-linux-x86_64-2.6.5.tgz in my case) from its website,
-extract and add binary folder into $PATH:</p>
-
-<pre><code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH
-</code></pre>
-
-<p>Install csvkit with <code>sudo pip install csvkit</code>.</p>
-
-<h1>Preparation</h1>
-
-<ol>
-<li><p>Convert Excel (xls/xlsx) file to csv file: <code>in2csv data.xls &gt; data.csv</code>;</p></li>
-<li><p>(Optional) Convert file encoding: <code>iconv -f gbk -t utf8 data20150218.csv &gt; input.csv</code>;</p></li>
-<li><p>Examine data: <code>head input.csv | csvjson -i 4</code>;</p></li>
-<li><p>Start MongoDB server for importing data: <code>mongod</code>;</p></li>
-</ol>
-
-
-<h1>Import Data</h1>
-
-<p>In case you want to overwrite old data, you need backup old collection:
-start a mongodb client, make a copy of the old collection (the original collection is &ldquo;fairs&rdquo;):</p>
-
-<pre><code>$ mongo
-&gt; db.fairs.renameCollection('fairsBak')
-</code></pre>
-
-<p>P.S. You can make a copy of a collection with <code>db.fairs.copyTo('fairsBak')</code>.</p>
-
-<p>Now import new data to collection &ldquo;fairs&rdquo;:</p>
-
-<pre><code>./importdata
-</code></pre>
-
-<h1>Under the hood</h1>
-
-<p>importdata:</p>
-
-<pre><code>#!/bin/bash
-
-# convert the csv file encoding with:
-# iconv -f gbk -t utf8 xxx.csv &gt; input.csv
-INP='input.csv'
-TargetDB='test'
-TargetCol='fairs'
-
-RAW='rawdata.json'
-RES='result.json'
-if [[ ! -f $INP ]]; then
-  echo File input.csv not exists!
-  exit 1
-fi
-rm -rf $RAW $RES
-csvjson $INP &gt; $RAW
-node checkTransform
-mongoimport -d $TargetDB -c $TargetCol --type json --file $RES --jsonArray
-rm -rf $RAW $RES
-</code></pre>
-
-<p>checkTransform.js:</p>
-
-<pre><code>var data = require('./rawdata.json');
-var fs = require('fs');
-var result = []
-
-data.forEach(function(elem) {
-  var aFair = JSON.parse( JSON.stringify(elem) );
-  aFair.indexStr = {};
-  aFair.indexStr['name'] = (elem.chnName + ' ' + elem.engName).trim();
-  aFair.indexStr['sponsor'] = elem.sponsor;
-  aFair.indexStr['undertaker'] = elem.undertaker;
-  aFair.indexStr['category'] = elem.category;
-  aFair.indexStr['simpleSearch'] = elem.chnName + ' ' + elem.engName + ' ' + elem.position + ' ' + elem.time + ' ' + elem.category;
-
-  if (elem.sponsor) {
-    aFair['sponsor'] = [];
-    elem.sponsor.split('|').forEach(function(spr) {
-      var aSponsor = {};
-      var sps = spr.split('$');
-      aSponsor['name'] = sps[0];
-      aSponsor['tel'] = sps[1];
-      aSponsor['fax'] = sps[2];
-      aSponsor['email'] = sps[3];
-      aSponsor['website'] = sps[4];
-      aFair.sponsor.push(aSponsor);
-    });
-  }
-
-  if (elem.undertaker) {
-    aFair['undertaker'] = [];
-    elem.undertaker.split('|').forEach(function(udt) {
-      var aUndertaker = {};
-      var uds = udt.split('$');
-      aUndertaker['name'] = uds[0];
-      aUndertaker['tel'] = uds[1];
-      aUndertaker['fax'] = uds[2];
-      aUndertaker['email'] = uds[3];
-      aUndertaker['website'] = uds[4];
-      aFair.undertaker.push(aUndertaker);
-    });
-  }
-
-  if (elem.category) {
-    aFair['category'] = [];
-    elem.category.split('|').forEach(function(catStr) {
-      var aCat = {};
-      var cats = catStr.split('$');
-      aCat['major'] = cats[0] === '?' ? '' : cats[0];
-      aCat['minor'] = cats.slice(1);
-      aFair.category.push(aCat);
-    });
-  }
-
-  result.push(aFair);
-});
-
-fs.writeFile('result.json', JSON.stringify(result));
-</code></pre>
 ]]></content>
   </entry>
   

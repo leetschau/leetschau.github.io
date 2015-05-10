@@ -9,8 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="According to &ldquo;Pro Puppet&rdquo; 2nd edition, Chapter 2, &ldquo;Creating a Module to Manage SSH&rdquo;.
-">
+  <meta name="description" content="$ cd ~/docs/propuppetex/chapter3
+$ cat Vagrantfile
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config| config.vm.box = &ldquo;centos64&rdquo; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +67,371 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/18/162706/">Build Puppet Clusters With Vagrant</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-18T16:27:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>$ cd ~/docs/propuppetex/chapter3
+$ cat Vagrantfile
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|</p>
+
+<p>  config.vm.box = &ldquo;centos64&rdquo;</p>
+
+<p>  config.vm.define &ldquo;ppt&rdquo; do |ppt|
+    ppt.vm.hostname = &ldquo;puppet.boco.com.cn&rdquo;
+    ppt.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.3&rdquo;,
+        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
+    ppt.vm.provider :virtualbox do |vbox|
+      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
+    end
+    ppt.vm.provision :shell, path: &ldquo;master.sh&rdquo;
+  end</p>
+
+<p>  config.vm.define &ldquo;web&rdquo; do |web|
+    web.vm.hostname = &ldquo;web.boco.com.cn&rdquo;
+    web.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.4&rdquo;,
+        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
+    web.vm.provider :virtualbox do |vbox|
+      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
+    end
+    web.vm.provision :shell, path: &ldquo;web.sh&rdquo;
+  end
+end</p>
+
+<p>$ cat master.sh
+echo &lsquo;<em>&rsquo; > /etc/puppet/autosign.conf
+sed -i &lsquo;/[.</em>]/ a \    autosign = true&rsquo; /etc/puppet/puppet.conf # add &ldquo;autosign = true&rdquo; in [main] and [agent]
+echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
+echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
+mkdir /etc/puppet/manifests
+cat > /etc/puppet/manifests/site.pp &lt;<-EOF
+node 'web' {
+  file { '/home/vagrant/aaa.conf':
+    content => &lsquo;this is made by puppet master!&rsquo;,
+  }
+}
+EOF
+service iptables stop</p>
+
+<p>$ cat web.sh
+sed -i &lsquo;1 a \    master = puppet&rsquo; /etc/puppet/puppet.conf # add &ldquo;master = puppet&rdquo; after the line [main]
+echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
+echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
+echo &ldquo;proxy=<a href="http://10.21.3.31:8888">http://10.21.3.31:8888</a>&rdquo; >> /etc/yum.conf
+service iptables stop</p>
+
+<p>Now run &ldquo;puppet master &ndash;no-daemonize &ndash;verbose&rdquo; on ppt, run &ldquo;puppet agent &ndash;test&rdquo; on web, you can file the file &ldquo;aaa.conf&rdquo; at /home/vagrant.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/18/085501/">Publish Blogs on Cnblogs.com</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-18T08:55:01+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Some frequently used action about post on cnblogs:</p>
+
+<pre><code>import xmlrpclib
+
+serviceUrl, appKey = 'http://www.cnblogs.com/yourusername/services/metaweblog.aspx', 'yourusername'
+username, password = 'yourusername', 'yourpassword'
+server = xmlrpclib.ServerProxy(serviceUrl)
+
+res = server.metaWeblog.getRecentPosts('', username, password, 10)
+print('no of posts: %d' % len(res))
+print('list posts: %s' %res)
+
+cat = server.metaWeblog.getCategories('', username, password)
+print('no of categories: %d' %len(cat))
+print('list categories: %s' %cat)
+
+post = {'title':'My 4th Post', 'description':'some test text here\na new line', 'mt_keywords': 'test, demo'}
+postid = server.metaWeblog.newPost('', username, password, post, True)
+print('postid is: %s' % postid)
+
+post = server.metaWeblog.getPost('3604635', username, password)
+print('Get Post: %s' % post)
+</code></pre>
+
+<p>When publish new post, we often meet this error:</p>
+
+<pre><code>Traceback (most recent call last):
+  File "config.py", line 18, in &lt;module&gt;
+    postid = server.metaWeblog.newPost('', usr, passwd, post, True)
+  File "/usr/lib/python2.7/xmlrpclib.py", line 1224, in __call__
+    return self.__send(self.__name, args)
+  File "/usr/lib/python2.7/xmlrpclib.py", line 1578, in __request
+    verbose=self.__verbose
+  File "/usr/lib/python2.7/xmlrpclib.py", line 1264, in request
+    return self.single_request(host, handler, request_body, verbose)
+  File "/usr/lib/python2.7/xmlrpclib.py", line 1297, in single_request
+    return self.parse_response(response)
+  File "/usr/lib/python2.7/xmlrpclib.py", line 1473, in parse_response
+    return u.close()
+  File "/usr/lib/python2.7/xmlrpclib.py", line 793, in close
+    raise Fault(**self._stack[0])
+xmlrpclib.Fault: &lt;Fault 500: u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01'&gt;
+</code></pre>
+
+<p>To see the error information, open a python shell, run following code</p>
+
+<pre><code>print(u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01')
+</code></pre>
+
+<p>Output:</p>
+
+<pre><code>抱歉！已超过当日博文发布数量100篇限制！今天无法继续发布！
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/17/163640/">基于gVim的暗色调Puppet书籍翻译写作环境</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-17T16:36:40+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>翻译环境包括两个部分，写作部分和电子书，前者用gVim，后者Windows上用SumatraPDF，Linux Mint就用自带的evince。</p>
+
+<h1>Linux</h1>
+
+<p>配置gVim字体和颜色：</p>
+
+<p>$ cat ~/.gvimrc
+set go=
+set guifont=Monospace\ 12
+colo koehler
+set et
+set ts=2
+set sw=2
+set cc=0
+set wrap</p>
+
+<p>开始写作：gvim <filename></p>
+
+<p>gVim比vim好的地方是按<ESC>切换到标准状态下时，输入法会自动关闭。</p>
+
+<p>evince用Ctrl-i即可切换到黑底白字，用F11切换全屏。</p>
+
+<p>注：不写&#8221;set keymap=pinyin&#8221;，也能在<ESC>时自动退出中文输入法。</p>
+
+<h1>Windows</h1>
+
+<h2>gVim</h2>
+
+<p>全屏需要使用一个叫做<a href="http://www.vim.org/scripts/script.php?script_id=2596">gvimfullscreen_win32</a>的工具，下载安装包，把gvimfullscreen.dll解压到gvim.exe所在目录下（d:\Apps\Vim\vim72\），然后在_vimrc中加一行：</p>
+
+<p>map <F11> <Esc>:call libcallnr(&ldquo;gvimfullscreen.dll&rdquo;, &ldquo;ToggleFullScreen&rdquo;, 0)<CR></p>
+
+<p>试用后发现全屏状态下输入法和其他提示窗口都不能显示，基本不可用。</p>
+
+<p>最终$MYVIMRC（d:\Apps\Vim_vimrc）的设置是：</p>
+
+<pre><code>set encoding=utf-8
+language messages zh_CN.utf-8
+map &lt;Right&gt; :bn&lt;CR&gt;
+map &lt;F2&gt; :set wrap!&lt;CR&gt;
+set go=
+colo evening
+set noswapfile
+set nobackup
+set ts=2
+set sw=2
+set et
+set ai
+set nu
+set clipboard+=unnamed
+set guifont=Consolas:h13
+cd e:/docs/translate/propuppet
+</code></pre>
+
+<p>其中&#8221;set encoding&#8221;解决打开UTF-8 without BOM格式编码文件时中文字符乱码问题；</p>
+
+<p>language解决提示信息中的中文乱码问题；</p>
+
+<p>set ts=2是专门为Puppet代码格式设置的。</p>
+
+<p>Windows上的gVim不论插入模式和标志模式默认都支持C-s保存文件。</p>
+
+<h2>SumatraPDF</h2>
+
+<p>主菜单 -> 设置 -> 高级选项，在打开的配置文件里将FixedPageUI中TextColor值和BackgroundColor值互换，就实现了黑底白字的效果。</p>
+
+<p>全屏用 [查看 -> 全屏]，快捷键C-S-l。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/12/175101/">Convert a Private Project on bitbucket.com to a Github Public Project</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-12T17:51:01+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:51 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Create a public repo on github, you can add README or License files on the master branch, suppose the url is:</p>
+
+<p> <a href="https://github.com/leetschau/don4.git">https://github.com/leetschau/don4.git</a></p></li>
+<li><p>Get the private repo:</p>
+
+<p> $ git clone <a href="https://leechau@bitbucket.org/leechau/donno.git">https://leechau@bitbucket.org/leechau/donno.git</a>
+ $ cd donno
+ $ git branch -v -a   (list all remote branches for checkout)
+ $ git checkout -b develop origin/develop   (copy remote branch to local repo and update working directory)</p></li>
+<li><p>Publish to github, you have 2 choices:</p>
+
+<ol type="a">
+<li><p>Publish selected branches:</p>
+
+<p> $ git remote add don4 <a href="https://github.com/leetschau/don4.git">https://github.com/leetschau/don4.git</a>
+ $ git push -u don4 master
+ $ git push -u don4 develop</p></li>
+</ol>
+
+
+<p>   or you can push your &ldquo;master&rdquo; branch to remote as &ldquo;init&rdquo; branch for avoid confliction with master branch created on github:</p>
+
+<pre><code> $ git push don4 master:init
+</code></pre>
+
+<ol type="a">
+<li><p>Publish all branches:</p>
+
+<p> $ git push &ndash;mirror <a href="https://github.com/leetschau/don4.git">https://github.com/leetschau/don4.git</a></p>
+
+<p>In this case you can&rsquo;t create README or License files when creating github project, to avoid conflict on master branch.</p></li>
+</ol>
+</li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/11/095843/">Fix Jenkins Startup and Access Failure on CentOS</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-11T09:58:43+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Today I install Jenkins on CentOS 6. When start the service with &ldquo;java -jar jenkins.war &ndash;httpPort=8088&rdquo;, it raised a &ldquo;java.net.unknownhostexception: Temporary failure in name resolution&rdquo; error.</p>
+
+<p>Resolution: add hostname (&ldquo;tybvt&rdquo; here) into &ldquo;127.0.0.1&rdquo; name of /etc/hosts, from:</p>
+
+<pre><code>127.0.0.1  localhost.localdomain localhost
+</code></pre>
+
+<p>to:</p>
+
+<pre><code>127.0.0.1  tybvt localhost.localdomain localhost
+</code></pre>
+
+<p>When Jenkins start successfully, only can access from &ldquo;localhost:8088&rdquo;, &ldquo;10.0.2.47:8088&rdquo; is rejected. It&rsquo;s because the firewall &ldquo;iptables&rdquo; service. So we need to add a rule into iptables configuration. Add:</p>
+
+<pre><code>-A INPUT -i eth0 -p tcp --dport 8088 -j ACCEPT
+</code></pre>
+
+<p><strong>right after</strong> the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo; in file /etc/sysconfig/iptables.
+Or simply stop the service with &ldquo;service iptables stop&rdquo; if security is not a concern.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -408,278 +774,6 @@ cons: Gnome 2.x looks old-fashioned.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/03/145805/">Start a Service and Wait Until It's Up</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-03T14:58:05+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>2:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In this case the GcpServer is a background service. If the port 5556 is listening, that means the service start successfully.</p>
-
-<pre><code>chmod 755 GcpServerCore/cmd/*.sh
-cd GcpServerCore/cmd;./start.sh;cd -
-while ! nc -zv localhost 5556; do sleep 5; done
-</code></pre>
-
-<p>This solution based on the netcat utility.</p>
-
-<p>Ref: <a href="http://snipplr.com/view/43113/">bash: how to start a service and wait until it&rsquo;s up</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/27/181853/">Add GBK Charset on Ubuntu Server</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-27T18:18:53+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:18 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Add following items into /var/lib/locales/supported.d/local:</p>
-
-<p> zh_CN.GBK GBK
- zh_CN.GB2312 GB2312</p></li>
-<li><p>$ sudo dpkg-reconfigure &ndash;force locales</p></li>
-</ol>
-
-
-<p>(or simple use <code>sudo locale-gen zh_CN</code>?)</p>
-
-<p>Verify: <code>locale -a</code>, you can see &ldquo;zh_CN.gb2312&rdquo; and &ldquo;zh_CN.gbk&rdquo; in lists.</p>
-
-<ol>
-<li>sudo update-locale LANG=zh_CN</li>
-</ol>
-
-
-<p>That&rsquo;s it.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/27/163511/">Svn检出文件名中含中文文件失败问题解决方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-27T16:35:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:35 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>有时使用svn检出时遇到这样的错误：</p>
-
-<p>svn: Can&rsquo;t convert string from &lsquo;UTF-8&rsquo; to native encoding: &hellip;</p>
-
-<p>这是可能是由于svn所在主机的当前字符集不支持Unicode造成的，确认方法是：运行&#8221;locale&#8221;指令，输出为：</p>
-
-<pre><code>LANG=en_US.UTF-8
-LANGUAGE=
-LC_CTYPE="en_US"
-LC_NUMERIC="en_US"
-LC_TIME="en_US"
-LC_COLLATE="en_US"
-LC_MONETARY="en_US"
-LC_MESSAGES="en_US"
-LC_PAPER="en_US"
-LC_NAME="en_US"
-LC_ADDRESS="en_US"
-LC_TELEPHONE="en_US"
-LC_MEASUREMENT="en_US"
-LC_IDENTIFICATION="en_US"
-LC_ALL=en_US
-</code></pre>
-
-<p>&ldquo;en_US&#8221;后面没有&rdquo;.UTF-8&#8221;，/etc/default/locale文件的内容是：</p>
-
-<pre><code>LC_ALL="en_US"
-</code></pre>
-
-<p>也没有&#8221;.UTF-8&#8221;，解决方法很简单，在后面加上&#8221;.UTF-8&#8221;，变为</p>
-
-<pre><code>LC_ALL="en_US.UTF-8"
-</code></pre>
-
-<p>这时再运行locale命令，结果如下：</p>
-
-<pre><code>LANG=en_US.UTF-8
-LANGUAGE=
-LC_CTYPE="en_US.UTF-8"
-LC_NUMERIC="en_US.UTF-8"
-LC_TIME="en_US.UTF-8"
-LC_COLLATE="en_US.UTF-8"
-LC_MONETARY="en_US.UTF-8"
-LC_MESSAGES="en_US.UTF-8"
-LC_PAPER="en_US.UTF-8"
-LC_NAME="en_US.UTF-8"
-LC_ADDRESS="en_US.UTF-8"
-LC_TELEPHONE="en_US.UTF-8"
-LC_MEASUREMENT="en_US.UTF-8"
-LC_IDENTIFICATION="en_US.UTF-8"
-LC_ALL=en_US.UTF-8
-</code></pre>
-
-<p>这时再检出中文文件名文件就不报错了。</p>
-
-<p>在CentOS上，对应的locale文件是/etc/sysconfig/i18n。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/27/142307/">Change IP Address of NAT NIC in Vagrant VM</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-27T14:23:07+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:23 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The default IP address of Vagrant VM is 10.0.2.15. So you can&rsquo;t connect to a host with IP in range &ldquo;10.0.2.*&rdquo;. If you do want, you must change the IP address of NAT NIC (network interface card) via the modifyvm command of VBoxManage:</p>
-
-<pre><code>VBoxManage modifyvm &lt;vm-name&gt; --natnet1 "10.3/16"
-</code></pre>
-
-<p>The <vm-name> here can be listed by command &ldquo;VBoxManage list vms&rdquo;.</p>
-
-<p>In vagrant we can achieve this by adding &ldquo;config.customize [&#8220;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, <ip-range>]&ldquo; into your vm config of Vagrantfile, for example, the following config will change the IP address of NAT NIC to &#8220;10.3.0.15&rdquo;:</p>
-
-<pre><code>config.vm.define "bs" do |bvtserver|
-  bvtserver.vm.hostname = "bvt-server"
-  bvtserver.vm.network "private_network", ip: "192.168.50.3",
-      virtualbox__intnet: "gcptest-network"
-  bvtserver.vm.provider :virtualbox do |vbox|
-    vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
-  end
-end
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/26/162411/">IBus Chinese Pinyin IM on Linux Mint</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-02-26T16:24:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:24 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Following <a href="http://code.google.com/p/ibus/wiki/PinYinUserGuideCN">this</a>:</p>
-
-<ol>
-<li><p>Install ibus-pinyin:</p>
-
-<p> $ sudo apt-get install ibus ibus-clutter ibus-gtk ibus-gtk3 ibus-qt4
- $ sudo apt-get install ibus-pinyin
- $ im-switch -s ibus</p></li>
-<li><p>Restart machine;</p></li>
-<li><p>Right-click the ibus-pinyin icon in system tray, select &ldquo;Preference&rdquo;, then &ldquo;IBus Preferences&rdquo; panel open;</p></li>
-<li><p>On this panel, under tag &ldquo;Input Method&rdquo;, check &ldquo;Customize active input methods&rdquo;, select &ldquo;Pinyin&rdquo;, then click &ldquo;Add&rdquo; button;</p></li>
-</ol>
-
-
-<p>Now use Ctrl-Space to swtich between IBus-Pinyin and english input method.</p>
-
-<p>The pro of ibus-pinyin is no need to modify system-wide configurations.</p>
-
-<hr />
-
-<p>2014-7-22:</p>
-
-<ol>
-<li><p><code>sudo apt-get install ibus-pinyin ibus-gtk</code>;</p></li>
-<li><p><code>ibus-setup</code>, add &ldquo;PinYin&rdquo; to the System;</p></li>
-<li><p>Logout and login;</p></li>
-</ol>
-
-
-<p>Bingo.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/28">&larr; Older</a>
@@ -697,23 +791,23 @@ end
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/04/30/095841/">Git GUI Clients on Linux</a>
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/181733/">Build a Simple Meteor Package</a>
+        <a href="/blog/2015/05/08/155132/">Run Mongo Scripts in Shell</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a>
+        <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a>
+        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a>
+        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>
