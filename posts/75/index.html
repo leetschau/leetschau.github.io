@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="JDK6编译出来的class文件不能运行在JDK5的虚拟机上，因此用Eclipse开发/运行/打包项目时要注意Java编译器的版本，有3个位置（范围从大到小）会影响Java编译器的版本： Eclipse级全局JRE：Window->Preferences->Java->Installed JREs &hellip;">
+  <meta name="description" content="开发产品时一个进程对应一个开发项目，一个项目对应一个日志配置，这是best practice，但有时一个（Eclipse中的）开发项目中包含了多个应用（分别多个进程运行），共享一个配置文件，但生成的日志要分开放在不同的文件里，应该怎么办？假设项目中包括A和B两个应用，B的代码都在com. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,115 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/13/110213/">一个logback文件为多个应用配置日志的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-13T11:02:13+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:02 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>开发产品时一个进程对应一个开发项目，一个项目对应一个日志配置，这是best practice，但有时一个（Eclipse中的）开发项目中包含了多个应用（分别多个进程运行），共享一个配置文件，但生成的日志要分开放在不同的文件里，应该怎么办？假设项目中包括A和B两个应用，B的代码都在com.foo包及子包（com.foo开头的包，如com.foo.bar）中。</p>
+
+<p>方式1：完全分开</p>
+
+<pre><code>&lt;configuration&gt; 
+    &lt;appender name="CONSOLE" .../&gt; 
+    &lt;appender name="APP_A" .../&gt; 
+    &lt;appender name="APP_B" .../&gt; 
+    &lt;logger name="com.foo" additivity="false" level="INFO"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_B" /&gt; 
+    &lt;/logger&gt; 
+    &lt;root level="DEBUG"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_A"/&gt; 
+    &lt;/root&gt; 
+&lt;/configuration&gt; 
+</code></pre>
+
+<p>方式2 ：A包含B</p>
+
+<pre><code>&lt;configuration&gt; 
+    &lt;appender name="CONSOLE" .../&gt; 
+    &lt;appender name="APP_A" .../&gt; 
+    &lt;appender name="APP_B" .../&gt; 
+    &lt;logger name="com.foo" additivity="true" level="INFO"&gt; 
+        &lt;appender-ref ref="APP_B" /&gt; 
+    &lt;/logger&gt; 
+    &lt;root level="DEBUG"&gt; 
+        &lt;appender-ref ref="CONSOLE"/&gt; 
+        &lt;appender-ref ref="APP_A"/&gt; 
+    &lt;/root&gt; 
+&lt;/configuration&gt; 
+</code></pre>
+
+<p>方式2与方式1相比，屏幕输出（即CONSOLE的行为）完全一样，各自输出各自的，但APP_A关联的日志文件中将包含A和B所有的日志。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/13/100135/">How to Name a Slf4j Logger</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-13T10:01:35+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:01 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li>Use logger in a non-static context:</li>
+</ol>
+
+
+<p> Logger logger = LoggerFactory.getLogger(this.getClass().getName());</p>
+
+<ol>
+<li>Use logger in a static context(for example in main() method):</li>
+</ol>
+
+
+<p> static Logger logger = LoggerFactory.getLogger(TheWrapperClassName.class);</p>
+
+<p>Method 1 is prefered, because it has no hard-coding for class name.</p>
+
+<p><a href="http://stackoverflow.com/questions/936684/getting-the-class-name-from-a-static-method-in-java">static final Logger logger = Logger.getLogger(new Throwable() .getStackTrace()[0].getClassName());</a> maybe a solution, but may slown down the app.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -483,147 +592,6 @@ python manage.py startapp polls （在命令执行的当前目录下生成polls�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/19/145826/">Java程序线程死锁分析</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-19T14:58:26+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Linux平台
-jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报：&#8221;The VM does not support the attach mechanism&#8221;错误；</p>
-
-<p>C:\Users\chad> jps 1308 DeadLock
-4780 Jps</p>
-
-<p>C:\Users\chad> F:\Software\jdk1.6.0_27\bin\jstack.exe 1308
-2012-05-19 14:45:29
-Full thread dump Java HotSpot&trade; Client VM (20.2-b06 mixed mode):</p>
-
-<p>&hellip;</p>
-
-<h1>Found one Java-level deadlock : </h1>
-
-<p>&ldquo;Thread-1&rdquo;:
- waiting to lock monitor 0x01adee04 (object 0x03c002d8, a deadlockEx.DeadLock$Friend),
- which is held by &ldquo;Thread-0&rdquo;
-&ldquo;Thread-0&rdquo;:
- waiting to lock monitor 0x01ae0664 (object 0x03c002e8, a deadlockEx.DeadLock$Friend),
- which is held by &ldquo;Thread-1&rdquo;
-&hellip;
-Found 1 deadlock.</p>
-
-<p> 测试样例（来自 Deadlock on Java docs ）：
-package deadlockEx;
-public class DeadLock {
- static class Friend {
-  private final String name;
-  public Friend(String name) {
-   this.name = name;
-  }
-  public String getName() {
-   return this.name;
-  }
-  public synchronized void bow(Friend bower) {
-   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed to me!%n&rdquo;, this.name,
-    bower.getName());
-   bower.bowBack(this);
-  }
-  public synchronized void bowBack(Friend bower) {
-   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed back to me!%n&rdquo;, this.name,
-    bower.getName());
-  }
- }
- public static void main(String[] args) {
-  final Friend alphonse = new Friend(&ldquo;Alphonse&rdquo;);
-  final Friend gaston = new Friend(&ldquo;Gaston&rdquo;);
-  new Thread(new Runnable() {
-   public void run() {
-    alphonse.bow(gaston);
-   }
-  }).start();
-  new Thread(new Runnable() {
-   public void run() {
-    gaston.bow(alphonse);
-   }
-  }).start();
- }
-} HP-UX平台</p>
-
-<p>用gcore <pid>（不支持gcore的UX可用gdb <pid>?）生成dump文件，文件名为core.<pid>，用jmap将此文件转为hprof文件，再用visualVM分析；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/19/144904/">通过dump文件分析Java程序运行状态</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-19T14:49:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Java程序的快照（dump）分为两种：thread dump, heap dump。前者记录了进程（process）中各线程（Thread）（在CPU中的）运行状态主要用来解决死锁（deadlock）问题，后者记录了Java堆的情况，主要用来分析内存泄露问题。</p>
-
-<p> 生成堆dump（heapdump）文件方法
-1. 在启动Java程序时添加参数：-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=<my_dump_path>，完整示例见文末；</p>
-
-<ol>
-<li><p>启动程序；</p></li>
-<li><p>用jps或者ps指令找到此程序pid，例如17992；</p></li>
-<li><p>运行kill -3 <pid>；</p></li>
-<li><p>在my_dump_path下可以找到生成的dump文件，文件名为java_pid<pid>.hprof.&lt;date.time>，例如：java_pid17992.hprof.20120519.141323</p></li>
-</ol>
-
-
-<p>启动程序的完整脚本：</p>
-
-<h1>!/bin/sh</h1>
-
-<p>JARS=&ldquo;&rdquo;
-for i in ./*.jar; do
- JARS=&ldquo;$JARS&rdquo;:$i
-done
-JAVA_OPTS=&ldquo;-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=$HOME/backup&rdquo;
-exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina.echoServer.EchoServer
- 分析dump文件</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/76">&larr; Older</a>
@@ -641,6 +609,14 @@ exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
@@ -650,14 +626,6 @@ exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina
     
       <li class="post">
         <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

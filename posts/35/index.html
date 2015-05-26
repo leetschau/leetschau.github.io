@@ -9,7 +9,10 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Backup (On CentOS 6.4) Enable backup as user &ldquo;sonar&rdquo;: modify authentication file pg_hba.conf following SonarQube and Postgresql on Linux &hellip;">
+  <meta name="description" content="Four Paradigms of Decomposing Problems Procedural: C, Pascal, Unix shells;
+Declarative: SQL;
+Object-oriented: Smalltalk, Java;
+Functional: Haskell; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +68,146 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/02/111254/">FP vs OOP</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-12-02T11:12:54+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Four Paradigms of Decomposing Problems</h1>
+
+<ul>
+<li><p>Procedural: C, Pascal, Unix shells;</p></li>
+<li><p>Declarative: SQL;</p></li>
+<li><p>Object-oriented: Smalltalk, Java;</p></li>
+<li><p>Functional: Haskell;</p></li>
+</ul>
+
+
+<h1>Relations of FP and OOP</h1>
+
+<p>&ldquo;Functional programming can be considered the opposite of object-oriented programming. Objects are little capsules containing some internal state along with a collection of method calls that let you modify this state, and programs consist of making the right set of state changes. Functional programming wants to avoid state changes as much as possible and works with data flowing between functions.&rdquo; &ndash;From <a href="http://docs.python.org/2/howto/functional.html">Functional Programming HOWTO</a></p>
+
+<p>&ldquo;I think the lack of reusability comes in object-oriented languages, not in functional languages. Because the problem with object-oriented languages is they’ve got all this implicit environment that they carry around with them. You wanted a banana but what you got was a gorilla holding the banana and the entire jungle.&rdquo; &ndash;Joe Armstrong (the creator of Erlang) discussed in &ldquo;Coders At work&rdquo; about the reusability of Object-Oriented Programming.
+To be fair, in my opinion it&rsquo;s not an intrinsic problems of OOP. You can write OOP code which is also functional, but certainly:
+* Typical OOP tends to emphasize change of state in objects.
+* Typical OOP tends to impose tight coupling between layers (which hinders modularization).
+* Typical OOP mixes the concepts of identity and state.
+* Mixture of data and code raises both conceptual and practical problems.
+&ndash; <a href="http://code.google.com/p/tokland/wiki/RubyFunctionalProgramming">Ruby Functional Programming</a>
+Rich Hickey, the creator of Clojure (a functional Lisp-dialect for the JVM), discusses state, values and identity in this <a href="http://www.infoq.com/presentations/Value-Identity-State-Rich-Hickey">excellent talk</a>.</p>
+
+<h1>If we can do functional programming with Python, do we need a specific functional programming language?</h1>
+
+<p><a href="http://programmers.stackexchange.com/questions/42986/if-we-can-do-functional-programming-with-python-do-we-need-a-specific-functiona">http://programmers.stackexchange.com/questions/42986/if-we-can-do-functional-programming-with-python-do-we-need-a-specific-functiona</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/29/172706/">Manipulate Sonarqube Database in PostgreSQL With JDBC</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-11-29T17:27:06+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Use the following Java class to manipulate Sonarqube database in postgresql.</p>
+
+<h1>ManipulateSonarPost.java</h1>
+
+<p> import java.sql.Connection;
+ import java.sql.DatabaseMetaData;
+ import java.sql.DriverManager;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ import java.sql.Statement;
+ public class TestPost {
+  private static Connection connection = null;
+  public static void main(String[] args) throws SQLException, java.lang.ClassNotFoundException {
+   String url = &ldquo;jdbc:postgresql://localhost/sonar&rdquo;;
+   String user = &ldquo;sonar&rdquo;;
+   String password = &ldquo;sonar&rdquo;;
+   String driver = &ldquo;org.postgresql.Driver&rdquo;;</p>
+
+<p>   Class.forName(driver);
+   connection = DriverManager.getConnection(url+&ldquo;?user=&rdquo;+user+&ldquo;&amp;password=&rdquo;+password);
+   if ((connection == null) || (connection.isClosed())) return;
+   System.out.println(&ldquo;Connection is: &rdquo;+connection);</p>
+
+<p>   listTables();
+   String table = &ldquo;projects&rdquo;;
+   printTable(table);
+   connection.close();</p>
+
+<p>  }</p>
+
+<p>  private static void listTables() throws SQLException {
+   DatabaseMetaData md = connection.getMetaData();
+   ResultSet rs = md.getTables(null, null, &ldquo;%&rdquo;, null);
+   while (rs.next()) {
+    System.out.println(rs.getString(3));
+   }
+   rs.close();</p>
+
+<p>  }</p>
+
+<p>  private static void printTable(String tableName) throws SQLException {
+   Statement st = connection.createStatement();
+   ResultSet rs = st.executeQuery(&ldquo;SELECT * FROM &rdquo; + tableName);
+   while (rs.next()) {
+     System.out.println(&ldquo;Column 1: &rdquo; + rs.getString(1));
+     System.out.println(&ldquo;Column 2: &rdquo; + rs.getString(2));
+     System.out.println(&ldquo;Column 3: &rdquo; + rs.getString(3));
+   }
+   rs.close();
+   st.close();
+  }
+ }</p>
+
+<h1>Compile and Run</h1>
+
+<p>$ javac -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar ManipulateSonarPost.java</p>
+
+<p>$ java -cp ~/apps/sonar-3.6.1/extensions/jdbc-driver/postgresql/postgresql-9.1-901-1.jdbc4.jar:. ManipulateSonarPost</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -587,274 +730,6 @@ git config --global user.email "leetschau@gmail.com"
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/21/141802/">修改CentOS系统的最大连接数</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-21T14:18:02+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:18 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>一秒内最大连接数</h1>
-
-<p>/etc/xinetd.conf中cps, instances, per_source由50改为1000,</p>
-
-<p>重启服务： sudo /etc/init.d/xinetd restart</p>
-
-<p>Ref: <a href="http://linux.vbird.org/linux_basic/0560daemons.php">鸟哥的Linux私房菜 第18章、认识系统服务</a></p>
-
-<h1>用户可发起的最大进程数</h1>
-
-<p>/etc/security/limits.d/90-nproc.conf，将1024改为了10240;</p>
-
-<p>查询godu用户当前发起的进程数：ps -L -u godu|wc -l</p>
-
-<p>Ref: <a href="http://timsvirtualworld.com/2013/03/increasing-number-of-processes-allowed-to-be-run-by-a-user-on-rhel-centos-6/">http://timsvirtualworld.com/2013/03/increasing-number-of-processes-allowed-to-be-run-by-a-user-on-rhel-centos-6/</a></p>
-
-<h1>用户级连接限制数</h1>
-
-<p>/etc/security/limits.conf增加：</p>
-
-<p>godu    soft nofile   10000
-godu    hard nofile   10000</p>
-
-<p>验证方法：ulimit -Hn, ulimit -Sn</p>
-
-<p>修改后需要重登录才能生效；</p>
-
-<p>Ref: <a href="http://www.cyberciti.biz/faq/linux-increase-the-maximum-number-of-open-files/">Linux Increase The Maximum Number Of Open Files / File Descriptors (FD)</a></p>
-
-<p>另：主机名定义</p>
-
-<p>修改/etc/hosts</p>
-
-<p>增加：10.0.2.49  bocoty49</p>
-
-<p>验证：ping bocoty49</p>
-
-<p>修改后即时生效，不需要重登录；</p>
-
-<p>Ref: <a href="http://os.51cto.com/art/200803/68170.htm">Linux操作系统下/etc/hosts文件配置方法</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/21/095631/">Functional Programming in Python</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-11-21T09:56:31+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>9:56 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>This program calculate file issues on specified packages, retrieved from Sonarqube Server.</p>
-
-<h1>Origin imperative program</h1>
-
-<p> from <strong>future</strong> import division
- import urllib2, json
- SERV_ADDR = &lsquo;10.0.2.74:9000&rsquo;
- FILE_LENGTH_ISSUE_KEY = &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.FileLengthCheck&rsquo;
- METHOD_RELATED_ISSUE_KEYS = [&lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.MethodLengthCheck&rsquo;,
-    &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.sizes.ParameterNumberCheck&rsquo;,
-    &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck&rsquo;,
-    &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.coding.NestedIfDepthCheck&rsquo;,
-    &lsquo;checkstyle:com.puppycrawl.tools.checkstyle.checks.duplicates.StrictDuplicateCodeCheck&rsquo;]
- def get_data(url):
-  conn = urllib2.urlopen(url)
-  return json.load(conn)
- def get_issue_num(proj_name, pkg_key, issue_key):
-  issue_url = &lsquo;<a href="http://%s/api/issues/search?componentRoots=%s:%s&amp;pageSize=5000&amp;rules=%s">http://%s/api/issues/search?componentRoots=%s:%s&amp;pageSize=5000&amp;rules=%s</a>&rsquo;
-  data = get_data(issue_url % (SERV_ADDR, proj_name, pkg_key, issue_key))
-  issues = data[&lsquo;issues&rsquo;]
-  return len(issues)
- def get_class_num(proj_name, pkg_key):
-  class_num_url = &lsquo;<a href="http://%s/api/resources?resource=%s:%s&amp;metrics=classes">http://%s/api/resources?resource=%s:%s&amp;metrics=classes</a>&rsquo;
-  data = get_data(class_num_url % (SERV_ADDR, proj_name, pkg_key))
-  return data[0][&lsquo;msr&rsquo;][0][&lsquo;val&rsquo;]
- def get_method_num(proj_name, pkg_key):
-  method_num_url = &lsquo;<a href="http://%s/api/resources?resource=%s:%s&amp;metrics=functions">http://%s/api/resources?resource=%s:%s&amp;metrics=functions</a>&rsquo;
-  data = get_data(method_num_url % (SERV_ADDR, proj_name, pkg_key))
-  return data[0][&lsquo;msr&rsquo;][0][&lsquo;val&rsquo;]
- def get_average_issue_ratio(proj_name, pkgs, issue_key, base_type_name):
-  total_issue_num = 0
-  total_base_num = 0
-  for pkg in pkgs:
-   total_issue_num += get_issue_num(proj_name, pkg, issue_key)
-   total_base_num += base_type_name(proj_name, pkg)
-  return total_issue_num / total_base_num</p>
-
-<p> def file_length_check(proj_name, pkgs):
-  res = get_average_issue_ratio(proj_name, pkgs, FILE_LENGTH_ISSUE_KEY, get_class_num)
-  return &lsquo;{:.2%}&rsquo;.format(res)
- def method_related_checks(proj_name, pkgs):
-  check_result = {}
-  for issue_key in METHOD_RELATED_ISSUE_KEYS:
-   res = get_average_issue_ratio(proj_name, pkgs, issue_key, get_method_num)
-   issue_name = issue_key.split(&lsquo;.&rsquo;)[-1]
-   check_result[issue_name] = &lsquo;{:.2%}&rsquo;.format(res)
-  return check_result
- def get_test_lines(proj_name, pkg_key):
-  &hellip;
-  return covered_lines, valid_lines</p>
-
-<p> def get_test_branches(proj_name, pkg_key):
-  &hellip;
-  return covered_branches, valid_branches</p>
-
-<p> def get_average_coverage(proj_name, pkgs):
-  lines = []
-  for pkg in pkgs:
-   res = get_test_lines(proj_name, pkg)
-   lines.append(res)
-  total_covered_lines = 0
-  total_valid_lines = 0
-  for item in lines:
-   covered_lines, valid_lines = item
-   total_covered_lines += covered_lines
-   total_valid_lines += valid_lines
-  average_line_coverage = total_covered_lines / total_valid_lines</p>
-
-<p>  &hellip;</p>
-
-<p>  average_branch_coverage = total_covered_branches / total_valid_branches</p>
-
-<p>  return average_line_coverage, average_branch_coverage</p>
-
-<h1>List Comprehension</h1>
-
-<p> def get_average_issue_ratio(proj_name, pkgs, issue_key, base_type_name):
-  total_issue_num = sum(get_issue_num(proj_name, pkg, issue_key) for pkg in pkgs)
-  total_base_num = sum(base_type_name(proj_name, pkg) for pkg in pkgs)
-  return total_issue_num / total_base_num</p>
-
-<p> def get_average_coverage_v1(proj_name, pkgs):</p>
-
-<p>  lines_info = [get_test_lines(proj_name, pkg) for pkg in pkgs]</p>
-
-<p>  line_cov = sum(cov_line for (cov_line,<em>) in lines_info) / sum(valid_line for (</em>,valid_line) in lines_info)</p>
-
-<p>  branches_info = [get_test_branches(proj_name, pkg) for pkg in pkgs]
-  branch_cov = sum(cov_branch for (cov_branch,<em>) in branches_info) / sum(valid_branch for (</em>,valid_branch) in branches_info)</p>
-
-<p>  return line_cov, branch_cov</p>
-
-<p>You can see this declarative version is much readable than its imperative counterpart.</p>
-
-<p>Note 1: Notice the usage of &ldquo;base_type_name&rdquo;. As a function (first-class citizen), it&rsquo;s passed as a ordinary parameter into the method.</p>
-
-<p>Note 2: manipulate a complex list in the following way (result = (1+2+3)/(10+20+30)):</p>
-
-<p> col = [(1,10), (2,20), (3,30)]</p>
-
-<p> result = sum([x for (x,<em>) in col]) / sum([y for (</em>,y) in col])</p>
-
-<p>in &ldquo;get_average_coverage_v1&rdquo; is still too complicated. So in the following sections you can see some more concise (and FP style) versions.</p>
-
-<h1>Dictionary Comprehension</h1>
-
-<p>def method_related_check_func(proj_name, pkgs):
- return {issue_key.split(&lsquo;.&rsquo;)[-1]:
-   &lsquo;{:.2%}&rsquo;.format(get_average_issue_ratio(proj_name, pkgs,
-             issue_key,
-             get_method_num))
-   for issue_key in METHOD_RELATED_ISSUE_KEYS}</p>
-
-<p>Its imperative counterpart has better code shape, but this functional version is more expressive.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/14507591/python-dictionary-comprehension">http://stackoverflow.com/questions/14507591/python-dictionary-comprehension</a></p>
-
-<h1>Use zip, map and apply</h1>
-
-<p> def get_average_coverage_v2(proj_name, pkgs):</p>
-
-<p>  total_covered_lines, total_valid_lines = \      <br/>
-    apply(lambda <em>x: map(lambda </em>y: sum(y), *x),    <br/>
-      [get_test_lines(proj_name, pkg) for pkg in pkgs])<br/>
-  return total_covered_lines / total_valid_lines</p>
-
-<p> def get_cov_ratio(col):</p>
-
-<p>  covered, valid = map(sum, apply(zip, col))</p>
-
-<p>  return covered / valid</p>
-
-<p> def get_coverage_data_v3(proj_name, pkgs):        <br/>
-  return get_cov_ratio([get_test_lines(proj_name, pkg) for pkg in pkgs])</p>
-
-<p> def get_coverage_data_v4(proj_name, pkgs):        <br/>
-  cov_ratio = lambda col: reduce(operator.truediv, map(sum, apply(zip, col)))
-  return cov_ratio([get_test_lines(proj_name, pkg) for pkg in pkgs])</p>
-
-<p>v2 works, but it&rsquo;s too complicated and hard to understand. But there are some useful things in it: variable arguments in lambda expression.</p>
-
-<p>v3 and v4 are almost the same:</p>
-
-<ol>
-<li><p>convert [(1,2), (11,22),(111,222)] to [(1,11,111),(2,22,222)] with &ldquo;apply(zip, &hellip;)&rdquo;;</p></li>
-<li><p>add every element up (convert to [1+11+111, 2+22+222]) with &ldquo;map(sum, &hellip;)&rdquo;;</p></li>
-<li><p>first element divided by the second: using external function in v3, or &ldquo;reduce&rdquo; in v4;</p></li>
-</ol>
-
-
-<p>Clearly this FP version is much readable than its imperative counterpart. You have to add &ldquo;import operator&rdquo; for v4.</p>
-
-<p>The corresponding clojure function is:</p>
-
-<p> (defn trans-metrics [col]
-  (/ (apply + (map first col)) (apply + (map second col))))</p>
-
-<p>or as function literal:</p>
-
-<p> #(/ (apply + (map first %)) (apply + (map second %)))</p>
-
-<p>It looks more readable than its Python counterpart.</p>
-
-<h1>Final Script</h1>
-
-<p>Note: Run Python script at command line with user defined functions:</p>
-
-<p>For example you write a module named &ldquo;ex.py&rdquo;, and define a function &ldquo;getdata&rdquo; in it. Now run the following command in its directory: (the current working directory will be added in PYTHONPATH automatically)</p>
-
-<p> python -c &lsquo;import ex;print ex.getdata(&ldquo;bb&rdquo;)&rsquo;</p>
-
-<p>The ex.py and all functions in it are &ldquo;stable&rdquo; business logic. While the command (&ldquo;print ex.getdata()&rdquo; in this case) is &ldquo;how to use this tool&rdquo;, which will change frequently. Thus we divide frequent changed part from stable logic, which is a best practice of programming.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/36">&larr; Older</a>
@@ -872,6 +747,14 @@ godu    hard nofile   10000</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
@@ -881,14 +764,6 @@ godu    hard nofile   10000</p>
     
       <li class="post">
         <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

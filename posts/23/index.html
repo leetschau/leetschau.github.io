@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="i3 is a good wm(window manager), it&rsquo;s powerful and easy to install. It supports system tray, app like golden-dict will have a icon in system &hellip;">
+  <meta name="description" content="Install Follow Gentoo Linux x86 Handbook. Download gentoo install CD install-x86-minimal-20140415.iso from its website x86 minimal site;
+Create USB &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,152 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/02/133411/">Gentoo Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-02T13:34:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:34 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<p>Follow <a href="http://www.gentoo.org/doc/en/handbook/handbook-x86.xml">Gentoo Linux x86 Handbook</a>.</p>
+
+<ol>
+<li><p>Download gentoo install CD install-x86-minimal-20140415.iso from its website <a href="http://distfiles.gentoo.org/releases/x86/autobuilds/current-install-x86-minimal/">x86 minimal site</a>;</p></li>
+<li><p>Create USB installer: <code>dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync</code>;</p></li>
+<li><p>Use this usb key start the laptop;</p></li>
+<li><p>Create a wpa_supplicant conf file:</p>
+
+<p> $ cat /etc/wpa_supplicant/wpa_supplicant.conf
+ network={
+     ssid=&ldquo;TP-LINK&hellip;&rdquo;
+     psk=&ldquo;py&hellip;&rdquo;
+     scan_ssid=1
+     proto=WPA2
+ }</p></li>
+<li><p>Connect WiFi: <code>/etc/init.d/wpa_supplicant start</code>, verify: ping another host in your wifi network;</p></li>
+<li><p>Test network with <code>ping www.baidu.com</code>, if you can&rsquo;t connect to it, config network:</p>
+
+<p> # ifconfig wlp5s0 down
+ # ifconfig wlp5s0 192.168.1.103 broadcast 192.168.1.255 netmask 255.255.255.0 up
+ # route add default gw 192.168.1.253   // get gateway IP with <code>route -n</code> on another host</p></li>
+</ol>
+
+
+<p>If you still can&rsquo;t ping a internet website, run <code>dhcpcd wlp5s0</code> to generate nameservers(stored in /etc/resolv.conf);</p>
+
+<ol>
+<li><p>Partition disk;</p></li>
+<li><p>The command &ldquo;emerge-webrsync&rdquo; in step &ldquo;Configuring Portage&rdquo; which download Portage snapshot from 163.com is very slow(about 15 minutes);</p></li>
+<li><p>Config kernel manually: <code>make menuconfig</code>: Processor type and features -> Processor family: Core 2/newer Xeon, but there are many errors due to hardware info mismatch. So I give up and use &ldquo;genkernel&rdquo; utility to compile the kernel. It takes about 25 minutes;</p></li>
+<li><p><code>ls /boot/kernel*</code>: /boot/kernel-genkernel-x86-3.12.13-gentoo; <code>ls /boot/initr*</code>: /boot/initramfs-genkernel-x86-3.12.13-gentoo</p></li>
+<li><p>Install vim with <code>emerge vim</code>;</p></li>
+<li><p><code>emerge sys-boot/grub</code> is slow;</p></li>
+<li><p>After reboot, only loopback nic is detected wiht <code>ifconfig</code> command.</p>
+
+<p> # modprobe wlp5s0
+ modprobe: FATAL: Module wlp5s0 not found
+ # ifconfig wlp5s0 up
+ wlp5s0: ERROR while getting interface flags: No such device
+ # dmesg | grep iwlwifi
+ &hellip; request for firmware file &lsquo;iwlwifi-1000-5.ucode&rsquo; failed.
+ &hellip;</p>
+
+<p> # genkernel &ndash;menuconfig all
+ mark &ldquo;Intel Wireless WiFi MVM Firmware support&rdquo;
+ Device Drivers -> Network device support (NETDEVICES) -> Wireless LAN (WLAN) -> IEEE 802.11 for Host AP -> Support downloading firmw
+                                                       -> ISDN Support -> Siemens Gigaset support
+                                                       -> Ethernet driver support: all intel ethernet drivers
+ # emerge -v iwlwifi-1000-5.ucode</p></li>
+</ol>
+
+
+<p>Start with usb key, Create a wpa_supplicant conf file;</p>
+
+<pre><code># /etc/init.d/wpa_supplicant start  // connect to wifi.
+# mount /dev/sda4 /mnt/gentoo  // 4.f: Mounting
+# mkdir /mnt/gentoo/boot
+# mount /dev/sda2 /mnt/gentoo/boot
+# mount -t proc proc /mnt/gentoo/proc // 6.a. Chrooting: Mounting the necessary Filesystems;
+# mount --rbind /sys /mnt/gentoo/sys
+# mount --rbind /dev /mnt/gentoo/dev
+# chroot /mnt/gentoo /bin/bash 
+# source /etc/profile
+# export PS1="(chroot) $PS1"
+# emerge sys-apps/pciutils   // install lspci
+# emerge ...      // install iwconfig
+# ifconfig -a
+wlp5s0 ...
+# emerge net-wireless/wpa_supplicant
+#ls /lib/firmware/
+// there is no "iwlwifi-1000-5.ucode microcode.dat"
+# emerge sys-kernel/linux-firmware
+# ls /lib/firmware/iwlwifi*
+/lib/firmware/iwlwifi-1000.5.ucode
+# create the wpa_supplicant.conf file
+# /etc/init.d/net.wlp5s0 start
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/01/121138/">Package Management on Arch Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-01T12:11:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>12:11 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Search packages: <code>pacman -Ss pkg1 pkg2 ...</code>;</p>
+
+<p>Install packages with updated repo: <code>pacman -Syu pkg1 pkg2 ...</code>;</p>
+
+<p>Remove a package and its dependencies which is not required by other installed packages: <code>pacman -Rs pkg1</code>;</p>
+
+<p>Remove a package and leaving all its dependencies installed: <code>pacman -R pkg1</code>;</p>
+
+<p>Remove all orphaned packages: <code>pacman -Rns $(pacman -Qtdq)</code>;</p>
+
+<p>Ref: <a href="https://wiki.archlinux.org/index.php/pacman">pacman</a> on Arch Linux.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -907,100 +1054,6 @@ bind "main" "K" = "keybinding-manager"
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/23/113830/">Add Vim Mode for Eclipse With Vrapper</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-23T11:38:30+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:38 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<p>Install vrapper 0.42.0 in market place of eclipse.</p>
-
-<h2>Install with proxy (in Linux)</h2>
-
-<ol>
-<li><p>Run commands:</p>
-
-<p> $ cd $ECLIPSE_HOME
- $ export http_proxy=<a href="http://127.0.0.1:8087">http://127.0.0.1:8087</a>
- $ export https_proxy=<a href="http://127.0.0.1:8087">http://127.0.0.1:8087</a>
- $ ./eclipse</p></li>
-<li><p>After eclipse startup, install vrapper as usual. The proxy will work for eclipse automatically. Uninstall vrapper and other plugin in main menu of eclipse -> Help -> About Eclipse -> Installation Details.</p></li>
-</ol>
-
-
-<h1>Usage</h1>
-
-<p>Ref: <a href="http://vrapper.sourceforge.net/documentation">Vrapper Documentation</a></p>
-
-<ul>
-<li>Configuration file: ~/.vrapperrc</li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/22/182822/">Shutdown VirtualBox VM Forcibly When It's Stuck in Stopping Status</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-22T18:28:22+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Today I shutdown a VM using vagrant command <code>vagrant halt</code>, it&rsquo;s stuck in &ldquo;stopping&rdquo; status, and when I use <code>VBoxManage controlvm &lt;vm-name&gt; poweroff</code> to shutdown it, it raise an error:</p>
-
-<pre><code>VBoxManage: error: The virtual machine is being powered down
-VBoxManage: error: Details: code VBOX_E_INVALID_VM_STATE (0x80bb0002), component Console, interface IConsole, callee nsISupports
-VBoxManage: error: Context: "PowerDown(progress.asOutParam())" at line 224 of file VBoxManageControlVM.cpp
-</code></pre>
-
-<p>So the only solution is kill the VM process:</p>
-
-<pre><code>$ ps -ef|grep VBox
-</code></pre>
-
-<p>And a process named &ldquo;/opt/VirtualBox/VBoxHeadless &ndash;comment &hellip; &ndash;startvm &hellip;&rdquo; is the target (identified by the comment). Kill it then.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/24">&larr; Older</a>
@@ -1018,6 +1071,14 @@ VBoxManage: error: Context: "PowerDown(progress.asOutParam())" at line 224 of fi
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
@@ -1027,14 +1088,6 @@ VBoxManage: error: Context: "PowerDown(progress.asOutParam())" at line 224 of fi
     
       <li class="post">
         <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="ivy的settings文件在【Manage Hudson->Configure System->Global properties->Environment variables->Add】中设置；
-build.xml中需要的变量可以在项目的Configure->Build->Advanced &hellip;">
+  <meta name="description" content="使用Ant+JUnit跑测试用例时如果出现“NoClassDefFoundError”问题，注意一下classpath里的JUnit版本是否为4.5，如果是将其替换为4.0或者4.8。 参见： http://stackoverflow.com/questions/1171264/ant-junit &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,192 @@ build.xml中需要的变量可以在项目的Configure->Build->Advanced &hellip;
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/12/15/113825/">Ant + JUnit: NoClassDefFoundError问题解决办法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-12-15T11:38:25+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:38 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>使用Ant+JUnit跑测试用例时如果出现“NoClassDefFoundError”问题，注意一下classpath里的JUnit版本是否为4.5，如果是将其替换为4.0或者4.8。
+ 参见：
+  <a href="http://stackoverflow.com/questions/1171264/ant-junit-noclassdeffounderror">http://stackoverflow.com/questions/1171264/ant-junit-noclassdeffounderror</a></p>
+
+<p> 使用<test>标签运行JUnit测试时，test的name属性要写类的全名，否则会报“ NoClassDefFoundError”错误，例如：
+ <test name="com.boco.godu.gapi.AdminFilterTest" todir="${test.xml.result}">
+  <formatter type="xml" /></p>
+
+<p> </test>
+ 如果name写成“ AdminFilterTest ”，则出 “ NoClassDefFoundError”错误 。</p>
+
+<p> <junit>的子标签<classpath>中，若需要引用class文件，使用<pathelement path="${test.class.dir}"/>，其中test.class.dir定义为：
+ <property name="test.class.dir" value="${build.dir}/test"/>
+ 若需要引用jar文件，则使用<path refid="lib.path"/>，其中&#8221;lib.path&#8221;定义为：
+ <path id="lib.path"></p>
+
+<p>  <fileset dir="${build.lib.dir}"></p>
+
+<p>  <include name="**/*.jar"/></p>
+
+<p>  </fileset></p>
+
+<p>  </path></p>
+
+<p> 完整的测试任务实例如下：
+  <target name="unit_test" depends="compile">
+   <javac srcdir="${test.src.dir}" destdir="${test.class.dir}"
+    classpathref="lib.path" classpath="${build.class.dir}"
+    encoding="GBK" optimize="off" debug="on"/>
+   <junit printsummary="yes" haltonfailure="no">
+    <classpath>
+     <pathelement path="${test.class.dir}"/>
+     <pathelement path="${build.class.dir}"/>
+     <path refid="lib.path"/>
+    </classpath>
+    <test name="com.boco.godu.gapi.AdminFilterTest" todir="${test.xml.result}">
+     <formatter type="xml" />
+    </test>
+   </junit>
+   <junitreport todir="${test.report.dir}">
+    <fileset dir="${test.xml.result}">
+     <include name="TEST-*.xml" />
+    </fileset>
+    <report format="noframes" todir="${test.report.dir}" />
+   </junitreport>
+  </target></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/12/09/180259/">自动生成srt格式的脚本（Python实现）</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-12-09T18:02:59+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>6:02 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>用威力导演制作短片，这个软件有个导入srt字幕的功能，可以写好文本后一次性导入短片的字幕，比手工在威力导演里写快多了，srt文本中，每一条字幕的格式是：
+ 序号
+ 起止时间
+ 字幕内容</p>
+
+<p>例如：
+ 1
+ 00:00:08,0 &ndash;> 00:00:13,0
+ 发展历程</p>
+
+<p> 2
+ 00:00:13,0 &ndash;> 00:00:18,0
+ 2006年
+ 通用产品线正式成立
+ &hellip;</p>
+
+<p>这种格式在字幕的条数发生变化时修改起来很麻烦，比如一共有50条字幕，在第3条后加一条新字幕，则后面47条的序号、起止时间点都要修改，简直是噩梦，为此编写了下面的Python脚本，现在只要将字幕写成如下格式，用脚本处理后就能生成上面要求的格式了：</p>
+
+<p> 发展历程</p>
+
+<p> 2006年
+ 通用产品线正式成立
+ &hellip;</p>
+
+<p>其中主要的技术点有（Python 3.1）：
+ 时间偏移用timedelta对象，时间点用datetime对象，不能用time对象，因为time对象和timedelta对象不能做和； 时间转换为字符串的方法是strftime() 地址字符串要用“/”代替“\”；
+将待处理文件保存为ANSI格式文本，在脚本里配好地址（这里是“f:/视频制作”）就可以了。</p>
+
+<p>下面是脚本内容：</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> from datetime import datetime, timedelta</p>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  #读原始文件</p>
+
+<p>  oriScript = open(&lsquo;f:/视频制作/rawScript.srt&rsquo;,&lsquo;rt&rsquo;)</p>
+
+<p>  #写目标文件</p>
+
+<p>  destScript = open(&lsquo;f:/视频制作/destScript.srt&rsquo;,&lsquo;wt&rsquo;)</p>
+
+<p>  try:</p>
+
+<p>   block = &lsquo;&rsquo;</p>
+
+<p>   seqNo = 1</p>
+
+<p>   startTime = datetime(1980,1,1,0,0,8)</p>
+
+<p>   for curLine in oriScript:</p>
+
+<pre><code>#print(len(curLine)) 
+
+if curLine.isspace() and len(block)&gt;0: #本行是空行 
+
+ destScript.write(str(seqNo)+'\n') #写字幕序号 
+
+ endTime = startTime+timedelta(seconds=5) 
+
+ #写起止时间： 
+
+ destScript.write(startTime.strftime("%X") + ',0 --&gt; '+ endTime.strftime("%X") + ',0\n') 
+
+ destScript.write(block+'\n') 
+
+ block = '' #清空缓存 
+
+ seqNo = seqNo + 1 #序号递增 
+
+ startTime = endTime #本条的终止时间是下一条的起始时间 
+
+else: 
+
+ block = block + curLine #当前行追加到缓存中 
+</code></pre>
+
+<p>  finally:</p>
+
+<p>   oriScript.close()</p>
+
+<p>   destScript.close()</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -643,80 +828,6 @@ Eclipse默认的配色还不错，就是白色的背景太亮了，将背景色�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/11/11/102004/">Python代码的打包和部署工具</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-11-11T10:20:04+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:20 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>setuptools，详情google: python setuptools</p>
-
-<p>等同于java中的jar，python叫作egg，也就是“蛇蛋”</p>
-
-<p>与java中classpath对应的概念是sys.path</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/11/05/102205/">Eclipse的变量标记开关</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-11-05T10:22:05+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:22 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>例如有如下代码：</p>
-
-<p>int var_a = 0;
-int var_b = var_a + 2;</p>
-
-<p>当光标在var_a变量上时，Eclipse会将代码进行如下标记：
- int var_a = 0;</p>
-
-<p> int  var_b = var_a + 2;</p>
-
-<p> 这一特性在编写和分析代码时很有用，当这一功能关闭时，用如下方法打开此功能：</p>
-
-<p> Eclipse菜单->Window->Preferences->Java->Editor->Mark Occurences，勾选“Mark occurences of the selected element in the current file”以及下面的所有选项。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/99">&larr; Older</a>
@@ -734,6 +845,14 @@ int var_b = var_a + 2;</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
@@ -743,14 +862,6 @@ int var_b = var_a + 2;</p>
     
       <li class="post">
         <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>

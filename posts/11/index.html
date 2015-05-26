@@ -9,8 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Today I update my ArchLinux system with pacman -Syu, when check for package key, I got following errors: :: Proceed with installation? [Y/n]
-(211/211 &hellip;">
+  <meta name="description" content="WFP算法从告警报文中挖掘出关联规则后，保存在下面的RDD data中，每一条规则包含4项：支持度、置信度、规则前项和规则后项。
+前项和后项分别是一个字符串，是一个逗号分隔的多个网元列表，
+例如一条规则(0.2, 0.3, &ldquo;a,b&rdquo;, &ldquo;c&rdquo;)表示 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,6 +73,115 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2014/10/24/150059/">告警资源过滤算法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-24T15:00:59+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>WFP算法从告警报文中挖掘出关联规则后，保存在下面的RDD data中，每一条规则包含4项：支持度、置信度、规则前项和规则后项。
+前项和后项分别是一个字符串，是一个逗号分隔的多个网元列表，
+例如一条规则(0.2, 0.3, &ldquo;a,b&rdquo;, &ldquo;c&rdquo;)表示“网元a,b上的告警导致网元c上告警发生的支持度是0.2，置信度是0.3。
+也就是a,b,c在所有告警中发生的概率是20%，当a,b已经发生时，c发生的比率是30%。</p>
+
+<p>在另一张资源表中，每一行包含一对网元，保存在下面的RDD res_data中，
+例如&#8221;a,c&#8221;这一行表示网元a和c有资源上的关联关系，可能是物理链路连接，可能是同一物理位置等等。</p>
+
+<p>所谓的资源过滤就是只有在资源表中的规则才算有效规则，
+资源关系是没有顺序的，不论规则(a => c)还是(c => a)都符合(a,c)这一资源约束，
+对于规则(x1, x2, &hellip;, xm => y1, y2, &hellip;, yn)，只有前项和后项的所有笛卡尔积</p>
+
+<pre><code>(x1, y1), (x1, y2), ... (x1, yn)
+...
+(xm, y1), (xm, y2), ... (xm, yn)
+</code></pre>
+
+<p>都在资源表中，才表明这一条规则通过了资源过滤。
+例如对于规则(a,b => c)，只有a与c，a与b都有资源关系（即(a,b)和(a,c)都在资源表中），这条规则才有效。</p>
+
+<p>实现算法是：对于一条规则R1，求出其所有笛卡尔积R2，然后求R2与资源表的交集R3，如果</p>
+
+<p>下面是描述这一筛选过程的Spark代码:</p>
+
+<pre><code>val data = sc.parallelize(List((0.2, 0.3, "a,b", "c"), (0.5, 0.2, "b,c", "a,d")))
+val combine_pre_suf = data.flatMap(x =&gt; (x._3.split(",").flatMap(y =&gt; (x._4.split(",").map(z =&gt; (y+","+z, x))))))
+val suf_pre = combine_pre_suf.map(x =&gt; (x._1.split(",")(1) + "," + x._1.split(",")(0), x._2))
+val double_pre_suf_rule = suf_pre ++ combine_pre_suf
+val res_data = sc.parallelize(List("a,c","b,c","c,e","c,d"))
+val res_join_double = res_data.map(x =&gt; (x,1)).join(double_pre_suf_rule)
+val rule_in_res_cnt = res_join_double.map(x =&gt; (x._2._2, x._2._1)).reduceByKey(_+_)
+val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._1._4.split(",").size == x._2)
+</code></pre>
+
+<p>将这段代码保存在文件res-filter.script中，运行<code>spark-shell -i res-filter.script</code>。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/22/103838/">Swap Mouse Buttons on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-22T10:38:38+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:38 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>LinuxMint</h1>
+
+<p>If you login in terminal,
+add the following line into ~/.xinitrc before &ldquo;exec i3&rdquo;:</p>
+
+<pre><code>xmodmap -e "pointer = 3 2 1"
+</code></pre>
+
+<p>If you login with Xfce GUI,
+add above line into ~/.xsessionrc.</p>
+
+<p>If you want to change to right-hand style mouse buton,
+run the following command in console:</p>
+
+<pre><code>xmodmap -e "pointer = 1 2 3"
+</code></pre>
+
+<p>Ref: <a href="https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal">https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2014/10/21/191239/">`Key Could Not Be Imported` Error When Full Update ArchLinux System</a></h1>
     
     
@@ -93,8 +203,8 @@
 <blockquote><p>:: Proceed with installation? [Y/n]
 (211/211) checking keys in keyring                                      [########################################] 100%
 downloading required keys&hellip;
-:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#105;&#x6c;&#x74;&#111;&#58;&#109;&#117;&#102;&#x6c;&#x6f;&#x6e;&#x65;&#64;&#x76;&#x62;&#115;&#x69;&#109;&#112;&#x6c;&#x65;&#x2e;&#x6e;&#101;&#x74;">&#109;&#x75;&#102;&#x6c;&#111;&#x6e;&#x65;&#x40;&#x76;&#x62;&#x73;&#x69;&#x6d;&#x70;&#108;&#x65;&#46;&#110;&#x65;&#116;</a>&rdquo;, created: 2009-07-04? [Y/n]
-error: key &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#111;&#x3a;&#109;&#x75;&#x66;&#108;&#x6f;&#110;&#101;&#64;&#118;&#x62;&#x73;&#x69;&#109;&#x70;&#108;&#x65;&#46;&#x6e;&#101;&#x74;">&#109;&#117;&#102;&#108;&#x6f;&#110;&#x65;&#x40;&#x76;&#x62;&#115;&#105;&#x6d;&#x70;&#108;&#101;&#x2e;&#110;&#x65;&#x74;</a>&rdquo; could not be imported
+:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#x6d;&#97;&#x69;&#108;&#116;&#x6f;&#x3a;&#x6d;&#117;&#102;&#108;&#111;&#110;&#x65;&#64;&#118;&#98;&#115;&#105;&#x6d;&#x70;&#x6c;&#101;&#x2e;&#110;&#x65;&#x74;">&#109;&#117;&#x66;&#108;&#x6f;&#x6e;&#101;&#64;&#x76;&#x62;&#x73;&#x69;&#x6d;&#x70;&#x6c;&#x65;&#46;&#110;&#101;&#116;</a>&rdquo;, created: 2009-07-04? [Y/n]
+error: key &ldquo;Fabio Castelli <a href="&#x6d;&#97;&#x69;&#108;&#x74;&#111;&#58;&#109;&#x75;&#102;&#x6c;&#x6f;&#110;&#101;&#x40;&#x76;&#98;&#x73;&#x69;&#x6d;&#112;&#x6c;&#101;&#x2e;&#110;&#101;&#x74;">&#109;&#117;&#x66;&#x6c;&#x6f;&#x6e;&#101;&#64;&#118;&#98;&#115;&#x69;&#x6d;&#112;&#108;&#101;&#46;&#x6e;&#101;&#116;</a>&rdquo; could not be imported
 error: required key missing from keyring
 error: failed to commit transaction (unexpected error)
 Errors occurred, no packages were upgraded.</p></blockquote>
@@ -452,109 +562,6 @@ run <code>sudo pacman -S fcitx-cloudpinyin fcitx-sunpinyin fcitx-googlepinyin fc
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/13/104106/">Remove Linux From a Windows-Linux Dual-booting Computer</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-13T10:41:06+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I installed Linux Mint on Thinkpad T440p laptop. Now I need to remove the Linux from this computer.</p>
-
-<ol>
-<li><p>Download mbrfix.zip from &ldquo;Download&rdquo; channel on <a href="http://www.sysint.no/">sysint.no</a>.</p></li>
-<li><p>Login the Windows on the laptop, unzip mbrfix.zip, copy MbrFix.exe to C drive;</p></li>
-<li><p>Open a console as administrator, run <code>MbrFix /drive 0 fixmbr /win7 /yes</code>;</p></li>
-<li><p>Format Linux partition;</p></li>
-</ol>
-
-
-<p>Reboot, bingo.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/07/224855/">Dart Development on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-07T22:48:55+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Linux Mint 64bit</h1>
-
-<p>Today I tried Dart official tutorial <a href="https://www.dartlang.org/codelabs/darrrt/">Avast, Ye Pirates: Write a Web App</a>. When I run dartium in &ldquo;Step 1: Run the skeleton app&rdquo;, I met the following errors:</p>
-
-<blockquote><p>Could not launch browser - process terminated while trying to connect. Try closing and running Dartium instances.:
-Dartium stdout: /home/xxx/Apps/dart/chromium/chrome:error while loading share libraries: libudev.so.0: cannot open shared object file: No such file or directory</p></blockquote>
-
-<p>The official solution <a href="https://code.google.com/p/dart/wiki/PreparingYourMachine">PreparingYourMachine</a> on dart wiki is somewhat complicated.
-For I&rsquo;ve installed Chrome, there is a simple way to resolve this problem:</p>
-
-<pre><code>sudo ln -s /opt/google/chrome/libudev.so.0 /usr/lib/x86_64-linux-gnu/libudev.so.0
-</code></pre>
-
-<p>Verified on Linux Mint 17 x86_64.</p>
-
-<p>Notes:</p>
-
-<ul>
-<li><p>I met a &ldquo;404 not found&rdquo; error when install libudev-dev with aptitude.</p></li>
-<li><p>To install chrome, download google-chrome-stable_current_amd64.deb from <a href="https://www.google.com/chrome/">Chrome official website</a>.</p></li>
-</ul>
-
-
-<h1>ArchLinux</h1>
-
-<p>Download Dart complete bundle (darteditor-linux-x64.zip) on<a href="https://www.dartlang.org/">Dart website</a>.
-Extract it, and start dart editor with ./DartEditor.
-However, when running a dart project with &ldquo;Run in dartium&rdquo; context menu, an &ldquo;libgconf.so.4 no exist&rdquo; error raises.
-So we have to install dart sdk to provide this library file: <code>sudo pacman -S dart</code>.</p>
-
-<p>You can also install dart-editor and dartium from AUR:</p>
-
-<pre><code>yaourt -S dart-editor dartium-bin
-</code></pre>
-
-<p>But it&rsquo;s very slow.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/12">&larr; Older</a>
@@ -572,6 +579,14 @@ So we have to install dart sdk to provide this library file: <code>sudo pacman -
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/10/091733/">Git初体验</a>
       </li>
     
@@ -581,14 +596,6 @@ So we have to install dart sdk to provide this library file: <code>sudo pacman -
     
       <li class="post">
         <a href="/blog/2015/05/07/151147/">Find Verified User in MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/111310/">Calculate String Length Containing Chinese Characters</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/07/093644/">CoffeeScript Notes</a>
       </li>
     
   </ul>
