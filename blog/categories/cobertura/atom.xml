@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Cobertura | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/cobertura/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Get Coverage Data for Standalone Server With Cobertura]]></title>
+    <link href="http://leetschau.github.io/blog/2013/09/02/161537/"/>
+    <updated>2013-09-02T16:15:37+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/09/02/161537</id>
+    <content type="html"><![CDATA[<h1>Prerequisites</h1>
+
+<p>Copy cobertura.jar (1.9.1), asm-3.0.jar, asm-tree-3.0.jar, jakarta-oro-2.0.8.jar, log4j-1.2.15.jar totally 5 jars to a folder (in this case it is: &ldquo;/home/lichao/apps/coberturaLib&rdquo;).</p>
+
+<p>If using cobertura-2.0.3, copy cobertura.jar and all jars in folder &ldquo;lib&rdquo; to &ldquo;coberturaLib&rdquo;.</p>
+
+<p>The current working directory is project home folder, under which there are 3 folders: cmd, conf, lib.</p>
+
+<h1>Instrument</h1>
+
+<p>Now we need instrument class files under &ldquo;class&rdquo; folder to &ldquo;instru&rdquo; folder:</p>
+
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.instrument.Main --destination instru class
+</code></pre>
+
+<p>Note the double quotes of &ldquo;/home&hellip;/coberturaLib/*&rdquo; is necessary.</p>
+
+<p>If you use cobertura-2.0.3, add project dependencies ($PROJ_HOME/lib), too:</p>
+
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*:../lib/*" net.sourceforge.cobertura.instrument.Main --destination CalcServer --datafile CalcServer/cobertura.ser CalcServer.jar 
+</code></pre>
+
+<p>Synopsis:</p>
+
+<pre><code>java -cp &lt;Cobertura_lib&gt; net.sourceforge.cobertura.instrument.Main --destination &lt;dest_folder&gt; --datafile &lt;datafile_path&gt; &lt;target&gt;
+</code></pre>
+
+<p>If <target> is a folder containing class files, instrumented class files will be created under <dest_folder>.
+If <target> is a jar file, instrumented jar file will be created under <dest_folder>.
+If &ldquo;&ndash;destination <dest_folder> is not specified, the instrumented one will overwrite the origin.</p>
+
+<h1>Start Server</h1>
+
+<p>This step equals to &ldquo;unit test&rdquo; in junit-cobertura scenario. The start.sh is:</p>
+
+<pre><code>#!/bin/sh 
+CoberturaJar="/home/lichao/apps/coberturaLib/cobertura-2.0.3.jar" 
+JARS="$CoberturaJar:conf:./*:lib/*" 
+java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deploy.Main 
+</code></pre>
+
+<p>Note: The instrumented jar must be add <strong>before</strong> uninstrumented jar in classpath.</p>
+
+<p>Synopsis:</p>
+
+<pre><code>java -cp &lt;cobertura.jar_path&gt;:&lt;other_dependencies&gt; -Dnet.sourceforge.cobertura.datafile=&lt;datafile_path&gt; Server.Main.Class.Name
+</code></pre>
+
+<h1>Merge Datafile</h1>
+
+<pre><code>java -cp "coberturaLib-2.0.3/*" net.sourceforge.cobertura.merge.Main --datafile GcpCollector/cmd/cobertura.ser GcpServerCore/cmd/cobertura.ser cobertura.ser
+</code></pre>
+
+<h1>Get Report</h1>
+
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.reporting.Main --datafile cobertura.ser --destination ../report ../../src
+</code></pre>
+
+<p>The report data will not be written to report files until the server process is down.</p>
+
+<p>Synopsis:</p>
+
+<pre><code>java -cp &lt;cobertura_lib&gt; net.sourceforge.cobertura.reporting.Main --datafile &lt;datafile_path&gt; --destination &lt;report_path&gt; &lt;source_folder&gt;
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Solution of Cobertura Exception `touchJump` When Unit Test]]></title>
+    <link href="http://leetschau.github.io/blog/2013/08/08/114315/"/>
+    <updated>2013-08-08T11:43:15+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/08/08/114315</id>
+    <content type="html"><![CDATA[<p>During unit test I encounter a &ldquo;java.lang.NoSuchMethodError: net.sourceforge.cobertura.coveragedata.ClassData.touchJump(IIZ)V&rdquo; exception.
+I find there are 2 cobertura.jar in classpath. That jar in /usr/share/ant/lib is v1.9.2, while in ./lib/ is 1.8.1.</p>
+
+<p>When I delete the jar in ./lib, there is a &ldquo;java.lang.NoClassDefFoundError: net/sourceforge/cobertura/coveragedata/HasBeenInstrumented&rdquo; exception.</p>
+
+<p>Then I copy cobertura.jar from /usr/share/ant/lib to ./lib, everything goes fine.</p>
+
+<h1>Solution of &ldquo;local class incompatible&rdquo;</h1>
+
+<p>Problem: local class incompatible: stream classdesc serialVersionUID = 2, local class serialVersionUID = 2152686494816595840</p>
+
+<p>Solution: use <code>unzip -q -c cobertura.jar META-INF/MANIFEST.MF</code>, I found the version of this jar is 1.8, while that in other projects is 1.9.1. So I copy the jar of version 1.9.1 to replace that of version 1.8, everything goes fine.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Code Metrics Management With Sonar]]></title>
+    <link href="http://leetschau.github.io/blog/2013/05/29/183259/"/>
+    <updated>2013-05-29T18:32:59+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/05/29/183259</id>
+    <content type="html"><![CDATA[<p>I added coverage test with cobertura and test the demo project built yesterday. Then I add Sonar Ant task in the ant script and saved test result into Sonar database.</p>
+
+<p>The following is a standard build script(add junit-4.*.jar and cobertura.jar to $ANT_HOME/lib, in Ubuntu it is /usr/share/ant/lib):</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
+    &lt;property name="build.dir" value="${basedir}/build" /&gt;
+    &lt;target name="init"&gt;
+        &lt;delete dir="${build.dir}"/&gt;
+        &lt;mkdir dir="${build.dir}"/&gt;
+    &lt;/target&gt;
+
+    &lt;property name="src.dir" value="${basedir}/src" /&gt;
+    &lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+    &lt;target name="compile-src" depends="init"&gt;
+        &lt;mkdir dir="${src.class.dir}"/&gt;
+        &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+    &lt;/target&gt;
+    &lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+    &lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+    &lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+
+    &lt;target name="instrument" depends="compile-src"&gt;
+        &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+        &lt;fileset dir="${src.class.dir}"&gt;
+            &lt;include name="**/*.class" /&gt;
+        &lt;/fileset&gt;
+        &lt;/cobertura-instrument&gt;
+    &lt;/target&gt;
+
+    &lt;property name="test.dir" value="${basedir}/test" /&gt;
+    &lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+    &lt;target name="compile-test" depends="instrument"&gt;
+        &lt;mkdir dir="${test.class.dir}"/&gt;
+        &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+            &lt;classpath&gt;
+                &lt;pathelement location="${instrumented.class.dir}"/&gt;
+                &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;/classpath&gt;
+        &lt;/javac&gt;
+    &lt;/target&gt;
+
+    &lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+    &lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+    &lt;target name="unittest" depends="compile-test"&gt;
+        &lt;mkdir dir="${unittest.report.dir}"/&gt;
+        &lt;junit printsummary="yes" fork="yes"&gt;
+            &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+            &lt;classpath&gt;
+                &lt;pathelement location="${instrumented.class.dir}"/&gt;
+                &lt;pathelement location="${src.class.dir}"/&gt;
+                &lt;pathelement location="${test.class.dir}"/&gt;
+                &lt;pathelement location="${src.dir}"/&gt;
+                &lt;path refid="lib.path"/&gt;
+            &lt;/classpath&gt;
+            &lt;formatter type="xml"/&gt;
+            &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+                &lt;fileset dir="${test.dir}"&gt;
+                    &lt;include name="**/*.java" /&gt;
+                &lt;/fileset&gt;
+            &lt;/batchtest&gt;
+        &lt;/junit&gt;
+    &lt;/target&gt;
+
+    &lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+    &lt;target name="coverage-report" depends="unittest"&gt;
+        &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+    &lt;/target&gt;
+
+    &lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+    &lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+    &lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+    &lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+    &lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+    &lt;property name="sonar.projectVersion" value="2.1" /&gt;
+    &lt;property name="sonar.language" value="java" /&gt;
+    &lt;property name="sonar.sources" value="src" /&gt;
+    &lt;property name="sonar.tests" value="test" /&gt;
+    &lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+    &lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+    &lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+    &lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+    &lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+    &lt;target name="sonar" depends="coverage-report"&gt;
+        &lt;taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"&gt;
+            &lt;classpath path="/usr/share/ant/lib/sonar-ant-task-2.1.jar" /&gt;
+        &lt;/taskdef&gt;
+        &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+    &lt;/target&gt;
+&lt;/project&gt;
+</code></pre>
+
+<p>To run this script successfully:</p>
+
+<ol>
+<li><p>build a demo java project and put this script at project root;</p></li>
+<li><p>copy sonar-ant-task-2.1.jar and junit-4.11.jar to $ANT_HOME/lib;</p></li>
+<li><p>start Sonar server: $SONAR_HOME/bin/sonar.sh console;</p></li>
+<li><p>run this script: ant sonar;</p></li>
+</ol>
+
+
+<p>Note1: you have to add &ldquo;sonar.core.codeCoveragePlugin&rdquo; or coverage result can&rsquo;t be collected by Sonar. This is not mentioned in official documents<a href="http://docs.codehaus.org/display/SONAR/Code+Coverage+by+Unit+Tests+for+Java+Project">Code Coverage by Unit Tests for Java Project</a>;</p>
+
+<p>Note2: take care of the spelling: &ldquo;sonar.surefire.report<strong>s</strong>Path&rdquo; while &ldquo;sonar.cobertura.reportPath&rdquo;;</p>
+
+<p>Note3: the &ldquo;xmlns:sonar="antlib:org.sonar.ant&rdquo; in &ldquo;sonar:sonar&rdquo; is necessary or the prefix &ldquo;sonar&rdquo; would be unbound;</p>
+
+<p>Note4: if unit test results can&rsquo;t be collected by Sonar, try to specify &ldquo;sonar.binaries&rdquo; carefully as above shows;</p>
+
+<p>Note5: the value of junit report path &ldquo;sonar.surefire.reportsPath&rdquo; is a <strong>directory</strong>(because there are lots of reports under this folder), while the value of cobertura report is a <strong>file</strong>, if sonar can not get junit or cobertura report, verify these settings;</p>
+
+<p>Note6: if there are &ldquo;class &hellip; is not accessible through the ClassLoader.&rdquo; in output of sonar task, there are two solutions:</p>
+
+<ol>
+<li><p>remove property &ldquo;sonar.binaries&rdquo;, where Sonar will not check bytecode;</p></li>
+<li><p>in case you want Sonar check bytecodes, add property &ldquo;sonar.libraries&rdquo; like follows:</p>
+
+<p> <property name="sonar.libraries" value="src/lib/*.jar,src/lib/dom4j/*.jar"/></p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Note About Cobertura]]></title>
+    <link href="http://leetschau.github.io/blog/2013/05/29/145502/"/>
+    <updated>2013-05-29T14:55:02+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/05/29/145502</id>
+    <content type="html"><![CDATA[<h1>Workflow of Unit Test without Cobertura</h1>
+
+<ol>
+<li><p>compile source code;</p></li>
+<li><p>compile test code;</p></li>
+<li><p>run unit test;</p></li>
+</ol>
+
+
+<h1>Workflow of Uniit Test with Cobertura</h1>
+
+<ol>
+<li><p>compile source code;</p></li>
+<li><p>instrument source code;</p></li>
+<li><p>compile test code based on <strong>instrumented</strong> source code(instrumented class file of source code in fact);</p></li>
+<li><p>run unit test;</p></li>
+<li><p>build unit test and coverage report;</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Diffcount和cobertura的代码行计算结果说明]]></title>
+    <link href="http://leetschau.github.io/blog/2011/03/16/170320/"/>
+    <updated>2011-03-16T17:03:20+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/03/16/170320</id>
+    <content type="html"><![CDATA[<p>做java程序的代码行计算时，用diffcount计算出来的代码行数的NBNC（非空非注释）行数是真实的代码行数，而cobertura的“line valid”项的值是一个折算值，二者的关系是：${line valid}=(0.46~0.47)*NBNC。diffcount中java与C的代码行折算值为0.41（一行java代码相当于0.41行C代码），与0.46~0.47这个范围相差不大，所以猜测cobertura中的行数大概是折算后的C代码行数。实际计算TestCases/KLOC（每千行代码测试用例数）时，采用何种方式计算代码行数均可，只要QA要求和项目周期中保持一致的计算方法即可。</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,294 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Install FTP Service for CentOS Host Behind a Proxy - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Basic Installation add &ldquo;proxy=http://10.21.3.31:8087&rdquo; to /etc/yum.conf;
+run command &ldquo;yum install -y vsftpd&rdquo; with root;
+run & &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/09/09/113239/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Install FTP Service for CentOS Host Behind a Proxy</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-09T11:32:39+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:32 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>Basic Installation</h1>
+
+<ol>
+<li><p>add &ldquo;proxy=<a href="http://10.21.3.31:8087">http://10.21.3.31:8087</a>&rdquo; to /etc/yum.conf;</p></li>
+<li><p>run command &ldquo;yum install -y vsftpd&rdquo; with root;</p></li>
+<li><p>run &ldquo;service vsftpd start&rdquo; with root. Now you can use ftp with a common user;</p></li>
+</ol>
+
+
+<h1>Enable upload and create directory</h1>
+
+<p>Run following command with root accout (or there will raise 553 and 550 errors when you upload and create dir):</p>
+
+<pre><code>setsebool allow_ftpd_full_access on
+setsebool ftp_home_dir on
+/sbin/service vsftpd restart
+</code></pre>
+
+<p>Verify:</p>
+
+<pre><code>$ nc -zv 10.0.2.49 21
+</code></pre>
+
+<p>or</p>
+
+<pre><code>$ ftp 10.0.2.49
+</code></pre>
+
+<p>then enter username and password. Any existing user account can be used.</p>
+
+<p>If you get following errors, it&rsquo;s probably due to the fiirwall. See the next section for solutions.</p>
+
+<pre><code>nc: connect to 10.0.2.49 port 21 (tcp) failed: No route to host
+</code></pre>
+
+<p>Ref:</p>
+
+<p>google &ldquo;vsftpd 553 centos&rdquo;;
+<a href="https://www.centos.org/docs/5/html/Deployment_Guide-en-US/s1-ftp-vsftpd-start.html">Starting and Stopping vsftpd</a></p>
+
+<h1>Config Firewall</h1>
+
+<p>First you should test if the connection failure is caused by iptables:</p>
+
+<pre><code># service iptables stop
+</code></pre>
+
+<p>and connect the ftp again. If you can logged in, then you should config iptables rules.</p>
+
+<p>Add a rule in iptables to open access for port 21:</p>
+
+<p>Open file /etc/sysconfig/iptables:</p>
+
+<p>Add &ldquo;-A INPUT -i eth0 -p tcp &ndash;dport 21 -j ACCEPT&rdquo; after the line &ldquo;-A INPUT -i lo -j ACCEPT&rdquo;. Then restart service:</p>
+
+<pre><code># service iptables restart
+</code></pre>
+
+<p>Verify again.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-09-09T11:32:39+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:32 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/centos/'>centos</a>, <a class='category' href='/blog/categories/ftp/'>ftp</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/09/09/113239/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/09/09/113239/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/09/05/180828/" title="Previous Post: Mass Configuration Modification with Jenkins Slicing Plugin">&laquo; Mass Configuration Modification with Jenkins Slicing Plugin</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/09/12/084856/" title="Next Post: Send Excerpts from Jenkins Console Output as Email Contents">Send Excerpts from Jenkins Console Output as Email Contents &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

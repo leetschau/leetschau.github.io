@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Mina | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/mina/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[TextLineCodecFactory笔记]]></title>
+    <link href="http://leetschau.github.io/blog/2012/04/05/160720/"/>
+    <updated>2012-04-05T16:07:20+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/04/05/160720</id>
+    <content type="html"><![CDATA[<p>Mina的TextLineCodecFactory将字符串编码为字节流，将字节流解码为字符串，下面是使用中遇到的两个问题。 TextLineCodecFactory改变了message的类型
+acceptor上挂了textCodec后handler的messageReceived方法中的session是String型（用"message.getClass().getName()&ldquo;查看），</p>
+
+<p> [INFO] [2012-04-05 16:18:54,317] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : hi(java.lang.String)]</p>
+
+<p>否则是IoBuffer：</p>
+
+<p> [INFO] [2012-04-05 15:23:36,760] [com.leechau.mina.echoServer.EchoProtocolHandler] - [message type is: org.apache.mina.core.buffer.SimpleBufferAllocator$SimpleBuffer]</p>
+
+<p>因此挂上TextLineCodecFactory后在handler的messageReceived方法中message参数可直接强转为String；</p>
+
+<p> 不能正确解码换行符问题及解决办法
+连接Echo Server后有时会出现下面的现象：</p>
+
+<p> hi{enter}</p>
+
+<p>send:</p>
+
+<p>  hi</p>
+
+<p>造成这一现象的原因是下面的配置方法使TextLineCodecFactory使用了默认的编解码行分隔符（encoder/decoder line delimeter），即用Unix LineDelimeter(/n)作为编码行分隔符，用AUTO LineDelimeter（\r或者\n，详见Mina API doc对LineDelimeter类的说明）作为解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;))));</p>
+
+<p>解决这一问题的办法是指定编解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.DEFAULT.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send:
+hi</p>
+
+<p>如果不希望每次session.write(msg)后编码器自动加上回车符，需要将编码行分隔符指定为NUL：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo; textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.NUL.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send: hi</p>
+
+<p> 源代码
+Main.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
+import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+public class Main {
+ private static final int PORT = 8293;
+ public static void main(String[] args) throws Exception {
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  acceptor.getFilterChain().addLast(&ldquo;logger&rdquo;, new LoggingFilter());
+  acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,
+   new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),
+     LineDelimiter.NUL.getValue() , LineDelimiter.DEFAULT.getValue())));
+  acceptor.setHandler(new EchoProtocolHandler());
+  acceptor.bind(new InetSocketAddress(PORT));
+  System.out.println(&ldquo;Listening on port &rdquo; + PORT);
+ }
+}</p>
+
+<p>EchoProtocolHandler.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IoSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+public class EchoProtocolHandler extends IoHandlerAdapter {
+ private static final Logger LOGGER = LoggerFactory
+ .getLogger(EchoProtocolHandler.class);
+ @Override
+ public void messageReceived(IoSession session, Object message) throws Exception {
+  LOGGER.info(&ldquo;Received : &rdquo; + message + &ldquo;(&rdquo; + message.getClass().getName() + &ldquo;)&rdquo;);
+  session.write(&ldquo;send: &rdquo;);
+  session.write(message);
+ }
+}</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Mina的JMX支持]]></title>
+    <link href="http://leetschau.github.io/blog/2012/03/30/174213/"/>
+    <updated>2012-03-30T17:42:13+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/03/30/174213</id>
+    <content type="html"><![CDATA[<p>以下是一个增加了JMX支持的Mina Echo Server.</p>
+
+<p> package org.apache.mina.echoServer;</p>
+
+<p> import java.lang.management.ManagementFactory;</p>
+
+<p> import java.net.InetSocketAddress;</p>
+
+<p> import javax.management.MBeanServer;</p>
+
+<p> import javax.management.ObjectName;</p>
+
+<p> import org.apache.mina.transport.socket.SocketAcceptor;</p>
+
+<p> import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
+
+<p> import org.apache.mina.integration.jmx.IoServiceMBean;</p>
+
+<p> public class Main {
+ public static void main(String[] args) throws Exception {
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  acceptor.setHandler(new EchoProtocolHandler());
+  acceptor.bind(new InetSocketAddress(PORT));
+  System.out.println(&ldquo;Listening on port &rdquo; + 8293);
+  MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+  IoServiceMBean acceptorMBean = new IoServiceMBean(acceptor);
+  ObjectName acceptorName = new ObjectName(acceptor.getClass().getPackage().getName()
+    + &ldquo;:type=acceptor,name=&rdquo; + acceptor.getClass().getSimpleName());
+  mBeanServer.registerMBean(acceptorMBean, acceptorName);
+ }
+}</p>
+
+<p> package org.apache.mina.echoServer;</p>
+
+<p> import org.apache.mina.core.buffer.IoBuffer;</p>
+
+<p> import org.apache.mina.core.service.IoHandlerAdapter;</p>
+
+<p> import org.apache.mina.core.session.IdleStatus;</p>
+
+<p> import org.apache.mina.core.session.IoSession;</p>
+
+<p> import org.apache.mina.filter.ssl.SslFilter;</p>
+
+<p> import org.slf4j.Logger;</p>
+
+<p> import org.slf4j.LoggerFactory;</p>
+
+<p> public class EchoProtocolHandler extends IoHandlerAdapter {
+ private static final Logger LOGGER = LoggerFactory.getLogger(EchoProtocolHandler.class);
+ @Override
+ public void exceptionCaught(IoSession session, Throwable cause) {
+  session.close(true);
+ }
+ @Override
+ public void messageReceived(IoSession session, Object message) throws Exception {
+  LOGGER.info(&ldquo;Received : &rdquo; + message);
+  session.write(((IoBuffer) message).duplicate());
+ }
+}</p>
+
+<p>ivy.xml:</p>
+
+<p> <dependency org="javassist" name="javassist" rev="3.12.1.GA" conf="compile->master"/>
+<dependency org="log4j" name="log4j" rev="1.2.15" conf="compile->master"/>
+<dependency org="ognl" name="ognl" rev="3.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-core" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-beans" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-jmx" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-ognl" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.easymock" name="easymock" rev="2.5.1" conf="master->master"/>
+<dependency org="org.slf4j" name="slf4j-api" rev="1.5.0" conf="compile->master"/>
+<dependency org="org.slf4j" name="slf4j-log4j12" rev="1.5.0" conf="compile->master"/></p>
+
+<p>启动服务是需要加VM参数-Dcom.sun.management.jmxremote：</p>
+
+<p>命令行启动：java -Dcom.sun.management.jmxremote -classpath <CLASSPATH> org.apache.mina.echoServer.Main</p>
+
+<p>Eclipse中启动：Run->Debug configuration中，Name: Main , VM arguments: -Dcom.sun.management.jmxremote</p>
+
+<p>启动JConsole，连接org.apache.mina.echoServer.Main；</p>
+
+<p>进入Main的监控窗口后MBean->操作，可以手工运行acceptor的方法，例如点击Dispose，会关闭acceptor。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Mina与netty的区别]]></title>
+    <link href="http://leetschau.github.io/blog/2012/03/27/090454/"/>
+    <updated>2012-03-27T09:04:54+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/03/27/090454</id>
+    <content type="html"><![CDATA[<ul>
+<li>从messageReceived的参数上可以看出： netty是在channel上传递event，mina是在iosession中传递message（默认是iobuffer类型）；</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[IoConnector和IoSession的关系以及上挂Filter的区别]]></title>
+    <link href="http://leetschau.github.io/blog/2011/07/07/112831/"/>
+    <updated>2011-07-07T11:28:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/07/07/112831</id>
+    <content type="html"><![CDATA[<p>IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下：</p>
+
+<p>  IoConnector connector = new NioSocketConnector(50);</p>
+
+<p>  ConnectFuture connFuture = connector.connect(new InetSocketAddress(ip, port));</p>
+
+<p>  boolean b = connFuture.awaitUninterruptibly(10000);</p>
+
+<p>  if (b) {</p>
+
+<p>   IoSession session = connFuture.getSession();</p>
+
+<p>   &hellip;</p>
+
+<p>  }</p>
+
+<p>也就是用IoConnector的connect方法得到一个ConnectFuture，再用此ConnectFuture的getSession方法得到IoSession。</p>
+
+<p>本质上Filter是与连接（也就是IoSession）相关联的，但由于下面的两个原因，导致需要在Connector上定义filter链。</p>
+
+<p>首先是filter链需要在连接建立前就要定义好，这样才能实现“一建立连接就做某事”这种功能，在已经存在的Session（也就是连接）上挂filter显然无法达到这种效果；</p>
+
+<p>其次是Connector每与服务端建立一个连接就会生成一个Session，且这些Session的行为具有很大的相似性，也就是上面的filter一般也是一样的，这样为多个session定义相同的一组filter显然是一种dirty work；</p>
+
+<p>简而言之，就是Connector上挂filter链属于“配置”定义，而session上挂filter链属于“运行时”定义，当连接关闭（断开）后，这个filter链也就不存在了。</p>
+
+<p>下面是二者挂filter链的具体方法。</p>
+
+<p>对于Connector：</p>
+
+<p>  DefaultIoFilterChainBuilder chain = IoConnector.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
+
+<p>对于session：</p>
+
+<p>  IoFilterChain chain = session.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[网络通信框架选型]]></title>
+    <link href="http://leetschau.github.io/blog/2010/10/09/170608/"/>
+    <updated>2010-10-09T17:06:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/10/09/170608</id>
+    <content type="html"><![CDATA[<p>事件驱动的异步IO通信框架
+ Apache Mina , JBoss Netty , Grizzly (Java), Twisted , gevent (python), eventmachine (Ruby), POE (Perl), Node.js (JavaScript), libevent &copy;</p>
+
+<p>各框架实现的Echo Server</p>
+
+<p> Twisted , libevent (不是echo server，但讲了很多基础知识), gevent , eventmachine , Node.js , Netty , Grizzly , POE ，按先后顺序进行学习。</p>
+
+<p>选型的依据：</p>
+
+<p> 功能： 截取模式：
+ Mina: Filter-Handler;
+Netty/Grizzly: Handler only</p>
+
+<p> 支持的Filter/Handler：</p>
+
+<p>Mina: blacklist filters, compression filters, connection throttling filters, SSL filters, logging filters, protocol codecs such as delimiter based, and HTTP. Grizzly provides support for SSL, custom protocol codecs, logging, and HTTP;</p>
+
+<p>Netty: Base64 encoding/decoding, delimiter based codecs, fixed length codecs, HTTP handlers, logging handlers, Java object serialization/deserialization codecs, Google Protocol Buffer codecs, SSL handlers, simple string codecs, and handlers used to control bandwidth, traffic shaping, etc. There are also several utility handlers that may be used to build custom handlers such as a replay handler, timeout handler , frame decoder, etc;（Netty在支持基于已有的Handler构建用户Handler方面更灵活）</p>
+
+<p> 高级缓存</p>
+
+<p>Netty: ChannelBuffer中封装了多个ByteBuffer实例的引用（而非拷贝），支持zero copy，支持标记与重设“读指针”(Reader)索引，支持搜索、切片、读写不同类型数据；</p>
+
+<p>Mina: 与Netty基本类似，但不支持zero copy（在Mina 3中实现）；</p>
+
+<p> Socket and Protocol Independence</p>
+
+<p>三者均支持，使通信框架底层技术变化（例如从NIO向AIO过渡）时，无需更新业务逻辑代码；</p>
+
+<p> 可定制的协议与POJO</p>
+
+<p>三者均支持，POJO在网络传输中的作用是什么？</p>
+
+<p> 线程模型</p>
+
+<p>三者均使用线程池模型，应付高并发能力良好；</p>
+
+<p> 性能：</p>
+
+<p>速度：MINA能够满足要求（并发800+），Netty=Grizzly>MINA；</p>
+
+<p>内存占用量：Netty=Mina&lt;Grizzly
+ 扩展性：采用此框架的项目代码是否易于修改，易于在已有功能基础上拓展新功能； 易用性：框架的简洁程度，API Docs是否完善，Tutorials是否丰富，论坛是否活跃； 与GODU的整合能力/迁移成本；</p>
+]]></content>
+  </entry>
+  
+</feed>

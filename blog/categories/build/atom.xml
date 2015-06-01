@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Build | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/build/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Linux From Scratch Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/19/153017/"/>
+    <updated>2014-09-19T15:30:17+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/19/153017</id>
+    <content type="html"><![CDATA[<p>Linux from Scratch (LFS) version: 7.5.</p>
+
+<p>Host: Dell PC, ArchLinux.</p>
+
+<h1>Partition Scheme</h1>
+
+<p>The host is GPT, so use <code>cgdisk</code> to create 2 new partitions (after 2 existing partitions): root 10GB, and swap 4GB.
+When asked for partition type, input &ldquo;L&rdquo;, it will list all type code, where code of linux swap is 8200.
+Reboot and build as root:</p>
+
+<pre><code>mkfs.ext4 /dev/sda3
+mkswap /dev/sda4
+export LFS=/mnt/lfs
+mkdir -pv $LFS
+mount -v -t ext4 /dev/sda3 $LFS
+swapon -v /dev/sda4
+mkdir $LFS/sources
+chmod -v a+wt $LFS/sources
+mkdir -v $LFS/tools
+groupadd lfs
+useradd -s /bin/bash -g lfs -m -k /dev/null lfs
+passwd lfs
+chown -R lfs:lfs $LFS
+chown -v lfs $LFS/tools
+ln -sv $LFS/tools /
+chown -v lfs $LFS/sources
+su - lfs
+
+cat &gt; ~/.bash_profile &lt;&lt; "EOF"
+exec env -i HOME=$HOME TERM=$TERM PS1='\u:\w\$ ' /bin/bash
+EOF
+cat &gt; ~/.bashrc &lt;&lt; "EOF"
+set +h
+umask 022
+LFS=/mnt/lfs
+LC_ALL=POSIX
+LFS_TGT=$(uname -m)-lfs-linux-gnu
+PATH=/tools/bin:/bin:/usr/bin
+export LFS LC_ALL LFS_TGT PATH
+EOF
+
+wget -O wget-list http://www.linuxfromscratch.org/lfs/downloads/stable/wget-list
+wget -i wget-list -P $LFS/sources
+
+cd $LFS
+tar xf sources/binutils-2.24.tar.bz2
+cd binutils-2.24
+./configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror 
+make
+mkdir -v /tools/lib
+ln -sv lib /tools/lib64
+make install
+cd $LFS
+tar xf sources/gcc-4.8.2.tar.bz2
+tar xf sources/mpfr-3.1.2.tar.xz
+tar xf sources/gmp-5.1.3.tar.xz
+tar xf sources/mpc-1.0.2.tar.xz
+mv mpfr* mpfr
+mv gmp* gmp
+mv mpc* mpc
+mv mpfr gmp mpc gcc-4.8.2
+cd gcc-4.8.2
+cat &gt; runme.sh &lt;&lt;EOF
+for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+do
+    cp -uv $file{,.orig}
+    sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&amp;@g' \
+        -e 's@/usr@/tools@g' $file.orig &gt; $file
+    echo '
+#undef STANDARD_STARTFILE_PREFIX_1
+#undef STANDARD_STARTFILE_PREFIX_2
+#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+#define STANDARD_STARTFILE_PREFIX_2 ""' &gt;&gt; $file
+    touch $file.orig
+done
+EOF
+chmod 755 runme.sh
+./runme.sh
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Two Java Building Tools]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/12/103608/"/>
+    <updated>2014-09-12T10:36:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/12/103608</id>
+    <content type="html"><![CDATA[<p>I need build a java project to compare performance of <a href="http://logging.apache.org/log4j/2.x/">apache log4j</a> and <a href="http://logback.qos.ch/">Logback</a>. The following codes are the building procedures based on [Gradle]<a href="http://www.gradle.org/">http://www.gradle.org/</a>) and <a href="http://www.scala-sbt.org/">sbt</a>.</p>
+
+<h1>sbt</h1>
+
+<pre><code>mkdir myproject
+cd myproject
+cat &lt;&lt;EOF &gt; build.sbt
+name := "MyProject"
+
+version := "0.1"
+EOF
+mkdir project
+echo 'addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")' &gt; project/plugins.sbt
+sbt eclipse
+</code></pre>
+
+<p>Note that the blank line between &ldquo;name&rdquo; &amp; &ldquo;version&rdquo; in build.sbt is mandatory for Scala syntax.
+Now start eclipse, import this proect, create new packages (com.boco.logb) and Java files (LoggerOneThread.java) in &ldquo;src/main/java&rdquo; folder, and config files (log4j.properties and logback.xml) in src/resources folder.
+slf4j looks for log implementations based on jars in classpath instead of conifg files, so we add both 2 config files into resource folder.</p>
+
+<p>The LoggerOneThread.java file:
+```
+package com.boco.logb;</p>
+
+<p>import java.util.concurrent.TimeUnit;</p>
+
+<p>import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;</p>
+
+<p>public class LoggerOneThread {
+    public static final long TOTAL_TIMES = 4000 * 1000;
+    private static final Logger logger = LoggerFactory
+            .getLogger(LoggerOneThread.class);</p>
+
+<pre><code>public static void main(String[] args) {
+    long start = System.nanoTime();
+    for (int i = 1; i &lt; TOTAL_TIMES; i++) {
+        logger.debug("This is a test message. This is another test message.");
+    }
+    long estimatedTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime()
+            - start);
+    System.out.println("Write " + TOTAL_TIMES + " logs takes time "
+            + estimatedTime + " s.");
+}
+</code></pre>
+
+<p>}
+<code>
+Log4j config file log4j.properties:
+</code>
+log4j.rootLogger = DEBUG, FILE</p>
+
+<p>log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+log4j.appender.FILE.File=log4j.log
+log4j.appender.FILE.Append=true
+log4j.appender.FILE.MaxFileSize=50MB
+log4j.appender.FILE.MaxBackupIndex=10
+log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.FILE.layout.ConversionPattern=%d{MM-dd HH:mm:ss.SSS} [%t] %p %c - %m%n
+<code>
+Logback config file logback.xml:
+</code>
+&lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+<configuration></p>
+
+<pre><code>&lt;appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
+    &lt;file&gt;logback.log&lt;/file&gt;
+
+    &lt;rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy"&gt;
+        &lt;fileNamePattern&gt;logback.log.%i&lt;/fileNamePattern&gt;
+        &lt;minIndex&gt;1&lt;/minIndex&gt;
+        &lt;maxIndex&gt;11&lt;/maxIndex&gt;
+    &lt;/rollingPolicy&gt;
+
+    &lt;triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy"&gt;
+        &lt;maxFileSize&gt;50MB&lt;/maxFileSize&gt;
+    &lt;/triggeringPolicy&gt;
+
+    &lt;encoder&gt;
+        &lt;pattern&gt;%date{MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n&lt;/pattern&gt;
+    &lt;/encoder&gt;
+&lt;/appender&gt;
+
+&lt;root level="DEBUG"&gt;
+    &lt;appender-ref ref="FILE" /&gt;
+&lt;/root&gt;
+</code></pre>
+
+<p></configuration>
+```</p>
+
+<p>Add following dependencies into build.sbt.log4j:
+<code>
+libraryDependencies ++= Seq(
+  "org.slf4j" % "slf4j-api" % "1.7.7",
+  "org.slf4j" % "slf4j-log4j12" % "1.7.7",
+  "log4j" % "log4j" % "1.2.17"
+)
+</code></p>
+
+<p>And the following into build.sbt.logback:
+<code>
+libraryDependencies ++= Seq(
+  "org.slf4j" % "slf4j-api" % "1.7.7",
+  "ch.qos.logback" % "logback-classic" % "1.1.2",
+  "ch.qos.logback" % "logback-core" % "1.1.2"
+)
+</code></p>
+
+<p>Now delete .classpath file under project home folder, run <code>sbt eclipse</code> again to refresh classpath.</p>
+
+<p>When coding completed, copy build.sbt.log4j (or build.sbt.logback) as build.sbt, run <code>sbt run</code> to run this project. Run <code>sbt package</code> to create jar file under target folder.</p>
+
+<p>Some other settings in build.sbt:</p>
+
+<pre><code>organization := "org.leechau"
+</code></pre>
+
+<h1>Gradle</h1>
+
+<ol>
+<li><p>Install gradle plugin for Eclipse, and create a Gradle Project &ldquo;MyProject&rdquo; in Eclipse, choose &ldquo;Java Quickstart&rdquo; as Sample project;</p></li>
+<li><p>Add following lines into auto-created build.gradle file for log4j test:</p>
+
+<pre><code> apply plugin: 'application'
+ dependencies {
+     compile 'org.slf4j:slf4j-api:1.7.7', 'log4j:log4j:1.2.17', 'org.slf4j:slf4j-log4j12:1.7.7'
+ }
+ mainClassName = "com.boco.logb.LoggerOneThread"
+</code></pre></li>
+<li><p>Refresh dependencies: [Gradle -> Refresh Dependencies] in context menu;</p></li>
+<li><p>Run log4j test:</p>
+
+<pre><code> cp build.gradle build.gradle.log4j
+ gradle clean run
+</code></pre></li>
+<li><p>For logback test, create a new file build.gradle.logback based on build.gradle.log4j, but use the following dependencies:</p></li>
+</ol>
+
+
+<pre><code>compile 'org.slf4j:slf4j-api:1.7.7', 'ch.qos.logback:logback-classic:1.1.2', 'ch.qos.logback:logback-core:1.1.2'
+</code></pre>
+
+<p>The config files log4j.properties and logback.xml, and Java file LoggerOneThread.java are identical to that in sbt section.</p>
+
+<ol>
+<li><p>Run logback test:</p>
+
+<pre><code> cp build.gradle.logback build.gradle
+ gradle clean run
+</code></pre></li>
+</ol>
+
+
+<h1>Eclipse Interface</h1>
+
+<p>How to creat Eclipse setting files (.classpath and .project) so that we can import this project into Eclipse, editing and debuging in it.</p>
+
+<p>For gradle, add <code>apply plugin: 'eclipse'</code> into build.gradle and run <code>gradle cleanEclipse eclipse</code>;</p>
+
+<p>For sbt, add <code>addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")</code> (for sbt 0.13) into $PROJECT_HOME/project/plugins.sbt, and run <code>sbt eclipse</code>;</p>
+
+<h1>Run Program</h1>
+
+<h2>gradle</h2>
+
+<pre><code>// run log4j test
+cp build.gradle.log4j build.gradle
+gradle clean run
+// run logback test
+cp build.gradle.logback build.gradle
+gradle clean run
+</code></pre>
+
+<h2>sbt</h2>
+
+<pre><code>// run log4j test
+cp build.sbt.log4j build.sbt
+sbt clean run
+// run logback test
+cp build.sbt.logback build.sbt
+sbt clean run
+</code></pre>
+
+<p>If you have multiple main entry in source files, you can use &lsquo;runMain com.boco.logb.LoggerOneThread&rsquo; instead of &ldquo;run&rdquo; to run a specific program.</p>
+
+<h1>Conclusion</h1>
+
+<p>Gradle is mainly for building of Groovy and Java project, while sbt is mainly for building of Scala and Java project. So far Gradle has better support for building Java project.
+For example, it&rsquo;s very convenient to build production zip or tar files with Gradle&rsquo;s application plugin (via the &ldquo;distZip&rdquo; task), while there&rsquo;s no corresponding plugin in sbt.
+It&rsquo;s convenient to add or remove dependencies within Eclipse with the Gradle plugin of Eclipse (not the eclipse plugin of Gradle), while there&rsquo;s no sbt plugin of Eclipse (sbteclipse of typesafehub is a eclipse plugin of sbt). So we have to refresh build path of dependencies manually when developing a project in Eclipse created by sbt.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Build Java Project With Eclipse, Gradle and Git]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/11/144152/"/>
+    <updated>2014-08-11T14:41:52+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/11/144152</id>
+    <content type="html"><![CDATA[<h1>Install and Usage</h1>
+
+<p>The order should be:</p>
+
+<ol>
+<li><p>Install Oracle JDK on system: downlaod, extract, define $JAVA_HOME and add $JAVA_HOME/bin folder to $PATH in ~/.zshrc;</p></li>
+<li><p>Install Gradle on System: downlaod, extract, define $GRADLE_HOME and add $GRADLE_HOME/bin folder to $PATH in ~/.zshrc;</p></li>
+<li><p>Install Eclipse: download, extract;</p></li>
+<li><p>Install Gradle plugin for eclipse via &ldquo;Market Place&rdquo; in Eclipse, because it&rsquo;s inconvenient to run gradle tasks in console while edit files in Eclipse;</p></li>
+<li><p>Configure Gradle plugin: set its working JDK;</p></li>
+<li><p>Build a new Gradle project in Eclipse, add git version control;</p></li>
+<li><p>Run Gradle tasks: right click &ldquo;build.gradle&rdquo; file, then select &ldquo;Gradle -> Tasks Quick Launcher&rdquo; (or Shift + Alt + Ctrl +R) to bring Gradle launcher, then input tasks name.</p></li>
+</ol>
+
+
+<p>That&rsquo;s it.</p>
+
+<h2>Frequently Used Tasks</h2>
+
+<p>Some need adding &ldquo;apply plugin: &lsquo;application&rsquo;&rdquo; and &ldquo;mainClassName = &lsquo;com.boco.gdep.Probe&rsquo;&rdquo; into build.gradle.
+Read <a href="http://www.gradle.org/docs/current/userguide/application_plugin.html">Gradle Application Plugin</a> for details.</p>
+
+<ul>
+<li><p>clean</p></li>
+<li><p>check</p></li>
+<li><p>test</p></li>
+<li><p>compileJava</p></li>
+<li><p>run</p></li>
+<li><p>startScripts: create start scripts for your application;</p></li>
+<li><p>distZip: build final deploy package, find zip file under build/distributions folder;</p></li>
+<li><p>installApp: install package created in &ldquo;distZip&rdquo; into build/install folder;</p></li>
+</ul>
+
+
+<p>Note that in development stage, testing codes with JUnit (using F11 to launch last dubug) is better than using Gradle&rsquo;s test task (using Shift + Ctrl + Alt + R, then input &ldquo;test&rdquo; and <Enter>).</p>
+
+<p>All these tasks can be executed within Eclipse and in console. So it works good both in development stage and BVT stage. A sample project using these tools is my <a href="https://github.com/leetschau/GDEP">GDEP</a> project.</p>
+
+<h1>Debug Gradle with println</h1>
+
+<p>Add the following scripts into build.gradle, then run &ldquo;check&rdquo; task.</p>
+
+<pre><code>println "--------"
+println project.name
+println "--------"
+</code></pre>
+
+<h2>Customize project name</h2>
+
+<p>Add a new file &ldquo;settings.gradle&rdquo; at the root of the project, add a string &ldquo;rootProject.name = &lsquo;myProj&rsquo;&rdquo; into the file. Now project name, jar file name, start script name will all be changed to myProject.jar/sh/zip, etc.</p>
+
+<hr />
+
+<p>First install gradle, then run the following commands:</p>
+
+<pre><code>$ mkdir myproj
+$ cd myproj
+$ gradle init --type java-library
+$ mkdir src/main/resources
+$ mkdir src/test/resources
+</code></pre>
+
+<p>Now the project layout is ready. If you want to develop this project in Eclipse, add &ldquo;apply plugin: &lsquo;eclipse&rsquo;&rdquo; into build.gradle, then run:</p>
+
+<pre><code>$ gradle eclipse
+</code></pre>
+
+<p>Then open this project with Eclipse.</p>
+
+<p>The default project layout (file structure) of &ldquo;java&rdquo; plugin is described in &ldquo;Project layout&rdquo; section of <a href="http://www.gradle.org/docs/current/userguide/userguide.html">Gradle User Guide</a>:</p>
+
+<p>src/main/java:           Production Java source
+src/main/resources:      Production resources
+src/test/java:           Test Java source
+src/test/resources:      Test resources
+src/sourceSet/java:      Java source for the given source set
+src/sourceSet/resources: Resources for the given source set</p>
+
+<p>Add git version control with:</p>
+
+<pre><code>$ cd myproj
+$ git init
+</code></pre>
+
+<p>In Eclipse Luna, the git plugin is build-in, so you can manage versions in command line or in eclipse.</p>
+
+<p>Gradle will create many help files and folders, which is not the contents of the project. So we need exclude them using .gitignore:</p>
+
+<pre><code>$ cat .gitignore
+build
+.gradle
+gradle
+...
+</code></pre>
+
+<p>Three Eclipse component &ldquo;.settings&rdquo;, &ldquo;.project&rdquo; and &ldquo;.classpath&rdquo; should be added to git repository.</p>
+
+<h1>Merge Github Project and Eclipse Gradle Project</h1>
+
+<ol>
+<li><p>git clone <a href="https://github.com/leetschau/GDEP.git">https://github.com/leetschau/GDEP.git</a> gdep2</p></li>
+<li><p>In Eclipse, build a new Gradle project &ldquo;GDEP-0811&rdquo; with &ldquo;Quick start&rdquo; template;</p></li>
+<li><p>Move all files and folders in gdep2 to GDEP-0811;</p></li>
+<li><p>Refresh project in Eclipse;</p></li>
+<li><p>Build project with [right click on project -> Gradle -> Tasks Quick Launcher], enter &ldquo;build&rdquo;, and press <Enter>. If you encounter a &ldquo;Cannot find System Java Compiler&rdquo; error, set Gradle&rsquo;s Java compiler in [Window -> Preferences -> Gradle -> Arguments -> Java Home], select &ldquo;Workspace JRE&rdquo;: jdk1.6.0_45 (which is the JDK of you system, you have to install it yourself).</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Jmx | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/jmx/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[CRaSH安装笔记]]></title>
+    <link href="http://leetschau.github.io/blog/2012/07/10/135952/"/>
+    <updated>2012-07-10T13:59:52+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/07/10/135952</id>
+    <content type="html"><![CDATA[<p>CRaSH 可以作为JMX技术的替代品，它有3种运行模式：Web archive deployment, Standalone &amp; Attach, 第一种是作为一个web app，通过web server(tomcat, jboss)运行，第二种是直接运行$CRASH_HOME\crash\bin\crash.bat，第三种是crash.bat后面加上目标JVM进程的PID，专门用来分析特定的进程。无论哪种方式，都需要jdk版本不低于1.6，在1.5上运行会报错。</p>
+
+<p>如果以第一种方式运行，步骤如下：</p>
+
+<ol>
+<li><p>将crsh-1.0.0.tar.gz\deploy\gatein\crash.war拷贝到f:\Software\apache-tomcat-6.0.18\webapps下；</p></li>
+<li><p>确定tomcat使用的jdk版本：如果默认jdk版本是1.5，可以在$TOMCAT_HOME\bin\startup.bat中加上</p></li>
+</ol>
+
+
+<p>  set JAVA_HOME=f:\Software\jdk1.6.0_27</p>
+
+<p>  set PATH=%JAVA_HOME%\bin</p>
+
+<ol>
+<li>修改$TOMCAT_HOME\conf\tomcat-users.xml，在 &lt; tomcat-users > </ tomcat-users >之间增加：</li>
+</ol>
+
+
+<p>  &lt; role rolename =&ldquo; manager &rdquo; />
+   &lt; user username =&ldquo; tomcat &rdquo; password =&ldquo; tomcat &rdquo; roles =&ldquo; manager &rdquo; /></p>
+
+<ol>
+<li><p>启动tomcat（运行$TOMCAT_HOME\bin\startup.bat），浏览器中输入：<a href="http://localhost:8080/%EF%BC%8C%E7%82%B9%E5%87%BB">http://localhost:8080/%EF%BC%8C%E7%82%B9%E5%87%BB</a>" Tomcat Manager &ldquo;，用户名和密码都是tomcat，进入管理页面，如果Applications一节中CRaSH的Running状态是True，说明安装成功：</p></li>
+<li><p>连接CRaSH服务：telnet localhost 5000，出现CRaSH欢迎界面：</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Mina的JMX支持]]></title>
+    <link href="http://leetschau.github.io/blog/2012/03/30/174213/"/>
+    <updated>2012-03-30T17:42:13+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/03/30/174213</id>
+    <content type="html"><![CDATA[<p>以下是一个增加了JMX支持的Mina Echo Server.</p>
+
+<p> package org.apache.mina.echoServer;</p>
+
+<p> import java.lang.management.ManagementFactory;</p>
+
+<p> import java.net.InetSocketAddress;</p>
+
+<p> import javax.management.MBeanServer;</p>
+
+<p> import javax.management.ObjectName;</p>
+
+<p> import org.apache.mina.transport.socket.SocketAcceptor;</p>
+
+<p> import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
+
+<p> import org.apache.mina.integration.jmx.IoServiceMBean;</p>
+
+<p> public class Main {
+ public static void main(String[] args) throws Exception {
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  acceptor.setHandler(new EchoProtocolHandler());
+  acceptor.bind(new InetSocketAddress(PORT));
+  System.out.println(&ldquo;Listening on port &rdquo; + 8293);
+  MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+  IoServiceMBean acceptorMBean = new IoServiceMBean(acceptor);
+  ObjectName acceptorName = new ObjectName(acceptor.getClass().getPackage().getName()
+    + &ldquo;:type=acceptor,name=&rdquo; + acceptor.getClass().getSimpleName());
+  mBeanServer.registerMBean(acceptorMBean, acceptorName);
+ }
+}</p>
+
+<p> package org.apache.mina.echoServer;</p>
+
+<p> import org.apache.mina.core.buffer.IoBuffer;</p>
+
+<p> import org.apache.mina.core.service.IoHandlerAdapter;</p>
+
+<p> import org.apache.mina.core.session.IdleStatus;</p>
+
+<p> import org.apache.mina.core.session.IoSession;</p>
+
+<p> import org.apache.mina.filter.ssl.SslFilter;</p>
+
+<p> import org.slf4j.Logger;</p>
+
+<p> import org.slf4j.LoggerFactory;</p>
+
+<p> public class EchoProtocolHandler extends IoHandlerAdapter {
+ private static final Logger LOGGER = LoggerFactory.getLogger(EchoProtocolHandler.class);
+ @Override
+ public void exceptionCaught(IoSession session, Throwable cause) {
+  session.close(true);
+ }
+ @Override
+ public void messageReceived(IoSession session, Object message) throws Exception {
+  LOGGER.info(&ldquo;Received : &rdquo; + message);
+  session.write(((IoBuffer) message).duplicate());
+ }
+}</p>
+
+<p>ivy.xml:</p>
+
+<p> <dependency org="javassist" name="javassist" rev="3.12.1.GA" conf="compile->master"/>
+<dependency org="log4j" name="log4j" rev="1.2.15" conf="compile->master"/>
+<dependency org="ognl" name="ognl" rev="3.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-core" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-beans" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-jmx" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-ognl" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.easymock" name="easymock" rev="2.5.1" conf="master->master"/>
+<dependency org="org.slf4j" name="slf4j-api" rev="1.5.0" conf="compile->master"/>
+<dependency org="org.slf4j" name="slf4j-log4j12" rev="1.5.0" conf="compile->master"/></p>
+
+<p>启动服务是需要加VM参数-Dcom.sun.management.jmxremote：</p>
+
+<p>命令行启动：java -Dcom.sun.management.jmxremote -classpath <CLASSPATH> org.apache.mina.echoServer.Main</p>
+
+<p>Eclipse中启动：Run->Debug configuration中，Name: Main , VM arguments: -Dcom.sun.management.jmxremote</p>
+
+<p>启动JConsole，连接org.apache.mina.echoServer.Main；</p>
+
+<p>进入Main的监控窗口后MBean->操作，可以手工运行acceptor的方法，例如点击Dispose，会关闭acceptor。</p>
+]]></content>
+  </entry>
+  
+</feed>

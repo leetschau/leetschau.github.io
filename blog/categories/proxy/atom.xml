@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Proxy | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/proxy/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Setup a Simple HTTP Proxy Server]]></title>
+    <link href="http://leetschau.github.io/blog/2013/10/30/142058/"/>
+    <updated>2013-10-30T14:20:58+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/10/30/142058</id>
+    <content type="html"><![CDATA[<p>The host 10.21.3.69 has no H3C client, so it can&rsquo;t access the internet. With <a href="https://banu.com/tinyproxy/">Tinyproxy</a>, we can setuup a proxy server on 10.21.3.31 to enable 69 access the internet.</p>
+
+<h1>Server Setup</h1>
+
+<ol>
+<li><p>Installation: apt-get install tinyproxy</p></li>
+<li><p>Configuration: vi /etc/tinyproxy.conf</p>
+
+<ol type="a">
+<li><p>default listening port: Port 8888</p></li>
+<li><p>Comment out &ldquo;Listen 127.0.0.1&rdquo;, or only client on localhost can use this proxy;</p></li>
+<li><p>Allow incoming clients: Allow 10.21.3.69</p></li>
+</ol>
+</li>
+<li><p>Apply the changes: sudo /etc/init.d/tinyproxy restart (or &ldquo;service tinyproxy restart&rdquo;)</p></li>
+</ol>
+
+
+<h1>Client</h1>
+
+<p>Set proxy: 10.21.3.31:8888</p>
+
+<p>bingo!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Install Packages on a Internet-blocked Server]]></title>
+    <link href="http://leetschau.github.io/blog/2013/06/08/141508/"/>
+    <updated>2013-06-08T14:15:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/06/08/141508</id>
+    <content type="html"><![CDATA[<h1>Using Proxy</h1>
+
+<p>Verified on Ubuntu Server 12.04, 2013-6-8.</p>
+
+<ol>
+<li><p>start a goagent server at 10.21.3.31;</p></li>
+<li><p>login in as root, modify any cn.archive&hellip; to us.archive&hellip; in /etc/apt/sources.list;</p></li>
+<li><p>use proxy temporarily: <code>export http_proxy=http://10.21.3.31:8087</code>;</p>
+
+<p>use it permament: add the following line to your /etc/apt/apt.conf(substitute your details for address and port):</p>
+
+<p> Acquire::<a href="http::Proxy">http::Proxy</a> &ldquo;<a href="http://10.21.3.31:8087">http://10.21.3.31:8087</a>&rdquo;;</p></li>
+</ol>
+
+
+<p>now you can use apt-get or wget to install something.</p>
+
+<h1>Download &amp; Install</h1>
+
+<h2>RPM-based</h2>
+
+<h3>Download from a internet-connected host</h3>
+
+<p>Get rpm files from cache /var/cache/yum, or use 3rd-party tool yumdownloader:</p>
+
+<pre><code># yum install yum-utils
+# yumdownloader --resolve subversion
+</code></pre>
+
+<p>Note you can add &ldquo;&ndash;urls&rdquo; to only list download urls instead of downloading RPMs, it can be used as &ldquo;dry-run&rdquo; mode;
+If yumdownloader can&rsquo;t resolve dependencies properly, see <a href="http://errors.bz/Questions/yumdownloader-downloads-only-i686-resolved-rpms-153416.html">yumdownloader downloads only i686 resolved rpms</a> for solutions.</p>
+
+<h3>Instll on a isolated host</h3>
+
+<pre><code># rpm -ivh &lt;package-name&gt;.rpm
+</code></pre>
+
+<h2>Debian-based</h2>
+
+<h3>aptitude</h3>
+
+<p>Notice that 32bit and 64bit of some packages are uncompatible. So you want to download 64bit packages on a 32bit machine, you have to &ldquo;vagrant up&rdquo; a 64bit VM, download deb files and save them in shared folder.</p>
+
+<h4>Download</h4>
+
+<p>Download package and all its dependencies with aptitude:</p>
+
+<pre><code>`sudo aptitude --download-only install &lt;package-name&gt;`
+</code></pre>
+
+<p>This will download deb files to /var/cache/apt/archives. Copy the package and all its dependencies to a folder then run <code>sudo dpkg -i *.deb</code>.
+If you are not sure about which is the related packages, use <code>sudo aptitude clean</code> to remove all existing .deb files before download.</p>
+
+<p>Verified by <code>sudo aptitude --download-only install subversion</code> on vagrant box precise64.</p>
+
+<p><code>sudo apt-get download &lt;package-name&gt;</code> will download deb files to current directory, since it does not resolve dependencies. So it&rsquo;s not very useful.</p>
+
+<h4>Install</h4>
+
+<pre><code>`sudo dpkg -i *.deb`
+</code></pre>
+
+<p>Ref:
+<a href="http://stackoverflow.com/questions/13756800/how-to-download-all-dependencies-and-packages-to-directory">http://stackoverflow.com/questions/13756800/how-to-download-all-dependencies-and-packages-to-directory</a>
+<a href="http://stackoverflow.com/questions/4419268/how-do-i-download-a-package-from-apt-get-without-installing-it">http://stackoverflow.com/questions/4419268/how-do-i-download-a-package-from-apt-get-without-installing-it</a></p>
+
+<h3>apt-offline</h3>
+
+<h4>Installation</h4>
+
+<pre><code>`sudo aptitude install apt-offline`
+</code></pre>
+
+<h4>Usage</h4>
+
+<ol>
+<li><p>Specify what to install on the offline-machine: <code>sudo apt-offline set --update --upgrade --install-packages subversion openjdk-6-jre ant -- apt-offline.sig</code>;</p></li>
+<li><p>Downlaod data on a internet-connected machine: <code>apt-offline get --bundle mypack.zip -t 5 apt-offline.sig</code>, where mypack is the downloaded archive and &ldquo;-t  5&rdquo; means &ldquo;download with 5 threads&rdquo;;</p></li>
+<li><p>Copy mypack.zip to the offline-machine and extract it: <code>sudo apt-offline install mypack.zip</code>;</p></li>
+<li><p>Install it with <code>sudo dpkg -i &lt;packages&gt;.deb</code>.</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Windows命令行中使用代理的方法]]></title>
+    <link href="http://leetschau.github.io/blog/2013/05/08/183307/"/>
+    <updated>2013-05-08T18:33:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/05/08/183307</id>
+    <content type="html"><![CDATA[<p>使用Gradle做自动构建时，需要从Maven库里获取依赖包，由于网络限制导致获取失败，只能加代理，Windows命令行使用代理需要借助于微软的netsh工具在管理员权限下设置：</p>
+
+<ol>
+<li><p>启动ConEmu，在标题栏上右键 -> Active Console -> Restart as Admin；</p></li>
+<li><p>执行"netsh winhttp set proxy localhost:8087"；</p></li>
+</ol>
+
+
+<p>验证代理设置成功：netsh winhttp show proxy。</p>
+
+<p>参考：<a href="http://cclah.com/2013/03/19/more-about-cmd-console-start-delay-and-set-proxy-2/">MORE ABOUT CMD CONSOLE START , DELAY AND SET PROXY</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[基于Tor网络的HTTP代理搭建过程]]></title>
+    <link href="http://leetschau.github.io/blog/2012/02/02/174801/"/>
+    <updated>2012-02-02T17:48:01+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/02/02/174801</id>
+    <content type="html"><![CDATA[<p>使用工具： Vidalia , Tor and Polipo ；</p>
+
+<p>用Tor连接tor网络，vidalia是tor的图形化配置界面，但tor只提供socks5代理，需要用polipo将socks5转为http代理，以供其他程序使用，下面是搭建过程。</p>
+
+<p>第一步：安装Polipo，下载安装包（polipo-1.0.4.1-forbidden-1-win32.exe），运行之，安装在f:\Software\Polipo下，然后写配置文件（f:\Software\Polipo\polipo.conf）：</p>
+
+<p> socksParentProxy = &ldquo;localhost:9050&rdquo;</p>
+
+<p> socksProxyType = socks5</p>
+
+<p> diskCacheRoot=&ldquo;&rdquo;</p>
+
+<p> #disableLocalInterface=true</p>
+
+<p>第二步：下载 Tor Browser Bundle ，里面包括了Tor, Vidalia和一个便携版的Firefox，解压后运行Start Tor Browser.exe，出现vidalia界面：</p>
+
+<p>Vidalia Control Panal -> Settings -> General -> Proxy Application下勾选“Start a proxy &hellip;”，下面写上polipo.exe的路径，Application Arguments下面写： -c <polipo conf file path> ，如下图：</p>
+
+<p>配好后重启vidalia，验证tor和polipo运行成功的方法是命令行中运行： netstat -ano|findstr 9050 和 netstat -ano|findstr 8123 ，其中9050是tor绑定的端口，8123是polipo绑定的端口；</p>
+
+<p>第三步：配置要使用http代理的软件。</p>
+
+<p>以GreenBrowser为例：在【工具->代理->设置代理】里新建一个名为polipo，地址为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> 的代理，【工具->代理】下会多一个【polipo】项，选中它，在地址栏中输入 www.facebook.com , bingo!</p>
+
+<p>主要参考文章：</p>
+
+<p> Tor, Polipo &amp; Vidalia</p>
+
+<p>应用实例1：calibre的代理设置。</p>
+
+<p>在windows系统中设置一个名为 HTTP_PROXY 的环境变量，值为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> ，然后在calibre安装目录下运行</p>
+
+<p>calibre-debug -c &ldquo;from calibre import get_proxies; print get_proxies()&rdquo;</p>
+
+<p>如果出现 Using proxies: {&lsquo;http&rsquo;: &lsquo;127.0.0.1:8123&rsquo;} 说明配置成功，启动calibre，在Preference->Miscellaneous里可以看到代理已启动。</p>
+
+<p>应用实例2：iTunes的代理设置。</p>
+
+<p>iTunes使用IE的代理设置，所以只要在IE里设置好polipo的信息（ 127.0.0.1:8123 ）就OK了，但要注意Evernote也使用IE的代理设置，所以不需要iTunes联网时不要开启IE的代理。</p>
+
+<p>应用实例3：Eclipse的代理设置。</p>
+
+<p>Active Provider: Manual;</p>
+
+<p>HTTP -> Edit, Host: 127.0.0.1, Port: 8123，如下图：</p>
+]]></content>
+  </entry>
+  
+</feed>

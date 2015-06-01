@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Slf4j | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/slf4j/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[How to Name a Slf4j Logger]]></title>
+    <link href="http://leetschau.github.io/blog/2012/06/13/100135/"/>
+    <updated>2012-06-13T10:01:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/06/13/100135</id>
+    <content type="html"><![CDATA[<ol>
+<li>Use logger in a non-static context:</li>
+</ol>
+
+
+<p> Logger logger = LoggerFactory.getLogger(this.getClass().getName());</p>
+
+<ol>
+<li>Use logger in a static context(for example in main() method):</li>
+</ol>
+
+
+<p> static Logger logger = LoggerFactory.getLogger(TheWrapperClassName.class);</p>
+
+<p>Method 1 is prefered, because it has no hard-coding for class name.</p>
+
+<p><a href="http://stackoverflow.com/questions/936684/getting-the-class-name-from-a-static-method-in-java">static final Logger logger = Logger.getLogger(new Throwable() .getStackTrace()[0].getClassName());</a> maybe a solution, but may slown down the app.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Log4j使用笔记]]></title>
+    <link href="http://leetschau.github.io/blog/2011/08/11/103433/"/>
+    <updated>2011-08-11T10:34:33+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/08/11/103433</id>
+    <content type="html"><![CDATA[<p>Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。layout是appender的属性，决定appender所代表的输出中，一条具体的记录由哪些信息组成，排列顺序等。</p>
+
+<p>每一个logger都有一个名字，名字是logger初始化时由getLogger的参数决定的，例如下面的logger的名字是com.foo：</p>
+
+<pre><code>Logger logger = Logger.getLogger("com.foo"); 
+</code></pre>
+
+<p>名字是logger的唯一标识符，例如下面的x和y两个logger实际上是同一个对象：</p>
+
+<pre><code>Logger x = Logger.getLogger("wombat"); 
+Logger y = Logger.getLogger("wombat"); 
+</code></pre>
+
+<p>名字还具有继承性，例如名为com.foo.bar的logger是com.foo这个logger的子logger，com.foo又是com的子logger，子logger会继承所有上级logger的appender。这种继承类似于java包的父目录和子目录的关系，详见[1]的"Named Hierarchy"部分。</p>
+
+<p>类似于根目录的概念，rootLogger是logger hierarchy的顶端，简单的log4j应用中，只定义rootLogger的appender，所有类中的logger就继承了rootLogger的特性。</p>
+
+<p>为一个logger指定appender是在log4j配置文件中定义的，格式是：</p>
+
+<pre><code>log4j.rootLogger=level_name, appender_name1, appender_name2, ... 
+</code></pre>
+
+<p>或： log4j.logger.logger_name=level_name, appender_name1, appender_name2, &hellip;</p>
+
+<p>前者为rootLogger指定appender，后者为某一个具体的logger指定appender。定义appender属性的方法是：</p>
+
+<pre><code>log4j.appender.appender_name=... 
+log4j.appender.appender_name.layout=... 
+</code></pre>
+
+<p>例如下面的代码为rootLogger指定了appender A1，并设置A1为界面输出，然后指定了输出的格式，最后一行指定了com.foo的输出级别为WARN，com.foo及其子logger低于WARN的日志将不记录，由于com.foo没有指定appender，所以继承rootLogger的A1作为其输出：</p>
+
+<pre><code>log4j.rootLogger=DEBUG, A1 
+log4j.appender.A1=org.apache.log4j.ConsoleAppender 
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout 
+log4j.appender.A1.layout.ConversionPattern=%d [%t] %-5p %c - %m%n 
+log4j.logger.com.foo=WARN 
+</code></pre>
+
+<p>logger的级别常用的有debug, info, warn, error四种，详见“ log4j日志的输出级别设置 ”；appender常用的有 ConsoleAppender（控制台输出）、 DailyRollingFileAppender（按照一定的频率滚动输出日志，例如每月、每周、每天、每小时等）和 RollingFileAppender（到一定文件大小时滚动输出） 三种；layout常用的有SimpleLayout, PatternLayout, HTMLLayout, XMLLayout四种，后两种用来输出html和xml文本。不论哪种layout，都输出的是纯文本，因此各种appender与各种layout可以随意组合。</p>
+
+<p>如果对项目中一些类的日志进行特殊处理（例如更改输出级别、指定新的输出文件等），见笔记“ 在包一级定制log4j日志输出 ”。</p>
+
+<p>下面是一个完整的日志演示，首先是测试用例，只打一条日志：</p>
+
+<pre><code>package com.boco.godu.gapi.logger; 
+import org.apache.log4j.Logger; 
+import org.junit.Test; 
+public class Log4jDemo { 
+    private final Logger logger = Logger.getLogger(this.getClass()); 
+    @Test 
+    public void testGapiLogger() { 
+        logger.info(" Apache Logger "); 
+    } 
+} 
+</code></pre>
+
+<p>log4j.properties文件：</p>
+
+<pre><code>log4j.rootLogger=debug, console, ft, fh, fx 
+log4j.appender.console=org.apache.log4j.ConsoleAppender 
+log4j.appender.console.layout=org.apache.log4j.SimpleLayout 
+log4j.appender.ft=org.apache.log4j.RollingFileAppender 
+log4j.appender.ft.File=./log/debug.log 
+log4j.appender.ft.Append=false 
+log4j.appender.ft.MaxFileSize=2MB 
+log4j.appender.ft.MaxBackupIndex=10 
+log4j.appender.ft.layout=org.apache.log4j.PatternLayout 
+log4j.appender.ft.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n 
+log4j.appender.fh=org.apache.log4j.RollingFileAppender 
+log4j.appender.fh.File=./log/debug.html 
+log4j.appender.fh.Append=false 
+log4j.appender.fh.MaxFileSize=2MB 
+log4j.appender.fh.MaxBackupIndex=10 
+log4j.appender.fh.layout=org.apache.log4j.HTMLLayout 
+log4j.appender.fh.layout.LocationInfo=true 
+log4j.appender.fh.layout.Title=Test Log4j Layout 
+log4j.appender.fx=org.apache.log4j.RollingFileAppender 
+log4j.appender.fx.File=./log/debug.xml 
+log4j.appender.fx.Append=false 
+log4j.appender.fx.MaxFileSize=2MB 
+log4j.appender.fx.MaxBackupIndex=10 
+log4j.appender.fx.layout=org.apache.log4j.xml.XMLLayout 
+log4j.appender.fx.layout.LocationInfo=true 
+</code></pre>
+
+<p>rootLogger一共挂了4个appender，分别是一个控制台输出，一个纯文本格式日志，一个html格式日志，一个xml格式日志。</p>
+
+<p>运行测试用例后的效果如下（黑体字和红圈是源代码打出的日志）：</p>
+
+<p>控制台输出：</p>
+
+<pre><code>INFO - Apache Logger 
+</code></pre>
+
+<p>纯文本文件：</p>
+
+<p>08-11 16:04:03,343 main com.boco.godu.gapi.logger.Log4jDemo,11 INFO - Apache Logger</p>
+
+<p>html文件：</p>
+
+<p>xml文件：</p>
+
+<pre><code>&lt;log4j:event logger="com.boco.godu.gapi.logger.Log4jDemo" timestamp="1313049843343" level="INFO" thread="main"&gt; 
+    &lt;log4j:message&gt;&lt;![CDATA[ Apache Logger ]]&gt;&lt;/log4j:message&gt; 
+    &lt;log4j:locationInfo class="com.boco.godu.gapi.logger.Log4jDemo" method="testGapiLogger" file="Log4jDemo.java" line="11"/&gt; 
+&lt;/log4j:event&gt;
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Eclipse中使用SLF4J的一个例子]]></title>
+    <link href="http://leetschau.github.io/blog/2010/05/21/110953/"/>
+    <updated>2010-05-21T11:09:53+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/05/21/110953</id>
+    <content type="html"><![CDATA[<p>Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。对于类库型的Java应用，例如GAPI，本身没有main程序，总是被其他程序调用，这类系统如果自身使用log4j记录日志，会出现自身的日志系统与调用程序的日志系统冲突的问题，解决的方法就是把GAPI的日志用一个“门面”实现，运行时由调用程序实现日志的输出，slf4j就是这样的一个解决方案。</p>
+
+<p>在Eclipse中新建一个Project名为Ex1，创建包com.leechau，创建类MySLF4J，代码如下：</p>
+
+<p>package com.leechau;
+ import org.slf4j.Logger;
+import org.slf4j.LoggerFactory; public class MySLF4J {
+ public static void main(String[] args) {
+  Logger logger = LoggerFactory.getLogger(HelloWorld.class);
+  logger.info(&ldquo;Hello World&rdquo;);
+ }
+ }
+} 提示无法解析包名slf4j，【Project->Properties->Java Build Path->Libraries】中，【Add External JARs】,加上log4j-1.2.14.jar、slf4j-api-1.5.0.jar、slf4j-log4j12-1.5.0.jar三个文件即可。 运行文件，出现报错：WARN No appenders could be found for logger&hellip;
+这是因为slf4j需要读取一个叫log4j.properties的文件，以确定logger的行为，例如Log文件放在什么位置，文件名是什么等等，如果没有这个文件就会出现上面的问题，在使用logger的类文件所在的source folder下新建一个名为“log4j.properties”的文件，文件内容为： log4j.rootCategory=DEBUG,stdout,R,errorlogger</p>
+
+<h4>第1个 appender将log写到屏幕</h4>
+
+<p>log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n
+log4j.appender.stdout.Threshold=DEBUG
+log4j.logger.org.apache.mina.filter.executor.OrderedThreadPoolExecutor=WARN
+log4j.logger.org.apache.mina.core.filterchain.IoFilterEvent=WARN
+log4j.logger.org.apache.mina.filter.codec.ProtocolCodecFilter=WARN</p>
+
+<h1>第1个配置文件，用于输出运行时调试信息</h1>
+
+<p>log4j.appender.R=org.apache.log4j.RollingFileAppender
+log4j.appender.R.layout=org.apache.log4j.PatternLayout</p>
+
+<h1>true表示每次在文件尾写入新的日志信息，false表示新的日志覆盖旧的日志文件</h1>
+
+<p>log4j.appender.R.Append=true
+log4j.appender.R.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n
+log4j.appender.R.Threshold=INFO log4j.appender.R.File=./log/Test.log #此参数设置log文件名
+log4j.appender.R.MaxFileSize=8000KB
+log4j.appender.R.MaxBackupIndex=5</p>
+
+<h1>第2个配置文件，用于输出运行时错误信息</h1>
+
+<p>log4j.appender.errorlogger=org.apache.log4j.RollingFileAppender
+log4j.appender.errorlogger.layout=org.apache.log4j.PatternLayout
+log4j.appender.errorlogger.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n
+log4j.appender.errorlogger.Threshold=ERROR
+log4j.appender.errorlogger.File=./log/error.log
+log4j.appender.errorlogger.MaxFileSize=8000KB
+log4j.appender.errorlogger.MaxBackupIndex=5
+更新一下项目，运行即可。每一个source folder可以拥有自己的“log4j.properties”文件，在此文件中指定不同的log文件名，即可为每一个source folder建立自己的日志文件。</p>
+
+<p>关于log4j的使用方法以及log4j.properties文件设置方法的详细说明见笔记“log4j使用笔记”。</p>
+]]></content>
+  </entry>
+  
+</feed>

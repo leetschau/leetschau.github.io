@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Vagrant | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/vagrant/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Manage Vagrant-Created VMs on Linux Mint]]></title>
+    <link href="http://leetschau.github.io/blog/2015/04/22/103439/"/>
+    <updated>2015-04-22T10:34:39+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/04/22/103439</id>
+    <content type="html"><![CDATA[<ol>
+<li><p>After installation of Virtualbox,
+specify the VM files location in VirutalBox:
+[File -> Preferences -> General -> Default Machine Folder]
+to &ldquo;$HOME/docs/vms&rdquo;;</p></li>
+<li><p>Add <code>alias vb='VBoxManage'</code> into ~/.bash_aliases;</p></li>
+<li><p>List all existing VMs: <code>vb list vms</code>;</p></li>
+<li><p>List all running VMs: <code>vb list runningvms</code>;</p></li>
+<li><p>Print the details of a VM: <code>vb showvminfo xxx</code>,
+where xxx is one item name in output of <code>vb list vms</code>;</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Virtual BVT System]]></title>
+    <link href="http://leetschau.github.io/blog/2014/06/23/135000/"/>
+    <updated>2014-06-23T13:50:00+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/06/23/135000</id>
+    <content type="html"><![CDATA[<h1>Prerequisites</h1>
+
+<ol>
+<li><p>The host server of the environment is 10.0.2.47;</p></li>
+<li><p>Install <a href="http://www.vagrantup.com/">vagrant</a> on server 47;</p></li>
+<li><p>Add vagrant box of precise x86_64: <code>vagrant box add ...</code>;</p></li>
+<li><p>Create a directory named &ldquo;bvt-package&rdquo; under ~/warez, which contains:
+ apache-ant-1.9.3-bin.tar.bz2
+ cobertura.jar
+ hamcrest-core-1.3.jar
+ jdk-6u45-linux-x64.bin
+ jenkins-1.544.war
+ junit-4.8.1.jar
+ sonar-3.6.1.zip
+ svn_amd64_ubuntu12.04
+     libapr1_1.4.6-1_amd64.deb
+     libaprutil1_1.3.12+dfsg-3_amd64.deb
+     libdb4.8_4.8.30-11ubuntu1_amd64.deb
+     libneon27-gnutls_0.29.6-1_amd64.deb
+     libsvn1_1.6.17dfsg-3ubuntu3_amd64.deb
+     subversion_1.6.17dfsg-3ubuntu3_amd64.deb
+ unzip_6.0-4ubuntu1_amd64.deb
+ zip_3.0-4_amd64.deb</p></li>
+<li><p>The demo product codes in subversion repository is <a href="http://10.0.2.59:8118/svn/gcp/Development-Area/GNDP">GNDP</a>;</p></li>
+</ol>
+
+
+<h1>Build BVT Environment</h1>
+
+<pre><code>$ cd /home/bvt/docs
+$ take mybvt
+$ vagrant box list
+$ vagrant init precise64
+// Add the following texts into Vagrantfile after the line 'config.vm.box = "precise64":'
+  config.vm.define "bs" do |bvtserver|
+    bvtserver.vm.hostname = "bvt-server"
+    bvtserver.vm.network "private_network", ip: "192.168.50.3",
+        virtualbox__intnet: "testnet"
+    bvtserver.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+      vbox.customize ["modifyvm", :id, "--memory", 1000]
+    end
+    bvtserver.vm.provision :shell, path: "provision.sh", privileged: false
+    bvtserver.vm.network "forwarded_port", guest: 9000, host: 9000
+    bvtserver.vm.network "forwarded_port", guest: 8088, host: 8088
+  end
+$ scp -r bvt@10.0.2.47:/home/bvt/warez/bvt-package packages
+$ vagrant up bs
+</code></pre>
+
+<h1>Use This Environment</h1>
+
+<ol>
+<li><p>Open <a href="http://10.0.2.47:9000">Sonarqube website</a>, login with &ldquo;admin/admin&rdquo;, in Settings -> Qualify Profiles, add rules &ldquo;TongYong&rdquo; with import &ldquo;tyrules.xml&rdquo; on local disk (the next section its content);;</p></li>
+<li><p>Open <a href="http://10.0.2.47:8088/">Jenkins website</a>;</p></li>
+<li><p>Create Jenkins project: create a project named &ldquo;GNDP&rdquo; and add a &ldquo;shell&rdquo; build step: &ldquo;/vagrant/bvt-gndp.sh&rdquo;;</p></li>
+<li><p>Build this project;</p></li>
+<li><p>You get the build log on jenkins website and code analysis results on sonarqube website;</p></li>
+</ol>
+
+
+<h1>Needed Scripts</h1>
+
+<h2>Vagrant provision script</h2>
+
+<p>This is the environment building script executed during the vagrant provision period, so it&rsquo;s cited in Vagrantfile.</p>
+
+<pre><code>$ cat /home/bvt/docs/mybvt/provision.sh
+#!/bin/sh
+
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+sudo dpkg -i /vagrant/packages/svn_amd64_ubuntu12.04/*.deb
+sudo dpkg -i /vagrant/packages/zip_3.0-4_amd64.deb
+sudo dpkg -i /vagrant/packages/unzip_6.0-4ubuntu1_amd64.deb
+APP_HOME=/home/vagrant/apps
+mkdir $APP_HOME
+cd $APP_HOME
+chmod 755 /vagrant/packages/jdk-6u45-linux-x64.bin
+sh /vagrant/packages/jdk-6u45-linux-x64.bin
+tar jxf /vagrant/packages/apache-ant-1.9.3-bin.tar.bz2
+unzip /vagrant/packages/sonar-3.6.1.zip
+
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+export JENKINS_HOME=/home/vagrant/jenkinshome
+mkdir $JENKINS_HOME
+
+sonar-3.6.1/bin/linux-x86-64/sonar.sh start
+nohup java -jar /vagrant/packages/jenkins-1.544.war --httpPort=8088 1&gt;jenkins.log 2&gt;jenkins-err.log &amp;
+</code></pre>
+
+<h2>BVT shell script</h2>
+
+<p>This script checkout the source code to be built, then invoke the Ant script. It&rsquo;s cited in Jenkins project definition.</p>
+
+<pre><code>$ cat /home/bvt/docs/mybvt/bvt-gndp.sh
+#!/bin/sh
+
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+
+svnprefix='svn co --non-interactive --no-auth-cache --username bvt_common --password password'
+svnroot='http://10.0.2.59:8118/svn/gcp/Development-Area'
+prod=GNDP
+$svnprefix ${svnroot}/3-SCL/Trunk/$prod /vagrant/codes/$prod
+
+rm -rf /vagrant/codes/*.zip
+cd /vagrant/codes/$prod;  ant
+</code></pre>
+
+<h2>Ant build script</h2>
+
+<p>This script resides in the root folder of the source project GNDP in subversion repository.</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
+&lt;property name="build.dir" value="${basedir}/build" /&gt;
+&lt;target name="init"&gt;
+    &lt;delete dir="${build.dir}"/&gt;
+    &lt;mkdir dir="${build.dir}"/&gt;
+&lt;/target&gt;
+
+&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+&lt;target name="compile-src" depends="init"&gt;
+    &lt;mkdir dir="${src.class.dir}"/&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+&lt;/target&gt;
+&lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+&lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+&lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+
+&lt;target name="instrument" depends="compile-src"&gt;
+    &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+    &lt;fileset dir="${src.class.dir}"&gt;
+        &lt;include name="**/*.class" /&gt;
+    &lt;/fileset&gt;
+    &lt;/cobertura-instrument&gt;
+&lt;/target&gt;
+
+&lt;property name="test.dir" value="${basedir}/test" /&gt;
+&lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+&lt;target name="compile-test" depends="instrument"&gt;
+    &lt;mkdir dir="${test.class.dir}"/&gt;
+    &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+        &lt;/classpath&gt;
+    &lt;/javac&gt;
+&lt;/target&gt;
+
+&lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+&lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+&lt;target name="unittest" depends="compile-test"&gt;
+    &lt;mkdir dir="${unittest.report.dir}"/&gt;
+    &lt;junit printsummary="yes" fork="yes"&gt;
+        &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;pathelement location="${test.class.dir}"/&gt;
+            &lt;pathelement location="${src.dir}"/&gt;
+            &lt;path refid="lib.path"/&gt;
+        &lt;/classpath&gt;
+        &lt;formatter type="xml"/&gt;
+        &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+            &lt;fileset dir="${test.dir}"&gt;
+                &lt;include name="**/*.java" /&gt;
+            &lt;/fileset&gt;
+        &lt;/batchtest&gt;
+    &lt;/junit&gt;
+&lt;/target&gt;
+
+&lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+&lt;target name="coverage-report" depends="unittest"&gt;
+    &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+&lt;/target&gt;
+
+&lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+&lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+&lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+&lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+&lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+&lt;property name="sonar.projectVersion" value="2.1" /&gt;
+&lt;property name="sonar.language" value="java" /&gt;
+&lt;property name="sonar.sources" value="src" /&gt;
+&lt;property name="sonar.tests" value="test" /&gt;
+&lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+&lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+&lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+&lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+&lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+&lt;target name="sonar" depends="coverage-report"&gt;
+    &lt;taskdef classpath="sonar-ant-task-2.1.jar" uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"/&gt;
+    &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+&lt;/target&gt;
+&lt;/project&gt;
+</code></pre>
+
+<h2>Code Static check rules</h2>
+
+<p>This file defines the static check rules used by Sonarqube. It&rsquo;s imported manually from file &ldquo;tyrules.xml&rdquo; on local hard disk.</p>
+
+<pre><code>$ cat ~/docs/tyrules.xml
+
+&lt;?xml version="1.0" encoding="UTF-8"?&gt; 
+&lt;!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN" "http://www.puppycrawl.com/dtds/configuration_1_3.dtd"&gt; 
+&lt;module name="Checker"&gt; 
+    &lt;property name="severity" value="warning"/&gt; 
+    &lt;module name="TreeWalker"&gt; 
+        &lt;metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;module name="MethodLength"&gt; 
+            &lt;property name="max" value="200"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="NestedIfDepth"&gt; 
+            &lt;property name="max" value="5"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="CyclomaticComplexity"/&gt; 
+            &lt;module name="ParameterNumber"&gt; 
+            &lt;property name="max" value="6"/&gt; 
+        &lt;/module&gt; 
+    &lt;/module&gt; 
+    &lt;module name="StrictDuplicateCode"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="min" value="75"/&gt; 
+    &lt;/module&gt; 
+    &lt;module name="FileLength"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="max" value="1000"/&gt; 
+    &lt;/module&gt; 
+&lt;/module&gt; 
+</code></pre>
+
+<h1>For Unit Test</h1>
+
+<ol>
+<li>copy junit-4.*.jar, cobertura.jar and hamcrest-core-1.3.jar to $ANT_HOME/lib;</li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[BVT Environment Based on Vagrant]]></title>
+    <link href="http://leetschau.github.io/blog/2014/04/22/122449/"/>
+    <updated>2014-04-22T12:24:49+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/04/22/122449</id>
+    <content type="html"><![CDATA[<h1>Process</h1>
+
+<ol>
+<li><p>Install common software in provision script, such as JDK, Ant;</p></li>
+<li><p>Write a shell script for a given build task;</p></li>
+<li><p>Run this script in Jenkins;</p></li>
+</ol>
+
+
+<h1>Use Case</h1>
+
+<h2>Vagrantfile</h2>
+
+<pre><code>config.vm.box = "precise64"
+config.vm.define "bs" do |bvtserver|
+  bvtserver.vm.hostname = "bvt-server"
+  bvtserver.vm.network "private_network", ip: "192.168.50.3",
+      virtualbox__intnet: "gcptest-network"
+  bvtserver.vm.provider :virtualbox do |vbox|
+    vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+  end 
+  bvtserver.vm.provision :shell, path: "bvtprov.sh", privileged: false
+end 
+</code></pre>
+
+<h2>bvtprov.sh</h2>
+
+<p>This script install Subversion, zip, JDK and Ant on this VM.</p>
+
+<pre><code>#!/bin/sh
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+sudo dpkg -i /vagrant/packages/svn_amd64_ubuntu12.04/*.deb
+sudo dpkg -i /vagrant/packages/zip_3.0-4_amd64.deb
+mkdir /home/vagrant/apps
+cd /home/vagrant/apps
+chmod 755 /vagrant/packages/jdk-6u45-linux-x64.bin
+sh /vagrant/packages/jdk-6u45-linux-x64.bin
+tar jxf /vagrant/packages/apache-ant-1.9.3-bin.tar.bz2
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+</code></pre>
+
+<h2>A build task: build-gcp-web-6.1_P2_GZ.sh</h2>
+
+<p>This script checkout codes from Subersion server and compile, make zip for a specific project.</p>
+
+<pre><code>export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+
+projname="GCP6.1_P2_GZ"
+
+svnprefix='svn co --non-interactive --no-auth-cache --username bvt --password mypwd'
+svnroot='http://10.0.2.59:8118/svn/gcp/Development-Area'
+$svnprefix ${svnroot}/7-Tools/deployment/packages/pubs /vagrant/packages
+$svnprefix ${svnroot}/3-SCL/Branch/$projname /vagrant/codes/$projname
+
+rm -rf /vagrant/codes/*.zip
+
+web_build=/vagrant/codes/web_build
+rm -rf $web_build;  mkdir $web_build
+tar zxf /vagrant/packages/apache-tomcat-6.0.39.tar.gz -C $web_build/
+mv $web_build/apache-tomcat-6.0.39 $web_build/web_server
+cp -r /vagrant/codes/$projname/WebRoot $web_build/web_server/webapps/$projname
+src_dir=/vagrant/codes/$projname/src
+class_dir=$web_build/web_server/webapps/$projname/WEB-INF/classes
+lib_dir=/vagrant/codes/$projname/WebRoot/WEB-INF/lib
+find $src_dir -type f -name "*.java" -exec javac -cp "$lib_dir/*:$src_dir" -d $class_dir {} \;
+rsync -auC --exclude='*.java' $src_dir/ $class_dir/
+
+cd /vagrant/codes/web_build;  zip -q ../$projname.zip -r web_server -x "*/.svn/*"
+
+pkg_prefix=/vagrant/codes/${projname}-
+rm -rf ${pkg_prefix}*
+pkgs=${pkg_prefix}$(date +%Y%m%dT%H%M)
+mkdir $pkgs
+cp /vagrant/codes/*.zip $pkgs
+</code></pre>
+
+<h2>Run this task on Jenkins</h2>
+
+<p>Add the following shell commands in the &ldquo;GCP-Web-6.1_P2_GZ&rdquo; project in Jenkins:</p>
+
+<pre><code>cd ~/docs/bvtvm
+vagrant ssh [vm-name] -c 'sh /vagrant/build-gcp-web-6.1_P2_GZ.sh'
+</code></pre>
+
+<p>The [vm-name] is the VM you want ssh to, &ldquo;bs&rdquo; in this case. If you have only one vm defined in Vagrantfile, you can omit the it, or you can get the value of it via <code>vagrant status</code>;</p>
+
+<p>Note: Try to avoid usage of relative path in scripts. If you have to(sush as make a tar file), use &lsquo;cd -&rsquo; to jump back after operations.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[openSUSE Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2014/04/21/163107/"/>
+    <updated>2014-04-21T16:31:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/04/21/163107</id>
+    <content type="html"><![CDATA[<h1>Install Vagrant and VirtualBox on openSUSE GNOME 13.1</h1>
+
+<ol>
+<li><p>Download VirtualBox-4.3.10-93012-Linux_amd64.run from VirtualBox website;</p></li>
+<li><p>Update zypper: $ zypper update;</p></li>
+<li><p>Install components to compile VirtualBox: $ zypper in gcc kernel-devel kernel-desktop kernel-desktop-devel</p></li>
+<li><h1>reboot</h1></li>
+<li><p>Run the downloaded .run file to install VirtualBox;</p></li>
+<li><p>Download vagrant_1.4.3_x86_64.rpm from Vagrant website;</p></li>
+<li><p>Install it with <code>rpm -ivh vagrant_1.4.3_x86_64.rpm</code>;</p></li>
+</ol>
+
+
+<h1>Other issues</h1>
+
+<ul>
+<li><p>You need start network service manually at system startup in openSUSE GNOME 13.1: <code>service NetworkManager start</code>;</p></li>
+<li><p>Enable SSH Server on openSUSE: YaST -> Firewall, add SSH Server to &ldquo;Allowed Services&rdquo;.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Build Puppet Clusters With Vagrant]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/18/162706/"/>
+    <updated>2014-03-18T16:27:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/18/162706</id>
+    <content type="html"><![CDATA[<p>$ cd ~/docs/propuppetex/chapter3
+$ cat Vagrantfile
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|</p>
+
+<p>  config.vm.box = &ldquo;centos64&rdquo;</p>
+
+<p>  config.vm.define &ldquo;ppt&rdquo; do |ppt|
+    ppt.vm.hostname = &ldquo;puppet.boco.com.cn&rdquo;
+    ppt.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.3&rdquo;,
+        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
+    ppt.vm.provider :virtualbox do |vbox|
+      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
+    end
+    ppt.vm.provision :shell, path: &ldquo;master.sh&rdquo;
+  end</p>
+
+<p>  config.vm.define &ldquo;web&rdquo; do |web|
+    web.vm.hostname = &ldquo;web.boco.com.cn&rdquo;
+    web.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.4&rdquo;,
+        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
+    web.vm.provider :virtualbox do |vbox|
+      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
+    end
+    web.vm.provision :shell, path: &ldquo;web.sh&rdquo;
+  end
+end</p>
+
+<p>$ cat master.sh
+echo &lsquo;<em>&rsquo; > /etc/puppet/autosign.conf
+sed -i &lsquo;/[.</em>]/ a \    autosign = true&rsquo; /etc/puppet/puppet.conf # add &ldquo;autosign = true&rdquo; in [main] and [agent]
+echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
+echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
+mkdir /etc/puppet/manifests
+cat > /etc/puppet/manifests/site.pp &lt;<-EOF
+node 'web' {
+  file { '/home/vagrant/aaa.conf':
+    content => &lsquo;this is made by puppet master!&rsquo;,
+  }
+}
+EOF
+service iptables stop</p>
+
+<p>$ cat web.sh
+sed -i &lsquo;1 a \    master = puppet&rsquo; /etc/puppet/puppet.conf # add &ldquo;master = puppet&rdquo; after the line [main]
+echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
+echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
+echo &ldquo;proxy=<a href="http://10.21.3.31:8888">http://10.21.3.31:8888</a>&rdquo; >> /etc/yum.conf
+service iptables stop</p>
+
+<p>Now run &ldquo;puppet master &ndash;no-daemonize &ndash;verbose&rdquo; on ppt, run &ldquo;puppet agent &ndash;test&rdquo; on web, you can file the file &ldquo;aaa.conf&rdquo; at /home/vagrant.</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Javascript | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/javascript/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[The Algorithm of Related Fairs]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/25/141712/"/>
+    <updated>2015-02-25T14:17:12+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/25/141712</id>
+    <content type="html"><![CDATA[<p>For a given fair A, it&rsquo;s <em>major category</em> are a set of its cat.major subdocuments.</p>
+
+<p>For example, for the fair:</p>
+
+<pre><code>{ cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] }
+</code></pre>
+
+<p>its major categories are set [&ldquo;abc, "xyz&rdquo;].
+Here we say the major categories of fair X is <code>majorCat(X)</code>.</p>
+
+<p>If the intersection of set <code>majorCat(X)</code> and <code>majorCat(Y)</code> are not empty,
+we say fair X and Y are <em>related</em>.</p>
+
+<p>So for a given fair X, how to find all its related fairs in a collection?</p>
+
+<p>Here is the demonstration:</p>
+
+<p>In mongodb, create a test collection with the following codes:</p>
+
+<pre><code>db.cats.insert( { cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] } );
+db.cats.insert( { cat: [ { major: "abcd", minor: [ 1,23,3] }, { major: "xyzu", minor: [ 87, 987, 343]} ] } );
+db.cats.insert( { cat: [ { major: "bcd", minor: [ 1,23,3] }, { major: "abc", minor: [ 3, 23, 876]} ] } );
+db.cats.insert( { cat: [ { major: "xyz", minor: [ 8,83,5] }, { major: "axc", minor: [ 34, 3, 76]} ] } );
+</code></pre>
+
+<p>Create a new Meteor app with <code>meteor create relatedFairs</code>, and its files:</p>
+
+<p>relatedFairs.html</p>
+
+<pre><code>&lt;head&gt;
+  &lt;title&gt;relatedFairs&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;Find related fairs&lt;/h1&gt;
+  {{&gt; hello}}
+&lt;/body&gt;
+
+&lt;template name="hello"&gt;
+  &lt;ul&gt;
+    {{#each allFairs}}
+      &lt;li&gt; 
+        &lt;b&gt;{{_id._str}}:&lt;/b&gt;
+        {{#each cat}}
+          {{major}},
+        {{/each}}
+      &lt;/li&gt;
+    {{/each}}
+  &lt;/ul&gt;
+  {{#with related}}
+    &lt;p&gt;Related fairs of the first fair {{firstID}}&lt;/p&gt;
+    &lt;ul&gt;
+      {{#each relatedFairs}}
+        &lt;li&gt;
+          &lt;b&gt;{{_id._str}}:&lt;/b&gt;
+          {{#each cat}}
+            {{major}},
+          {{/each}}
+        &lt;/li&gt;
+      {{/each}}
+    &lt;/ul&gt;
+  {{/with}}
+&lt;/template&gt;
+</code></pre>
+
+<p>relatedFairs.js:</p>
+
+<pre><code>Fairs = new Mongo.Collection("cats");
+
+if (Meteor.isClient) {
+  Template.hello.helpers({
+    allFairs: function () {
+      return Fairs.find();
+    },
+    related: function () {
+      var theXrd = 0,
+          theFair = Fairs.findOne( {}, {skip: theXrd } );
+      if (! theFair) {
+        return null;
+      }
+      var majors = _.map(theFair.cat, function(i) { return i.major; } );
+      var rels = Fairs.find( { cat: { $elemMatch: { major: { $in: majors } } },
+                               _id: { $ne: theFair._id } } );
+      return {firstID: theFair._id._str, relatedFairs: rels };
+    }
+  });
+}
+</code></pre>
+
+<p>Here we use <a href="http://underscorejs.org/">Underscore.js</a>,
+so install this package with <code>meteor add underscore</code> to run our demo app
+(with <code>MONGO_URL="mongodb://localhost:27017/test" meteor</code> in project root folder).</p>
+
+<p>Modify the value of &ldquo;theXrd&rdquo; above, you can see the related fairs of each fair.</p>
+
+<p>To make a demo in a production collection,
+in fair &ldquo;A&rdquo; we find a major category called &ldquo;垃圾车与运输车"，
+then choose a fair B, whose id is "54e71a5642fb549b1389ae6f&rdquo;.</p>
+
+<p>Let&rsquo;s add the major cateory to fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a5642fb549b1389ae6f") }, { $push: {category: {major: "垃圾车与运输车"}} } );
+</code></pre>
+
+<p>Now fair A and B is related. Test them on your web site.
+If the test is past, remove the test data from fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a6642fb549b1389ae6f") }, { $pop: { category: 1 } } );
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Frequent Used Commands in Mongodb Shell]]></title>
+    <link href="http://leetschau.github.io/blog/2014/12/29/193156/"/>
+    <updated>2014-12-29T19:31:56+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/12/29/193156</id>
+    <content type="html"><![CDATA[<p>The foloowing codes demonstrate the creation &copy;, query &reg;, update (U) and delete (D) operations on mongodb collections.</p>
+
+<p>It also shows how to rename collections and keys of documents.</p>
+
+<pre><code>$ mongo
+db.fairs.insert({'name': 'bikeShow', 'time': '2014.12.24', 'location': 'Beijing', 'products': ['bike', 'car', 'truck']})
+db.fairs.insert({'name': 'clothShow', 'time': '2014.2.14', 'location': 'Shanghai', 'products': ['silk', 'wood', 'paper']})
+db.fairs.insert({'name': 'MyFruits', 'time': '2011.4.18', 'location': 'Guangzhou', 'products': ['berry', 'apple', 'banana']})
+
+db.newfairs.find({}, {name: 1})
+db.newfairs.find({}, {'name.chn': 1})
+
+db.fairs.renameCollection('newfairs')
+
+db.newfairs.update({}, {$rename: {'time': 'date'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'name': 'names'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'names': 'name.chn'} }, {multi: true} )
+db.newfairs.update({}, {$unset: {'date': ""}}, {multi: true})
+db.newfairs.remove({})
+db.newfairs.drop()
+exit
+</code></pre>
+
+<p>You can&rsquo;t use <code>{$rename: {'name': 'name.chn'}}</code> directly for &ldquo;$rename must not be on the same path&rdquo;.</p>
+
+<ul>
+<li><p>Find docs whose &ldquo;website&rdquo; field is not null: <code>db.fairs.findOne({$where: "this.website.length &gt; 0" } )</code>;</p></li>
+<li><p>Remove all docs whose &ldquo;position&rdquo; field is an empty string: <code>db.fairs.remove( { $where: "this.position.length == 0" } )</code>;</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[遍历Javascript对象属性的方法]]></title>
+    <link href="http://leetschau.github.io/blog/2014/12/29/151419/"/>
+    <updated>2014-12-29T15:14:19+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/12/29/151419</id>
+    <content type="html"><![CDATA[<p>启动node.js命令行，创建一个最简单的对象，然后遍历其属性：</p>
+
+<pre><code>$ node
+&gt; var myobj = {k1: "p1", k2: 'p2'}
+
+&gt; for (var key in myobj) {
+... console.log(key);
+... console.log(myobj.key);
+... console.log(myobj[key]);
+... }
+k1
+undefined
+p1
+k2
+undefined
+p2
+&gt; myobj.k1
+'p1'
+
+&gt; var ak = 'k4'
+undefined
+&gt; myobj.ak = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4' }
+&gt; myobj[ak] = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4' }
+
+&gt; myobj[nk] = 'p5'
+ReferenceError: nk is not defined
+    at repl:1:8
+    at REPLServer.self.eval (repl.js:110:21)
+    ...
+&gt; myobj['nk'] = 'p5'
+'p5'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4',
+  nk: 'p5' }
+</code></pre>
+
+<p>点操作符 (myobj.key) 和中括号 (myobj[key]) 都能用于获取和添加对象属性，
+二者的区别在于，点操作符后面的属性名称按照字面量处理，
+中括号中的属性名称按照变量名处理。</p>
+
+<p>如果想通过变量名读写对象属性，必须用中括号操作符，
+如果想不写引号直接引用属性名称，必须用点操作符。</p>
+
+<p>搜索"javascript object dot square bracket"查找相关文章。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[JavaScript Development Environment Setup]]></title>
+    <link href="http://leetschau.github.io/blog/2014/11/04/145629/"/>
+    <updated>2014-11-04T14:56:29+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/11/04/145629</id>
+    <content type="html"><![CDATA[<h1>vim</h1>
+
+<p>Update at 2015-5-11:</p>
+
+<p>See <a href="http://oli.me.uk/2013/06/29/equipping-vim-for-javascript/">Equipping Vim for JavaScript</a>.</p>
+
+<p>The plugin <a href="https://github.com/Valloric/YouCompleteMe#ubuntu-linux-x64-super-quick-installation">YouCompleteMe</a> is very big
+(about 200MB for now).
+You have to wait quite a while when install this plugin using Vundle.</p>
+
+<p>When install plugin with Vundle, you have to save .vimrc and <strong>quit</strong>,
+then run <code>PluginInstall</code> or <code>PluginClean</code> in a new vim window.</p>
+
+<p>Note: To remove a plugin managed by Vundle in vim, remove declaration in .vimrc, then run <code>PluginClean</code> in vim.</p>
+
+<p>&mdash; Old Post &mdash;</p>
+
+<ol>
+<li><p>Install nvm;</p></li>
+<li><p>Install node with nvm;</p></li>
+<li><p>Install jshint with npm, which is a tool in node: <code>npm install -g jshint</code>;</p></li>
+<li><p>Check syntax with <code>jshint myfile.js</code>;</p></li>
+<li><p>Check html syntax with Tidy, which is installed on Ubuntu with <code>apt-get install tidy</code>;</p></li>
+</ol>
+
+
+<p>Ref: <a href="http://stackoverflow.com/questions/473478/vim-jslint">VIM + JSLint?</a></p>
+
+<h1>Eclipse</h1>
+
+<p>Eclipse&rsquo;s javascript development tools JSDT is part of WTP (web tools platform),
+which is a built-in plugin of &ldquo;Eclipse JEE&rdquo; (Eclipse for Java EE Developers).</p>
+
+<p>Its editor has auto syntax checker. Config it in [Window -> Preferences -> JavaScript -> Editor].
+Config its code style (tab size, for example) at [Window -> Preferences -> JavaScript -> Code Style -> Formatter].</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[DMShell Up and Running]]></title>
+    <link href="http://leetschau.github.io/blog/2014/10/28/182614/"/>
+    <updated>2014-10-28T18:26:14+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/10/28/182614</id>
+    <content type="html"><![CDATA[<p>The dmshell is a web server accepting a shell command string, and run it on web server host.</p>
+
+<h1>Setup DataBase</h1>
+
+<h2>Fix Derby Server Startup Failed</h2>
+
+<p>When start Derby server with <code>/home/chad/apps/jdk1.6.0_45/db/bin/startNetworkServer</code>, the following error raised:</p>
+
+<blockquote><p>access denied (&ldquo;java.net.SocketPermission&rdquo; &ldquo;localhost:1527&rdquo; &ldquo;listen,resolve&rdquo;)</p></blockquote>
+
+<p>Solution:</p>
+
+<p>Find out system&rsquo;s JRE. On my laptop, it&rsquo;s /usr/lib/jvm/java-7-openjdk-amd64/jre
+Add the following codes into file lib/security/java.policy in this folder:</p>
+
+<pre><code>grant {
+    permission java.net.SocketPermission "localhost:1527", "listen";
+};
+</code></pre>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4">http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4</a></p>
+
+<h2>Create Database and Table</h2>
+
+<p>Run ~/apps/jdk1.6.0_45/db/bin/ij and run following commands:</p>
+
+<pre><code>connect 'jdbc:derby://localhost:1527/dmdb;create=true';
+create table shellstatus (id int not null generated by default as identity (start with 1, increment by 1), shellname varchar(40), starttime timestamp, endtime timestamp,status int);
+</code></pre>
+
+<p>Then you can use <code>select * from shellstatus;</code> to list all data in this table.</p>
+]]></content>
+  </entry>
+  
+</feed>

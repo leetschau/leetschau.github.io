@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Hadoop | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/hadoop/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Run MapReduce Jobs on Spark]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/15/175039/"/>
+    <updated>2014-08-15T17:50:39+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/15/175039</id>
+    <content type="html"><![CDATA[<h1>Interactive Mode</h1>
+
+<p>Follow <a href="http://spark.apache.org/docs/latest/quick-start.html">Quick Start of Spark 1.0.2 on Apache Spark website</a>.</p>
+
+<pre><code># hadoop fs -put alarm_data_for_explore-0501-0505.txt alarm_data_for_explore-0501-0505.txt 
+
+# hadoop fs -ls
+...
+-rw-r--r--   3 root root  260780698 2014-08-15 16:45 alarm_data_for_explore-0501-0505.txt
+
+# wc -l alarm_data_for_explore-0501-0505.txt
+1362005
+
+# head -1 alarm_data_for_explore-0501-0505.txt 
+-2117657102|102|1000012276|License...|3|4|102|
+
+# grep 007-002-00-000592 alarm_data_for_explore-0501-0505.txt | wc -l
+12
+
+# mv alarm_data_for_explore-0501-0505.txt aaa.txt       // this local file is unnecessary any more
+
+# spark-shell
+
+scala&gt; val textFile = sc.textFile("alarm_data_for_explore-0501-0505.txt")
+textFile: org.apache.spark.rdd.RDD[String] = MappedRDD[1] at textFile at &lt;console&gt;:12
+
+scala&gt; textFile.count()
+...
+res5: Long = 1362005
+
+scala&gt; textFile.first()
+...
+res8: String = -2117657102|102|1000012276|License...|3|4|102|
+
+scala&gt; textFile.filter(line =&gt; line.contains("007-002-00-000592")).count()
+...
+res12: Long = 12
+
+scala&gt; import java.lang.Math
+import java.lang.Math
+
+scala&gt; textFile.map(line =&gt; line.split("|").size).reduce((a, b) =&gt; Math.max(a, b))
+...
+res13: Int = 372
+</code></pre>
+
+<h2>Run Spark Script</h2>
+
+<pre><code>$ cat wfp-spark
+val MIN_SUP = 0.0003
+val MIN_CONF = 0
+val MAX_RELATION_ORDER = 3
+val DATA_FILE = "input"
+
+val textFile = sc.textFile(DATA_FILE)
+val weight = textFile.map(x =&gt; x -&gt; x.split(",")(5).toFloat).cache
+val data = textFile.groupBy(x =&gt; x.split(",")(0))
+
+$ spark-shell -i wfp-spark
+...
+</code></pre>
+
+<p>Now you are in a spark shell, all variables such as MIN_SUP, MIN_CONF are accessible.</p>
+
+<h1>Batch Mode</h1>
+
+<p>Follow <a href="http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH5/latest/CDH5-Installation-Guide/cdh5ig_running_spark_apps.html">Running Spark Applications in CDH 5 Installation Guide</a>.</p>
+
+<pre><code># locate spark-defaults.conf       // find out where is $SPARK_HOME
+/etc/spark/conf.cloudera.spark/spark-defaults.conf
+...
+
+# ll /etc/spark/conf.cloudera.spark
+...
+-rw-r--r-- 1 root root 883 Aug 14 10:12 spark-env.sh
+
+# cat /etc/spark/conf.cloudera.spark/spark-env.sh
+...
+export SPARK_HOME=/opt/cloudera/parcels/CDH-5.1.0-1.cdh5.1.0.p0.53/lib/spark
+...
+
+# source /etc/spark/conf.cloudera.spark/spark-env.sh     // load $SPARK_HOME, etc
+
+# spark-submit --class org.apache.spark.examples.SparkPi --deploy-mode client --master yarn $SPARK_HOME/examples/lib/spark-examples_2.10-1.0.0-cdh5.1.0.jar 10
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Python MapReduce on Hadoop Cluster]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/07/112649/"/>
+    <updated>2014-08-07T11:26:49+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/07/112649</id>
+    <content type="html"><![CDATA[<p>Based on <a href="http://www.michael-noll.com/tutorials/writing-an-hadoop-mapreduce-program-in-python/">Writing an Hadoop MapReduce Program in Python</a>.</p>
+
+<ol>
+<li>Create mapper and reducer script and make them executable with <code>chmod 755 *.py</code>:</li>
+</ol>
+
+
+<p>mapper.py:</p>
+
+<pre><code>#!/usr/bin/env python
+import sys
+# input comes from STDIN (standard input)
+for line in sys.stdin:
+    # remove leading and trailing whitespace
+    line = line.strip()
+    # split the line into words
+    words = line.split()
+    # increase counters
+    for word in words:
+        # write the results to STDOUT (standard output); what we output here will be the input for the Reduce step, i.e. the input for reducer.py tab-delimited; the trivial word count is 1
+        print '%s\t%s' % (word, 1)
+</code></pre>
+
+<p>reducer.py:</p>
+
+<pre><code>#!/usr/bin/env python
+
+from operator import itemgetter
+import sys
+
+current_word = None
+current_count = 0
+word = None
+
+# input comes from STDIN
+for line in sys.stdin:
+    # remove leading and trailing whitespace
+    line = line.strip()
+
+    # parse the input we got from mapper.py
+    word, count = line.split('\t', 1)
+
+    # convert count (currently a string) to int
+    try:
+        count = int(count)
+    except ValueError:
+        # count was not a number, so silently ignore/discard this line
+        continue
+
+    # this IF-switch only works because Hadoop sorts map output by key (here: word) before it is passed to the reducer
+    if current_word == word:
+        current_count += count
+    else:
+        if current_word:
+            # write result to STDOUT
+            print '%s\t%s' % (current_word, current_count)
+        current_count = count
+        current_word = word
+
+# do not forget to output the last word if needed!
+if current_word == word:
+    print '%s\t%s' % (current_word, current_count)
+</code></pre>
+
+<ol>
+<li><p>Get input text file and put them into hdfs: download the text version of <a href="http://www.gutenberg.org/etext/20417">The Outline of Science, Vol. 1 (of 4) by J. Arthur Thomson</a>, <a href="http://www.gutenberg.org/etext/5000">The Notebooks of Leonardo Da Vinci</a> and <a href="http://www.gutenberg.org/etext/4300">Ulysses by James Joyce</a>. Then upload them to hdfs:</p>
+
+<p> $ hadoop fs -mkdir gutenberg
+ $ hadoop fs -put pg<em>.txt gutenberg/
+ $ hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-</em>streaming<em>.jar -file /home/hduser/mapper.py -mapper /home/hduser/mapper.py -file /home/hduser/reducer.py -reducer /home/hduser/reducer.py -input /user/hduser/gutenberg/</em> -output /user/hduser/gutenberg-output</p></li>
+</ol>
+
+
+<p>You have to make sure the &ldquo;gutenberg-output&rdquo; folder has not existed. When finished, you can see the result with:</p>
+
+<pre><code>$ hadoop fs -ls gutenberg-output
+$ hadoop fs -cat gutenberg-output/part-00000
+</code></pre>
+
+<p>Verified on CDH 4.3, built on 8 CentOS 6.3 64bit host, Python 2.6.6, 2014-8-7.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Install Hadoop With CDH on CentOS]]></title>
+    <link href="http://leetschau.github.io/blog/2014/07/24/153852/"/>
+    <updated>2014-07-24T15:38:52+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/07/24/153852</id>
+    <content type="html"><![CDATA[<h1>Define hostname on every node</h1>
+
+<p>Add &ldquo;HOSTNAME=cloud60&rdquo; into file /etc/sysconfig/network on host 10.12.2.60. Then reboot system.
+Do this with it&rsquo;s own hostname on every node.</p>
+
+<h1>Add host name to every node</h1>
+
+<p>Add /etc/hosts to every node:</p>
+
+<pre><code>10.12.2.60 cloud60
+10.12.2.61 cloud61
+10.12.2.62 cloud62
+10.12.2.63 cloud63
+10.12.2.90 cloud90
+10.12.2.91 cloud91
+10.12.2.92 cloud92
+10.12.2.93 cloud93
+</code></pre>
+
+<p>where 10.12.2.60 is the manager node (where the cloudera manager is installed).</p>
+
+<h1>Local Repository</h1>
+
+<p>Copy DVD iso file to manager node, mount it. Create a link of /mnt/cdrom to /var/www/html with httpd:</p>
+
+<pre><code># mkdir /mnt/cdrom
+# mount -o loop /path/to/CentOS6.3-DVD.iso /mnt/cdrom
+# cd /var/www/html
+# ln -s /mnt/cdrom cdrom
+</code></pre>
+
+<p>Then add file cdrom.repo under /etc/yum.repos.d/:</p>
+
+<pre><code>[cdrom]
+name = CDROM
+baseurl = http://10.12.2.60/cdrom/
+gpgcheck = 0
+</code></pre>
+
+<h1>Other notes</h1>
+
+<ul>
+<li><p>Add user &ldquo;boco&rdquo; to &ldquo;sudoers&rdquo; on all nodes: add &ldquo;boco ALL=(ALL) NOPASSWD: ALL&rdquo; to /etc/sudoers;</p></li>
+<li><p>The manager node can ssh to any other node with no password (ssh-copy-id &hellip;);</p></li>
+<li><p>SSH from normal node to manager node to remove &ldquo;are you sure you want to continue connecting (yes/no)?&rdquo; prompt;</p></li>
+<li><p>Shutdown iptables on all nodes: <code>service iptables stop</code> and <code>chkconfig iptables off</code>;</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Hadoop 1.2.1 Up and Running]]></title>
+    <link href="http://leetschau.github.io/blog/2013/08/10/081522/"/>
+    <updated>2013-08-10T08:15:22+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/08/10/081522</id>
+    <content type="html"><![CDATA[<h1>Pseudo-distributed Mode</h1>
+
+<ol>
+<li><p>Download Oracle jdk-6u45-linux-i586.bin from Oracle website. Openjdk is unsuitable here because some package like sun.net.dns.ResolverConfiguration only exists in rt.jar of Oracle jdk;</p></li>
+<li><p>Install (run <code>./jdk-6u45-linux-i586.bin</code> under ~/apps) this jdk at ~/apps with current user (do not install it into /opt with root user, because this will cause access restriction of rt.jar of jdk);</p></li>
+<li><p>Add $JAVA_HOME and $CLASSPATH into /etc/profile and re-log into OS to validate:</p>
+
+<pre><code> export JAVA_HOME=/home/lichao/apps/jdk1.6.0_45 
+ export PATH=$PATH:$JAVA_HOME/bin 
+ export CLASSPATH=$CLASSPATH:$JAVA_HOME/lib:$JAVA_HOME/jre/lib
+</code></pre></li>
+<li><p>Follow <a href="https://hadoop.apache.org/docs/stable/single_node_setup.html">Single Node Setup</a>.</p></li>
+</ol>
+
+
+<p>Verified this morning: 2013-8-9, Linux Mint 14 32bit, Hadoop 1.2.1.</p>
+
+<h1>Distributed Mode</h1>
+
+<ol>
+<li><p>Create user hadoop in host 23, 31, 49 and 139;</p></li>
+<li><p>Create apps and warez folder in home directory on all hosts above;</p></li>
+<li><p>Copy jdk-6u45-linux-i586.bin from Oracle and hadoop-1.2.1.tar.gz to warez directory to all above hosts;</p></li>
+<li><p>Unzip jdk6u45 and hadoop to ~/apps;</p></li>
+<li><p>modify $JAVA_HOME as &ldquo;/home/hadoop/apps/jdk1.6.0_45&rdquo; in ~/apps/hadoop-1.2.1/conf/hadoop-env.sh;</p></li>
+<li></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Build Hadoop Develop Environment]]></title>
+    <link href="http://leetschau.github.io/blog/2013/08/09/120651/"/>
+    <updated>2013-08-09T12:06:51+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/08/09/120651</id>
+    <content type="html"><![CDATA[<h1>Prerequisites</h1>
+
+<ol>
+<li><p>Download Oracle jdk-6u45-linux-i586.bin from Oracle website. Openjdk is unsuitable here because some package like sun.net.dns.ResolverConfiguration only exists in rt.jar of Oracle jdk;</p></li>
+<li><p>Install (./jdk<strong>.bin) this jdk at ~/apps/jdk</strong> with current user (do not install it into /opt with root user, because this will cause access restriction of rt.jar of jdk);</p></li>
+<li><p>Add $JAVA_HOME and $CLASSPATH into /etc/profile and re-log into OS to validate;</p></li>
+<li><p>Add this jdk to eclipse (Preferences -> Install JREs);</p></li>
+</ol>
+
+
+<h1>Method 8-10</h1>
+
+<p>Follow <a href="https://wiki.apache.org/hadoop/EclipseEnvironment">Working with Hadoop under Eclipse</a></p>
+
+<ol>
+<li>make sure your maven version is 3.x (mvn &ndash;version), if not:</li>
+</ol>
+
+
+<p> sudo apt-get remove maven2
+ sudo apt-get update
+ sudo apt-get install maven</p>
+
+<ol>
+<li><p>git clone git://git.apache.org/hadoop-common.git ()</p></li>
+<li><p>mvn install -DskipTests</p></li>
+<li><p>mvn eclipse:eclipse -DdownloadSources=true -DdownloadJavadocs=true</p></li>
+<li></li>
+</ol>
+
+
+<h1>Method 8-9</h1>
+
+<ol>
+<li><p>Create a Java Project in Eclipse, modify default output folder to $PROJECT_HOME/out (because &ldquo;bin&rdquo; is a script folder in hadoop source pack);</p></li>
+<li><p>Exclude src from source folder and create &ldquo;lib&rdquo;, &ldquo;conf&rdquo; folder under $PROJECT_HOME;</p></li>
+<li><p>Import $HADOOP_HOME/src, lib, conf into $PROJECT_HOME;</p></li>
+<li><p>Add all jar files under lib to build path;</p></li>
+<li><p>Add ant.jar to build path;</p></li>
+<li><p>Add mapred, tools, ant, core, hdfs under src folder as source folder;</p></li>
+</ol>
+
+
+<h1>Verify</h1>
+
+<ol>
+<li><p>modify config files;</p></li>
+<li><p>run hadoop</p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+</feed>

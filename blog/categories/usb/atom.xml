@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Usb | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/usb/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Automount USB Disk on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/03/111703/"/>
+    <updated>2014-09-03T11:17:03+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/03/111703</id>
+    <content type="html"><![CDATA[<h1>ArchLinux</h1>
+
+<p>Install: <code>sudo pacman -S udiskie</code>;</p>
+
+<p>Start service: run <code>udiskie &amp;</code> manually when system startup, or add &ldquo;udiskie &amp;&rdquo; into ~/.xinitrc;</p>
+
+<p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
+
+<h2>Unmount USB disk</h2>
+
+<p>Create an executable script in /usr/local/bin:</p>
+
+<pre><code>$ cat /usr/local/bin/unmount
+#!/bin/sh
+
+# Global variables
+TITLE="Unmount Utility"
+COLUMNS=3 # TARGET,SOURCE,FSTYPE
+#IFS=$'\n'
+
+# Populate list of unmountable devices
+deviceList=($(findmnt -Do TARGET,SOURCE,FSTYPE | grep -e "sd[b-z]"))
+deviceCount=$((${#deviceList[@]} / $COLUMNS))
+
+# Start of program output
+echo $TITLE
+
+# Display list of devices that can be unmounted
+for ((device=0; device&lt;${#deviceList[@]}; device+=COLUMNS))
+do
+  printf "%4s)   %-25s%-13s%-10s\n"\
+    "$(($device / $COLUMNS))"\
+    "${deviceList[$device]}"\
+    "${deviceList[$(($device + 1))]}"\
+    "${deviceList[$(($device + 2))]}"
+done
+
+printf "%4s)   Exit\n" "x"
+
+# Get input from user
+read -p "Choose a menu option: " input
+
+# Input validation
+if [ "$input" = "X" ] || [ "$input" = "x" ]
+then
+  echo "Exiting"
+  exit 0
+fi
+
+if (( $input&gt;=0 )) &amp;&amp; (( $input&lt;$deviceCount ))
+then
+  echo "Unmounting: ${deviceList[$(($input * $deviceCount))]}"
+  sudo umount "${deviceList[$(($input * $deviceCount))]}"
+  exit 0
+else
+  echo "Invalid menu choice"
+  exit 1
+fi
+$ chmod 755 /usr/local/bin/unmount
+</code></pre>
+
+<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
+See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a> for details.
+Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
+
+<p>See <code>man udiskie</code> for more information.</p>
+
+<h1>Mint</h1>
+
+<p>Install: <code>sudo aptitude install udevil</code>;</p>
+
+<p>Start service: run <code>devmon</code> in dmenu when system startup, or add &ldquo;devmon &amp;&rdquo; into ~/.xsession;</p>
+
+<p>After plug USB key into computer, it will be automount to /media folder.
+If you do not startup devmon in background, you can run <code>devmon -a</code> to mount the USB key.</p>
+
+<p>Run <code>devmon -c</code> to unmount the USB key.</p>
+
+<p>See <code>man devmon</code> for more information.</p>
+
+<h1>Difference between .xinitrc and .xsession:</h1>
+
+<p>If you startup your system with <a href="https://wiki.archlinux.org/index.php/display_manager">display manager</a>, where you get a graphical login screen, it will read ~/.xsession.
+In case of you startup your system without display manager and login to shell, startup i3 (or other wm) with <code>startx</code>, then the <a href="http://en.wikipedia.org/wiki/Xinit">xinit</a> program will read ~/.xinitrc;</p>
+
+<p>See <a href="https://unix.stackexchange.com/questions/47359/what-is-xsession-for">What is “.xsession” for?</a> for details.</p>
+
+<p>See <a href="https://wiki.archlinux.org/index.php/Arch_boot_process">Arch boot process</a> for how Getty manage login process in system boot process.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[键盘插拔对用户登录的影响实验]]></title>
+    <link href="http://leetschau.github.io/blog/2013/01/25/072710/"/>
+    <updated>2013-01-25T07:27:10+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/01/25/072710</id>
+    <content type="html"><![CDATA[<p>实验服务器：Ubuntu Server 12.04；</p>
+
+<p>实验过程：</p>
+
+<ol>
+<li><p>在服务器本机上以用户user1登录服务器；</p></li>
+<li><p>在另一台终端上以SSH方式登录服务器，用who命令查看当前登录用户有两个：</p></li>
+</ol>
+
+
+<p> root@guserver:~# who -H
+ NAME  LINE   TIME    COMMENT
+ user1 tty1   2013-01-25 07:21
+ user1 pts/0  2013-01-25 07:22 (10.31.1.32)
+由IP地址可知，上面的tty1是服务器本机登录用户，pts/0是SSH登录用户；</p>
+
+<ol>
+<li><p>拔出服务器上的USB键盘插头，终端上再执行who命令，与上面的结果相同；</p></li>
+<li><p>再插上服务器上的USB键盘，不论是否插入原插槽，都可以继续输入指令，完全不受键盘插拔的影响；</p></li>
+</ol>
+
+
+<p>结论：</p>
+
+<p>键盘登录服务器的方式下，USB键盘的插拔和改变USB插口不会影响用户的登录状态。进一步，键盘作为操作系统的standard input，不受其物理状态（是否连接）的影响。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Notes About Multiboot Usb Creator]]></title>
+    <link href="http://leetschau.github.io/blog/2013/01/24/174632/"/>
+    <updated>2013-01-24T17:46:32+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/01/24/174632</id>
+    <content type="html"><![CDATA[<p>U盘上的多系统启动工具，Windows上YUMI比较好，Ubuntu上<a href="http://www.pendrivelinux.com/multiboot-create-a-multiboot-usb-from-linux/">MultiSystem</a>用法复杂，<a href="http://sourceforge.net/projects/unetbootin/">unetbootin</a>是另外一款，需要安装p7zip（apt-get install p7zip-full），不能做多个Live CD在一个U盘上，安装新系统前要格式化USB盘，否则安装无效。</p>
+
+<p>用YUMI制作包含小马PE 2013版（XMPE2013.ISO）、Windows 7安装盘和Ubuntu Server 12.04 amd64(ubuntu-12.04.1-server-amd64.iso)的启动盘过程如下：</p>
+
+<ol>
+<li><p>插入U盘；</p></li>
+<li><p>启动YUMI（YUMI-0.0.8.7.exe）；</p></li>
+<li><p>安装界面上首先选好U盘的盘符，然后选安装系统的类型，上面3个系统对应的类型分别是：“Try an unlisted ISO(run from RAM)”（列表最后面）、“Windows Vista/7/8 Installer”和“Ubuntu Server 12.04 amd64”；</p></li>
+<li><p>选择对应的ISO文件；</p></li>
+<li><p>点击“Create”开始安装；</p></li>
+</ol>
+
+
+<p>安装的系统可以通过勾选“Remove an Installed Item?”卸载，但PE盘无法卸载。如果真不想要的话可以格盘重做一个。</p>
+
+<hr />
+
+<p>2013-01-28：
+使用YUMI制作了包含小马PE 2013版、Windows 7安装盘和Ubuntu Server 12.04的启动盘，在PNY盘（8GB）和Kingston microSD卡（8GB）上制作后3个系统都可以正常启动（DELL PC机），在SanDisk U3 curzer盘（4GB）上制作后无法启动，原因不明。
+XBoot不支持Windows启动ISO，放弃。</p>
+
+<hr />
+
+<p>2013-01-27：
+安装了小马PE 2013，注意小马PE的ISO文件不要使用中文文件名，否则在YUMI启动列表里会变成乱码。
+参考：<a href="http://www.rjno1.com/yumi">YUMI 0.0.8.7绿色版-制作引导多个iso系统镜像的自启动U盘</a></p>
+
+<hr />
+
+<p>2013-01-24：
+上午先用Sardu（2.0.5和2.0.6）做USB启动盘，它感知不到U盘，已经插入U盘还提示插入U盘，放弃，改用YUMI，首先在U盘上装了Ubuntu Server 12.04，后来又装了小马PE，虽然都装上了，但小马PE不能用；明天尝试装Win7。</p>
+
+<p>类似的工具还有一个叫XBoot的，下载了，没试；</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[U盘自动弹出脚本]]></title>
+    <link href="http://leetschau.github.io/blog/2013/01/15/204809/"/>
+    <updated>2013-01-15T20:48:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/01/15/204809</id>
+    <content type="html"><![CDATA[<p>需要微软的Sysinternals Suite中的sync工具，解压到d:\apps下。</p>
+
+<p>ahk脚本：</p>
+
+<p> #u:: ; eject usb drive
+ InputBox, myInp, Remove USB, Input Drive Letter:,
+ if ErrorLevel
+  return
+ else
+  Run, d:\Apps\SysinternalsSuite\sync.exe -e %myInp%
+ return</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Install Ubuntu Server on PC With USB Disk]]></title>
+    <link href="http://leetschau.github.io/blog/2012/10/18/194258/"/>
+    <updated>2012-10-18T19:42:58+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/10/18/194258</id>
+    <content type="html"><![CDATA[<h1>使用的工具：</h1>
+
+<ul>
+<li><p><a href="http://www.pendrivelinux.com/downloads/Universal-USB-Installer/Universal-USB-Installer-1.9.1.2.exe">Universal-USB-Installer-1.9.1.2.exe</a>；</p></li>
+<li><p>4G容量的U盘一个；</p></li>
+<li><p>ubuntu-12.04.1-server-amd64.iso；</p></li>
+</ul>
+
+
+<h1>安装过程</h1>
+
+<ol>
+<li><p>用Universal-USB-Installer-1.9.1.2.exe制作一个ubuntu server 12.04的安装盘；</p></li>
+<li><p>安装类型选"Ubuntu Server 12.04 Installer"；</p></li>
+<li><p>用制作好的U盘启动计算机，按照屏幕提示安装即可。</p></li>
+</ol>
+
+
+<h1>注意事项</h1>
+
+<ul>
+<li><p>安装过程中需要拔掉网线（刚才未拔网线情况下安装grub这一步报"The &lsquo;grub-pc&rsquo; package failed to install into /target/ &hellip;&ldquo;错误，安装过程停止，拔掉网线，返回安装"base system"这一步重新安装一遍，grub安装成功。）</p></li>
+<li><p>安装完毕后启动系统时需要插上网线，否则启动过程会停在"config network"这一步；</p></li>
+</ul>
+
+
+<h1>验证</h1>
+
+<ul>
+<li><p>可以用"ssh <a href="&#109;&#x61;&#105;&#108;&#x74;&#x6f;&#58;&#x63;&#x68;&#x61;&#100;&#64;&#49;&#48;&#46;&#x33;&#x31;&#46;&#49;&#x2e;&#x33;&#x34;">&#99;&#x68;&#x61;&#x64;&#x40;&#x31;&#48;&#46;&#x33;&#49;&#x2e;&#49;&#x2e;&#51;&#x34;</a>"连接Ubuntu Server；</p></li>
+<li><p>用sudo passwd创建root用户密码，这次设置的密码是root；</p></li>
+<li><p>安装组件时选择OpenSSH和Tomcat Server，安装完后可看到Java版本是1.6.22，Python版本是2.7.3；</p></li>
+</ul>
+
+
+<h1>关闭计算机</h1>
+
+<p>以root用户执行：shutdown -P now</p>
+
+<h1>其他</h1>
+
+<p>刚才安装时硬盘上已有3个NTFS分区，在"Partition Policy"中选"Use Entire Partition"，可以保留NTFS分区，如果选"Entire Disk"，则整个磁盘会被格式化。</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,276 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Add Multiple Jar Files Into Classpath - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="运行java程序的脚本经常要将conf文件夹和lib文件夹中所有jar包加入到classpath里，送给java命令的-cp参数，当使用JDK6及以上版本时，可以写成： java -cp lib/*:conf com.boco.nep.Server 其中代表.jar或者*.JAR，参考"http &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2012/04/16/170053/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Add Multiple Jar Files Into Classpath</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-16T17:00:53+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>运行java程序的脚本经常要将conf文件夹和lib文件夹中所有jar包加入到classpath里，送给java命令的-cp参数，当使用JDK6及以上版本时，可以写成：</p>
+
+<p> java -cp lib/*:conf com.boco.nep.Server</p>
+
+<p>其中<em>代表</em>.jar或者*.JAR，参考"<a href="http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath">http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath</a>"；</p>
+
+<p>如果上面的方法无效，也可以采用遍历方法加入jar包：</p>
+
+<h1>bash on Unix (start.sh in $APP_HOME/bin folder)</h1>
+
+<p> JARS=&ldquo;./conf&rdquo;
+ for i in <code>ls ./lib/*.jar</code>; do
+  JARS=&ldquo;$JARS&rdquo;:$i
+ done
+ exec &ldquo;${JAVA_HOME}/bin/java&rdquo; -cp $JARS com.boco.nep.Server</p>
+
+<h1>Windows (start.bat in $APP_HOME\bin folder)</h1>
+
+<p> @echo off
+ cd ../lib
+ set jars=
+ SETLOCAL ENABLEDELAYEDEXPANSION
+ for /f %%i in (&lsquo;dir /b *.jar&rsquo;) do set jars=%%i;!jars!</p>
+
+<p> call java -cp %jars% com.boco.nes.mina.Server</p>
+
+<p>注意jar包文件中不能有空格，否则jars中只有空格前的那一部分文件名；</p>
+
+<h2>语法解释</h2>
+
+<p>&ldquo;dir /b *.jar"以紧凑格式列出lib文件夹下所有的jar包文件（不包括文件大小、修改时间等信息）；</p>
+
+<p>%%i是声明的循环变量（bat脚本中循环变量以%%开头加一个字母组成）；</p>
+
+<p>&ldquo;for /f <var_name> in (set) do <command>"循环执行set中的每一个元素（详细语法可在命令行中指令"for /?"查看）；</p>
+
+<p>&ldquo;SETLOCAL ENABLEDELAYEDEXPANSION"与&rdquo;!jars!&ldquo;配合实现变量jars的延迟赋值，其作用参考<a href="http://www.jb51.net/article/29323.htm">批处理中setlocal enabledelayedexpansion的作用详细整理</a>。</p>
+
+<p>Windows版中使用语法的含义可参考<a href="http://topmanopensource.iteye.com/blog/506634">Windows bat命令编写大全</a>；for命令的用法；</p>
+
+<h1>多层目录遍历</h1>
+
+<p>Windows多层目录遍历可以用"for /r"或者"for /f %%i (&lsquo;dir /ad dir_name&rsquo;) do command"，其中"dir /ad"表示只列出目录，参考<a href="http://ss64.com/nt/for_d.html">FOR /D</a>。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2012-04-16T17:00:53+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:00 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/bat/'>bat</a>, <a class='category' href='/blog/categories/shell/'>shell</a>, <a class='category' href='/blog/categories/start-script/'>start script</a>, <a class='category' href='/blog/categories/windows/'>windows</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2012/04/16/170053/" data-via="" data-counturl="http://leetschau.github.io/blog/2012/04/16/170053/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/04/13/175442/" title="Previous Post: Python包安装过程">&laquo; Python包安装过程</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/04/17/105950/" title="Next Post: 来自Python世界的一篇优秀的异步通信框架博文">来自Python世界的一篇优秀的异步通信框架博文 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

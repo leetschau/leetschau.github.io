@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Sbt | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/sbt/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Two Java Building Tools]]></title>
+    <link href="http://leetschau.github.io/blog/2014/09/12/103608/"/>
+    <updated>2014-09-12T10:36:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/09/12/103608</id>
+    <content type="html"><![CDATA[<p>I need build a java project to compare performance of <a href="http://logging.apache.org/log4j/2.x/">apache log4j</a> and <a href="http://logback.qos.ch/">Logback</a>. The following codes are the building procedures based on [Gradle]<a href="http://www.gradle.org/">http://www.gradle.org/</a>) and <a href="http://www.scala-sbt.org/">sbt</a>.</p>
+
+<h1>sbt</h1>
+
+<pre><code>mkdir myproject
+cd myproject
+cat &lt;&lt;EOF &gt; build.sbt
+name := "MyProject"
+
+version := "0.1"
+EOF
+mkdir project
+echo 'addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")' &gt; project/plugins.sbt
+sbt eclipse
+</code></pre>
+
+<p>Note that the blank line between &ldquo;name&rdquo; &amp; &ldquo;version&rdquo; in build.sbt is mandatory for Scala syntax.
+Now start eclipse, import this proect, create new packages (com.boco.logb) and Java files (LoggerOneThread.java) in &ldquo;src/main/java&rdquo; folder, and config files (log4j.properties and logback.xml) in src/resources folder.
+slf4j looks for log implementations based on jars in classpath instead of conifg files, so we add both 2 config files into resource folder.</p>
+
+<p>The LoggerOneThread.java file:
+```
+package com.boco.logb;</p>
+
+<p>import java.util.concurrent.TimeUnit;</p>
+
+<p>import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;</p>
+
+<p>public class LoggerOneThread {
+    public static final long TOTAL_TIMES = 4000 * 1000;
+    private static final Logger logger = LoggerFactory
+            .getLogger(LoggerOneThread.class);</p>
+
+<pre><code>public static void main(String[] args) {
+    long start = System.nanoTime();
+    for (int i = 1; i &lt; TOTAL_TIMES; i++) {
+        logger.debug("This is a test message. This is another test message.");
+    }
+    long estimatedTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime()
+            - start);
+    System.out.println("Write " + TOTAL_TIMES + " logs takes time "
+            + estimatedTime + " s.");
+}
+</code></pre>
+
+<p>}
+<code>
+Log4j config file log4j.properties:
+</code>
+log4j.rootLogger = DEBUG, FILE</p>
+
+<p>log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+log4j.appender.FILE.File=log4j.log
+log4j.appender.FILE.Append=true
+log4j.appender.FILE.MaxFileSize=50MB
+log4j.appender.FILE.MaxBackupIndex=10
+log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.FILE.layout.ConversionPattern=%d{MM-dd HH:mm:ss.SSS} [%t] %p %c - %m%n
+<code>
+Logback config file logback.xml:
+</code>
+&lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+<configuration></p>
+
+<pre><code>&lt;appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
+    &lt;file&gt;logback.log&lt;/file&gt;
+
+    &lt;rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy"&gt;
+        &lt;fileNamePattern&gt;logback.log.%i&lt;/fileNamePattern&gt;
+        &lt;minIndex&gt;1&lt;/minIndex&gt;
+        &lt;maxIndex&gt;11&lt;/maxIndex&gt;
+    &lt;/rollingPolicy&gt;
+
+    &lt;triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy"&gt;
+        &lt;maxFileSize&gt;50MB&lt;/maxFileSize&gt;
+    &lt;/triggeringPolicy&gt;
+
+    &lt;encoder&gt;
+        &lt;pattern&gt;%date{MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n&lt;/pattern&gt;
+    &lt;/encoder&gt;
+&lt;/appender&gt;
+
+&lt;root level="DEBUG"&gt;
+    &lt;appender-ref ref="FILE" /&gt;
+&lt;/root&gt;
+</code></pre>
+
+<p></configuration>
+```</p>
+
+<p>Add following dependencies into build.sbt.log4j:
+<code>
+libraryDependencies ++= Seq(
+  "org.slf4j" % "slf4j-api" % "1.7.7",
+  "org.slf4j" % "slf4j-log4j12" % "1.7.7",
+  "log4j" % "log4j" % "1.2.17"
+)
+</code></p>
+
+<p>And the following into build.sbt.logback:
+<code>
+libraryDependencies ++= Seq(
+  "org.slf4j" % "slf4j-api" % "1.7.7",
+  "ch.qos.logback" % "logback-classic" % "1.1.2",
+  "ch.qos.logback" % "logback-core" % "1.1.2"
+)
+</code></p>
+
+<p>Now delete .classpath file under project home folder, run <code>sbt eclipse</code> again to refresh classpath.</p>
+
+<p>When coding completed, copy build.sbt.log4j (or build.sbt.logback) as build.sbt, run <code>sbt run</code> to run this project. Run <code>sbt package</code> to create jar file under target folder.</p>
+
+<p>Some other settings in build.sbt:</p>
+
+<pre><code>organization := "org.leechau"
+</code></pre>
+
+<h1>Gradle</h1>
+
+<ol>
+<li><p>Install gradle plugin for Eclipse, and create a Gradle Project &ldquo;MyProject&rdquo; in Eclipse, choose &ldquo;Java Quickstart&rdquo; as Sample project;</p></li>
+<li><p>Add following lines into auto-created build.gradle file for log4j test:</p>
+
+<pre><code> apply plugin: 'application'
+ dependencies {
+     compile 'org.slf4j:slf4j-api:1.7.7', 'log4j:log4j:1.2.17', 'org.slf4j:slf4j-log4j12:1.7.7'
+ }
+ mainClassName = "com.boco.logb.LoggerOneThread"
+</code></pre></li>
+<li><p>Refresh dependencies: [Gradle -> Refresh Dependencies] in context menu;</p></li>
+<li><p>Run log4j test:</p>
+
+<pre><code> cp build.gradle build.gradle.log4j
+ gradle clean run
+</code></pre></li>
+<li><p>For logback test, create a new file build.gradle.logback based on build.gradle.log4j, but use the following dependencies:</p></li>
+</ol>
+
+
+<pre><code>compile 'org.slf4j:slf4j-api:1.7.7', 'ch.qos.logback:logback-classic:1.1.2', 'ch.qos.logback:logback-core:1.1.2'
+</code></pre>
+
+<p>The config files log4j.properties and logback.xml, and Java file LoggerOneThread.java are identical to that in sbt section.</p>
+
+<ol>
+<li><p>Run logback test:</p>
+
+<pre><code> cp build.gradle.logback build.gradle
+ gradle clean run
+</code></pre></li>
+</ol>
+
+
+<h1>Eclipse Interface</h1>
+
+<p>How to creat Eclipse setting files (.classpath and .project) so that we can import this project into Eclipse, editing and debuging in it.</p>
+
+<p>For gradle, add <code>apply plugin: 'eclipse'</code> into build.gradle and run <code>gradle cleanEclipse eclipse</code>;</p>
+
+<p>For sbt, add <code>addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")</code> (for sbt 0.13) into $PROJECT_HOME/project/plugins.sbt, and run <code>sbt eclipse</code>;</p>
+
+<h1>Run Program</h1>
+
+<h2>gradle</h2>
+
+<pre><code>// run log4j test
+cp build.gradle.log4j build.gradle
+gradle clean run
+// run logback test
+cp build.gradle.logback build.gradle
+gradle clean run
+</code></pre>
+
+<h2>sbt</h2>
+
+<pre><code>// run log4j test
+cp build.sbt.log4j build.sbt
+sbt clean run
+// run logback test
+cp build.sbt.logback build.sbt
+sbt clean run
+</code></pre>
+
+<p>If you have multiple main entry in source files, you can use &lsquo;runMain com.boco.logb.LoggerOneThread&rsquo; instead of &ldquo;run&rdquo; to run a specific program.</p>
+
+<h1>Conclusion</h1>
+
+<p>Gradle is mainly for building of Groovy and Java project, while sbt is mainly for building of Scala and Java project. So far Gradle has better support for building Java project.
+For example, it&rsquo;s very convenient to build production zip or tar files with Gradle&rsquo;s application plugin (via the &ldquo;distZip&rdquo; task), while there&rsquo;s no corresponding plugin in sbt.
+It&rsquo;s convenient to add or remove dependencies within Eclipse with the Gradle plugin of Eclipse (not the eclipse plugin of Gradle), while there&rsquo;s no sbt plugin of Eclipse (sbteclipse of typesafehub is a eclipse plugin of sbt). So we have to refresh build path of dependencies manually when developing a project in Eclipse created by sbt.</p>
+]]></content>
+  </entry>
+  
+</feed>

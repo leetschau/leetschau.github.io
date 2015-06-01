@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Vps | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/vps/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Deploy Meteor App With MUP]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/25/195307/"/>
+    <updated>2015-03-25T19:53:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/25/195307</id>
+    <content type="html"><![CDATA[<h1>Create VPS</h1>
+
+<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
+Get its root password in you email.
+Add the following section into ~/.ssh/config:</p>
+
+<pre><code>Host do
+Hostname 128.199.72.206
+User root
+</code></pre>
+
+<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
+
+<h1>Publish Meteor App</h1>
+
+<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
+
+<p>Create a mup project:</p>
+
+<pre><code>cd ~/docs/tmp
+mkdir nfDeploy
+cd nfDeploy
+mup init
+</code></pre>
+
+<p>Now you can see a mup.json file, edit it as follows:</p>
+
+<pre><code>{
+  "servers": [
+    {
+      "host": "128.199.72.xxx",
+      "username": "root",
+      "pem": "~/.ssh/id_rsa"
+    }
+  ],
+
+  "setupMongo": true,
+  "setupNode": true,
+  "nodeVersion": "0.10.36",
+  "setupPhantom": true,
+  "appName": "newfairs",
+
+  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
+
+  "env": {
+    "PORT": 80,
+    "ROOT_URL": "http://niufairs.biz"
+  },
+
+  "deployCheckWaitTime": 15
+}
+</code></pre>
+
+<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
+&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
+mup will bundle codes in it, and publish them to host on vps.</p>
+
+<p>You can only use key authentication.
+If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
+
+<p>Setup production environment: <code>mup setup</code>;
+Delpoy app: <code>mup deploy</code>;</p>
+
+<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
+
+<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
+</code></pre>
+
+<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
+
+<h1>Import Data</h1>
+
+<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
+
+<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
+scp -r mynf do:~/
+ssh do
+cd mynf
+mongorestore -d newfairs meteor
+</code></pre>
+
+<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Deploy Web Server on Linode]]></title>
+    <link href="http://leetschau.github.io/blog/2014/12/23/084146/"/>
+    <updated>2014-12-23T08:41:46+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/12/23/084146</id>
+    <content type="html"><![CDATA[<h1>Setup Virtual Host</h1>
+
+<p>Buy a Linode instance on <a href="https://www.linode.com/">linode</a>. Note its IP address on the home page in your user account.
+Install a Linux system and <a href="https://www.linode.com/docs/security/securing-your-server/">secure it</a>.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/getting-started">Getting Started</a> for instructions.</p>
+
+<h1>Connect domain name and IP address</h1>
+
+<p>Here we link multiple Domain names to the same IP address.
+Then direct different domain requests to its corresponding port using nginx.</p>
+
+<p>First register (purchase) a domain name, if you haven’t already.
+Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
+
+<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 ->  解析设置 -> 设置网站解析 -> 把域名指向我的网站-添加IP地址&rdquo;,
+add your Linode instance IP address as &ldquo;A&rdquo; record,
+Then wait up to 24 hours for the changes to take effect.
+I waited about 30 minutes to take effect.</p>
+
+<p>Next set your domain name to use Linode’s name servers (&ldquo;ns1.linode.com&rdquo; to &ldquo;ns5.linode.com&rdquo;)
+in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DNS服务器 -> 修改域名DNS&rdquo;.</p>
+
+<p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
+Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
+Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#109;&#97;&#105;&#108;&#x74;&#111;&#58;&#108;&#99;&#x40;&#49;&#x32;&#x36;&#46;&#99;&#x6f;&#109;">&#x6c;&#99;&#64;&#49;&#x32;&#x36;&#x2e;&#99;&#111;&#109;</a>&rdquo;.
+Then click &ldquo;Add a Master Zone&rdquo;.</p>
+
+<h2>Setting Reverse DNS</h2>
+
+<p>On linode instance dashboard -> Remote access -> Reverse DNS, enter &ldquo;niufairs.com&rdquo;, and press &ldquo;Look up&rdquo;.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/websites/hosting-a-website">Hosting a website</a>.</p>
+
+<h1>Config Relationship betwwen domain and port</h1>
+
+<p>Fist install nginx.</p>
+
+<p>Edit /etc/nginx/nginx.conf as follows:</p>
+
+<pre><code>events {
+  worker_connections  1024;
+}
+
+http {
+  server {
+    server_name niufairs.cn;
+
+    location / {
+      proxy_pass http://localhost:3000/;
+    }
+  }
+
+  server {
+    server_name niufairs.com;
+
+    location / {
+      proxy_pass http://localhost:4000/;
+    }
+  }
+
+  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+  '$status $body_bytes_sent "$http_referer" '
+  '"$http_user_agent" "$http_x_forwarded_for"';
+
+  access_log  /var/log/nginx/access.log  main;
+}
+</code></pre>
+
+<p>Test if this conf is right: <code>nginx -t</code>;</p>
+
+<p>If test ok, reload conf: <code>nginx -s reload</code>;</p>
+
+<p>Now start 2 meteor app on port 3000 and 4000, and you can use niufairs.cn and niufairs.com to visit them respectively.</p>
+
+<p>If you want server some static files, add a new &ldquo;server&rdquo; section in &ldquo;http&rdquo; of nginx.conf:</p>
+
+<pre><code>http {
+  server {
+    server_name newfairs.cn;
+    location / {
+      root /data/www;
+    }
+    location /images/ {
+      root /data;
+    }
+  }
+
+  server {
+    ...
+  }
+}
+</code></pre>
+
+<h1>Configure Email Server</h1>
+
+<p>I bought an <strong>business</strong> account on <a href="https://www.fastmail.com/">FastMail</a>, and
+configure 3 places to make the mail server functional:</p>
+
+<ol>
+<li><p>In FastMail <a href="&#109;&#x61;&#x69;&#108;&#x74;&#x6f;&#58;&#x6d;&#97;&#115;&#x74;&#x65;&#114;&#117;&#x73;&#101;&#x72;&#x40;&#110;&#x69;&#117;&#x66;&#x61;&#105;&#114;&#115;&#x2e;&#x63;&#111;&#109;">&#x6d;&#97;&#x73;&#116;&#101;&#114;&#117;&#x73;&#x65;&#114;&#x40;&#x6e;&#x69;&#117;&#x66;&#97;&#105;&#x72;&#115;&#46;&#99;&#111;&#109;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
+<li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
+
+<p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
+<li><p>Add the following record on &ldquo;niufairs.com&rdquo; on Linode.com:</p>
+
+<p> MX Records ->  Mail Server: in1-smtp.messagingengine.com, Preference: 10, TTL: Default.</p></li>
+</ol>
+
+
+<p>Refs:</p>
+
+<ul>
+<li><p><a href="http://stackoverflow.com/questions/15678224/nginx-proxy-several-domains-to-different-ports">Nginx proxy several domains to different ports</a></p></li>
+<li><p><a href="http://nginx.org/en/docs/beginners_guide.html#static">Serving Static Content</a></p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[关于DNS域名解析]]></title>
+    <link href="http://leetschau.github.io/blog/2013/02/28/170942/"/>
+    <updated>2013-02-28T17:09:42+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/02/28/170942</id>
+    <content type="html"><![CDATA[<h1>Internet域名解析</h1>
+
+<p>以在<a href="http://www.net.cn/">万网</a>上配置niufairs.com为例，
+在[我的域名 -> niufairs.com -> 域名解析 -> 解析设置]下，
+在“记录类型”中:</p>
+
+<p><strong>&ldquo;A"代表域名</strong>，
+“主机记录”为空（保存后显示为&rdquo;@&ldquo;符号），“记录值”为123.57.56.23，
+就表示将"newfairs.com"解析为123.57.56.23，
+如果“主机记录”写为"www"，表示将"www.newfairs.com"解析为123.57.56.23，</p>
+
+<p><strong>&ldquo;MX"代表Email设置</strong>，
+“记录类型”为MX，主机记录为空（显示为&rdquo;@&ldquo;），记录值in1-smtp.messagingengine.com，
+表示所有"<a href="&#x6d;&#97;&#105;&#108;&#x74;&#x6f;&#58;&#x78;&#120;&#x78;&#64;&#x6e;&#x65;&#119;&#x66;&#97;&#105;&#x72;&#115;&#x2e;&#x63;&#111;&#109;">&#x78;&#120;&#x78;&#x40;&#110;&#x65;&#x77;&#102;&#x61;&#x69;&#114;&#x73;&#x2e;&#x63;&#x6f;&#109;</a>"的邮件，都将用in1-smtp.messagingengine.com这个服务器解析。</p>
+
+<h1>Linux本地解析</h1>
+
+<p>Ubuntu的DNS服务器保存在/etc/resolv.conf文件中，root用户修改这个文件后重启网络服务：</p>
+
+<pre><code>/etc/init.d/networking restart
+</code></pre>
+
+<p>RedHat上重启网络服务：</p>
+
+<pre><code>service network restart
+</code></pre>
+
+<p>如果不想使用这个DNS，取消的方法是注释掉（在行首加"#&ldquo;）。</p>
+
+<p>测试DNS服务是否有效：</p>
+
+<p>用nslookup指令查询域名的IP地址，如果能返回正确结果说明DNS设置有效，例如：</p>
+
+<p>nslookup www.google.com，与另一台能正常上网的机器的解析结果进行比较可知是否正确。</p>
+]]></content>
+  </entry>
+  
+</feed>

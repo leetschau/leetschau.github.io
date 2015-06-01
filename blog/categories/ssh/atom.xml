@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ssh | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ssh/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Modify SSH Welcome Message of Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/05/28/084746/"/>
+    <updated>2014-05-28T08:47:46+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/05/28/084746</id>
+    <content type="html"><![CDATA[<p>The ssh welcome message of a Linux OS is stored in file /etc/motd. So modify it for customization.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[openSUSE Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2014/04/21/163107/"/>
+    <updated>2014-04-21T16:31:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/04/21/163107</id>
+    <content type="html"><![CDATA[<h1>Install Vagrant and VirtualBox on openSUSE GNOME 13.1</h1>
+
+<ol>
+<li><p>Download VirtualBox-4.3.10-93012-Linux_amd64.run from VirtualBox website;</p></li>
+<li><p>Update zypper: $ zypper update;</p></li>
+<li><p>Install components to compile VirtualBox: $ zypper in gcc kernel-devel kernel-desktop kernel-desktop-devel</p></li>
+<li><h1>reboot</h1></li>
+<li><p>Run the downloaded .run file to install VirtualBox;</p></li>
+<li><p>Download vagrant_1.4.3_x86_64.rpm from Vagrant website;</p></li>
+<li><p>Install it with <code>rpm -ivh vagrant_1.4.3_x86_64.rpm</code>;</p></li>
+</ol>
+
+
+<h1>Other issues</h1>
+
+<ul>
+<li><p>You need start network service manually at system startup in openSUSE GNOME 13.1: <code>service NetworkManager start</code>;</p></li>
+<li><p>Enable SSH Server on openSUSE: YaST -> Firewall, add SSH Server to &ldquo;Allowed Services&rdquo;.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Distribute SSH Pubkey to Multiple Hosts With Fabric]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/31/115253/"/>
+    <updated>2014-03-31T11:52:53+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/31/115253</id>
+    <content type="html"><![CDATA[<ol>
+<li><p>Generate ssh keys on source host with <code>ssh-keygen</code>;</p></li>
+<li><p>Disable known_hosts prompt(optional): add &ldquo;StrictHostKeyChecking no&rdquo; into ~/.ssh/config;</p></li>
+<li><p>Run fabric script to distribute pubkey, you have to input password manually: <code>fab distkey</code>;</p></li>
+</ol>
+
+
+<p>$ cat fabfile.py
+from fabric.api import local, task
+env.hosts = [&lsquo;10.0.2.48&rsquo;, &lsquo;10.0.2.49&rsquo;, &lsquo;10.0.7.141&rsquo;, &lsquo;10.0.7.142&rsquo;, &lsquo;10.0.7.143&rsquo;]
+@task
+def distkey():
+    env.user = &lsquo;gcp&rsquo;
+    local(&lsquo;ssh-copy-id %(user)s@%(host)s&rsquo; % env)</p>
+
+<p>You have to input password for every host. So try to use uniform password for all hosts. It will save you lots of times.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A Python Environment Detector]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/27/120107/"/>
+    <updated>2014-03-27T12:01:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/27/120107</id>
+    <content type="html"><![CDATA[<p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
+
+<p>The application module, detapp.py:</p>
+
+<pre><code>import logging
+from envdet import rcmd
+
+logger = logging.getLogger('DetectApp')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('detect.log')
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+logger.addHandler(ch)
+logger.addHandler(fh)
+
+
+def isOracleJDK(str):
+    return 'Java(TM)' in str
+
+res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
+logger.info('Check result:%s' % res)
+</code></pre>
+
+<p>The environment detection module, envdet.py:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+import signal
+import logging
+
+logger = logging.getLogger('DetectApp.envdet')
+
+def handler(signum, frame):
+    logger.error('Signal handler called with signal: %d' % signum)
+    raise IOError("Command execution timeout!")
+
+def rcmd(user, host, cmd, check_handler, timeout=10):
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+
+    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
+
+    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+    fullres = line = ''
+    while p.poll() is None:
+        out = p.stdout.read(1)
+        fullres = fullres + out
+        if out=='\n':
+            logger.debug(line)
+            line = ''
+        else:
+            line = line + out
+    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
+    return check_handler(fullres)
+</code></pre>
+
+<p>The technical points here are:</p>
+
+<ul>
+<li><p>Run shell command in Python and retrieve output and return code;</p></li>
+<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
+<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Script on Remote Host via SSH]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/27/115808/"/>
+    <updated>2014-03-27T11:58:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/27/115808</id>
+    <content type="html"><![CDATA[<p>user=&lsquo;bvt&rsquo;
+host=&lsquo;10.0.2.47&rsquo;
+ssh $user@$host &lsquo;bash&rsquo; &lt;&lt;EOF
+source /etc/profile
+java -version
+hostname
+EOF</p>
+
+<p>You need copy your ssh pub key to target host before hand, or you will have to enter the password at runtime.</p>
+]]></content>
+  </entry>
+  
+</feed>

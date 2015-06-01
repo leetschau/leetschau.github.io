@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 版本 | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ban-ben/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[源代码版本管理策略]]></title>
+    <link href="http://leetschau.github.io/blog/2012/09/27/201234/"/>
+    <updated>2012-09-27T20:12:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/09/27/201234</id>
+    <content type="html"><![CDATA[<h1>基于DVCS的版本控制策略</h1>
+
+<p>总体架构：主仓库（origin）中有两个<strong>永久</strong>分支：master和develop，master用来对外发布版本，所有的发布包都是从这个分支上打的；develop用来收集可用的开发特性，BVT系统是从这个分支上获取代码做nightly builds的；</p>
+
+<p>每个开发者可能发起3种<strong>临时</strong>分支：feature, release和hotfix，临时的意思是这3中分支最终都要被合并到某个永久分支（master/develop）中。</p>
+
+<p>下面是总体架构的图示：</p>
+
+<ul>
+<li><p>feature用来开发新产品特性的分支，只能从develop分支上分出，特性测试稳定之后合并回develop中去。命名规范：&lt;特征名>；</p></li>
+<li><p>release用来准备发布的分支，当develop中的特性已经满足当前发布版本的所有要求时，就得分一个release分支出来供测试部门测试，所有测试过程中发现的bug都在这个分支上修改，修完所有bug可以发布时，将这个分支合并到develop上和master上，这个分支就消失了。在release上修改bug的同时，不影响为未来版本开发的feature合并到develop中。命名规范：release-<Rev>，Rev是计划的版本号，例如release-1.2；</p></li>
+<li><p>hotfix用来修改master上代码发布到现场后出现的bug，修完后同时合并到develop和master上，master从1.2变为1.2p1或者1.2.1，然后删掉这个hotfix分支。命名规范：hotfix-&lt;目标版本号>，例如hotfix-1.2.1；</p></li>
+</ul>
+
+
+<p>各分支间的关系见下图：</p>
+
+<p>以上基于<a href="http://nvie.com/posts/a-successful-git-branching-model/">A successful Git branching model</a>。</p>
+
+<h2>评价</h2>
+
+<ul>
+<li><p>结构清晰，易于理解和使用；</p></li>
+<li><p>不同现场的特殊需求问题：如果某个A现场使用v1.0，B现场使用v2.0，现在A报了bug，则只能给A使用高版本（v2.1），而不能通过在v1.0上打patch的方法解决，因为如果从master的tag v1.0处签出代码，修改bug，得到v1.0p1，还得将修改再合并到v2.0上，而且v1.0p1将变成一个无法合并的分支，但如果采用升级版本的方式改bug，就要求版本间功能具备连续性，如果为A现场的v1.0开发了一个特殊的功能X，又不能合并到master里去（因为其他现场不需要这个功能），升级将导致A无法使用X。所以怎样将各现场的特殊需求与版本控制结合起来仍然是一个未解决的问题。</p></li>
+</ul>
+
+
+<h2>后续工作</h2>
+
+<ul>
+<li><p>怎样在分支上打tag?</p></li>
+<li><p>在Hg上重现上面的流程；</p></li>
+</ul>
+
+
+<h1>Hg的工作流程</h1>
+
+<ol>
+<li><p>在中心服务器origin上建立一个branch name为develop的分支；</p></li>
+<li><p>假设开发者chad负责在现有版本上增加一个“使用正则表达式的预期-发送”功能，则chad先从origin上clone一份代码到"f:\ghost\tmpFiles\myProj"文件夹中；</p></li>
+<li><p>将这份代码导入到Eclipse中，项目路径为d:\workspace\myProj，注意".hg"文件夹也要导入；</p></li>
+<li><p>删除"f:\ghost\tmpFiles\myProj"中的仓库，打开新的d:\workspace\myProj仓库，新建一个branch命名为"exp-send-regex"；</p></li>
+<li><p>Eclipse中开发功能，提交本地版本；</p></li>
+<li><p>当功能稳定后由origin将chad的代码pull到自己的代码库中：</p>
+
+<ol type="a">
+<li><p>启动chad的hg web server；</p></li>
+<li><p>在origin上用"pull selected changes from selected URL"，将chad上面测试稳定的“使用正则表达式的预期-发送”功能分支拉过来；</p></li>
+<li><p>合并到develop分支中：在exp-send-regex分支顶端的changeset上右键->merge with local；</p></li>
+</ol>
+</li>
+</ol>
+
+
+<h1>其他资料</h1>
+
+<p><a href="http://www.51testing.com/?uid-300987-action-viewspace-itemid-823031">版本控制的分支策略及初步实践</a></p>
+
+<p><a href="http://juvenshun.iteye.com/blog/376422">Maven最佳实践：版本管理</a></p>
+
+<p><a href="http://www.infoq.com/articles/agile-version-control">Version Control for Multiple Agile Teams</a></p>
+
+<p><a href="http://stackoverflow.com/questions/597707/best-branching-strategy-when-doing-continuous-integration">Best branching strategy when doing continuous integration</a></p>
+
+<p><a href="http://www.hillside.net/plop/plop98/final_submissions/P37.doc">Streamed Lines: Branching Patterns for Parallel Software Development</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Eclipse项目中JDK的版本]]></title>
+    <link href="http://leetschau.github.io/blog/2012/06/13/090430/"/>
+    <updated>2012-06-13T09:04:30+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/06/13/090430</id>
+    <content type="html"><![CDATA[<p>JDK6编译出来的class文件不能运行在JDK5的虚拟机上，因此用Eclipse开发/运行/打包项目时要注意Java编译器的版本，有3个位置（范围从大到小）会影响Java编译器的版本：</p>
+
+<ol>
+<li><p>Eclipse级全局JRE：Window->Preferences->Java->Installed JREs;</p></li>
+<li><p>项目级JRE：Project->Properties下的：</p></li>
+<li><p>Build Path -> Libraries -> JRE System Library;</p></li>
+<li><p>Java Compiler -> JDK Compliance;</p></li>
+<li><p>Run/Debug Configuration级JRE: 在这个Configuration的"JRE"标签页中设置；</p></li>
+</ol>
+
+
+<p>确定class文件版本的方法是查看class文件的第7个字节： 0x31-> JDK5, 0x32 ->JDK6, 0x33 ->JDK7;</p>
+
+<p> class文件格式的详细介绍见 Java class file .</p>
+]]></content>
+  </entry>
+  
+</feed>

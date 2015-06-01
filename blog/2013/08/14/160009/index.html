@@ -1,0 +1,301 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Run Interactive Shell Command in Erlang - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="The following simple Erlang netcat client demonstrates the communication between Erlang program and external OS process. The rc.erl start a netcat &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/08/14/160009/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Run Interactive Shell Command in Erlang</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-14T16:00:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>The following simple Erlang netcat client demonstrates the communication between Erlang program and external OS process. The rc.erl start a netcat client to connect to a netcat server, and send some message to the server at a given time.</p>
+
+<ol>
+<li><p>Create Erlang server;</p>
+
+<p> -module(rc).
+ -export([cmd/1]).
+ cmd(Cmd) ->
+     Opt = [stream, exit_status, stderr_to_stdout, eof],
+     P = open_port({spawn, Cmd}, Opt),
+     get_data(P, [], 0).
+ get_data(P, Sofar, 3) ->
+     port_command(P, &ldquo;abcd&rdquo;),
+     get_data(P, Sofar, 4);
+ get_data(P, Sofar, Cnt) ->
+     receive
+         {P, {data, Bin}} ->
+             io:format(&ldquo;rec Bin: ~p, Cnt=~p~n&rdquo;, [Bin, Cnt]),
+             get_data(P, [Bin|Sofar], Cnt+1);
+         {P, eof} ->
+             port_close(P),
+             receive
+                 {P, {exit_status, N}} ->
+                     {N, lists:reverse(Sofar)}
+             end
+     end.</p></li>
+<li><p>Start netcat server: run command <code>nc -l 3333</code> at host 10.21.3.31;</p></li>
+<li><p>Start netcat client:</p>
+
+<p> $ erl
+ &hellip;</p>
+
+<p> 1> c(rc).</p>
+
+<p> {ok,rc}
+ 2> rc:cmd(&ldquo;nc 10.21.3.31 3333&rdquo;).</p></li>
+<li><p>Send message from server to client: press &ldquo;1<CR>2<CR>3<CR>4<CR>^C&rdquo;, client output as follows:</p>
+
+<p> rec Bin: &ldquo;1\n&rdquo;, Cnt=0
+ rec Bin: &ldquo;2\n&rdquo;, Cnt=1
+ rec Bin: &ldquo;3\n&rdquo;, Cnt=2
+ rec Bin: &ldquo;4\n&rdquo;, Cnt=4
+ {0,[&ldquo;1\n&rdquo;,&ldquo;2\n&rdquo;,&ldquo;3\n&rdquo;,&ldquo;4\n&rdquo;]}
+ 3></p></li>
+</ol>
+
+
+<p>When you press <CR> after 3, you can receive &ldquo;abcd&rdquo; from netcat client.</p>
+
+<p>The pattern of Erlang-Shell communication is:</p>
+
+<ul>
+<li><p>Use &ldquo;open_port&rdquo; to start a external shell process;</p></li>
+<li><p>Use &ldquo;receive&rdquo; clause to receive output of the process;</p></li>
+<li><p>Use &ldquo;port_command&rdquo; to send message to process;</p></li>
+<li><p>Use &ldquo;port_close&rdquo; to close the shell;</p></li>
+</ul>
+
+
+<p>Notes:</p>
+
+<ol>
+<li><p>For non-interactive shell command, os:cmd/1 is a better choice;</p></li>
+<li><p>If you want to catch the event that the peer close actively, add &ldquo;eof&rdquo; into option list of open_port; If you want to catch the exit value of the shell process, add &ldquo;exit_status&rdquo; to option list of open_port;</p></li>
+<li><p>Not specify &ldquo;in&rdquo; in option list of open_port when you want to send the process some message, or a &ldquo;ebadf&rdquo; exception arises, because &ldquo;in&rdquo; means this process only used for input, and &ldquo;ebadf&rdquo; means the file is not open for reading or writing.</p></li>
+<li><p><a href="http://www.cnblogs.com/gibbon/archive/2012/12/26/Erlang.html">Erlang port communicate with python</a> is a good demonstration of erlang calling a python script; Chapter 12 of &ldquo;Programming Erlang&rdquo; also concentrate Erlang interfacing techniques.</p></li>
+</ol>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-08-14T16:00:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:00 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/erlang/'>erlang</a>, <a class='category' href='/blog/categories/netcat/'>netcat</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/08/14/160009/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/08/14/160009/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/08/13/174638/" title="Previous Post: My vimrc">&laquo; My vimrc</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/08/15/103209/" title="Next Post: CFEngine Notes">CFEngine Notes &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

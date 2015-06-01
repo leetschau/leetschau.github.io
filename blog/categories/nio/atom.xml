@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Nio | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/nio/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Java的Buffer读取操作]]></title>
+    <link href="http://leetschau.github.io/blog/2012/03/30/155535/"/>
+    <updated>2012-03-30T15:55:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/03/30/155535</id>
+    <content type="html"><![CDATA[<p>Buffer用于从channel中读（或者向channel写）数据，它有3个标记，分别是capacity, limit &amp; position，其中capacity是此buffer的容量（固定值），buffer初始化时（使用allocate方法）设定；limit是有效数据的边界，即0~limit之间是可读/写的数据，position是下一个应该被读/写的位置。</p>
+
+<p>Buffer有两种模式：写模式和读模式，写模式是向buffer中写数据（例如socketChannel.read(buffer)），读模式是从buffer中读出数据。</p>
+
+<p>写模式下limit总等于capacity，读模式下limit是最近一次写入的数据位置。</p>
+
+<p>使用buffer读写数据的基本过程是一个4步循环：</p>
+
+<ol>
+<li><p>向buffer写入数据；</p></li>
+<li><p>buffer.flip(); // 把buffer从写模式切换到读模式</p></li>
+<li><p>从buffer中读出数据；</p></li>
+<li><p>if (buffer.hasRemaining()) {buffer.compact();} else {buffer.clear();} // compact和clear方法将buffer切换回写模式，下面有解释</p></li>
+</ol>
+
+
+<p>以上解释来自于<a href="http://tutorials.jenkov.com/java-nio/buffers.html">Java NIO Buffer</a>。</p>
+
+<h1>compact和clear方法</h1>
+
+<p>compact方法将未读完的数据（position与limit之间的数据）平移到buffer头部，然后将position设到这段数据的尾部，这样后面的写操作将在这段数据后追加（见SocketChannel.read()方法的javadoc），而不会覆盖这段数据，然后将limit设为capacity；clear方法令position=0; limit=capacity;从而为读数据做好准备，详见二者的javadoc。</p>
+
+<h1>wrap方法</h1>
+
+<p> ByteBuffer buffer = ByteBuffer.allocate(10);
+ byte[] content = { 27, 91, 75, 116, 117 };
+ buffer = ByteBuffer.wrap(content);
+ assertEquals(0, buffer.position());
+ assertEquals(5, buffer.limit());
+ assertEquals(5, buffer.capacity());</p>
+
+<p>以上表明wrap方法会改变ByteBuffer对象的容量（capacity），并将其置为读模式；</p>
+
+<h1>实例演示</h1>
+
+<p>下面以ByteBuffer为例说明Java的buffer读写操作，以及对相关的几个参数的影响；</p>
+
+<p> import java.nio.ByteBuffer;
+ public class GetPutByteBuffer {
+  public static void main(String[] args) {
+   ByteBuffer byteBuffer = ByteBuffer.allocate(10);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit() + &ldquo; capacity=&rdquo; + byteBuffer.capacity());
+   // pos=0 limit=10 capacity=10
+   byteBuffer.put((byte) 20);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=10
+   byteBuffer.put((byte) 33);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=2 limit=10
+   byteBuffer.put((byte) 55);
+   byteBuffer.flip();
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=0 limit=3
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   byteBuffer.rewind();
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   System.out.println(&ldquo;the remaining is: &rdquo; + byteBuffer.remaining());
+   // the remaining is: 2
+   while (byteBuffer.hasRemaining()) {
+    System.out.println(byteBuffer.get());
+    System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   }
+   /<em>
+   * 33
+   * pos=2 limit=3
+   * 55
+   * pos=3 limit=3
+   </em>/
+  }
+ }</p>
+
+<p>可以看到buffer的capacity是一个固定值，初始化时设定，pos初始为0，limit初始等于capacity，一次读（get）或写（put）都使pos加一，limit不变，flip使limit=pos，pos=0，接收完数据开始读取时这个动作是必须的，rewind使pos=0，相当于重新开始读数据。</p>
+]]></content>
+  </entry>
+  
+</feed>

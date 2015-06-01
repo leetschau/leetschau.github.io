@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Json | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/json/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Import Data for Newfairs.com]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/20/194901/"/>
+    <updated>2015-02-20T19:49:01+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/20/194901</id>
+    <content type="html"><![CDATA[<h1>Prerequisites</h1>
+
+<p>First install MongoDB, node.js and csvkit.</p>
+
+<p>For node.js, download node binary package (node-v0.10.33-linux-x64.tar.gz in my case) from its website,
+extract and add binary folder into $PATH. For example, add the following line into ~/.zshenv:</p>
+
+<pre><code>PATH=$HOME/apps/node-v0.10.33-linux-x64/bin:$PATH
+</code></pre>
+
+<p>For MongoDB, download its binary package (mongodb-linux-x86_64-2.6.5.tgz in my case) from its website,
+extract and add binary folder into $PATH:</p>
+
+<pre><code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH
+</code></pre>
+
+<p>Install csvkit with <code>sudo pip install csvkit</code>.</p>
+
+<h1>Preparation</h1>
+
+<ol>
+<li><p>Convert Excel (xls/xlsx) file to csv file: <code>in2csv data.xls &gt; data.csv</code>;</p></li>
+<li><p>(Optional) Convert file encoding: <code>iconv -f gbk -t utf8 data20150218.csv &gt; input.csv</code>;</p></li>
+<li><p>Examine data: <code>head input.csv | csvjson -i 4</code>;</p></li>
+<li><p>Start MongoDB server for importing data: <code>mongod</code>;</p></li>
+</ol>
+
+
+<h1>Import Data</h1>
+
+<p>In case you want to overwrite old data, you need backup old collection:
+start a mongodb client, make a copy of the old collection (the original collection is &ldquo;fairs&rdquo;):</p>
+
+<pre><code>$ mongo
+&gt; db.fairs.renameCollection('fairsBak')
+</code></pre>
+
+<p>P.S. You can make a copy of a collection with <code>db.fairs.copyTo('fairsBak')</code>.</p>
+
+<p>Now import new data to collection &ldquo;fairs&rdquo;:</p>
+
+<pre><code>./importdata
+</code></pre>
+
+<h1>Under the hood</h1>
+
+<p>importdata:</p>
+
+<pre><code>#!/bin/bash
+
+# convert the csv file encoding with:
+# iconv -f gbk -t utf8 xxx.csv &gt; input.csv
+INP='input.csv'
+TargetDB='test'
+TargetCol='fairs'
+
+RAW='rawdata.json'
+RES='result.json'
+if [[ ! -f $INP ]]; then
+  echo File input.csv not exists!
+  exit 1
+fi
+rm -rf $RAW $RES
+csvjson $INP &gt; $RAW
+node checkTransform
+mongoimport -d $TargetDB -c $TargetCol --type json --file $RES --jsonArray
+rm -rf $RAW $RES
+</code></pre>
+
+<p>checkTransform.js:</p>
+
+<pre><code>var data = require('./rawdata.json');
+var fs = require('fs');
+var result = []
+
+data.forEach(function(elem) {
+  var aFair = JSON.parse( JSON.stringify(elem) );
+  aFair.indexStr = {};
+  aFair.indexStr['name'] = (elem.chnName + ' ' + elem.engName).trim();
+  aFair.indexStr['sponsor'] = elem.sponsor;
+  aFair.indexStr['undertaker'] = elem.undertaker;
+  aFair.indexStr['category'] = elem.category;
+  aFair.indexStr['simpleSearch'] = elem.chnName + ' ' + elem.engName + ' ' + elem.position + ' ' + elem.time + ' ' + elem.category;
+
+  if (elem.sponsor) {
+    aFair['sponsor'] = [];
+    elem.sponsor.split('|').forEach(function(spr) {
+      var aSponsor = {};
+      var sps = spr.split('$');
+      aSponsor['name'] = sps[0];
+      aSponsor['tel'] = sps[1];
+      aSponsor['fax'] = sps[2];
+      aSponsor['email'] = sps[3];
+      aSponsor['website'] = sps[4];
+      aFair.sponsor.push(aSponsor);
+    });
+  }
+
+  if (elem.undertaker) {
+    aFair['undertaker'] = [];
+    elem.undertaker.split('|').forEach(function(udt) {
+      var aUndertaker = {};
+      var uds = udt.split('$');
+      aUndertaker['name'] = uds[0];
+      aUndertaker['tel'] = uds[1];
+      aUndertaker['fax'] = uds[2];
+      aUndertaker['email'] = uds[3];
+      aUndertaker['website'] = uds[4];
+      aFair.undertaker.push(aUndertaker);
+    });
+  }
+
+  if (elem.category) {
+    aFair['category'] = [];
+    elem.category.split('|').forEach(function(catStr) {
+      var aCat = {};
+      var cats = catStr.split('$');
+      aCat['major'] = cats[0] === '?' ? '' : cats[0];
+      aCat['minor'] = cats.slice(1);
+      aFair.category.push(aCat);
+    });
+  }
+
+  result.push(aFair);
+});
+
+fs.writeFile('result.json', JSON.stringify(result));
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Import Data From Files Into Mongodb]]></title>
+    <link href="http://leetschau.github.io/blog/2014/12/08/114328/"/>
+    <updated>2014-12-08T11:43:28+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/12/08/114328</id>
+    <content type="html"><![CDATA[<h1>From CSV File</h1>
+
+<p>Here I use mongoDB&rsquo;s mongoimport tool to import csv file into Meteor app&rsquo;s Mongodb.</p>
+
+<p>First download mongodb package (mongodb-linux-x86_64-2.6.5.tgz) from <a href="http://www.mongodb.org/">mongoDB</a>, extract it into ~/apps folder.</p>
+
+<p>Next start the Meteor app. Open a new terminal window, in project root folder, run <code>meteor mongo</code>.
+You can see something like &ldquo;connecting to: 127.0.0.1:3001/meteor&rdquo;.
+This tells us database server is listening on port 3001, and database name is &ldquo;meteor&rdquo;.</p>
+
+<p>Save the following codes into app&rsquo;s $HOME/private folder as importdb.sh:</p>
+
+<pre><code>mongoimport -h localhost:3001 --db meteor --collection fairs --type csv --file fairs.csv --headerline
+</code></pre>
+
+<p>Here &ldquo;-d&rdquo; equals to &ldquo;&ndash;db&rdquo;, &ldquo;-c&rdquo; equals to &ldquo;&ndash;collection&rdquo;.
+And the source csv file is saved in file private/fairs.csv.</p>
+
+<p>It&rsquo;s headerline (first line of csv file) is also comma-seperated:</p>
+
+<pre><code>Name, Age, Job
+Bob, 35, Cooker
+Tom, 28, Coder
+...
+</code></pre>
+
+<p>Now in the Meteor app, add <code>Fairs = new Meteor.Collection("fairs");</code> into js file to use the data.</p>
+
+<h1>From JSON File</h1>
+
+<h2>Json Lint</h2>
+
+<p>Validate the json file with <a href="https://github.com/zaach/jsonlint">jsonlint</a>.</p>
+
+<p>You need install node.js, then install jsonlint with <code>npm install jsonlint -g</code>.
+Next check the json file with <code>jsonlint myfile.json</code>.</p>
+
+<h2>Import from Json File</h2>
+
+<p>Use the following commands to import json objects from a file:</p>
+
+<pre><code>mongoimport -h localhost:3001 -d meteor -c fairs --type json --jsonArray --file demo.json
+</code></pre>
+
+<p>Or if your mongod is running on localhost, use the following line to import
+(no need to create the target database and collection before import):</p>
+
+<pre><code>mongoimport -d meteor -c fairs --type json --file first31.json --jsonArray
+</code></pre>
+
+<p>This is a sample of the imported json file:</p>
+
+<pre><code>[
+  { name: "Widget 1",
+    desc: "This is Widget 1"
+  },
+  { name: "Widget 2",
+    desc: "This is Widget 2"
+  }
+]
+</code></pre>
+
+<p>If the &ldquo;&ndash;jsonArray&rdquo; option is omitted, the json file have to keep each object in one line, like this:</p>
+
+<pre><code>{ name: "Widget 1", desc: "This is Widget 1" }
+{ name: "Widget 2", desc: "This is Widget 2" }
+</code></pre>
+
+<p>See <code>mongoimport --help</code> for details.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Get SonarQube Metrics Results With Web Service]]></title>
+    <link href="http://leetschau.github.io/blog/2013/07/03/170147/"/>
+    <updated>2013-07-03T17:01:47+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/07/03/170147</id>
+    <content type="html"><![CDATA[<h1>Debug Sonar Web Service</h1>
+
+<p> curl &lsquo;<a href="http://localhost:9000/api/resources?resource=841&amp;metrics=coverage,ncloc,test_success_density,packages">http://localhost:9000/api/resources?resource=841&amp;metrics=coverage,ncloc,test_success_density,packages</a>&rsquo;</p>
+
+<p>where resource is id or key of sonar project. Reference: <a href="http://docs.codehaus.org/pages/viewpage.action?pageId=229743280">Web Service /api/resources</a></p>
+
+<h1>Retrieve data via python script</h1>
+
+<p>python script:</p>
+
+<p> import urllib2
+ import json
+ sonarUrl = &lsquo;<a href="http://localhost:9000/api/resources?resource=841&amp;metrics=ncloc,classes,violations,coverage,tests,test_success_density,comment_lines_density,duplications_data,function_complexity">http://localhost:9000/api/resources?resource=841&amp;metrics=ncloc,classes,violations,coverage,tests,test_success_density,comment_lines_density,duplications_data,function_complexity</a>&rsquo;
+ conn = urllib2.urlopen(sonarUrl)
+ data = json.load(conn)
+ print json.dumps(data, indent=2)</p>
+
+<h1>Retrieve data via groovy script</h1>
+
+<p> import groovy.json.JsonSlurper
+ sonarUrl = &lsquo;<a href="http://10.0.2.74:9000/api/resources?resource=841&amp;metrics=ncloc,">http://10.0.2.74:9000/api/resources?resource=841&amp;metrics=ncloc,</a>&rsquo; +</p>
+
+<pre><code>'classes,violations,coverage,tests,test_success_density,' + 
+'comment_lines_density,duplications_data,function_complexity' 
+</code></pre>
+
+<p> def conn = new URL(sonarUrl).getText()
+ def data = new JsonSlurper().parseText(conn)
+ println data.id
+ println data.lname
+ println data.msr</p>
+
+<p>You can insert this script into &ldquo;Pre-send Script&rdquo; section of email-ext plugin of Jenkins to retrieve sonar analysis result.</p>
+
+<p>Set of metrics key: <a href="http://docs.sonarsource.org/2.5/apidocs/org/sonar/gwt/Metrics.html">http://docs.sonarsource.org/2.5/apidocs/org/sonar/gwt/Metrics.html</a></p>
+]]></content>
+  </entry>
+  
+</feed>

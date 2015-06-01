@@ -1,0 +1,735 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Based on Jenkins 1.509 and Checkstyle 5.6. Now we need practising code review, as a step of BVT of course. The ideal solution is based on Sonar and &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/posts/56/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/15/164215/">Auto Code Review Based on Jenkins and Checkstyle</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-15T16:42:15+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:42 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Based on Jenkins 1.509 and Checkstyle 5.6.</p>
+
+<p>Now we need practising code review, as a step of BVT of course. The ideal solution is based on Sonar and its checkstyle plugin. But I am not very familiar with sonar&rsquo;s java runner and other features. So I decided to use some &ldquo;plain&rdquo; method to embed code review into the process of BVT.</p>
+
+<h1>Preparations</h1>
+
+<ol>
+<li><p>Install checkstyle plugin of jenkins;</p></li>
+<li><p>copy checkstyle-5.6-all.jar to /opt/checkstyle;</p></li>
+<li><p>create a code review rule file tyRules.xml at /opt/checkstyle:</p></li>
+</ol>
+
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> &lt;!DOCTYPE module PUBLIC &ldquo;-//Puppy Crawl//DTD Check Configuration 1.3//EN&rdquo; &ldquo;<a href="http://www.puppycrawl.com/dtds/configuration_1_3.dtd">http://www.puppycrawl.com/dtds/configuration_1_3.dtd</a>&rdquo;>
+ <module name="Checker">
+  <property name="severity" value="warning"/>
+  <module name="TreeWalker">
+  <metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/>
+  <module name="MethodLength">
+   <property name="max" value="200"/>
+  </module>
+  <module name="NestedIfDepth">
+   <property name="max" value="5"/>
+  </module>
+  <module name="CyclomaticComplexity"/>
+  <module name="ParameterNumber">
+   <property name="max" value="6"/>
+  </module>
+  </module>
+  <module name="StrictDuplicateCode">
+  <property name="min" value="75"/>
+  </module>
+  <module name="FileLength">
+  <property name="max" value="1000"/>
+  </module>
+ </module></p>
+
+<ol>
+<li><p>Project -> Configuration -> Source Code Management -> Subversion -> Repo URL: svn://localhost/ServerMeter</p></li>
+<li><p>Project -> Configuration -> Post-build Actions -> Publish Checkstyle analysis results: <em>*/codeReview</em>.xml;</p></li>
+<li><p>Project -> Configuration -> Post-build Actions -> E-mail Notification: &hellip;</p></li>
+</ol>
+
+
+<h1>As part of ant build</h1>
+
+<ol>
+<li>add a target &ldquo;checkcode&rdquo; in build.xml:</li>
+</ol>
+
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ <project name="checkstyleTest" basedir="./" default="checkcode">
+   <taskdef resource="checkstyletask.properties" classpath="/opt/checkstyle/checkstyle-5.6-all.jar"/>
+   <property name="build.dir" value="${basedir}/build" />
+   <target name="init">
+     <delete dir="${build.dir}"/>
+     <mkdir dir="${build.dir}"/>
+   </target>
+   <target name="checkcode" depends="init">
+     <checkstyle config="/opt/checkstyle/tyRules.xml">
+       <fileset dir="src" includes="**/*.java"/>
+       <formatter type="xml" toFile="build/codeReviewResult.xml"/>
+     </checkstyle>
+   </target>
+ </project></p>
+
+<ol>
+<li>Jenkins setup: Project -> Configuration -> Build -> Invoke Ant -> Targets: checkcode;</li>
+</ol>
+
+
+<p>PROS: simple config, with the power of ant;</p>
+
+<p>CONS: build scripts of every project have to be modified, which violates the DRY principle;</p>
+
+<h1>As an independent step in build process</h1>
+
+<p>Jenkins setup: Project -> Configuration -> Build -> Execute shell:</p>
+
+<p> rm -rf build
+ mkdir build
+ find . -depth -name .svn -exec rm -fr {} \;
+ java -jar /opt/checkstyle/checkstyle-5.6-all.jar -c /opt/checkstyle/tyRules.xml -r src -f xml -o build/codeReviewResult.xml</p>
+
+<p>PROS: no need to modify any thing in project, do one thing in only ONE place;</p>
+
+<p>CONS: there are some dirty work in shell script, for example you have to delete and create build folder manually (otherwise checkstyle report can not be created correctly), and remove all .svn folder recursively (otherwise checkstyle will find some duplicate codes in normal code file and backup file in .svn folder).</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/14/104011/">Install Jenkins and Plugins by Hand</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-14T10:40:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:40 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Follow instructions on <a href="https://wiki.jenkins-ci.org/display/JENKINS/Plugins">Jenkins wiki</a> section 1.2 &ldquo;By hand&rdquo;.</p>
+
+<ol>
+<li><p>download jenkins.war;</p></li>
+<li><p>Search for the plugin, find if it has any dependency plugin. For example, plugin <a href="https://wiki.jenkins-ci.org/display/JENKINS/Checkstyle+Plugin">checkstyle</a> depends on <a href="https://wiki.jenkins-ci.org/display/JENKINS/Static+Code+Analysis+Plug-ins">analysis-core</a> stated in &ldquo;Dependencies&rdquo; section;</p></li>
+<li><p>Download hpi files in <a href="http://updates.jenkins-ci.org/download/plugins/">Download Site</a>;</p></li>
+<li><p>Copy hpi files downloaded to $HOME/.jenkins/plugins folder and restart Jenkins:</p></li>
+</ol>
+
+
+<p> nohup java -jar jenkins.war 1>jenkins.log 2>jenkins.log &amp;</p>
+
+<p>Verify: Jenkins Dashboard(<a href="http://localhost:8080">http://localhost:8080</a>) -> Manage Jenkins -> Manage Plugins -> Installed:</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/14/081549/">Multiple Terminals Operation on Windows and Ubuntu</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-14T08:15:49+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:15 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Termianl, a.k.a. console or command line, is a great tool to tell computers what to do. It&rsquo;s efficient and cool to type some words in a terminal(of course in full screen mode) and get all things done. But if you have only one terminal on the screen, switching between directories are always disturbing and time-consuming jobs. So to keyboard fans, a terminal enhancement tool is necessary. With the help of workspace(a.k.a. virtual desktop) switching tool and window arrangements shortcuts, a geek&rsquo;s screen is like this:</p>
+
+<ol>
+<li><p>Put all GUI windows in workspace 1;</p></li>
+<li><p>Put terminal windows in workspace 2;</p></li>
+<li><p>In workspace 2, switch multiple terminal tool in full screen mode;</p></li>
+<li><p>Use workspace switching shortcuts to switching between GUI workspace and terminal workspace;</p></li>
+</ol>
+
+
+<h1>Windows: Conemu + VirtuaWin</h1>
+
+<p>Terminal full screen: alt + enter;</p>
+
+<p>Split window: alt + h/v (split horizontal/vertical, defined in [Settings-> Keys &amp; Macros -> duplicate active &lt;<shell>> split to bottom/right]);</p>
+
+<p>Switch between terminal: [ctrl + tab] or [Win + q];</p>
+
+<p>Hide tab bar: Settings -> Features -> Tabs -> Don&rsquo;t show;</p>
+
+<p>Switch workspace: alt + win + Left/Right/Up/Down (defined in Setup -> Hotkeys of VirtuaWin);</p>
+
+<h1>Ubuntu: Teminator</h1>
+
+<p>Auto run command when startup (ssh to a remote server in this case): terminator -x ssh bvt@10.0.2.74;</p>
+
+<p>(use terminator -h for details. xterm and konsole also surppot -e <command> syntax).</p>
+
+<p>Terminal full screen: F11 (defined in [System Settings -> Keyboard -> Shortcuts -> Windows -> Toggle fullscreen mode]);</p>
+
+<p>Split window: alt + h/v (split horizontal/vertical, defined in [Preference -> Keybindings -> split_horiz/split_vert]);</p>
+
+<p>Switch between terminal: alt + Left/Right/Up/Down;</p>
+
+<p>Toggle Window max/normal of one of all terminals: ctrl + shift + z (defined in [Preferences -> Keybindings -> scaled_zoom]);</p>
+
+<p>Make background transparent: [Preferences -> Profiles -> defaults -> Background -> Transparent background: 0.8];</p>
+
+<p>copy on selection: [Preferences -> Profiles -> Copy on selection];</p>
+
+<p>Switch workspace: alt + ctrl + Left/Right/Up/Down (defined in [System Settings -> Keyboard -> Shortcuts -> Navigation -> Move to workspace left/right/above/below]);</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/10/150602/">Start Cygwin in ConEmu With Executor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-10T15:06:02+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:06 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Cygwin is powerful, but its single window interface is inconvenient. So I put it in ConEmu, and invoke it via Executor.</p>
+
+<p>When define keyword in Executor, the command is &ldquo;d:\Apps\ConEmu\ConEmu.exe&rdquo;, parameters are &ldquo;/Single /cmd e:\myDoc\cygwinRoot\Cygwin.bat&rdquo;. Here &ldquo;/cmd&rdquo; can&rsquo;t be ommited, while it can be ommited when there is no &ldquo;/Single&rdquo; option. So the following two forms are valid:</p>
+
+<p> d:\Apps\ConEmu\ConEmu.exe /Single /cmd e:\myDoc\cygwinRoot\Cygwin.bat</p>
+
+<p> d:\Apps\ConEmu\ConEmu.exe e:\myDoc\cygwinRoot\Cygwin.bat</p>
+
+<p>But &ldquo;d:\Apps\ConEmu\ConEmu.exe /Single e:\myDoc\cygwinRoot\Cygwin.bat&rdquo; is malformed, cygwin can&rsquo;t be invoked.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/09/172351/">基于Jenkins+Gradle的自动构建系统搭建笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-09T17:23:51+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:23 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>前期准备：</h1>
+
+<ol>
+<li><p>搭建SVN服务器，参考笔记“ SVN服务器搭建笔记 ”；</p></li>
+<li><p>新建一个基于Gradle的测试项目，参考“ 定制Gradle的项目文件目录结构 ”；</p></li>
+<li><p>将此项目提交到SVN服务器；</p></li>
+<li><p>启动Jenkins服务器：java -jar jenkins.war;</p></li>
+<li><p>安装Gradle插件：在Jenkins管理面板的 [系统管理 -> 管理插件] 中在线安装；</p></li>
+<li><p>指定Gradle位置：[系统管理 -> 系统设置 -> Gradle]中指定服务器上Gradle的安装位置（取消勾选“自动安装”）；</p></li>
+</ol>
+
+
+<h1>搭建过程</h1>
+
+<ol>
+<li><p>New Job -> “构建一个自由风格的软件项目”；</p></li>
+<li><p>配置此项目：</p></li>
+<li><p>项目名称；</p></li>
+<li><p>源码管理 -> Subversion -> Repository URL: svn://localhost/JenkinsGradleTest/quickstart2</p></li>
+<li><p>构建触发器 -> check &ldquo;Build periodically&rdquo; -> 日程表：H/15 * * * * （每15分钟构建一次）</p></li>
+<li><p>构建 -> 增加构建对象 -> Invoke Gradle script -> Tasks: build；</p></li>
+<li><p>构建后操作 -> Add post-build action -> Publish JUnit test result report -> Test report XMLs: <em>*/test-results/</em>Test.xml</p></li>
+<li><p>构建后操作 -> Add post-build action -> Email Notification -> Recipients: <a href="&#x6d;&#97;&#x69;&#x6c;&#x74;&#111;&#x3a;&#117;&#x73;&#x65;&#114;&#x40;&#x63;&#x6f;&#109;&#112;&#97;&#x6e;&#x79;&#x2e;&#x63;&#x6f;&#x6d;">&#x75;&#115;&#x65;&#114;&#x40;&#99;&#x6f;&#109;&#x70;&#x61;&#x6e;&#121;&#46;&#x63;&#x6f;&#x6d;</a></p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/09/100304/">定制Gradle的项目文件目录结构</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-09T10:03:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>参考Gradle文档chapter 23: The Java Plugin, 23.4: Project Layout, 23.4.1: Changing the project layout。
+根据此说明，基于文档自带的$GRADLE-1.5_HOME\samples\java\quickstart进行的一个实验：</p>
+
+<p>首先将原示例的项目文件结构修改为如下形式：</p>
+
+<pre><code>$ tree 
+. 
+|-- build.gradle 
+|-- conf 
+| `-- db.properties 
+|-- src 
+| `-- org 
+|  `-- gradle 
+|   `-- Person.java 
+`-- test 
+ `-- org 
+  `-- gradle 
+   `-- PersonTest.java 
+</code></pre>
+
+<p>然后在build.gradle中增加如下对sourceSets的定制：</p>
+
+<pre><code>... 
+apply plugin: 'eclipse' 
+sourceSets { 
+    main { 
+        java { 
+            srcDir 'src' 
+        } 
+        resources { 
+            srcDir 'conf' 
+        } 
+    } 
+    test { 
+        java { 
+            srcDir 'test' 
+        } 
+    } 
+} 
+sourceCompatibility = 1.5 
+... 
+</code></pre>
+
+<p>然后就可以用gradle build或者gradle uploadArchives执行构建任务了。</p>
+
+<hr />
+
+<p>2014-8-11更新：</p>
+
+<p>基于Grale 2.0，创建一个新Java项目的方法是在一个空文件夹中运行<code>gradle init --type basic</code>，然后修改build.gradle文件，去掉其中的全文注释，添加"apply plugin: &lsquo;eclipse&rsquo;&ldquo;和目录结构定义，然后运行<code>gradle eclipse</code>，并在Eclipse中导入这个项目。如果是为一个已有(Eclipse)项目增加Gradle管理，则只要在项目根目录下创建build.gradle文件，然后就可以用<code>gradle build</code>等命令构建项目了。</p>
+
+<p>与在Eclipse中安装Gradle插件，然后完全在Eclipse中完成Grale构建相比，这种方法不需要在Eclipse中安装Gradle插件，在命令行中进行项目的构建，Eclipse只是一个代码编写和调试环境，相对更灵活一些。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/08/183307/">Windows命令行中使用代理的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-08T18:33:07+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>使用Gradle做自动构建时，需要从Maven库里获取依赖包，由于网络限制导致获取失败，只能加代理，Windows命令行使用代理需要借助于微软的netsh工具在管理员权限下设置：</p>
+
+<ol>
+<li><p>启动ConEmu，在标题栏上右键 -> Active Console -> Restart as Admin；</p></li>
+<li><p>执行"netsh winhttp set proxy localhost:8087"；</p></li>
+</ol>
+
+
+<p>验证代理设置成功：netsh winhttp show proxy。</p>
+
+<p>参考：<a href="http://cclah.com/2013/03/19/more-about-cmd-console-start-delay-and-set-proxy-2/">MORE ABOUT CMD CONSOLE START , DELAY AND SET PROXY</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/07/143223/">从脚本启动图形界面程序</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-07T14:32:23+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ubuntu上如果从脚本启动图形界面程序，会有一个终端窗口始终开启，如果在脚本里用nohup启动，就可以关闭这个窗口了，例如下面的脚本演示了启动eclipse程序：</p>
+
+<p> export PATH=$PATH:/opt/jre1.6.0_14/bin</p>
+
+<p> nohup /opt/eclipse/eclipse 1>/dev/null 2>/dev/null</p>
+
+<p>参考： <a href="http://askubuntu.com/questions/10547/how-to-clean-launch-a-gui-app-via-the-terminal-so-it-doesnt-wait-for-terminati">http://askubuntu.com/questions/10547/how-to-clean-launch-a-gui-app-via-the-terminal-so-it-doesnt-wait-for-terminati</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/07/101025/">Environment Variables of Ubuntu GUI Applications</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-07T10:10:25+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:10 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In Ubuntu Desktop you have to modify /etc/environment and ${HOME}/.pam_environment instead of /etc/bash.bashrc and ${HOME}/.bashrc to set environment variables. See <a href="https://help.ubuntu.com/community/EnvironmentVariables">EnvironmentVariables</a> for details.</p>
+
+<p>${HOME}/.pam_environment does not worked, don&rsquo;t know why.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/07/083620/">Frequently Used Shortcuts of Ubuntu</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-05-07T08:36:20+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:36 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Based on Ubuntu Desktop 12.04 LTS, &ldquo;super&rdquo; key is the windows logo key.</p>
+
+<h1>Shortcuts Definitions</h1>
+
+<ul>
+<li><p>System Settings -> Keyboard -> Shortcuts;</p></li>
+<li><p>Super(press): show system shortcut list;</p></li>
+</ul>
+
+
+<h1>Shortcuts list</h1>
+
+<p>Alt + mouse drag: move window (you can drag a window at any position within a window, not only at title bar)</p>
+
+<p>Alt + F2: run a application in command line box</p>
+
+<p>Alt + F7: move window via arrow key;</p>
+
+<p>Alt + F8: resize window via arrow key;</p>
+
+<p>Ctrl + Alt + Num(1~9): move window to a position</p>
+
+<p>Ctrl + Super + D: show/hide desktop (minimize/show all window)</p>
+
+<p>Super(tap): show Dash Home;</p>
+
+<p>Super + W: show a window list, you can use arrow key to select a window;</p>
+
+<p>Super 1 to 9: same as click on the launcher icon, you can lock a frequently used application on launcher and launch/activate it via these shortcuts;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/posts/57">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/posts/55">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

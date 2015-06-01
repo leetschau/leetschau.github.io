@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Log | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/log/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Linux System Log]]></title>
+    <link href="http://leetschau.github.io/blog/2014/04/02/143204/"/>
+    <updated>2014-04-02T14:32:04+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/04/02/143204</id>
+    <content type="html"><![CDATA[<h1>ArchLinux</h1>
+
+<pre><code># journalctl -f
+</code></pre>
+
+<h1>CentOS</h1>
+
+<p><code>sudo tail -f /var/log/messages</code> or <code>sudo tail -f /var/log/syslog</code>;</p>
+
+<h2>System logs</h2>
+
+<p>The login/logout of every user (including root) is recorded in /var/log/secure. All system logs are under the folder /var/log:</p>
+
+<ul>
+<li><p>cron &ndash; Logs for all cronjobs that are run on the server</p></li>
+<li><p>dmesg &ndash; Logs from dmesg program which is used to examine or control the kernel ring buffer.</p></li>
+<li><p>lastlog &ndash; The binary log that contains all of the last login information. (Type &ldquo;last&rdquo; to view)</p></li>
+<li><p>messages &ndash; System logs from syslogd</p></li>
+<li><p>mysqld.log &ndash; Logs from the mysqld process</p></li>
+<li><p>secure &ndash; Access logs from the sshd process</p></li>
+<li><p>yum.log &ndash; Logs from system updates via yum</p></li>
+</ul>
+
+
+<p>Who loged in as root? <code>cd /var/log; grep 'session opened for user root by' *</code></p>
+
+<p>Get the user gaia last 5 login records:</p>
+
+<pre><code>$ last -5 gaia
+gaia     pts/5        10.21.2.82       Wed Apr  2 10:30 - 15:04  (04:33)
+...
+</code></pre>
+
+<p>So you can get the login source IP, login duration, etc.</p>
+
+<h3>Configure logs</h3>
+
+<p>File &ldquo;/etc/logrotate.conf&rdquo; define the log file rotation frequency, count, etc.</p>
+
+<p>If you want to add a system log, add a definition file in /etc/logrotate.d/.</p>
+
+<h2>Command history</h2>
+
+<p>Add &ldquo;export HISTTIMEFORMAT=&lsquo; %F %T &rsquo;&rdquo; into /etc/profile, then when use command <code>history</code>, you will see the command with a timestamp.
+This only works for bash, it&rsquo;s invalid for zsh.</p>
+
+<h2>A use case</h2>
+
+<p>A couple of days ago, some users find they can&rsquo;t write in their $HOME folder. I found it&rsquo;s because the owner of their home folder is changed to another user. Obviously this is done by root, but who and when do this actually? The following is how I worked it out.</p>
+
+<ol>
+<li><p>Find out when this happened?</p>
+
+<p> $ su -
+ # history|grep chown
+   &hellip;
+   804   2014-03-12 11:24:33 chown -R gcp /home
+   &hellip;</p></li>
+<li><p>Who did this?</p>
+
+<p> # cd /var/log; grep &lsquo;session opened for user root by&rsquo; *
+ &hellip;
+ secure-20140316:Mar 12 09:44:12 bocoty49 su: pam_unix(su:session): session opened for user root by gcp(uid=501)
+ &hellip;</p></li>
+<li><p>Who is the &lsquo;gcp&rsquo;?</p>
+
+<p> # last -10 gcp
+ &hellip;
+ gcp      pts/6        10.21.2.106      Wed Mar 12 08:33 - 13:35  (05:01)
+ &hellip;</p></li>
+</ol>
+
+
+<p>This whole story: the man with IP &ldquo;10.21.2.106&rdquo; ssh to the server at 08:33, switch to root with &ldquo;su&rdquo; at 09:44:12, run &ldquo;chown -R gcp /home&rdquo; at 11:24:33.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A Python Environment Detector]]></title>
+    <link href="http://leetschau.github.io/blog/2014/03/27/120107/"/>
+    <updated>2014-03-27T12:01:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/03/27/120107</id>
+    <content type="html"><![CDATA[<p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
+
+<p>The application module, detapp.py:</p>
+
+<pre><code>import logging
+from envdet import rcmd
+
+logger = logging.getLogger('DetectApp')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('detect.log')
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+logger.addHandler(ch)
+logger.addHandler(fh)
+
+
+def isOracleJDK(str):
+    return 'Java(TM)' in str
+
+res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
+logger.info('Check result:%s' % res)
+</code></pre>
+
+<p>The environment detection module, envdet.py:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+import signal
+import logging
+
+logger = logging.getLogger('DetectApp.envdet')
+
+def handler(signum, frame):
+    logger.error('Signal handler called with signal: %d' % signum)
+    raise IOError("Command execution timeout!")
+
+def rcmd(user, host, cmd, check_handler, timeout=10):
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+
+    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
+
+    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+    fullres = line = ''
+    while p.poll() is None:
+        out = p.stdout.read(1)
+        fullres = fullres + out
+        if out=='\n':
+            logger.debug(line)
+            line = ''
+        else:
+            line = line + out
+    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
+    return check_handler(fullres)
+</code></pre>
+
+<p>The technical points here are:</p>
+
+<ul>
+<li><p>Run shell command in Python and retrieve output and return code;</p></li>
+<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
+<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

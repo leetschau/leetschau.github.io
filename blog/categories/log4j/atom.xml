@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Log4j | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/log4j/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Log4j的输出格式控制]]></title>
+    <link href="http://leetschau.github.io/blog/2012/08/02/160232/"/>
+    <updated>2012-08-02T16:02:32+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/08/02/160232</id>
+    <content type="html"><![CDATA[<p>格式控制中的“-”号表示对齐空格出现在内容的右边，例如下面的“相对时间”（%r）设置为“&hellip;ConversionPattern=% -6 r %c”，效果见下面的第一列：
+ 0  PoolServer
+7429 BQServer
+7430 BQServer
+7434 Write2User
+7436 AdminServer</p>
+
+<p>若不写“-”，则表示在内容前方填充空格对齐，写为“&hellip;ConversionPattern=% 6 r %16c{1}”效果见下面的第一列：</p>
+
+<p>  0  PoolServer
+ 3792   BQServer
+ 3793   BQServer
+ 3795  Write2User</p>
+
+<p>上面类名“%c”的控制中{N}控制从右面数类名的层级，例如“%16c{1}”表示“仅显示最后一级类名，占据16个空格，不足的在类名左面填充空格对齐”，效果见上面例子的第二列，其中PoolServer的全名是com.boco.godu.trns.PoolServer，所以{1}是PoolServer，{2}是trns.PoolServer，依此类推，不写则打印完整类名。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[在包一级定制log4j日志输出]]></title>
+    <link href="http://leetschau.github.io/blog/2011/12/01/142739/"/>
+    <updated>2011-12-01T14:27:39+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/12/01/142739</id>
+    <content type="html"><![CDATA[<p>软件开发和维护过程中，日志是必不可少的工具，对于一个10万行规模的产品，要分析它的某一部分，最简单的方法是将log4j配置文件的rootLogger的输出级别设置为debug，但这样将使产品的所有部分的debug信息都输出，一方面会对产品性能产生巨大影响，另一方面所关心部分的debug信息会淹没在其他debug日志里，比较好的解决方法是 将这一部分的debug日志单独输出到一个新的日志文件里进行分析 ，下面 以指令平台为例说明实现方法。原始的log4j.properties文件如下：</p>
+
+<p> log4j.rootLogger=INFO,stdout,R,errorlogger</p>
+
+<p> log4j.appender.stdout=org.apache.log4j.ConsoleAppender</p>
+
+<p> log4j.appender.stdout.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.stdout.layout.ConversionPattern=[%p] [%d] [%c - %L] - [%m]%n</p>
+
+<p> log4j.appender.stdout.Threshold=INFO</p>
+
+<p> log4j.appender.R=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.R.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.R.layout.ConversionPattern=[%p] [%d] [%c - %L] - [%m]%n</p>
+
+<p> log4j.appender.R.Threshold=INFO</p>
+
+<p> log4j.appender.R.File=../log/godu.log</p>
+
+<p> log4j.appender.R.MaxFileSize=20MB</p>
+
+<p> log4j.appender.R.MaxBackupIndex=5</p>
+
+<p> log4j.appender.errorlogger=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.errorlogger.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.errorlogger.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n</p>
+
+<p> log4j.appender.errorlogger.Threshold=ERROR</p>
+
+<p> log4j.appender.errorlogger.File=../log/error.log</p>
+
+<p> log4j.appender.errorlogger.MaxFileSize=20MB</p>
+
+<p> log4j.appender.errorlogger.MaxBackupIndex=5</p>
+
+<p>可以看到这里定义了3个rootLogger（默认输出级别是INFO）：stdout向屏幕输出，R记录普通信息（指向godu.log，输出级别为INFO），errorlogger指向error.log，用来记录错误日志（ERROR及以上级别的日志）。现在我们要分析鉴权部分的工作过程，鉴权类都在com.boco.godu.framework.auth包里，要将这个包下所有类的debug信息输出到auth.log里。实现方法是在配置文件中增加一个专门处理auth包的logger：</p>
+
+<p> log4j.logger.com.boco.godu.framework.auth=DEBUG,authDebuger</p>
+
+<p> log4j.additivity.com.boco.godu.framework.auth=false</p>
+
+<p> log4j.appender.authDebuger=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.authDebuger.File=../log/auth.log</p>
+
+<p> log4j.appender.authDebuger.Append=false</p>
+
+<p> log4j.appender.authDebuger.MaxFileSize=2MB</p>
+
+<p> log4j.appender.authDebuger.MaxBackupIndex=10</p>
+
+<p> log4j.appender.authDebuger.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.authDebuger.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n</p>
+
+<p>所以， 包一级定制logger的方法是 ：</p>
+
+<p> log4j.logger.<full package name>=OUTPUT_LEVEL, logger_name</p>
+
+<p>此logger的appender, layout的定义方法与rootLogger一样。上面第二行的作用是 避免详细日志写入rootLogger日志 ，否则新产生的大量debug日志会将之前已有的godu.log（以及godu.log.1等）冲掉，在现场环境下尤其要注意。它的一般形式是：</p>
+
+<p> log4j.additivity.<full package name>=false</p>
+
+<p> 这样就保证了auth包的debug日志不写入godu.log，additivity的默认值是true，所以如果不定义additivity，默认debug日志分别写入godu.log和auth.log中。实验发现指定rootLogger的输出级别（log4j.appender.R.Threshold=INFO）也可以避免debug日志写入godu.log里，但定义additivity更明确，是更好的方法。</p>
+
+<p>除了用来输出详细日志， 包一级定制还有一个用处：屏蔽输出 。如果不需要某些包的日志，只要将它的输出级别调高就可以了。例如我们不想看到mina包的info日志，只有mina报错才写日志，可以做如下处理：</p>
+
+<p> log4j.logger.org.apache.mina=WARN</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Log4j使用笔记]]></title>
+    <link href="http://leetschau.github.io/blog/2011/08/11/103433/"/>
+    <updated>2011-08-11T10:34:33+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/08/11/103433</id>
+    <content type="html"><![CDATA[<p>Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。layout是appender的属性，决定appender所代表的输出中，一条具体的记录由哪些信息组成，排列顺序等。</p>
+
+<p>每一个logger都有一个名字，名字是logger初始化时由getLogger的参数决定的，例如下面的logger的名字是com.foo：</p>
+
+<pre><code>Logger logger = Logger.getLogger("com.foo"); 
+</code></pre>
+
+<p>名字是logger的唯一标识符，例如下面的x和y两个logger实际上是同一个对象：</p>
+
+<pre><code>Logger x = Logger.getLogger("wombat"); 
+Logger y = Logger.getLogger("wombat"); 
+</code></pre>
+
+<p>名字还具有继承性，例如名为com.foo.bar的logger是com.foo这个logger的子logger，com.foo又是com的子logger，子logger会继承所有上级logger的appender。这种继承类似于java包的父目录和子目录的关系，详见[1]的"Named Hierarchy"部分。</p>
+
+<p>类似于根目录的概念，rootLogger是logger hierarchy的顶端，简单的log4j应用中，只定义rootLogger的appender，所有类中的logger就继承了rootLogger的特性。</p>
+
+<p>为一个logger指定appender是在log4j配置文件中定义的，格式是：</p>
+
+<pre><code>log4j.rootLogger=level_name, appender_name1, appender_name2, ... 
+</code></pre>
+
+<p>或： log4j.logger.logger_name=level_name, appender_name1, appender_name2, &hellip;</p>
+
+<p>前者为rootLogger指定appender，后者为某一个具体的logger指定appender。定义appender属性的方法是：</p>
+
+<pre><code>log4j.appender.appender_name=... 
+log4j.appender.appender_name.layout=... 
+</code></pre>
+
+<p>例如下面的代码为rootLogger指定了appender A1，并设置A1为界面输出，然后指定了输出的格式，最后一行指定了com.foo的输出级别为WARN，com.foo及其子logger低于WARN的日志将不记录，由于com.foo没有指定appender，所以继承rootLogger的A1作为其输出：</p>
+
+<pre><code>log4j.rootLogger=DEBUG, A1 
+log4j.appender.A1=org.apache.log4j.ConsoleAppender 
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout 
+log4j.appender.A1.layout.ConversionPattern=%d [%t] %-5p %c - %m%n 
+log4j.logger.com.foo=WARN 
+</code></pre>
+
+<p>logger的级别常用的有debug, info, warn, error四种，详见“ log4j日志的输出级别设置 ”；appender常用的有 ConsoleAppender（控制台输出）、 DailyRollingFileAppender（按照一定的频率滚动输出日志，例如每月、每周、每天、每小时等）和 RollingFileAppender（到一定文件大小时滚动输出） 三种；layout常用的有SimpleLayout, PatternLayout, HTMLLayout, XMLLayout四种，后两种用来输出html和xml文本。不论哪种layout，都输出的是纯文本，因此各种appender与各种layout可以随意组合。</p>
+
+<p>如果对项目中一些类的日志进行特殊处理（例如更改输出级别、指定新的输出文件等），见笔记“ 在包一级定制log4j日志输出 ”。</p>
+
+<p>下面是一个完整的日志演示，首先是测试用例，只打一条日志：</p>
+
+<pre><code>package com.boco.godu.gapi.logger; 
+import org.apache.log4j.Logger; 
+import org.junit.Test; 
+public class Log4jDemo { 
+    private final Logger logger = Logger.getLogger(this.getClass()); 
+    @Test 
+    public void testGapiLogger() { 
+        logger.info(" Apache Logger "); 
+    } 
+} 
+</code></pre>
+
+<p>log4j.properties文件：</p>
+
+<pre><code>log4j.rootLogger=debug, console, ft, fh, fx 
+log4j.appender.console=org.apache.log4j.ConsoleAppender 
+log4j.appender.console.layout=org.apache.log4j.SimpleLayout 
+log4j.appender.ft=org.apache.log4j.RollingFileAppender 
+log4j.appender.ft.File=./log/debug.log 
+log4j.appender.ft.Append=false 
+log4j.appender.ft.MaxFileSize=2MB 
+log4j.appender.ft.MaxBackupIndex=10 
+log4j.appender.ft.layout=org.apache.log4j.PatternLayout 
+log4j.appender.ft.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n 
+log4j.appender.fh=org.apache.log4j.RollingFileAppender 
+log4j.appender.fh.File=./log/debug.html 
+log4j.appender.fh.Append=false 
+log4j.appender.fh.MaxFileSize=2MB 
+log4j.appender.fh.MaxBackupIndex=10 
+log4j.appender.fh.layout=org.apache.log4j.HTMLLayout 
+log4j.appender.fh.layout.LocationInfo=true 
+log4j.appender.fh.layout.Title=Test Log4j Layout 
+log4j.appender.fx=org.apache.log4j.RollingFileAppender 
+log4j.appender.fx.File=./log/debug.xml 
+log4j.appender.fx.Append=false 
+log4j.appender.fx.MaxFileSize=2MB 
+log4j.appender.fx.MaxBackupIndex=10 
+log4j.appender.fx.layout=org.apache.log4j.xml.XMLLayout 
+log4j.appender.fx.layout.LocationInfo=true 
+</code></pre>
+
+<p>rootLogger一共挂了4个appender，分别是一个控制台输出，一个纯文本格式日志，一个html格式日志，一个xml格式日志。</p>
+
+<p>运行测试用例后的效果如下（黑体字和红圈是源代码打出的日志）：</p>
+
+<p>控制台输出：</p>
+
+<pre><code>INFO - Apache Logger 
+</code></pre>
+
+<p>纯文本文件：</p>
+
+<p>08-11 16:04:03,343 main com.boco.godu.gapi.logger.Log4jDemo,11 INFO - Apache Logger</p>
+
+<p>html文件：</p>
+
+<p>xml文件：</p>
+
+<pre><code>&lt;log4j:event logger="com.boco.godu.gapi.logger.Log4jDemo" timestamp="1313049843343" level="INFO" thread="main"&gt; 
+    &lt;log4j:message&gt;&lt;![CDATA[ Apache Logger ]]&gt;&lt;/log4j:message&gt; 
+    &lt;log4j:locationInfo class="com.boco.godu.gapi.logger.Log4jDemo" method="testGapiLogger" file="Log4jDemo.java" line="11"/&gt; 
+&lt;/log4j:event&gt;
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Log4j日志输出格式参数定义]]></title>
+    <link href="http://leetschau.github.io/blog/2010/10/08/175808/"/>
+    <updated>2010-10-08T17:58:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/10/08/175808</id>
+    <content type="html"><![CDATA[<p>PatternLayout (Apache Log4j 1.2.16 API)</p>
+
+<p> Conversion Character
+ Effect
+ c
+ Used to output the category of the logging event. The category conversion specifier can be optionally followed by precision specifier , that is a decimal constant in brackets.
+ If a precision specifier is given, then only the corresponding number of right most components of the category name will be printed. By default the category name is printed in full.
+ For example, for the category name &ldquo;a.b.c&rdquo; the pattern %c{2} will output &ldquo;b.c&rdquo;.
+  C
+ Used to output the fully qualified class name of the caller issuing the logging request. This conversion specifier can be optionally followed by precision specifier , that is a decimal constant in brackets.
+ If a precision specifier is given, then only the corresponding number of right most components of the class name will be printed. By default the class name is output in fully qualified form.
+ For example, for the class name &ldquo;org.apache.xyz.SomeClass&rdquo;, the pattern %C{1} will output &ldquo;SomeClass&rdquo;.
+ WARNING Generating the caller class information is slow. Thus, use should be avoided unless execution speed is not an issue.
+  d
+ Used to output the date of the logging event. The date conversion specifier may be followed by a date format specifier enclosed between braces. For example, %d{HH:mm:ss,SSS} or %d{dd MMM yyyy HH:mm:ss,SSS} . If no date format specifier is given then ISO8601 format is assumed.
+ The date format specifier admits the same syntax as the time pattern string of the  SimpleDateFormat . Although part of the standard JDK, the performance of SimpleDateFormat is quite poor.
+ For better results it is recommended to use the log4j date formatters. These can be specified using one of the strings &ldquo;ABSOLUTE&rdquo;, &ldquo;DATE&rdquo; and &ldquo;ISO8601&rdquo; for specifying  AbsoluteTimeDateFormat ,  DateTimeDateFormat  and respectively  ISO8601DateFormat . For example, %d{ISO8601} or %d{ABSOLUTE} .
+ These dedicated date formatters perform significantly better than  SimpleDateFormat .
+  F
+ Used to output the file name where the logging request was issued.
+ WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
+  l
+ Used to output location information of the caller which generated the logging event.
+ The location information depends on the JVM implementation but usually consists of the fully qualified name of the calling method followed by the callers source the file name and line number between parentheses.
+ The location information can be very useful. However, its generation is extremely slow and should be avoided unless execution speed is not an issue.
+  L
+ Used to output the line number from where the logging request was issued.
+ WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
+  m
+ Used to output the application supplied message associated with the logging event.
+ M
+ Used to output the method name where the logging request was issued.
+ WARNING Generating caller location information is extremely slow and should be avoided unless execution speed is not an issue.
+  n
+ Outputs the platform dependent line separator character or characters.
+ This conversion character offers practically the same performance as using non-portable line separator strings such as &ldquo;\n&rdquo;, or &ldquo;\r\n&rdquo;. Thus, it is the preferred way of specifying a line separator.
+  p
+ Used to output the priority of the logging event.
+ r
+ Used to output the number of milliseconds elapsed from the construction of the layout until the creation of the logging event.
+ t
+ Used to output the name of the thread that generated the logging event.
+ x
+ Used to output the NDC (nested diagnostic context) associated with the thread that generated the logging event.
+ X
+ Used to output the MDC (mapped diagnostic context) associated with the thread that generated the logging event. The X conversion character must be followed by the key for the map placed between braces, as in %X{clientNumber} where clientNumber is the key. The value in the MDC corresponding to the key will be output.
+ See  MDC  class for more details.
+  %
+ The sequence %% outputs a single percent sign.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Log4j配置文件编码不同可能导致log4j日志运行异常]]></title>
+    <link href="http://leetschau.github.io/blog/2010/08/12/143709/"/>
+    <updated>2010-08-12T14:37:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/08/12/143709</id>
+    <content type="html"><![CDATA[<p>有时即使log4j的配置文件log4j.properties放在了正确的位置上，内容也没有错误，但运行程序时总报appender异常，无法生成日志文件。可能的原因是配置文件的编码与项目设定的编码不一致（例如项目设置的编码是GBK，配置文件的编码使用UTF-8），导致读配置文件失败。解决的办法是将配置文件转换为项目设置的编码格式，为保证转换成功，文件中（包括注释部分）最好不要使用中文。</p>
+]]></content>
+  </entry>
+  
+</feed>

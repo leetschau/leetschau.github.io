@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Aliyun | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/aliyun/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Deploy Meteor Application Manually]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/26/203002/"/>
+    <updated>2015-03-26T20:30:02+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/26/203002</id>
+    <content type="html"><![CDATA[<p>首先在<a href="http://www.aliyun.com/">阿里云</a>上购买一台"云服务器ECS"，
+然后进入通过SSH连接VPS。</p>
+
+<p>作为Meteor应用的生产环境，只需要安装mongoDB和Node.js就可以了，不需要安装Meteor.
+通过aptitude安装的mongoDB虽然版本比较老(2.4)，但不接受本机以外的连接，
+安全性有保障。</p>
+
+<pre><code># aptitude update
+# aptitude install mongodb-server
+# aptitude install software-properties-common
+# add-apt-repository ppa:chris-lea/node.js
+# aptitude update
+# aptitude install nodejs
+</code></pre>
+
+<p>Then create a start script &ldquo;startMeteor&rdquo;:</p>
+
+<pre><code>#!/bin/bash
+
+export PORT=80
+export MONGO_URL=mongodb://localhost:27017/newfairs
+export ROOT_URL=http://www.newfairs.biz
+node /root/bundle/main.js &gt; /root/meteorApp.log
+</code></pre>
+
+<p>Now build Meteor application package on developing computer,
+and transfer it to production machine:</p>
+
+<pre><code>cd /path/to/meteorProjectRoot
+meteor build .
+scp newfairsweb.tar.gz alivps:~/
+</code></pre>
+
+<p>On production machine, extract Meteor package and install it as a node app:</p>
+
+<pre><code>cd /root
+tar zxf newfairsweb.tar.gz
+cd bundle/programs/server
+npm install
+</code></pre>
+
+<p>将VPS恢复到初始状态的方法是：在云服务器ECS主页的"实例"页下，
+对应主机最右边，"管理 升级 续费 更多"中点击"更多"，
+首先点击"停止"来停止实例运行，然后点击"重新初始化磁盘"，
+将系统盘和数据盘都初始化。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Setup MongoDB Server on Aliyun]]></title>
+    <link href="http://leetschau.github.io/blog/2015/03/06/090609/"/>
+    <updated>2015-03-06T09:06:09+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/03/06/090609</id>
+    <content type="html"><![CDATA[<p>For version 3.0.</p>
+
+<h1>Install</h1>
+
+<p>On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract:</p>
+
+<pre><code>wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+cd /opt
+tar zxf ~/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+mkdir -p /data/db
+</code></pre>
+
+<h1>Authentication Management</h1>
+
+<p>Start mongod without auth on VPS (ip: 123.56.18.18): <code>mongod</code>;</p>
+
+<p>Connect to server with <code>mongo 123.56.18.18</code>;
+Create system user administrator:</p>
+
+<pre><code>use admin
+db.createUser(
+    {
+      user: "superuser",
+      pwd: "12345678",
+      roles: [ "root" ]
+    }
+)
+</code></pre>
+
+<p>Create user in current database:</p>
+
+<pre><code>use products
+db.createUser({user: "niufair", pwd: "nfsecret", roles: ["readWrite"]})
+show users
+</code></pre>
+
+<p>Create a production config file mongo.conf:</p>
+
+<pre><code>net:
+  #bindIp: 10.251.212.248
+  port: 15515
+systemLog:
+  destination: file
+  path: "mongo.log"
+  logAppend: true
+security:
+  authorization: enabled
+</code></pre>
+
+<p>Stop and restart mongod with <code>nohup mongod --config mongo.conf &amp;</code>;</p>
+
+<p>Connect to server as a database user: <code>mongo 123.56.18.18:15515/products -u niufair -p nfsecret</code>.
+You can <code>show collections</code>, <code>db.doc.insert()</code>, etc.</p>
+
+<p>Start Meteor app with <code>MONGO_URL="mongodb://niufair:nfsecret@123.56.18.18:15515/products" meteor</code>.</p>
+
+<p>Connect to server as administrator: <code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin</code>.</p>
+
+<p>Use <code>db.removeUser("username")</code> to remove user.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication-without-bypass/">Enable Authentication after Creating the User Administrator</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-user-to-database/">Add a User to a Database</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-admin-user/">Create an Administrative User with Unrestricted Access</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication/">Enable Client Access Control</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/reference/built-in-roles/">Built-In Roles</a></p>
+
+<p><a href="http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb">http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb</a></p>
+
+<h1>MMS</h1>
+
+<p>Connect mongodb server without authentication: <code>mongo &lt;ip&gt;:&lt;port&gt;</code>;</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[关于DNS域名解析]]></title>
+    <link href="http://leetschau.github.io/blog/2013/02/28/170942/"/>
+    <updated>2013-02-28T17:09:42+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/02/28/170942</id>
+    <content type="html"><![CDATA[<h1>Internet域名解析</h1>
+
+<p>以在<a href="http://www.net.cn/">万网</a>上配置niufairs.com为例，
+在[我的域名 -> niufairs.com -> 域名解析 -> 解析设置]下，
+在“记录类型”中:</p>
+
+<p><strong>&ldquo;A"代表域名</strong>，
+“主机记录”为空（保存后显示为&rdquo;@&ldquo;符号），“记录值”为123.57.56.23，
+就表示将"newfairs.com"解析为123.57.56.23，
+如果“主机记录”写为"www"，表示将"www.newfairs.com"解析为123.57.56.23，</p>
+
+<p><strong>&ldquo;MX"代表Email设置</strong>，
+“记录类型”为MX，主机记录为空（显示为&rdquo;@&ldquo;），记录值in1-smtp.messagingengine.com，
+表示所有"<a href="&#109;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#120;&#x78;&#x78;&#64;&#110;&#101;&#119;&#x66;&#97;&#105;&#114;&#x73;&#x2e;&#99;&#x6f;&#x6d;">&#x78;&#120;&#120;&#64;&#x6e;&#x65;&#x77;&#102;&#x61;&#105;&#x72;&#115;&#46;&#99;&#111;&#109;</a>"的邮件，都将用in1-smtp.messagingengine.com这个服务器解析。</p>
+
+<h1>Linux本地解析</h1>
+
+<p>Ubuntu的DNS服务器保存在/etc/resolv.conf文件中，root用户修改这个文件后重启网络服务：</p>
+
+<pre><code>/etc/init.d/networking restart
+</code></pre>
+
+<p>RedHat上重启网络服务：</p>
+
+<pre><code>service network restart
+</code></pre>
+
+<p>如果不想使用这个DNS，取消的方法是注释掉（在行首加"#&ldquo;）。</p>
+
+<p>测试DNS服务是否有效：</p>
+
+<p>用nslookup指令查询域名的IP地址，如果能返回正确结果说明DNS设置有效，例如：</p>
+
+<p>nslookup www.google.com，与另一台能正常上网的机器的解析结果进行比较可知是否正确。</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,320 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>关于ansi转义序列控制符 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="颜色控制符 现象 Telnet发送ls指令收到的目录名（此目录名为2.1，用粗体标出）： [00m[01;34m 2.1 [00m 对应的原始字节流是（16进制）： 1b 5b 30 30 6d 1b 5b 30 31 3b 33 34 6d 32 2e 31 1b 5b 30 30 6d 解释 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2012/03/19/144550/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">关于ansi转义序列控制符</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-19T14:45:50+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:45 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>颜色控制符</h1>
+
+<h2>现象</h2>
+
+<p>Telnet发送ls指令收到的目录名（此目录名为2.1，用粗体标出）：</p>
+
+<p> <ESC>[00m<ESC>[01;34m 2.1 <ESC>[00m</p>
+
+<p>对应的原始字节流是（16进制）：</p>
+
+<p> 1b 5b 30 30 6d 1b 5b 30 31 3b 33 34 6d 32 2e 31 1b 5b 30 30 6d</p>
+
+<h2>解释</h2>
+
+<p>这些正文前后奇怪的字符序列是 ANSI escape sequence ，也就是为了在 字符终端 （俗语所云的“命令行窗口”）上显示控制格式、字体颜色等东西，由 ANSI 制定的，服务器发送给 终端 的字符序列定义，例如下图中为了区别文件和目录，服务器将文件名的颜色设为白色，而将目录名（Desktop）设为蓝色，</p>
+
+<p> 终端收到原始报文</p>
+
+<p> anaconda-ks.cfg<SPACE><SPACE><ESC>[00m<ESC>[01;34mDesktop<ESC>[00m<SPACE><SPACE>install.log</p>
+
+<p>后，按照ANSI标准解释其中的转义序列，再形成我们看到的不同颜色。这个标准中关于字体颜色定义部分叫做SGR( Select Graphic Rendition )，格式是：</p>
+
+<p> CSI code_num m</p>
+
+<p>其中CSI( Control Sequence Introducer ，这里是 <ESC>[ )是控制符起始标志，code_num是字体颜色代号（详见ansi escape code的 SGR parameters 一节中对代码30~37的说明），可以是单一代码，也可以是用分号分隔的多个代码，其中00表示关闭所有颜色选项（可以理解为“复位”），01表示“亮色”，34表示“蓝色”，所以上图的原始报文可以翻译为：</p>
+
+<p> anaconda-ks.cfg &lt;颜色初始化>&lt;亮色、蓝色>Desktop&lt;颜色初始化> install.log</p>
+
+<p>下面是一个"ls -l"命令的结果截图和对应的原始ASCII码，其中字体颜色有：蓝色（30+4），红色（30+1），绿色（30+2）以及绿色背景（40+2）；</p>
+
+<p> drwxr-xr-x 2 godu boco  4096 2011-04-15 <ESC>[01;34maaa111<ESC>[00m
+drwxr-xr-x 4 godu boco  4096 2011-03-03 <ESC>[01;34maatest<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco  4899 2011-06-14 <ESC>[00mcrc32.c<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco  579 2011-06-14 <ESC>[00mcrc32 oracle.txt<ESC>[00m
+drwxr-xr-x 4 godu boco  4096 2011-05-11 <ESC>[01;34mGoduDb_test<ESC>[00m
+-rw&mdash;&mdash;- 1 godu boco 2836280 2011-05-11 <ESC>[01;31mGoduDb_test.zip<ESC>[00m
+drwxr-xr-x 7 godu boco  4096 2011-04-28 <ESC>[01;34mGODU-platform<ESC>[00m
+drwxr-xr-x 7 godu boco  4096 2010-12-20 <ESC>[01;34mGODU-platform_bak5-6<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 56420261 2011-05-06 <ESC>[01;31mGODU-platform-V2.1_P2_20110506.tar.gz<ESC>[00m
+-rwxr-xr-x 1 godu boco  7652 2011-06-14 <ESC>[01;32mlibcrc32.so<ESC>[00m
+drwxr-xr-x 60 godu boco  4096 2011-05-06 <ESC>[01;34mterracotta<ESC>[00m
+drwxrwxrwx 13 godu boco  4096 2011-02-16 <ESC>[34;42mterracotta-2.7.2<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 58982400 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 49970439 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar.gz<ESC>[00m</p>
+
+<h1>光标定位和擦除屏幕</h1>
+
+<p>屏幕绘制方面的主要有“指定光标位置”（CSI n;m H）和“擦除显示”两类，后者包括“擦除屏幕”（CSI n J）和“擦除行”（CSI n K）两小类，参数用法见 wiki对CSI Codes的说明 ，其中“擦除行”被用于用户输入退格键（Backspace）的处理，当用户（client）向server发送退格键（0x08）时，server返回的是"08 1b 5b 4b"，也就是"Backspace <ESC>[K"，其中Backspace使光标向前一个字符，"<ESC>[&ldquo;是转义字符起始标志（CSI），"CSI K"表示擦除光标到行尾的所有内容。</p>
+
+<p>下面是一个mina server的handler的sessionOpened方法，使用了CSI5;5H和CSI2J，客户端连入这个server的效果如下图：</p>
+
+<p>  @Override
+ public void sessionOpened(IoSession session) {
+  byte[] aes = { 0x1b, 0x5b, 0x35, 0x3b, 0x35, 0x48, 0x1b, 0x5b, 0x32,
+   0x4a, 0x1b, 0x5b, 0x30, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x34,
+   0x3b, 0x34, 0x32, 0x6d, 0x32, 0x2e, 0x31, 0x1b, 0x5b, 0x30,
+   0x30, 0x6d };
+  String aesStr = new String(aes);
+  session.write(aesStr);
+  System.out.println(aesStr);
+ }</p>
+
+<p><ESC>(B: Set to US ASCII character set(see &ldquo; VT100 ESC sequences "for detail);</p>
+
+<h1>设置窗口标题（Set Window Title）</h1>
+
+<p>用putty登录10.0.2.47的23端口，收到的原始报文如下（用Wireshark抓包）：</p>
+
+<p>\033]0;godu@goduserver:~\007[godu@goduserver ~]$</p>
+
+<p>可以看到登录成功后窗体标题变了，原因就是上面的“\033]0;&hellip;\007”造成的；</p>
+
+<p>参考：<a href="https://wiki.archlinux.org/index.php/Color_Bash_Prompt">Color Bash Prompt</a></p>
+
+<h1>切换屏幕</h1>
+
+<p>&ldquo;\033[?1049h"和&rdquo;\033[?1049l"分别是切换到新屏幕和切换回来，演示程序见笔记 演示切换屏幕控制序列的程序 。</p>
+
+<p>参考：<a href="https://groups.google.com/forum/?fromgroups=#!topic/vim_use/8NorwlYFHVQ">Alternate screen buffer in Xterm/FreeBSD </a>和<a href="http://www.digipedia.pl/usenet/thread/16656/2297/">DECSC in tmux vs xterm</a></p>
+
+<h1>光标显示/隐藏</h1>
+
+<p>&ldquo;\033[?25h"和&rdquo;\033[?25l"分别是显示和隐藏光标；</p>
+
+<h1>模式</h1>
+
+<p>Normal和Application模式的区别见<a href="http://ttssh2.sourceforge.jp/manual/en/usage/tips/appkeypad.html">Cursor key mode</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2012-03-19T14:45:50+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:45 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/telnet/'>telnet</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2012/03/19/144550/" data-via="" data-counturl="http://leetschau.github.io/blog/2012/03/19/144550/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/03/15/093417/" title="Previous Post: 用Wireshark分析Telnet交互过程">&laquo; 用Wireshark分析Telnet交互过程</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/03/20/085110/" title="Next Post: 用autohotkey运行命令行指令">用autohotkey运行命令行指令 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

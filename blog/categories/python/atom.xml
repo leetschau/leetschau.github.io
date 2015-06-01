@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Python | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/python/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Calculate String Length Containing Chinese Characters]]></title>
+    <link href="http://leetschau.github.io/blog/2015/05/07/111310/"/>
+    <updated>2015-05-07T11:13:10+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/05/07/111310</id>
+    <content type="html"><![CDATA[<p>I want to remove all lines with only 1 Chinese character.
+The origin file is very large,
+so I have to filter out all lines with 1 character.
+And remove them together.</p>
+
+<p>Sort all lines in the file by their length is a easy way to achieve this.
+The content of file origin.txt is:</p>
+
+<blockquote><p>一十一
+一十二
+一十三
+一十四
+一十五
+一十六
+一十七
+一十八
+一十九
+二十</p></blockquote>
+
+<h1>Shell</h1>
+
+<pre><code>awk '{print length, $0}' origin.txt | sort -n | cut -d " " -f2- | uniq &gt; target.txt
+</code></pre>
+
+<h1>Python</h1>
+
+<h1>Node</h1>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Python的Generator和yield]]></title>
+    <link href="http://leetschau.github.io/blog/2015/04/08/161006/"/>
+    <updated>2015-04-08T16:10:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/04/08/161006</id>
+    <content type="html"><![CDATA[<p>下面的代码演示了yield的一个使用场景：</p>
+
+<pre><code>def fab(max): 
+    n, a, b = 0, 0, 1 
+    while n &lt; max: 
+        yield b 
+        # print b 
+        a, b = b, a + b 
+        n = n + 1 
+
+for n in fab(5):
+    print(n)
+</code></pre>
+
+<p>简单地讲，yield的作用就是把一个函数变成一个Generator，
+带有yield的函数不再是一个普通函数，Python解释器会将其视为一个Generator，
+调用<code>fab(5)</code>不会执行fab函数，而是返回一个iterable对象。
+在for循环执行时，每次循环都会执行fab函数内部的代码，执行到<code>yield b</code>时，
+fab 函数就返回一个迭代值，下次迭代时，代码从<code>yield b</code>的下一条语句继续执行，
+而函数的本地变量看起来和上次中断执行前是完全一样的，于是函数继续执行，直到再次遇到<code>yield</code>。</p>
+
+<p>上面的<code>fab</code>函数也可以返回一个List，与Generator相比，缺点是内存使用量会很大，
+比如要读取一个10GB的文件，如果直接使用f.read()会把整个文件加载到内存中，
+用Generator代替List，可以保证内存使用量是固定的，例如下面的1024字节：</p>
+
+<pre><code>def read_file(fpath): 
+    BLOCK_SIZE = 1024 
+    with open(fpath, 'rb') as f: 
+        while True: 
+            block = f.read(BLOCK_SIZE) 
+            if block: 
+                yield block 
+            else: 
+                return
+</code></pre>
+
+<p>上面的文件读取是为了演示yield的用法，在实际读取文件时，
+如果是大文件，不能一次性载入所有内容，使用for循环，一次载入一行到内存：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    for line in f:
+        print(line)
+</code></pre>
+
+<p>反之，如果文件比较小，需要一次性载入内存，使用<code>readlines()</code>方法：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    lines = f.readlines()
+</code></pre>
+
+<p>参考：</p>
+
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-cn-python-yield/">Python yield 使用浅析</a></p>
+
+<p><a href="https://docs.python.org/2/tutorial/inputoutput.html">7. Input and Output</a> in <a href="https://docs.python.org/2/tutorial/index.html">The Python Tutorial</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[System Monitor Tools for Linux Server]]></title>
+    <link href="http://leetschau.github.io/blog/2015/02/28/114611/"/>
+    <updated>2015-02-28T11:46:11+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/02/28/114611</id>
+    <content type="html"><![CDATA[<h1>sar</h1>
+
+<p>On CentOS 6.5, install sysstat with <code>yum install sysstat</code>.
+And the cron jobs will be created in /etc/cron.d/sysstat.
+The default routines defined in this file is running system activity accounting every 10 minutes,
+and generating a daily summary of process accounting at 23:53 each day.</p>
+
+<p>Now you can see system memory usage hisory with <code>sar -r 2 5</code>,
+which means display memory usage every 2 seconds, 5 times totally.</p>
+
+<p>To see the memory history: <code>sar -r -f /var/log/sa/sa28</code>,
+the total free memory is the sum of 3 items: kbmemfree, kbbuffers, kbcached.</p>
+
+<p>Refs:</p>
+
+<ul>
+<li><p><a href="https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar">https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar</a></p></li>
+<li><p><a href="http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.">http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.</a></p></li>
+</ul>
+
+
+<h1>dstat</h1>
+
+<p>On CentOS 6.5, install dstat with <code>yum install dstat</code>.</p>
+
+<p>Log the memory usage with <code>dstat --output memlog.csv -t -m 600 500</code>,
+which will log totally 500 times, with a 10-minute interval.</p>
+
+<h1>Glances</h1>
+
+<p>Install it with <code>curl -L http://bit.ly/glances | /bin/bash</code>.
+This only works on Linode node.
+It failed on my loptop with message &ldquo;connection reset by peer&rdquo;.
+On the Linode node, the installation failed with &ldquo;yum&rdquo; and &ldquo;pip&rdquo;.
+It seems the reason is the dependencies are not met.</p>
+
+<p>Use it with <code>glances</code> with root, or <code>glances -w</code> as a web server.
+Then you can see the status of your server with url &ldquo;<a href="http://104.237.135.143:61208">http://104.237.135.143:61208</a>&rdquo;.</p>
+
+<p>For keep a system log, use <code>glances -t 600 --export-csv /tmp/glances.csv</code>,
+which means write a csv-format log every 10 minutes (3 seconds by default) to /tmp/glances.csv.</p>
+
+<p>P.S.: There&rsquo;s also a <a href="http://munin-monitoring.org/">Munin</a>.
+It seems the installation is complex, so I gave up.</p>
+
+<h1>collectl</h1>
+
+<p>Install with <code>yum install collectl</code>.</p>
+
+<p>Print memeory usage with <code>collectl -i 2 -c 5 -sm</code>.</p>
+
+<p>Print all subsystems with <code>collectl --showsubsys</code>.</p>
+
+<p>Log output information with &ldquo;-f&rdquo; options: <code>collectl -sm -i 2 -c 5 -f mylog</code>.
+It creates a gz file, which you have to extract with <code>gzip -d mylog...</code>.</p>
+
+<p>Ref: <a href="http://lintut.com/best-command-line-tools-for-linux-performance-monitring/">http://lintut.com/best-command-line-tools-for-linux-performance-monitring/</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Closure in Different Languages]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/20/104236/"/>
+    <updated>2014-08-20T10:42:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/20/104236</id>
+    <content type="html"><![CDATA[<p>The following code snippets compare closures in several languages.</p>
+
+<p>First is closure in javascript. Here I use <a href="https://github.com/creationix/nvm">nvm</a> to run javascript code.</p>
+
+<pre><code>$ cat closure.js
+function extent() {
+    var n = 0;
+    return function() {
+        n++;
+        console.log("n=" + n);
+    }
+}
+
+extent()();
+extent()();
+f = extent();
+console.log("-----");
+//console.log(extent.uniqueId());
+f();
+f();
+
+$ nvm alias default 0.10
+$ nvm run closure.js
+Running node v0.10.30
+n=1
+n=1
+-----
+n=1
+n=2
+</code></pre>
+
+<p>In above example, the closure is <code>function() { n++; console.log... }</code>. It&rsquo;s bound to variable &ldquo;f&rdquo;. The local variable &ldquo;n&rdquo; is &ldquo;closed&rdquo; into closure. Its lifetime is the same with &ldquo;f&rdquo;. So after the first execution of f, its inner state is saved.</p>
+
+<p>For Python, nested function can only access variables in outer scope, but can&rsquo;t reassign (modify) them. So I use list as a workaround. In Python 3, there is a new keyword &ldquo;nonlocal&rdquo; to remove this restriction.</p>
+
+<pre><code>$ cat closure.py2.py
+def extent():
+    n = [0]
+    def afun():
+        n[0] += 1
+        print('n=' + str(n[0]))
+    return afun
+
+extent()()
+extent()()
+print('-----')
+f = extent()
+f()
+f()
+print("type of f is %s, its id is %d" % (type(f), id(f)))
+
+$ python closure.py2.py 
+n=1
+n=1
+-----
+n=1
+n=2
+type of f is &lt;type 'function'&gt;, its id is 140403684898408
+
+$ cat closure.py3.py
+def extent():
+    n = 0
+    def afun():
+        nonlocal n
+        n += 1
+        print('n=' + str(n))
+    return afun
+
+extent()()
+extent()()
+f = extent()
+print('----')
+f()
+f()
+print("type of f is %s, its id is %d" % (type(f), id(f)))
+
+[0] python3 closure.py3.py
+n=1
+n=1
+----
+n=1
+n=2
+type of f is &lt;class 'function'&gt;, its id is 139914425096528
+</code></pre>
+
+<p>The Ruby environment used here is <a href="http://rvm.io/">RVM</a>. Ruby version is 2.1.2.</p>
+
+<pre><code>$ rvm use 2.1.2 --default
+$ cat closure.rb
+def extent
+    n = 0
+    lambda {
+        n += 1
+        printf "n=%d\n", n
+    }
+end
+
+extent().call()
+extent().call()
+f = extent()
+puts '------'
+f.call()
+f.call()
+puts "class of f is #{f.class.name}, its id is #{f.object_id}"
+
+$ ruby closure.rb
+n=1
+n=1
+------
+n=1
+n=2
+class of f is Proc, its id is 6724520
+</code></pre>
+
+<p>Two versions of Scala, define functions via &ldquo;def&rdquo; and &ldquo;val&rdquo; give different results:</p>
+
+<pre><code>$ diff *.scala
+1c1
+&lt; def extent = {
+---
+&gt; val extent = {
+
+$ cat closure-def.scala
+def extent = {
+    var n = 0
+    () =&gt; {
+        n += 1
+        println("n=" + n)
+    }
+}
+
+extent()
+extent()
+val f = extent
+println("------")
+f()
+f()
+println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
+
+$ scala closure-def.scala
+n=1
+n=1
+------
+n=1
+n=2
+Class of f is class Main$$anon$1$$anonfun$extent$1, its id is 8970973
+
+$ cat closure-val.scala 
+val extent = {
+    var n = 0
+    () =&gt; {
+        n += 1
+        println("n=" + n)
+    }
+}
+
+extent()
+extent()
+val f = extent
+println("------")
+f()
+f()
+println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
+$ scala closure-val.scala 
+n=1
+n=2
+------
+$ scala closure-val.scala 
+n=1
+n=2
+------
+n=3
+n=4
+Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Solve Integral Equation Set With Python]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/13/090432/"/>
+    <updated>2014-08-13T09:04:32+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/13/090432</id>
+    <content type="html"><![CDATA[<p>The equation set is provided by 鲍珂 at 2014-8-12.</p>
+
+<p>Host: Windows 7
+VM: CentOS 6.5 minimal, python 2.6.6</p>
+
+<p>Start VM, make sure its ssh service start with <code>service sshd status</code>;</p>
+
+<p>Then connect it with Putty or Kitty;</p>
+
+<h1>Install</h1>
+
+<p>yum install wget
+wget <a href="http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm">http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm</a>
+rpm -ivh epel-release-6-8.noarch.rpm
+yum update</p>
+
+<p>// optional desktop environment, start with <code>startxfce4</code>
+yum groupinstall Xfce
+yum groupinstall Fonts
+yum install xorg-x11-fonts-Type1 xorg-x11-fonts-misc</p>
+
+<p>yum install python-pip
+yum install vim-enhanced
+yum install python-ipython.noarch
+pip install argparse
+pip install sympy
+pip install mpmath
+pip install scipy</p>
+
+<h1>Symbolic Method</h1>
+
+<p>from sympy import *
+var(&lsquo;x y s&rsquo;)
+integrate(gamma(x+y)/(gamma(x)+gamma(y))<em>s**(x-1)</em>(1-s)<strong>(y-1), (s, 0, 0.6))
+integrate(gamma(x+y)/(gamma(x)+gamma(y))*s</strong>(x-1)*(1-s)**(y-1), (s, 0.9, 1))</p>
+
+<p>Ref:
+<a href="http://docs.sympy.org/0.7.0/tutorial.html">http://docs.sympy.org/0.7.0/tutorial.html</a>
+<a href="http://scipy-lectures.github.io/advanced/sympy.html#integration">http://scipy-lectures.github.io/advanced/sympy.html#integration</a>
+<a href="http://docs.sympy.org/dev/modules/integrals/integrals.html">http://docs.sympy.org/dev/modules/integrals/integrals.html</a>
+<a href="http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html">http://docs.sympy.org/0.7.1/modules/mpmath/functions/gamma.html</a></p>
+
+<h1>Numeric Method</h1>
+
+<p>from <strong>future</strong> import division
+from scipy.optimize import fsolve
+from scipy.special import gamma
+from scipy.integrate import fixed_quad</p>
+
+<p>def myfunc(x, y, theta):
+gmp = gamma(x+y) / (gamma(x)+gamma(y))
+return gmp * theta<strong>(x-1) * (1-theta)</strong>(y-1)</p>
+
+<p>def equations(p):
+x, y = p
+intg1 = fixed_quad(myfunc, 0, 0.6, args=(x, y))
+intg2 = fixed_quad(myfunc, 0.9, 1, args=(x, y))
+return (intg1[0] - 0.05, intg2[0] - 0.05)</p>
+
+<p>xr, yr = fsolve(equations, (1, 1))
+print equations((xr, yr))</p>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python">http://stackoverflow.com/questions/8739227/how-to-solve-a-pair-of-nonlinear-equations-using-python</a></p>
+
+<p><a href="http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad">http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.integrate.fixed_quad.html#scipy.integrate.fixed_quad</a></p>
+
+<p><a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve">http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fsolve.html#scipy.optimize.fsolve</a></p>
+]]></content>
+  </entry>
+  
+</feed>

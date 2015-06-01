@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ruby | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ruby/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Closure in Different Languages]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/20/104236/"/>
+    <updated>2014-08-20T10:42:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/20/104236</id>
+    <content type="html"><![CDATA[<p>The following code snippets compare closures in several languages.</p>
+
+<p>First is closure in javascript. Here I use <a href="https://github.com/creationix/nvm">nvm</a> to run javascript code.</p>
+
+<pre><code>$ cat closure.js
+function extent() {
+    var n = 0;
+    return function() {
+        n++;
+        console.log("n=" + n);
+    }
+}
+
+extent()();
+extent()();
+f = extent();
+console.log("-----");
+//console.log(extent.uniqueId());
+f();
+f();
+
+$ nvm alias default 0.10
+$ nvm run closure.js
+Running node v0.10.30
+n=1
+n=1
+-----
+n=1
+n=2
+</code></pre>
+
+<p>In above example, the closure is <code>function() { n++; console.log... }</code>. It&rsquo;s bound to variable &ldquo;f&rdquo;. The local variable &ldquo;n&rdquo; is &ldquo;closed&rdquo; into closure. Its lifetime is the same with &ldquo;f&rdquo;. So after the first execution of f, its inner state is saved.</p>
+
+<p>For Python, nested function can only access variables in outer scope, but can&rsquo;t reassign (modify) them. So I use list as a workaround. In Python 3, there is a new keyword &ldquo;nonlocal&rdquo; to remove this restriction.</p>
+
+<pre><code>$ cat closure.py2.py
+def extent():
+    n = [0]
+    def afun():
+        n[0] += 1
+        print('n=' + str(n[0]))
+    return afun
+
+extent()()
+extent()()
+print('-----')
+f = extent()
+f()
+f()
+print("type of f is %s, its id is %d" % (type(f), id(f)))
+
+$ python closure.py2.py 
+n=1
+n=1
+-----
+n=1
+n=2
+type of f is &lt;type 'function'&gt;, its id is 140403684898408
+
+$ cat closure.py3.py
+def extent():
+    n = 0
+    def afun():
+        nonlocal n
+        n += 1
+        print('n=' + str(n))
+    return afun
+
+extent()()
+extent()()
+f = extent()
+print('----')
+f()
+f()
+print("type of f is %s, its id is %d" % (type(f), id(f)))
+
+[0] python3 closure.py3.py
+n=1
+n=1
+----
+n=1
+n=2
+type of f is &lt;class 'function'&gt;, its id is 139914425096528
+</code></pre>
+
+<p>The Ruby environment used here is <a href="http://rvm.io/">RVM</a>. Ruby version is 2.1.2.</p>
+
+<pre><code>$ rvm use 2.1.2 --default
+$ cat closure.rb
+def extent
+    n = 0
+    lambda {
+        n += 1
+        printf "n=%d\n", n
+    }
+end
+
+extent().call()
+extent().call()
+f = extent()
+puts '------'
+f.call()
+f.call()
+puts "class of f is #{f.class.name}, its id is #{f.object_id}"
+
+$ ruby closure.rb
+n=1
+n=1
+------
+n=1
+n=2
+class of f is Proc, its id is 6724520
+</code></pre>
+
+<p>Two versions of Scala, define functions via &ldquo;def&rdquo; and &ldquo;val&rdquo; give different results:</p>
+
+<pre><code>$ diff *.scala
+1c1
+&lt; def extent = {
+---
+&gt; val extent = {
+
+$ cat closure-def.scala
+def extent = {
+    var n = 0
+    () =&gt; {
+        n += 1
+        println("n=" + n)
+    }
+}
+
+extent()
+extent()
+val f = extent
+println("------")
+f()
+f()
+println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
+
+$ scala closure-def.scala
+n=1
+n=1
+------
+n=1
+n=2
+Class of f is class Main$$anon$1$$anonfun$extent$1, its id is 8970973
+
+$ cat closure-val.scala 
+val extent = {
+    var n = 0
+    () =&gt; {
+        n += 1
+        println("n=" + n)
+    }
+}
+
+extent()
+extent()
+val f = extent
+println("------")
+f()
+f()
+println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
+$ scala closure-val.scala 
+n=1
+n=2
+------
+$ scala closure-val.scala 
+n=1
+n=2
+------
+n=3
+n=4
+Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Ruby Build Tools]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/18/111841/"/>
+    <updated>2014-08-18T11:18:41+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/18/111841</id>
+    <content type="html"><![CDATA[<p>&ldquo;gem&rdquo; (as a command) is a tool to download and install gems from <a href="https://rubygems.org/">RubyGems</a>. It&rsquo;s Python counterpart should be pip. It install some global gems (files), such as rake, bundler, etc.</p>
+
+<p>&ldquo;gem&rdquo; (as a file on disk), such as &ldquo;bundler-1.6.1.gem&rdquo; is a package which has the same standard structure. It&rsquo;s Java counterpart should be &ldquo;jar&rdquo; file.</p>
+
+<p><a href="http://bundler.io/">bundler</a> is used to manage project-level gems, whose versions for example. It works based on a spec file named &ldquo;Gemfile&rdquo; at project&rsquo;s root directory. It&rsquo;s Java counterpart should be Ivy.</p>
+
+<p><a href="https://rubygems.org/gems/rake">rake</a> is a build tool of Ruby. You can define many tasks and their dependencies in file &ldquo;Rakefile&rdquo;. It&rsquo;s Java counterpart should be Ant, and makefor Linux.</p>
+
+<p>Functions of Maven or Gradle for Java covers bundler and rake.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[RVM Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2014/01/16/093905/"/>
+    <updated>2014-01-16T09:39:05+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/01/16/093905</id>
+    <content type="html"><![CDATA[<h1>Installation</h1>
+
+<pre><code>$ curl -sSL https://git.rvm.io | bash -s stable
+$ rvm list known
+$ rvm install 1.9.3
+</code></pre>
+
+<p>No root privilege needed.</p>
+
+<p>If you install it as root, it will be saved in /usr/local/rvm, and after installation all users can use rvm.</p>
+
+<h2>Install on Linux Mint 14 32bit</h2>
+
+<p>There&rsquo;s no compiled ruby package for Mint 14 32bit. So <code>rvm install 1.9.3</code> failed. This is a workaround:</p>
+
+<ol>
+<li><p>Download <a href="https://rvm.io/binaries/ubuntu/12.04/i386/ruby-2.1.0.tar.bz2">ruby-2.1.0.tar.bz2</a> for ubuntu 12.04;</p></li>
+<li><p>$ rvm mount -r /path/to/ruby-2.1.0.tar.bz2</p></li>
+<li><p>$ rvm alias create default ruby-2.1.0</p></li>
+<li><p>$ rvm use default</p></li>
+</ol>
+
+
+<h2>Enable Ruby</h2>
+
+<p>Add rvm environments definition into ~/.zshrc or ~/.bashrc:</p>
+
+<pre><code>echo 'source ~/.rvm/scripts/rvm' &gt;&gt; ~/.zshrc
+</code></pre>
+
+<h1>Usage</h1>
+
+<p>Run &ldquo;irb&rdquo; or &ldquo;ruby <script-name>&rdquo; in console directly.</p>
+
+<p>List installed ruby: <code>rvm list</code></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Functional Programming in Ruby 1.9]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/09/175225/"/>
+    <updated>2013-12-09T17:52:25+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/09/175225</id>
+    <content type="html"><![CDATA[<ul>
+<li><p>Blocks are just a special syntactic sugar in Ruby to create Procs.</p></li>
+<li><p>Lambdas are really just Procs, but with two important differences:</p></li>
+<li><p>Lambdas check the arguments they receive, just like methods. Procs do not. This means if you pass only one argument to a Lambda that takes two arguments, you’ll get an ArgumentError. If you do the same to a Proc, it will just blindly accept the ones you did give, and set the rest of the arguments to nil;</p></li>
+<li><p>Any return statements used in a Proc will also return from the method that called that Proc. Lambdas, on the other hand, will not. This means you can call a Lambda, get its return value, and process it, all within the one method;</p></li>
+<li><p>Currying is the ability to take a function that accepts n parameters and generate from it one of more functions with some parameter values already filled in. In RUby 1.9, you create a curry-able proc by calling the curry method on it. If you subsequently call this curried proc with fewer parameters than it expects, it will not execute. Instead, it returns a new proc with those parameters already bound;</p></li>
+</ul>
+
+
+<p>Ref:</p>
+
+<p><a href="http://www.sitepoint.com/functional-programming-techniques-with-ruby-part-i/">Functional Programming Techniques With Ruby: Part I, II and III</a></p>
+
+<p><a href="http://pragdave.blogs.pragprog.com/pragdave/2008/09/fun-with-procs.html">Fun with Procs in Ruby 1.9</a></p>
+
+<p><a href="http://www.ruby-doc.org/core-1.9.3/Proc.html">Proc in Ruby 1.9.3 Documentation</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Run Shell Script Inside Ruby Script]]></title>
+    <link href="http://leetschau.github.io/blog/2013/12/02/193731/"/>
+    <updated>2013-12-02T19:37:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2013/12/02/193731</id>
+    <content type="html"><![CDATA[<h1>Backtick grammar</h1>
+
+<p>Thanks to the backtick grammar and string substitution, shell script can be embedded more easily into Ruby script than Python.</p>
+
+<p>Execute shell command in irb, the return value is the output in stdout:</p>
+
+<pre><code>2.1.2 :036 &gt; `ls -l|grep play`
+ =&gt; "drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj\n" 
+ 2.1.2 :037 &gt; `aaa`
+ Errno::ENOENT: No such file or directory - aaa
+ ...
+</code></pre>
+
+<p>Execute shell commands in Ruby scripts:</p>
+
+<pre><code># Usage: Save the following scripts in file "cmd.rb" 
+# $ ruby cmd.rb ls -a 
+cmd = ARGV[0] 
+op = ARGV[1] 
+result = `#{cmd} #{op}` 
+puts result
+</code></pre>
+
+<h1>system function</h1>
+
+<p>Kernel#system executes the given command in a subshell. Return true if the command was found and ran successfully, false otherwise.
+The output of the command will be written to stdout. So it can&rsquo;t store the command output.</p>
+
+<pre><code>2.1.2 :036 &gt; `ls -l|grep play`
+drwxr-xr-x 3 chad chad 4096 Aug 12 17:17 playproj
+ =&gt; truee
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/2232/calling-bash-commands-from-ruby">Calling Bash Commands From Ruby</a></p>
+
+<p><a href="http://stackoverflow.com/questions/2741260/can-ruby-access-output-from-shell-commands-as-it-appears">Can Ruby access output from shell commands as it appears?</a></p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,305 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Debug Binary File Reading C++ Codes With Gdb - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="We need debug a C++ file, which read and analyze a binary file. We use gdb and xxd in this case. In tmux, split a window horizontally, run gdb in the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2014/05/23/171938/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Debug Binary File Reading C++ Codes With Gdb</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-23T17:19:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:19 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>We need debug a C++ file, which read and analyze a binary file. We use gdb and xxd in this case. In tmux, split a window horizontally, run gdb in the upper bigger pane, and list file content in lower smaller pane.</p>
+
+<pre><code>$ tmux new -s basic
+A-f,-   // split window, I define &lt;prefix&gt; of tmux as A-f in ~/.tmux.conf: set -g prefix M-f
+A-f,JJ  // make upper pane larger
+$ xxd -l 33 &lt;input-binary-file&gt;.dat   // print first 32 bytes of this file
+0000000: 202a 463b 862e d108 2100 ab55 8006 f407   *F;....!..U....
+0000010: 0000 0000 0a0e 0401 0102 1800 5201 0501  ............R...
+0000020: 15
+A-f,k   // jump to upper window
+$ cat readfile.cc
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+using namespace std;
+
+typedef unsigned char BYTE;
+
+BYTE *read_section(FILE *istream, int *length);
+
+int main() {
+    string filename = "/home/chad/docs/eclipsews/MrParser/doc/ns-output/1296_2014_04_25_10_00_MR.dat";
+    char *fn = const_cast&lt;char*&gt;(filename.c_str());
+    FILE *rstream = fopen(fn, "rb"); // 打开.dat文件
+    BYTE *buffer = NULL;
+    int length = 0;
+    buffer = read_section(rstream, &amp;length);
+    fclose(rstream);
+    printf("Read file length: %d\n", length);
+    return 0;
+}
+
+BYTE *read_section(FILE *istream, int *length) {
+    int count = 0;
+    size_t ret = 0;
+    BYTE buf[128];
+    BYTE *buffer = NULL;
+
+    ret = fread(buf, sizeof(char), 8, istream); if (8 != ret) return NULL;
+    ret = fread(buf, sizeof(char), 2, istream); if (2 != ret) return NULL;
+    *length = buf[1] * 256 + buf[0];
+    if ( 0 == *length) return NULL;
+    buffer = new BYTE[*length];
+    fseek(istream, -10, SEEK_CUR);
+    ret = fread(buffer, sizeof(char), *length, istream);
+    if (*length != ret) {
+        delete [] buffer;
+        return NULL;
+    }
+    return buffer;
+}
+$ g++ -g readfile.cc -o rr
+$ gdb rr
+l
+// list source code, we want to probe the content of variable "buffer" after the "fread" operation. So we add a breakpoint after that line
+b 37
+r
+(gdb) p/x *buffer@33
+$1 = {0x20, 0x2a, 0x46, 0x3b, 0x86, 0x2e, 0xd1, 0x8, 0x21, 0x0, 0xab, 0x55, 0x80, 0x6, 0xf4, 0x7, 0x0, 0x0, 0x0, 0x0, 0xa, 0xe, 0x4, 0x1, 0x1,
+  0x2, 0x18, 0x0, 0x52, 0x1, 0x5, 0x1, 0x15}
+p/x buffer[0]
+$2 = 0x20
+c
+q
+</code></pre>
+
+<p>where l=list, r=run, p/x means &ldquo;print value in hex format&rdquo;, c=continue, q=quit.
+You can see the bytes of &ldquo;buffer&rdquo; is exactly the same with the output of xxd command: 0x20, 0x2a, &hellip;, 0x15.</p>
+
+<p>The format of gdb&rsquo;s print see <a href="http://www.delorie.com/gnu/docs/gdb/gdb_55.html">8.4 Output formats</a> for details.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-05-23T17:19:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:19 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/binary/'>binary</a>, <a class='category' href='/blog/categories/c-plus-plus/'>c++</a>, <a class='category' href='/blog/categories/file/'>file</a>, <a class='category' href='/blog/categories/gdb/'>gdb</a>, <a class='category' href='/blog/categories/linux/'>linux</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2014/05/23/171938/" data-via="" data-counturl="http://leetschau.github.io/blog/2014/05/23/171938/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/05/23/094625/" title="Previous Post: Develop with tmux in Linux">&laquo; Develop with tmux in Linux</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/05/27/193340/" title="Next Post: Install Raspberry Pi">Install Raspberry Pi &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

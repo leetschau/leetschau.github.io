@@ -1,0 +1,733 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Firstly a template asn file (PP.asn here) was created. Then it&rsquo;s be used to encode some text, creating a segment binary data(stored in variable &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/posts/22/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/12/142038/">Encode and Decode ASN.1 in Erlang</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-12T14:20:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:20 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Firstly a template asn file (PP.asn here) was created. Then it&rsquo;s be used to encode some text, creating a segment binary data(stored in variable Bin), then Bin was decoded based on PP.asn. We can also store binaries into a file, then read from it.</p>
+
+<pre><code>$ cat PP.asn
+PP DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+  TGSN ::=    INTEGER (0..14)
+  Persons ::= SEQUENCE {
+    name PrintableString,
+    location INTEGER {home(0),field(1),roving(2)},
+    age INTEGER OPTIONAL
+  }
+END
+$ erl
+Erlang/OTP 17 [erts-6.0] [source-07b8f44] [smp:2:2] [async-threads:10] [hipe] [kernel-poll:false]
+
+Eshell V6.0  (abort with ^G)
+1&gt; asn1ct:compile("PP", [ber, verbose]).
+Erlang ASN.1 compiler 3.0
+Compiling: "PP.asn"
+Options: [ber,verbose,{i,"."}]
+--{generated,"PP.asn1db"}--
+--{generated,"PP.hrl"}--
+--{generated,"PP.erl"}--
+ok
+2&gt; Rockstar = {'Persons',"Some Name",roving,50}.
+{'Persons',"Some Name",roving,50}
+3&gt; {ok,Bin} = 'PP':encode('Persons',Rockstar).    
+{ok,&lt;&lt;48,17,128,9,83,111,109,101,32,78,97,109,101,129,1,
+      2,130,1,50&gt;&gt;}
+4&gt; {ok,Persons} = 'PP':decode('Persons',Bin).  
+{ok,{'Persons',"Some Name",roving,50}}
+5&gt; file:write_file("test", Bin).
+ok
+6&gt; {ok, Bin2} = file:read_file("test").
+{ok,&lt;&lt;48,17,128,9,83,111,109,101,32,78,97,109,101,129,1,
+      2,130,1,50&gt;&gt;}
+7&gt; {ok,Persons} = 'PP':decode('Persons',Bin2).
+{ok,{'Persons',"Some Name",roving,50}}
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/10/172302/">Bitstring in Erlang</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-10T17:23:02+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:23 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>bitstring is the bit sequence literals in Erlang. It&rsquo;s powerful and convenient due to the Erlang&rsquo;s telecom background.</p>
+
+<p>Now we have a bit sequence &ldquo;0110 0101 1000 1111 1010 0010&rdquo;, whose corresponding hex literal is: &ldquo;0x65 0x8f 0xa2&rdquo;. To express it with Erlang:</p>
+
+<pre><code>1&gt; Bin = &lt;&lt;16#65, 16#8f, 16#a2&gt;&gt;.
+&lt;&lt;101,143,162&gt;&gt;
+</code></pre>
+
+<p>Every segment divided by comma is called a &ldquo;segment&rdquo;, it&rsquo;s default size is 8.</p>
+
+<p>But we want divide this sequence in this way: &ldquo;011 0010 1100 011 1110 10 0010&rdquo;, which can be expressed as &ldquo;&lt;&lt;value1:length1, value2:length2, &hellip;>>&rdquo;:</p>
+
+<pre><code>2&gt; Bin2 = &lt;&lt;3:3, 2:4, 16#c:4, 3:3, 16#e:4, 2:2, 2:4&gt;&gt;.
+&lt;&lt;101,143,162&gt;&gt;
+</code></pre>
+
+<p>So that&rsquo;s why</p>
+
+<pre><code>3&gt; &lt;&lt;3, 17, 23:16&gt;&gt;.
+&lt;&lt;3,17,0,23&gt;&gt;
+4&gt; &lt;&lt;3, 17, 3323:16&gt;&gt;.
+&lt;&lt;3,17,12,251&gt;&gt;
+</code></pre>
+
+<p>The third segment &ldquo;<num>:16&rdquo; consists of 16 bits. So it&rsquo;s 8-bit &ldquo;normal&rdquo; literals is:</p>
+
+<pre><code>0 * 256 + 23 = 23
+12 * 256 + 251 = 3323
+</code></pre>
+
+<p>That&rsquo;s it.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/06/193841/">I3 Window Manager on CentOS 6</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-06T19:38:41+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:38 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Make a usb key with dd command and CentOS-6.5-i386-LiveDVD.iso;</p></li>
+<li><p>Install CentOS 6.5 on Dell PC;</p></li>
+<li><p>Run firefox and install H3C client to connect to internet;</p></li>
+<li><p>After installation, run <code>yum update</code> and install epel;</p></li>
+<li><p>Search i3 in CentOS repository: <code>yum list i3</code> => i3.i686</p></li>
+<li><p><code>yum install i3.i686</code>;</p></li>
+<li><p><code>yum install i3lock.i686</code>;</p></li>
+<li><p>modify /etc/inittab, set the runlevel to 3;</p></li>
+<li><p>create ~/.xinitrc for user chad: <code>echo "exec i3" &gt; ~/.xinitrc</code>;</p></li>
+<li><p>reboot;</p></li>
+<li><p>Login as user chad;</p></li>
+<li><p><code>startx</code>;</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/06/144953/">ASN.1 Tools</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-06T14:49:53+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>pyasn1</h1>
+
+<pre><code>$ pip install pyasn1
+</code></pre>
+
+<p>Ref: <a href="pyasn1.sourceforge.net">ASN.1 for Python</a>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/06/090357/">Use Command Line Dictionary on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-06T09:03:57+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><pre><code>$ sudo apt-get install dictd dict dict-gcide
+$ dict -I
+$ dict -d gcide computer
+</code></pre>
+
+<p>Ref: <a href="http://xmodulo.com/2013/04/how-to-look-up-dictionary-via-command-line-on-linux.html">How to look up dictionary via command line on Linux</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/06/085952/">Living in Window Manager</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-06T08:59:52+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:59 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Input Method</h1>
+
+<p>$mod+d, ibus-daemon</p>
+
+<h1>Calendar</h1>
+
+<p>In terminal: cal</p>
+
+<h1>Dictionary</h1>
+
+<ul>
+<li><p>Use goldendict: $mod+d, goldendict</p></li>
+<li><p>Use dictd;</p></li>
+</ul>
+
+
+<h1>USB</h1>
+
+<ol>
+<li><p>Detect usb device name and type: <code>fdisk -l</code>. For all available device type, see <code>man mount</code>, search &ldquo;vfstype&rdquo;;</p></li>
+<li><p>Mount it: <code>mount -t ntfs /dev/sdc1 /media/chad</code>;</p></li>
+<li><p>copy something;</p></li>
+<li><p>Unmount it: <code>umount /media/chad</code>;</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/05/190701/">Lightweight Image Edition on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-05T19:07:01+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:07 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Basic editions</h1>
+
+<p>You can use Mint built-in GUI programe &lsquo;gthumb&rsquo; for some basic image manipulations,
+such as crop, rotate, resize, convert format (for example, convert jpg image to png).</p>
+
+<p>Click &ldquo;Edit file&rdquo; button on the right-hand side of toolbar,
+then select &ldquo;Crop&rdquo;.</p>
+
+<h1>Add Lock Wallpaper to i3lock</h1>
+
+<h2>Manipulate Pictures on Linux</h2>
+
+<p>On Ubuntu:</p>
+
+<pre><code>$ sudo apt-get install imagemagick
+$ convert /usr/share/xfce4/backdrops/linuxmint-nadia-extra/stars.jpg -resize 25% wallpaper.png
+</code></pre>
+
+<h2>Set Wallpaper</h2>
+
+<p>Use it as i3lock wallpaper: add the following line into ~/.i3/config:</p>
+
+<pre><code>bindsym $sup+l exec "i3lock -i /home/chad/.i3/wallpaper.png"
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/05/161019/">Run Linux Without Desktop Environment</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-05T16:10:19+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:10 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>RRM-based Linux</h1>
+
+<p>On rpm-based Linux, runlevel 3 means text mode, 5 means X desktop mode. So if you want only start OS without desktop environment, modify runlevel from 5 to 3.</p>
+
+<p>You can do this as root with command: <code>init 3</code>, or modify /etc/inittab file and reboot:</p>
+
+<p>from:</p>
+
+<pre><code>id:5:initdefault:
+</code></pre>
+
+<p>to:</p>
+
+<pre><code>id:3:initdefault:
+</code></pre>
+
+<p>Need verified.</p>
+
+<h1>Linux Mint</h1>
+
+<p>Open file /boot/grub/grub.cfg, in section &ldquo;### BEGIN /etc/grub.d/10_linux ###&rdquo;, and then &ldquo;menuentry &hellip;&rdquo;,
+there&rsquo;s a command &ldquo;linux /boot/vmlinuz&hellip;&rdquo;, replace string &ldquo;quiet splash&rdquo; with &ldquo;text&rdquo;,
+save file and reboot.</p>
+
+<p>Here &ldquo;quiet&rdquo;, &ldquo;splash&rdquo; and &ldquo;text&rdquo; are all starting options.
+If you want only display Mint splash window, without printing boot messages,
+and finally start into console (not the login manager, GDM), use &ldquo;quiet splash text&rdquo;.</p>
+
+<p>Verified 2014/5/5.</p>
+
+<p>Note: /etc/inittab is a config file originally used by init of Unix system V, which is deprecated by most Linux distros now.
+It&rsquo;s replaced by upstart or systemd.</p>
+
+<p>Ref:</p>
+
+<ul>
+<li><p><a href="http://community.linuxmint.com/tutorial/view/460">Boot directly into terminal - no GUI</a></p></li>
+<li><p><a href="http://www.centos.org/docs/5/html/Deployment_Guide-en-US/ch-services.html#s1-services-runlevels">Chapter 15. Controlling Access to Services</a></p></li>
+<li><p><a href="http://en.wikipedia.org/wiki/Upstart">Upstart</a></p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/04/195537/">Start GUI Application on Another Screen</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-04T19:55:37+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:55 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>On host A, start up a desktop environment like gnome or window manager like i3, start a terminal, run <code>echo $DISPLAY</code>, then you get the display number of this screen, like &ldquo;:0&rdquo;.</p></li>
+<li><p>Open a terminal on host B and ssh to the previous one, run following command:</p>
+
+<p> $ export DISPLAY=:0
+ $ gvim</p></li>
+</ol>
+
+
+<p>Then you can see the gvim open in the screen of the host A.</p>
+
+<p>Ref: <a href="http://askubuntu.com/questions/47642/how-to-start-a-a-gui-software-on-a-remote-linux-pc-via-ssh">http://askubuntu.com/questions/47642/how-to-start-a-a-gui-software-on-a-remote-linux-pc-via-ssh</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/04/191733/">Install I3 on Ubuntu Server</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-04T19:17:33+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:17 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install i3 on Ubuntu Server</h1>
+
+<pre><code># echo "deb http://debian.sur5r.net/i3/ $(lsb_release -c -s) universe" &gt;&gt; /etc/apt/sources.list
+# apt-get update        // don't worry error messages at this stage
+# apt-get --allow-unauthenticated install sur5r-keyring
+# apt-get update
+# apt-get install xinit
+# apt-get install i3
+# apt-get install tilda  // a light-weight terminal
+# useradd -m chad
+# su - chad
+$ startx
+</code></pre>
+
+<p>Quit i3 and edit ~/.i3/config, specify tilda as the default termial:</p>
+
+<pre><code>bindsym $mod+Return exec tilda
+</code></pre>
+
+<p>Start i3 again, you can use $mod+Return to start tilda window now.</p>
+
+<h1>Install i3 on a Host can&rsquo;t access Internet</h1>
+
+<ol>
+<li><p>Install i3 on a Ubuntu Server VM;</p></li>
+<li><p>copy the /var/cache/apt/archives folder of this VM to the blocked host;</p></li>
+<li><p>On blocked host:</p>
+
+<p> # cd /var/cache/apt/archives
+ # dpkg -i *.deb</p></li>
+</ol>
+
+
+<p>In the future if you want install something else (say, firefox), move all deb files in another folder, than <code>apt-get install firefox</code>, then copy all deb files in archives folder to the blocked host, than <code>dpkg -i *.deb</code> again.</p>
+
+<h1>Install i3 on a H3C blocked Host</h1>
+
+<p>This is the best method among these three. It&rsquo;s easy and fast to install, easy to switch back to desktop environment. If you already has data on the disk, they will be kept.</p>
+
+<p>Install a full version Linux (include Desktop environment to install i3 online), only i386 version can work with H3C now.
+Only live DVDs which can install without internet can work here</p>
+
+<p>Here I use Mint Xfce.</p>
+
+<ol>
+<li><p>Install Mint Xfce with LiveDVD without Internet;</p></li>
+<li><p>After installation, login, get online with firefox, install H3C client, and run:</p>
+
+<p> # echo &ldquo;deb <a href="http://debian.sur5r.net/i3/">http://debian.sur5r.net/i3/</a> $(lsb_release -c -s) universe&rdquo; >> /etc/apt/sources.list
+ # apt-get update        // don&rsquo;t worry error messages at this stage
+ # apt-get &ndash;allow-unauthenticated install sur5r-keyring
+ # apt-get update
+ # apt-get install i3    // dmenu and i3lock will be installed together
+ # useradd -m chad
+ # passwd chad
+ # vi /boot/grub/grub.cfg    // add &ldquo;text&rdquo; after &ldquo;quiet splash&rdquo;</p></li>
+</ol>
+
+
+<p>Reboot, login as chad, run:</p>
+
+<pre><code>$ echo "exec i3" &gt; ~/.xinitrc
+$ startx
+</code></pre>
+
+<p>To enable ibus-pinyin, $mod+D: ibus-setup.</p>
+
+<p>To add a &ldquo;green&rdquo; application in dmenu, say &ldquo;~/apps/eclipse-java-juno-SR2/eclipse&rdquo;, edit ~/.zshrc, add its path:</p>
+
+<pre><code>export PATH=$PATH:/home/chad/apps/eclipse-java-juno-SR2
+</code></pre>
+
+<p>then quit i3 ($mod+Shift+e), run</p>
+
+<pre><code>$ source ~/.zshrc
+$ startx
+</code></pre>
+
+<p>Now you can see &ldquo;eclipse&rdquo; in dmenu.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/posts/23">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/posts/21">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

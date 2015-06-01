@@ -1,0 +1,407 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Xen on ArchLinux - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Today I bought a new hard disk, and tried to install xen on it. Install Base ArchLinux Start computer with USB key, choose x86_64, NBD;
+This is not &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2014/09/17/215227/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Xen on ArchLinux</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-17T21:52:27+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Today I bought a new hard disk, and tried to install xen on it.</p>
+
+<h1>Install Base ArchLinux</h1>
+
+<ol>
+<li><p>Start computer with USB key, choose x86_64, NBD;</p></li>
+<li><p>This is not UEFI boot: an error raised when <code>efivar -l</code>;</p></li>
+<li><p>Install system:</p>
+
+<p> # rmmod tg3
+ # modprobe broadcom
+ # modprobe tg3
+ # systemctl stop dhcpcd.service
+ # dhcpcd enp2s0
+ # sgdisk &ndash;zap-all /dev/sda
+ # cgdisk /dev/sda
+ // choose GPT partitions type, /dev/sda1: 50G, /dev/sda2: 300G, 581G free
+ # mkfs.ext4 /dev/sda1
+ # mkfs.ext4 /dev/sda2
+ # mount /dev/sda1 /mnt
+ # mkdir /mnt/home
+ # mount /dev/sda2 /mnt/home
+ # vi /etc/pacman.d/mirrorlist
+ # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>   // add the ip into &ldquo;allow&rdquo; list tinyproxy.conf
+ # pacstrap -i /mnt base base-devel
+ # genfstab -U -p /mnt >> /mnt/etc/fstab
+ # vi /etc/locale.gen
+ # locale-gen
+ # echo LANG=en_US.UTF-8 > /etc/locale.conf
+ # export LANG=en_US.UTF-8
+ # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime
+ # hwclock &ndash;systohc &ndash;utc
+ # echo xenserver > /etc/hostname
+ # vi /etc/hosts
+ # systemctl enable <a href="&#x6d;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#x64;&#104;&#x63;&#112;&#99;&#x64;&#64;&#x65;&#x6e;&#112;&#50;&#x73;&#48;&#46;&#115;&#101;&#x72;&#118;&#105;&#99;&#101;">&#x64;&#x68;&#99;&#x70;&#x63;&#x64;&#x40;&#x65;&#110;&#112;&#50;&#115;&#x30;&#46;&#x73;&#101;&#114;&#118;&#x69;&#99;&#101;</a>
+ # passwd
+ # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # pacman -S openssh
+ # systemctl enable sshd.service
+ # pacman -S gptfdisk            // use syslinux boot loader for GPT installed previously
+ # pacman -S syslinux
+ # syslinux-install_update -iam
+ # vi /boot/syslinux/syslinux.cfg    // modify sda3 to sda1 in &ldquo;APPEND root=/dev/sda3&rdquo;
+ # exit
+ # reboot</p></li>
+</ol>
+
+
+<h1>Customize System</h1>
+
+<p>After reboot, login as root and run:</p>
+
+<pre><code># useradd -m chad
+# passwd chad
+# passwd -l root     // disable root login, use can remove this by `sudo passwd -u root`
+# export http_proxy=http://10.32.1.154:8888
+# export https_proxy=http://10.32.1.154:8888
+# pacman -Syu
+# pacman -S xorg-server xorg-server-utils xorg-xinit i3 dmenu xf86-video-intel terminator ttf-dejavu firefox
+# su - chad
+$ echo exec i3 &gt; ~/.xinitrc
+$ startx
+</code></pre>
+
+<h1>Install Xen</h1>
+
+<p>First make sure the host can access internet, then enable multilib repository, uncomment following lines in /etc/pacman.conf:</p>
+
+<pre><code>[multilib]
+Include = /etc/pacman.d/mirrorlist
+</code></pre>
+
+<p>Install yaourt, see note &ldquo;Yaourt Notes&rdquo; for details. Then run <code>yaourt -S xen</code>. If failed, install it manually:</p>
+
+<p>Download xen.tar.gz, and run:</p>
+
+<pre><code>tar xf xen.tar.gz
+cd xen
+makepkg
+sudo pacman -U xen-4.4.1-1-x86_64.pkg.tar.xz
+</code></pre>
+
+<p>Config network:</p>
+
+<pre><code># cd /etc/netctl
+# cp examples/bridge xenbridge-dhcp
+# vi xenbridge-dhcp
+# netctl start xenbridge-dhcp
+# brctl show
+# netctl enable xenbridge-dhcp
+</code></pre>
+
+<p>Config services:</p>
+
+<pre><code>sudo systemctl enable xenstored.service
+sudo systemctl enable xenconsoled.service
+sudo systemctl enable xendomains.service
+</code></pre>
+
+<p>Config boot loader. Add following stanza to /boot/syslinux/syslinux.cfg:</p>
+
+<pre><code>LABEL xen
+    MENU LABEL Xen
+    KERNEL mboot.c32
+    APPEND ../xen-4.4.1.gz --- ../vmlinuz-linux console=tty0 root=/dev/sda1 ro --- ../initramfs-linux.img
+</code></pre>
+
+<p>And make sure there is a &ldquo;mboot.c32&rdquo; file in folder /boot/syslinux, or you have to copy it:
+<code>cp /usr/lib/syslinux/bios/mboot.c32 /boot/syslinux/</code>.</p>
+
+<p>Note: If there is file conflicting errors, use <code>sudo pacman -U --force xen-4.4.1-1-x86_64.pkg.tar.xz</code> to install it.</p>
+
+<p>Reboot, choose &ldquo;Xen&rdquo; at boot screen, then run <code>sudo xl list</code> (list all xen domains), you can see a &ldquo;Domain-0&rdquo; item.
+If you boot with ArchLinux, run <code>sudo xl list</code> will report an error.</p>
+
+<h1>Install Guest OS on Xen</h1>
+
+<p>See <a href="http://wiki.xen.org/wiki/Xen_Configuration_File_Options#Disk_Devices">Xen Configuration File Options</a> for full syntax of xen domU config files.</p>
+
+<h2>CentOS 6.5 minimal</h2>
+
+<h3>PV</h3>
+
+<p>Not succeed yet. Maybe we should use CentOS as dom0 system.</p>
+
+<pre><code>$ mkdir ~/docs/cloud60
+$ cd ~/docs/cloud60
+$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
+$ mkfs.ext4 cloud60.img
+$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
+$ cat cloud60.conf      // ???
+$ sudo xl create -c cloud60.conf
+</code></pre>
+
+<h3>HVM</h3>
+
+<pre><code>$ sudo pacman -S mesa-libgl bluez-libs tigervnc
+$ mkdir ~/docs/cloud60
+$ cd ~/docs/cloud60
+$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
+$ mkfs.ext4 cloud60.img
+$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
+$ cat cloud60.conf
+name = "hvmcentos"
+builder = "hvm"
+memory = 1024
+disk = [ "file:/home/chad/docs/cloud60/cloud60.img,xvda,w", "file:/home/chad/warez/CentOS-6.5-x86_64-minimal.iso,xvdb:cdrom,r" ]
+vif = ["bridge=xenbr0"]
+vnc = 1
+vnclisten = "0.0.0.0"
+vncdisplay = 1
+
+$ sudo xl create cloud60.conf
+$ sudo xl vncviewer hvmcentos
+</code></pre>
+
+<p>Or you can use <code>vncviewer localhost:5901</code> to connect to the guest OS, here the &ldquo;1&rdquo; in &ldquo;5901&rdquo; is determined by the value of &ldquo;vncdisplay&rdquo; in guest OS config file.
+After connecting to the guest OS, install system, then reboot and connect it with vncviewer again.
+You can use xl&rsquo;s subcommands &ldquo;list&rdquo;, &ldquo;top&rdquo; and &ldquo;info&rdquo; to probe domU systems.</p>
+
+<h1>Using Xen</h1>
+
+<p>Based on <a href="https://wiki.archlinux.org/index.php/Xen">Xen on Arch Wiki</a>.</p>
+
+<p>Use Debian as dom0: <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide#Installing_the_Xen_Project_Software">Xen Project Beginners Guide</a>;</p>
+
+<p>Use CentOS as dom0: <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart">Xen4 CentOS6 QuickStart</a>;</p>
+
+<p>Use Ubuntu as dom0: <a href="https://help.ubuntu.com/community/Xen">Xen in Ubuntu Community</a>;</p>
+
+<p>Other patterns see <a href="http://wiki.xenproject.org/wiki/Category:Guest_Install">Guest Install</a>;</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2014-09-17T21:52:27+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:52 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/archlinux/'>archlinux</a>, <a class='category' href='/blog/categories/xen/'>xen</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2014/09/17/215227/" data-via="" data-counturl="http://leetschau.github.io/blog/2014/09/17/215227/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/09/17/094859/" title="Previous Post: 在Linux上播放带中文字幕的电影">&laquo; 在Linux上播放带中文字幕的电影</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/09/19/153017/" title="Next Post: Linux From Scratch Notes">Linux From Scratch Notes &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

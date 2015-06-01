@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Gbk | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/gbk/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[将中文字符串转换为拼音首字母串]]></title>
+    <link href="http://leetschau.github.io/blog/2014/12/31/101055/"/>
+    <updated>2014-12-31T10:10:55+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/12/31/101055</id>
+    <content type="html"><![CDATA[<p>下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如"深圳东莞"的"圳"和"莞"两个字，原因不明。
+需要在vi中用"/\&lt;[A-Z]>搜索这种情况。</p>
+
+<p>实现过程是：首先尝试用unicode, utf8和gbk解码字符串，然后用GBK编码字符串，利用GBK汉字是按拼音顺序编码的原理查出其首字母。</p>
+
+<pre><code>#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+def get_word_initial(inp):
+    if isinstance(inp, unicode):
+        unicode_str = inp
+    else:
+        try:
+            unicode_str = inp.decode('utf8')
+        except:
+            try:
+                unicode_str = inp.decode('gbk')
+            except:
+                print 'unknown coding'
+                return
+
+    init_list = [get_char_initial(i) for i in unicode_str]
+    return "".join(init_list)
+
+def get_char_initial(unicode1):
+    gbkStr = unicode1.encode('gbk')
+    try:
+        ord(gbkStr)
+        return gbkStr
+    except:
+        asc = ord(gbkStr[0]) * 256 + ord(gbkStr[1]) - 65536
+        if asc &gt;= -20319 and asc &lt;= -20284:
+            return 'A'
+        if asc &gt;= -20283 and asc &lt;= -19776:
+            return 'B'
+        if asc &gt;= -19775 and asc &lt;= -19219:
+            return 'C'
+        if asc &gt;= -19218 and asc &lt;= -18711:
+            return 'D'
+        if asc &gt;= -18710 and asc &lt;= -18527:
+            return 'E'
+        if asc &gt;= -18526 and asc &lt;= -18240:
+            return 'F'
+        if asc &gt;= -18239 and asc &lt;= -17923:
+            return 'G'
+        if asc &gt;= -17922 and asc &lt;= -17418:
+            return 'H'
+        if asc &gt;= -17417 and asc &lt;= -16475:
+            return 'J'
+        if asc &gt;= -16474 and asc &lt;= -16213:
+            return 'K'
+        if asc &gt;= -16212 and asc &lt;= -15641:
+            return 'L'
+        if asc &gt;= -15640 and asc &lt;= -15166:
+            return 'M'
+        if asc &gt;= -15165 and asc &lt;= -14923:
+            return 'N'
+        if asc &gt;= -14922 and asc &lt;= -14915:
+            return 'O'
+        if asc &gt;= -14914 and asc &lt;= -14631:
+            return 'P'
+        if asc &gt;= -14630 and asc &lt;= -14150:
+            return 'Q'
+        if asc &gt;= -14149 and asc &lt;= -14091:
+            return 'R'
+        if asc &gt;= -14090 and asc &lt;= -13119:
+            return 'S'
+        if asc &gt;= -13118 and asc &lt;= -12839:
+            return 'T'
+        if asc &gt;= -12838 and asc &lt;= -12557:
+            return 'W'
+        if asc &gt;= -12556 and asc &lt;= -11848:
+            return 'X'
+        if asc &gt;= -11847 and asc &lt;= -11056:
+            return 'Y'
+        if asc &gt;= -11055 and asc &lt;= -10247:
+            return 'Z'
+        return ''
+
+if __name__ == "__main__":
+    str_input='广州火车站A2c'
+    print(get_word_initial(str_input))
+</code></pre>
+
+<p>下面是一个完整的使用场景，利用上面的代码为小区的地理位置表添加ID字段。
+首先将上面的代码保存在chnInit.py中，然后相同目录下创建一个addID.py文件：</p>
+
+<pre><code>import chnInit
+import sys
+
+target = sys.argv[1]
+inclID = sys.argv[2]
+with open(target, 'r') as src:
+    with open(inclID, 'w') as dst:
+        for content in src:
+            line = content.strip()
+            cgi = line.split(' ,')[0]
+            node = line.split(' ,')[1].split(' ')[0]
+            city = line.split(' ,')[1].split(' ')[1]
+            nodeID = chnInit.get_word_initial(node)
+            cityID = chnInit.get_word_initial(city)
+            dst.write(cgi + ' ,' + city + ' ' + cityID + ' ' + node + ' ' + nodeID + '\n')
+</code></pre>
+
+<p>相同目录下保存输入文件input.csv，然后运行脚本：</p>
+
+<pre><code>$ head input.csv
+460010973309433 ,白云国际机场 广州
+...
+
+$ python addID.py input.csv loc_map.csv
+$ head loc_map.csv
+460010973309433 ,广州 GZ 白云国际机场 BYGJJC
+...
+</code></pre>
+
+<p>根据Python文档7.2.1节："Methods of File Objects"中的描述：</p>
+
+<blockquote><p>For reading lines from a file, you can loop over the file object.
+This is memory efficient, fast, and leads to simple code:</p></blockquote>
+
+<pre><code>with open(target, 'r') as f:
+    for line in f:
+        ...
+</code></pre>
+
+<p>这种方式比较节省内存，适于处理大文件。
+当处理小文件时，可以用下面的方法将完整内容保存在一个变量中：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    read_data = f.read()
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Add GBK Charset on Ubuntu Server]]></title>
+    <link href="http://leetschau.github.io/blog/2014/02/27/181853/"/>
+    <updated>2014-02-27T18:18:53+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/02/27/181853</id>
+    <content type="html"><![CDATA[<ol>
+<li><p>Add following items into /var/lib/locales/supported.d/local:</p>
+
+<p> zh_CN.GBK GBK
+ zh_CN.GB2312 GB2312</p></li>
+<li><p>$ sudo dpkg-reconfigure &ndash;force locales</p></li>
+</ol>
+
+
+<p>(or simple use <code>sudo locale-gen zh_CN</code>?)</p>
+
+<p>Verify: <code>locale -a</code>, you can see &ldquo;zh_CN.gb2312&rdquo; and &ldquo;zh_CN.gbk&rdquo; in lists.</p>
+
+<ol>
+<li>sudo update-locale LANG=zh_CN</li>
+</ol>
+
+
+<p>That&rsquo;s it.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Linux平台上转换文件编码]]></title>
+    <link href="http://leetschau.github.io/blog/2012/12/13/154337/"/>
+    <updated>2012-12-13T15:43:37+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/12/13/154337</id>
+    <content type="html"><![CDATA[<p>Linux系统的iconv指令是一个很好的文件编码转换工具，支持的编码范围广，使用方便，例如将一个utf-8编码的文件（名为tic）转换为gbk编码：</p>
+
+<p>iconv -f utf-8 -t gbk tic > ticgbk</p>
+
+<p>可以用"iconv -l"查看系统支持的所有编码列表。</p>
+
+<p>另：用file -i <file_name>可以查看一个文件的编码方式。</p>
+
+<p>下面是一个可以一次转换多个文件的脚本：</p>
+
+<pre><code>mkdir dst
+for file in $(find src -type f); do
+  iconv -f gbk -t utf-8 $file &gt; dst/$(basename $file)
+done
+</code></pre>
+
+<p>这里要注意的是，由于重定向的目标文件所在的目录必须已经存在，所以需要首先创建目标目录dst，其次find命令输出的文件列表是以当前目录为基准，所以输出目标必须去掉路径部分，也就是"basename $file"做的，且源目录src中不能有子目录，否则所有目录下的文件会被摊平放在dst下，如果不同子目录下有同名文件，则最后一个会覆盖前面同名文件的内容。</p>
+
+<p>如果确实需要转换包括子目录的所有文件，可以通过一个临时目录中转，完成该过程的脚本"myconv.sh"内容如下：</p>
+
+<pre><code>#!/bin/bash
+if [[ $# != 2 ]]; then
+    echo Usage: ./myconv.sh src dst
+    exit 1
+fi
+src=$1
+dst=$2
+mkdir -p tmp
+cp -r $src tmp/
+for file in $(find $src -type f); do
+    #echo iconv from $file to $dst/$file
+    iconv -f gbk -t utf-8 $file &gt; tmp/$file
+done
+mv tmp/$src $dst
+rm -rf tmp
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[文字的编码问题]]></title>
+    <link href="http://leetschau.github.io/blog/2010/10/12/135950/"/>
+    <updated>2010-10-12T13:59:50+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/10/12/135950</id>
+    <content type="html"><![CDATA[<p>我们需要将文字保存在磁盘上，但磁盘上只能存储0和1（实际上是存储介质的两种状态），不能存储文字，这就出现了一个问题，如何将文字转换为二进制数字串？</p>
+
+<p>文件的编码/解码就是解决文字&lt;=>二进制串这一环节如何相互转换的问题。</p>
+
+<p> 简单地说，GBK和Unicode分别是一种码表，也就是为每一个字符指定一个两个字节组成的代码，例如 “汉”字的Unicode编码为0x6C49，GBK编码为0xBABA（0x是一个字头，表示后面的是16进制字串）。</p>
+
+<p> Unicode编码 Unicode由ISO（国际标谁化组织）制定，它虽然解决了各种语言之间转换的难题，但也有问题，首先是不论什么字符都2个字节表示，网络上英文信息占大部分，由此造成的空间浪费很可观，其次是 Unicode不兼容ASCII编码方案，为了解决这些问题，出现了 UTF-8方案。</p>
+
+<p> Unicode到UTF-8的转换方法详见 字符编解码的故事 。</p>
+
+<p> GBK编码 GBK编码规则：《汉字内码扩展规范(GBK)》（ 全国信息技术标准化技术委员会 ）：
+ 01-09区为特殊符号；16-55区为一级汉字，按拼音排序；56-87区为二级汉字，按部首/笔画排序。
+每个汉字及符号以两个字节来表示。第一个字节称为“高位字节”，第二个字节称为“低位字节”，用这个字的区、位号加上0xA0就得到了对应的字节码。例如“啊”字是 第16区第1个字，所以 区位码是 1601 ， 编码方法：0xA0+ 16 = 0x B0 ， 0xA0+ 1 = 0x A1 ，所以得到“啊”的 字节码  B0A1 ，可以用UltraEdit查看字符的字节码验证。</p>
+
+<p> GB2312是GBK的早期版本，能表示6000个汉字，由于容量较小，现已被GBK取代。</p>
+
+<p> 解码过程</p>
+
+<p> 在Windows系统中打开文件时，使用猜的方式选择解码方案。如果文件开头使用了FEFF或FFFE，就认为是Unicode/UTF-8编码，否则为ANSI编码，在中文系统下，就是用GBK解码。GBK解码时，如果一个字节大于 0x7F（ 127），就证明这个字节与后面的字节组成了一个汉字，由于汉字的字节码总大于0xA0，英文字节码总小于 0x7F ，因此二者泾渭分明，不会混淆。</p>
+
+<p> 用猜的方式确定文件的编码方案绝大多数情况下没有问题，但凡事总有特例，详见 字符编解码的故事 对“联通”编码/解码过程的说明。</p>
+]]></content>
+  </entry>
+  
+</feed>

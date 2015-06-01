@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Buffer | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/buffer/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-06-01T12:52:39+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[QGIS的坐标系和缓冲区]]></title>
+    <link href="http://leetschau.github.io/blog/2015/04/29/114138/"/>
+    <updated>2015-04-29T11:41:38+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/04/29/114138</id>
+    <content type="html"><![CDATA[<p>一个图层文件(shp）有自己的坐标系，通过【右键->属性->通用->坐标参照系】查看。
+直接修改坐标系导致图层对象消失，原因不明。
+在图层上【右键->另存为】，在坐标系中搜索2154，选择"EPSG:2154"，保存在另一个shp文件中。</p>
+
+<p>在QGIS窗口右下角状态栏中显示的坐标系只作显示用，与图层自己的坐标系无关。</p>
+
+<p>当生成图层对象的缓冲区（主菜单->矢量->地学数据处理工具->缓冲区分析）时，
+其中【缓冲距离】的单位是图层自身坐标系确定的单位，
+例如WGS84的单位是degree，具体含义尚不清楚，大致是地球这个球体上两点与球心形成夹角的角度，
+&ldquo;EPSG:2154"坐标系的单位是米。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Java的Buffer读取操作]]></title>
+    <link href="http://leetschau.github.io/blog/2012/03/30/155535/"/>
+    <updated>2012-03-30T15:55:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2012/03/30/155535</id>
+    <content type="html"><![CDATA[<p>Buffer用于从channel中读（或者向channel写）数据，它有3个标记，分别是capacity, limit &amp; position，其中capacity是此buffer的容量（固定值），buffer初始化时（使用allocate方法）设定；limit是有效数据的边界，即0~limit之间是可读/写的数据，position是下一个应该被读/写的位置。</p>
+
+<p>Buffer有两种模式：写模式和读模式，写模式是向buffer中写数据（例如socketChannel.read(buffer)），读模式是从buffer中读出数据。</p>
+
+<p>写模式下limit总等于capacity，读模式下limit是最近一次写入的数据位置。</p>
+
+<p>使用buffer读写数据的基本过程是一个4步循环：</p>
+
+<ol>
+<li><p>向buffer写入数据；</p></li>
+<li><p>buffer.flip(); // 把buffer从写模式切换到读模式</p></li>
+<li><p>从buffer中读出数据；</p></li>
+<li><p>if (buffer.hasRemaining()) {buffer.compact();} else {buffer.clear();} // compact和clear方法将buffer切换回写模式，下面有解释</p></li>
+</ol>
+
+
+<p>以上解释来自于<a href="http://tutorials.jenkov.com/java-nio/buffers.html">Java NIO Buffer</a>。</p>
+
+<h1>compact和clear方法</h1>
+
+<p>compact方法将未读完的数据（position与limit之间的数据）平移到buffer头部，然后将position设到这段数据的尾部，这样后面的写操作将在这段数据后追加（见SocketChannel.read()方法的javadoc），而不会覆盖这段数据，然后将limit设为capacity；clear方法令position=0; limit=capacity;从而为读数据做好准备，详见二者的javadoc。</p>
+
+<h1>wrap方法</h1>
+
+<p> ByteBuffer buffer = ByteBuffer.allocate(10);
+ byte[] content = { 27, 91, 75, 116, 117 };
+ buffer = ByteBuffer.wrap(content);
+ assertEquals(0, buffer.position());
+ assertEquals(5, buffer.limit());
+ assertEquals(5, buffer.capacity());</p>
+
+<p>以上表明wrap方法会改变ByteBuffer对象的容量（capacity），并将其置为读模式；</p>
+
+<h1>实例演示</h1>
+
+<p>下面以ByteBuffer为例说明Java的buffer读写操作，以及对相关的几个参数的影响；</p>
+
+<p> import java.nio.ByteBuffer;
+ public class GetPutByteBuffer {
+  public static void main(String[] args) {
+   ByteBuffer byteBuffer = ByteBuffer.allocate(10);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit() + &ldquo; capacity=&rdquo; + byteBuffer.capacity());
+   // pos=0 limit=10 capacity=10
+   byteBuffer.put((byte) 20);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=10
+   byteBuffer.put((byte) 33);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=2 limit=10
+   byteBuffer.put((byte) 55);
+   byteBuffer.flip();
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=0 limit=3
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   byteBuffer.rewind();
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   System.out.println(&ldquo;the remaining is: &rdquo; + byteBuffer.remaining());
+   // the remaining is: 2
+   while (byteBuffer.hasRemaining()) {
+    System.out.println(byteBuffer.get());
+    System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   }
+   /<em>
+   * 33
+   * pos=2 limit=3
+   * 55
+   * pos=3 limit=3
+   </em>/
+  }
+ }</p>
+
+<p>可以看到buffer的capacity是一个固定值，初始化时设定，pos初始为0，limit初始等于capacity，一次读（get）或写（put）都使pos加一，limit不变，flip使limit=pos，pos=0，接收完数据开始读取时这个动作是必须的，rewind使pos=0，相当于重新开始读数据。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Buffer-related Operations in Vim]]></title>
+    <link href="http://leetschau.github.io/blog/2011/10/26/144257/"/>
+    <updated>2011-10-26T14:42:57+08:00</updated>
+    <id>http://leetschau.github.io/blog/2011/10/26/144257</id>
+    <content type="html"><![CDATA[<h1>Build-in Shortcuts</h1>
+
+<p>:enew   open a new buffer in the current window (old buffers still exist);</p>
+
+<p>:e <filename> open a existed file in the current window;</p>
+
+<p>:sp <filename> open a file in a horizontal split window;</p>
+
+<p>:vsp <filename> open a file in a vertical split window;</p>
+
+<p>:new    open a new buffer in a horizontal split window;</p>
+
+<p>:vnew   open a new buffer in a vertical split window;</p>
+
+<p>:ls    list all buffers available. Current buffer is marked as &ldquo;%a&rdquo; and last edited buffer marked as &ldquo;#&rdquo;;</p>
+
+<p>:b[N]   switch to [N]th buffers, [N] is buffer number from :ls command;</p>
+
+<p>:b#    switch to last edited buffer;</p>
+
+<p>:bn    switch to next buffer(based on buffer number);</p>
+
+<p>:bp    switch to previous buffer(based on buffer number);</p>
+
+<p>:bd    close current buffer(if this is the only one buffer, a new one will be created);</p>
+
+<p>:sbn/:sbp  open the next/previous buffer in a horizontal split window;</p>
+
+<p>:vert sbn  open the next buffer in a vertical split window;</p>
+
+<p>:bd[N]   close buffer number [N], [N] is buffer number from :ls command;</p>
+
+<p>:sb[N]   open buffer [N] in a horizontal split window;</p>
+
+<p>:vert sb[N]  open another buffer in a vertical split window;</p>
+
+<p>:vs / C-w v  split window vertically;</p>
+
+<p>:clo / C-w q  close window;</p>
+
+<p>:q    quit vim no matter how many buffers exist, or close window when more than one window exist;</p>
+
+<p>Read :h buffer for more.</p>
+
+<h1>Recommended user defined shortcuts</h1>
+
+<p>In .vimrc:</p>
+
+<p>noremap <silent> <left> <C-w>h
+noremap <silent> <right> <C-w>l
+noremap <silent> <up> <C-w>k
+noremap <silent> <down> <C-w>j
+nnoremap <leader>q <C-w>q</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[VIM的窗口和标签页操作]]></title>
+    <link href="http://leetschau.github.io/blog/2010/08/03/113116/"/>
+    <updated>2010-08-03T11:31:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2010/08/03/113116</id>
+    <content type="html"><![CDATA[<h1>窗口</h1>
+
+<p>创建水平/ 垂直 分隔的窗口：:new/:vnew</p>
+
+<p>切换左/右/上/下窗口为当前窗口：ctrl+w, h/l/k/j</p>
+
+<p>切换顶/底部窗口为当前窗口：ctrl+w, t/b</p>
+
+<p>在窗口间跳转（用来在两个窗口间跳转很方便）：ctrl+w, w</p>
+
+<p>交换窗口内容：C-w,C-r 或者 C-w,C-x 前面的更顺手</p>
+
+<p>旋转窗口内容：C-w, r （第1个窗口中的文件显示在第2个窗口中，第2个窗口中文件显示在第3个窗口中，……，最后一个窗口中的文件显示在第1个窗口中）；</p>
+
+<p>移动窗口：（例如原来是两个窗口一上一下，位于下面的窗口向左移动后，将变成左右布局）</p>
+
+<p>ctrl-w H(shift+h)/L/K/J 向左/右/上/下移动窗口</p>
+
+<p>窗口最大化：上下分割窗口情况下，C-w <em>（按住Ctrl再按w，松开ctrl和w，再按</em>） ，左右分割情况下，ctrl+w, |</p>
+
+<p>水平增加窗口尺寸：C-w +；减少窗口尺寸：C-w -</p>
+
+<p>窗口最大化后复原：ctrl+w, =</p>
+
+<p>关闭窗口： :close，简写为:clo，用于关闭但不退出vim的情形；</p>
+
+<p>在新窗口中显示文件：ctrl+w, shift+s（适于对比同一文件的不同部分）</p>
+
+<p>针对所有窗口的操作</p>
+
+<p>:qa (quit all)</p>
+
+<p>:wa (write all)</p>
+
+<p>:wqa (write &amp; quit all)</p>
+
+<p>:qa! (quit all without write)</p>
+
+<p>分隔窗口（用于显示同一个文档中的不同部分）：水平分割：:split，垂直分割：:vsplit</p>
+
+<p>关闭当前窗口：:hide</p>
+
+<h2>shortcut definitions for easier window navigations</h2>
+
+<pre><code>nnoremap &lt;C-J&gt; &lt;C-W&gt;&lt;C-J&gt;
+nnoremap &lt;C-K&gt; &lt;C-W&gt;&lt;C-K&gt;
+nnoremap &lt;C-L&gt; &lt;C-W&gt;&lt;C-L&gt;
+nnoremap &lt;C-H&gt; &lt;C-W&gt;&lt;C-H&gt;
+set splitbelow
+set splitright
+nnoremap &lt;C-o&gt; :vsp&lt;CR&gt;:FufCoverageFile&lt;CR&gt;
+</code></pre>
+
+<p>The last one need installation of plugin FuzzyFinder.</p>
+
+<h2>Open existing buffer in a split widnow</h2>
+
+<ol>
+<li><p>Get target buffer id: <code>:ls</code>;</p></li>
+<li><p>Open it in a horizental window: <code>:sb&lt;n&gt;</code>, where <n> is the window id</p></li>
+<li><p>Open it in a vertical window: <code>:vert sb&lt;n&gt;</code>;</p></li>
+</ol>
+
+
+<p>In the result of <code>:ls</code> command, &ldquo;#&rdquo; means alternative buffer, which is the most recently used buffer. &ldquo;a&rdquo; means active buffer. &ldquo;+&rdquo; means this buffer is modified. &ldquo;%&rdquo; means this buffer is in the current window. Run <code>:h :ls</code> to full list.
+So you can use <code>:vert sb#</code> to open most recently used buffer in a vertical split window.</p>
+
+<h1>标签页</h1>
+
+<p>创建新标签页：:tabnew</p>
+
+<p>切换到下一个标签页：gt，前一个标签页：gT（前面都没有冒号）</p>
+
+<p>Jump to <n>th tab: <n>gt, for example &ldquo;3gt&rdquo; jump to 3rd tab directly;</p>
+
+<p>关闭标签页：:q</p>
+
+<p>Open multiple files in different tabs in command line:</p>
+
+<pre><code>$ vim -p files*
+</code></pre>
+
+<p>Open every existing buffer in a new tab:</p>
+
+<pre><code>:tab all
+</code></pre>
+
+<p>or:</p>
+
+<pre><code>:tab sba
+</code></pre>
+
+<p>where &ldquo;sba&rdquo; means open all buffer in a new window, and :tab convert the window operation to tab operation;</p>
+
+<p>详见:h tabpage</p>
+
+<p>与多个buffer相关的操作见“buffer-related operations in vim”。</p>
+]]></content>
+  </entry>
+  
+</feed>

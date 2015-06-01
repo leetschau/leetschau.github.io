@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>读取配置文件的方法 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="读取配置文件需要指定配置文件的路径和文件名，可以在Java代码里硬编码配置文件名，然后将配置文件所在目录加入classpath；也可以把路径和文件名都硬编码在Java代码里，只要启动脚本和配置文件的相对位置不变，就不必修改代码。第一种方法更灵活（指定配置文件路径的工作放在了启动脚本里， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2012/09/19/173502/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">读取配置文件的方法</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-19T17:35:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:35 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>读取配置文件需要指定配置文件的路径和文件名，可以在Java代码里硬编码配置文件名，然后将配置文件所在目录加入classpath；也可以把路径和文件名都硬编码在Java代码里，只要启动脚本和配置文件的相对位置不变，就不必修改代码。第一种方法更灵活（指定配置文件路径的工作放在了启动脚本里，而不是Java代码中），推荐使用。</p>
+
+<h1>硬编码配置文件名</h1>
+
+<p>用Class的getResourceAsStream(String name)方法加载配置文件，代码如下：</p>
+
+<p> InputStream in = this.getClass().getResourceAsStream(&ldquo;/db.properties&rdquo;);</p>
+
+<p> Properties p = new Properties();</p>
+
+<p> p.load(in);
+ System.out.println(&ldquo;value is: &rdquo; + p.getProperty(&ldquo;db&rdquo;));</p>
+
+<p>其中GetResources是运行这段代码所在类的类名，部署目录结构是：</p>
+
+<p>root</p>
+
+<p> |-bin</p>
+
+<p>  |-start.bat</p>
+
+<p> |-conf</p>
+
+<p>  |-db.properties</p>
+
+<p> |-lib</p>
+
+<p>  |-res.jar</p>
+
+<p>启动脚本start.bat内容是：</p>
+
+<p> java -cp f:\VMFiles\tmpFiles\goduEx2\lib\res.jar;f:\VMFiles\tmpFiles\goduEx2\conf getResources.GetResources</p>
+
+<p>其中res.jar的结构是：getResources/GetResources.class（假设代码所在文件的包名是getResources）。</p>
+
+<p>这里最重要的是getResourceAsStream方法的参数前面要加上"/&ldquo;。</p>
+
+<p>在static方法里无法使用"this"关键字，可以硬编码类名，在Eclipse中重构可以同时修改类名：</p>
+
+<p> InputStream in = GetResources.class.getResourceAsStream(&ldquo;/db.properties&rdquo;);</p>
+
+<h1>指定配置文件相对路径</h1>
+
+<p>将上面代码的第一句改为：</p>
+
+<p>InputStream in = new FileInputStream(&ldquo;../conf/db.prop&rdquo;);</p>
+
+<p>相应地start.bat也不需要把conf加到classpath里：</p>
+
+<p> java -cp f:\VMFiles\tmpFiles\goduEx2\lib\res.jar getResources.GetResources</p>
+
+<p>不推荐ResourceBundle.getBundle()方法，因为这个方法不是用来加载文件的。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2012-09-19T17:35:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:35 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/properties/'>properties</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2012/09/19/173502/" data-via="" data-counturl="http://leetschau.github.io/blog/2012/09/19/173502/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/09/19/105207/" title="Previous Post: 用jstack监控远程主机上的java进程">&laquo; 用jstack监控远程主机上的java进程</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/09/23/090345/" title="Next Post: Beginning Java EE 6 Platform With GlassFish 3源代码编译问题解决办法">Beginning Java EE 6 Platform With GlassFish 3源代码编译问题解决办法 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

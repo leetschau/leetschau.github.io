@@ -1,0 +1,942 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="fzf是一个命令行工具，目前支持bash和zsh。 fzf配合autojump和vim，可以方便地在多层目录下进行文本编辑。 Before install fzf, download go binary package (go1.4.2.linux-amd64.tar.gz for now) &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/posts/3/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/16/172913/">Fzf让命令行更方便</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-16T17:29:13+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:29 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://github.com/junegunn/fzf">fzf</a>是一个命令行工具，目前支持bash和zsh。</p>
+
+<p>fzf配合autojump和vim，可以方便地在多层目录下进行文本编辑。</p>
+
+<p>Before install fzf, download <a href="https://golang.org/">go</a> binary package (go1.4.2.linux-amd64.tar.gz for now)
+extract it, and add its bin folder to $PATH.
+Then install fzf with git.</p>
+
+<p>首先运行<code>j demo</code>跳转到项目根目录下，项目文件结构如下：</p>
+
+<pre><code>$ tree
+.
+├── both
+│   ├── collections.coffee
+│   └── router.coffee
+├── client
+│   ├── index.html
+│   ├── layout.coffee
+│   ├── layout.html
+│   ├── registerHelpers.coffee
+│   ├── stylesheets
+│   │   └── app.scss
+│   └── templates
+│       ├── addPost
+│       │   ├── addPost.coffee
+│       │   ├── addPost.html
+│       │   └── addPost.scss
+│       ├── editPost
+│       │   ├── editPost.coffee
+│       │   └── editPost.html
+│       ├── lists
+│       │   ├── lists.coffee
+│       │   └── lists.html
+│       ├── postView
+│       │   ├── postView.coffee
+│       │   └── postView.html
+│       ├── sharePost
+│       │   ├── sharePost.coffee
+│       │   └── sharePost.html
+│       ├── sideMenu
+│       │   └── sideMenu.html
+│       └── userAccounts
+│           ├── accountsConfig.coffee
+│           ├── userAccounts.coffee
+│           └── userAccounts.html
+├── LICENSE
+├── newnote.tmp
+├── packages
+├── README.md
+└── server
+    └── seeds.js
+
+13 directories, 26 files
+</code></pre>
+
+<h1>配置</h1>
+
+<p>全局定义：~/.fzf.zsh</p>
+
+<p>默认快捷键可以在.fzf/shell/key-bindings.zsh中修改。
+推荐将默认的文件搜索快捷键从Ctrl-T改成了Ctrl-J，需要避免使用的配置有：</p>
+
+<ul>
+<li><p>Ctrl-I: 代表<tab>键，虽然可以触发目录搜索，但<tab>键的自动补全功能不能用了；</p></li>
+<li><p>Ctrl-M: 回车键的键值，如果改成了它，将导致回车键不可用，可以用Ctrl-Enter临时代替回车；</p></li>
+<li><p>Ctrl-N: 下一条历史命令的快捷键。</p></li>
+</ul>
+
+
+<h1>使用</h1>
+
+<p>要编辑client/templates/lists/lists.coffee文件，只要在命令行中输入：</p>
+
+<pre><code>vi &lt;Tab&gt;
+</code></pre>
+
+<p>就进入了fzf搜索界面，只要输入任意层目录中的几个字符，就可以匹配到目标文件，
+例如上面lists.coffee文件，只要输入<code>listco</code>就可以匹配到了。
+其中当输入到list时，就匹配到了lists文件夹以及下面的两个文件，
+这时可以继续输入"co"，直接命中目标，也可以用Ctrl-j/k在列表中上下选择目标。</p>
+
+<p>实际上fzf进行目录文件匹配的快捷键是Ctrl-T，但对vi进行了特殊定义，使得用<tab>也可以出发fzf搜索。</p>
+
+<p>按Alt-C，选择好目录，可以直接切换到目标目录，相当于<code>cd &lt;Ctrl-T&gt;</code>的快捷版。</p>
+
+<p>Ctrl-R在命令行历史使用<strong>模糊</strong>匹配。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-15T10:50:35+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I forked <a href="https://github.com/mitsuhiko/flask">flask repository</a> to
+<a href="https://github.com/leetschau/flask">my own account</a>.</p>
+
+<p>After several months, there are many new commits to the original flask repo.
+How to sync these new commits to my fork?</p>
+
+<h1>Option 1: In Github Web UI</h1>
+
+<p>Three steps: compare, send pull request, and merge.</p>
+
+<p>See Olufemi Israel Olanipeku&rsquo;s answer of
+<a href="http://stackoverflow.com/questions/20984802/how-can-i-keep-my-fork-in-sync-without-adding-a-separate-remote/21131381#21131381">How can I keep my fork in sync without adding a separate remote?</a> for details.</p>
+
+<h1>Option 2: In Terminal</h1>
+
+<p>You can do it via your local clone:</p>
+
+<ol>
+<li><p>Clone leetschau/flask to local machine;</p></li>
+<li><p>Add mitsuhiko/flask as a remote repo;</p></li>
+<li><p>Pull new commit from mitsuhiko/flask to your local machine;</p></li>
+<li><p>Push your local repo to leetschau/flask.</p></li>
+</ol>
+
+
+<p>See <a href="https://help.github.com/articles/syncing-a-fork/">Syncing a fork</a> for details.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/08/161006/">Python的Generator和yield</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-08T16:10:06+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:10 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的代码演示了yield的一个使用场景：</p>
+
+<pre><code>def fab(max): 
+    n, a, b = 0, 0, 1 
+    while n &lt; max: 
+        yield b 
+        # print b 
+        a, b = b, a + b 
+        n = n + 1 
+
+for n in fab(5):
+    print(n)
+</code></pre>
+
+<p>简单地讲，yield的作用就是把一个函数变成一个Generator，
+带有yield的函数不再是一个普通函数，Python解释器会将其视为一个Generator，
+调用<code>fab(5)</code>不会执行fab函数，而是返回一个iterable对象。
+在for循环执行时，每次循环都会执行fab函数内部的代码，执行到<code>yield b</code>时，
+fab 函数就返回一个迭代值，下次迭代时，代码从<code>yield b</code>的下一条语句继续执行，
+而函数的本地变量看起来和上次中断执行前是完全一样的，于是函数继续执行，直到再次遇到<code>yield</code>。</p>
+
+<p>上面的<code>fab</code>函数也可以返回一个List，与Generator相比，缺点是内存使用量会很大，
+比如要读取一个10GB的文件，如果直接使用f.read()会把整个文件加载到内存中，
+用Generator代替List，可以保证内存使用量是固定的，例如下面的1024字节：</p>
+
+<pre><code>def read_file(fpath): 
+    BLOCK_SIZE = 1024 
+    with open(fpath, 'rb') as f: 
+        while True: 
+            block = f.read(BLOCK_SIZE) 
+            if block: 
+                yield block 
+            else: 
+                return
+</code></pre>
+
+<p>上面的文件读取是为了演示yield的用法，在实际读取文件时，
+如果是大文件，不能一次性载入所有内容，使用for循环，一次载入一行到内存：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    for line in f:
+        print(line)
+</code></pre>
+
+<p>反之，如果文件比较小，需要一次性载入内存，使用<code>readlines()</code>方法：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    lines = f.readlines()
+</code></pre>
+
+<p>参考：</p>
+
+<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-cn-python-yield/">Python yield 使用浅析</a></p>
+
+<p><a href="https://docs.python.org/2/tutorial/inputoutput.html">7. Input and Output</a> in <a href="https://docs.python.org/2/tutorial/index.html">The Python Tutorial</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-08T07:44:21+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:44 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><code>gimp</code> is preinstalled on Mint.</p>
+
+<pre><code>$ gimp target.psd
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-30T18:12:42+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:12 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>On Ubuntu/Mint,
+when we receive MS Word documents (.doc or .docx), convert it to pdf,
+then open it with evince.</p>
+
+<pre><code>sudo apt-get install unoconv
+doc2pdf target.docx
+</code></pre>
+
+<p>doc2pdf save output pdf file into <same-name>.pdf by default.</p>
+
+<p>Ref: <a href="http://askubuntu.com/questions/396825/convert-docx-to-pdf">Convert docx to PDF</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/30/175224/">Scrapy Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-30T17:52:24+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Install on Ubuntu/Mint:</p>
+
+<pre><code>sudo apt-get install python-twisted python-libxml2 python-simplejson
+sudo pip install scrapy
+</code></pre>
+
+<p>Create an alias in ~/.bash_aliases for convenience: <code>alias sa='scrapy'</code>.</p>
+
+<p>Crawl website in shell:</p>
+
+<pre><code>$ scrapy shell http://myexpo.com/exhibition/32191.html
+...
+[1] name = response.xpath('//h1/text()').extract()[0]
+[2] time = response.xpath('//div[@class="location"]/span[1]/text()').extract()[0].split('\r\n')[1].strip()
+[3] addr = response.xpath('//div[@class="location"]/span[2]/text()').extract()[0].split('\r\n')[1].strip()
+</code></pre>
+
+<h1>Crawl my blog</h1>
+
+<p>$ sa startproject myblog</p>
+
+<p>Ref:</p>
+
+<p><a href="http://blog.csdn.net/u012150179/article/details/32911511">scrapy研究探索（二）——爬w3school.com.cn</a></p>
+
+<h1>Unicode character in Python 2.x</h1>
+
+<p>You have to add u'&lsquo; prefix to a unicode string in Python 2.x.
+Their raw value is in &rsquo;\u' format.
+To see them in human friendly format, use <code>print()</code> function.</p>
+
+<pre><code>In [85]: ex = u'中国2015年3月'
+
+In [86]: ex
+Out[86]: u'\u4e2d\u56fd2015\u5e743\u6708'
+
+In [87]: print(ex)
+中国2015年3月
+
+In [88]: ex.find(u'年')
+Out[88]: 6
+</code></pre>
+
+<p>See more detailed contents about this topic in note &ldquo;Unicode and File I/O in Python 2.X and 3.X&rdquo;.</p>
+
+<h1>XPath Grammar</h1>
+
+<p>Ref: <a href="http://www.w3school.com.cn/xpath/xpath_syntax.asp">XPath 语法</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/27/173224/">优化网站加载速度的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-27T17:32:24+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Google PageSpeed</h1>
+
+<p>在页面中输入要测试的url，然后就可以运行测试了，给出的是综合评分和各项改进措施。</p>
+
+<h1>YSlow</h1>
+
+<p>在Firefox里以插件方式安装YSlow，运行YSlow需要首先安装Firebug。
+在FireFox中打开要测试的网站，然后开启Firebug，切换到最右侧的YSlow页面，点击测试按钮开始测试。</p>
+
+<p>Google PageSpeed只能测试有公共IP的网站，YSlow可以测试本地运行的网站，而且结果似乎更为详细。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-26T20:30:02+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:30 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>首先在<a href="http://www.aliyun.com/">阿里云</a>上购买一台"云服务器ECS"，
+然后进入通过SSH连接VPS。</p>
+
+<p>作为Meteor应用的生产环境，只需要安装mongoDB和Node.js就可以了，不需要安装Meteor.
+通过aptitude安装的mongoDB虽然版本比较老(2.4)，但不接受本机以外的连接，
+安全性有保障。</p>
+
+<pre><code># aptitude update
+# aptitude install mongodb-server
+# aptitude install software-properties-common
+# add-apt-repository ppa:chris-lea/node.js
+# aptitude update
+# aptitude install nodejs
+</code></pre>
+
+<p>Then create a start script &ldquo;startMeteor&rdquo;:</p>
+
+<pre><code>#!/bin/bash
+
+export PORT=80
+export MONGO_URL=mongodb://localhost:27017/newfairs
+export ROOT_URL=http://www.newfairs.biz
+node /root/bundle/main.js &gt; /root/meteorApp.log
+</code></pre>
+
+<p>Now build Meteor application package on developing computer,
+and transfer it to production machine:</p>
+
+<pre><code>cd /path/to/meteorProjectRoot
+meteor build .
+scp newfairsweb.tar.gz alivps:~/
+</code></pre>
+
+<p>On production machine, extract Meteor package and install it as a node app:</p>
+
+<pre><code>cd /root
+tar zxf newfairsweb.tar.gz
+cd bundle/programs/server
+npm install
+</code></pre>
+
+<p>将VPS恢复到初始状态的方法是：在云服务器ECS主页的"实例"页下，
+对应主机最右边，"管理 升级 续费 更多"中点击"更多"，
+首先点击"停止"来停止实例运行，然后点击"重新初始化磁盘"，
+将系统盘和数据盘都初始化。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-25T19:53:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Create VPS</h1>
+
+<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
+Get its root password in you email.
+Add the following section into ~/.ssh/config:</p>
+
+<pre><code>Host do
+Hostname 128.199.72.206
+User root
+</code></pre>
+
+<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
+
+<h1>Publish Meteor App</h1>
+
+<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
+
+<p>Create a mup project:</p>
+
+<pre><code>cd ~/docs/tmp
+mkdir nfDeploy
+cd nfDeploy
+mup init
+</code></pre>
+
+<p>Now you can see a mup.json file, edit it as follows:</p>
+
+<pre><code>{
+  "servers": [
+    {
+      "host": "128.199.72.xxx",
+      "username": "root",
+      "pem": "~/.ssh/id_rsa"
+    }
+  ],
+
+  "setupMongo": true,
+  "setupNode": true,
+  "nodeVersion": "0.10.36",
+  "setupPhantom": true,
+  "appName": "newfairs",
+
+  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
+
+  "env": {
+    "PORT": 80,
+    "ROOT_URL": "http://niufairs.biz"
+  },
+
+  "deployCheckWaitTime": 15
+}
+</code></pre>
+
+<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
+&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
+mup will bundle codes in it, and publish them to host on vps.</p>
+
+<p>You can only use key authentication.
+If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
+
+<p>Setup production environment: <code>mup setup</code>;
+Delpoy app: <code>mup deploy</code>;</p>
+
+<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
+
+<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
+</code></pre>
+
+<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
+
+<h1>Import Data</h1>
+
+<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
+
+<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
+scp -r mynf do:~/
+ssh do
+cd mynf
+mongorestore -d newfairs meteor
+</code></pre>
+
+<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/18/095552/">Web Scanning Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-18T09:55:52+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Discovery Scanning</h1>
+
+<p>This step find the IP address of a website, most frequently with <code>ping</code> tools.</p>
+
+<h1>Port scanning</h1>
+
+<p>This step find the openning ports on a host.</p>
+
+<h2>Stealth scan</h2>
+
+<p>Scan commonly used 1000 ports (preconfigured by nmap) of a host: <code>nmap -sS &lt;target-ip&gt;</code>;</p>
+
+<p>Scan all port of a host: <code>nmap -sS &lt;target-ip&gt; -p 0-65535</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>$ sudo nmap -sS xxx.xxx.xxx.143 -p 27010-27020
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:01 CST
+Nmap scan report for newfairs.com (xxx.xxx.xxx.143)
+Host is up (0.30s latency).
+PORT      STATE  SERVICE
+27010/tcp closed flexlm10
+27011/tcp closed unknown
+27012/tcp closed unknown
+27013/tcp closed unknown
+27014/tcp closed unknown
+27015/tcp closed unknown
+27016/tcp closed unknown
+27017/tcp open   unknown
+27018/tcp closed unknown
+27019/tcp closed unknown
+27020/tcp closed unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 5.66 seconds
+</code></pre>
+
+<p>Port 27017 (used by mongoDB) is detected.</p>
+
+<h2>Connection scan</h2>
+
+<p>Command: <code>nmap -sT &lt;target-ip&gt;</code>;</p>
+
+<p>Compared with connection scan, stealth scan won&rsquo;t be logged by the target.
+So it&rsquo;s more safe.</p>
+
+<h1>Banner grabbing</h1>
+
+<p>This step get the banner of a service on a specific port (here is 21):</p>
+
+<pre><code>sudo nmap -sT xxx.xxx.xxx.234 -p 21 --script=banner
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:30 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.064s latency).
+PORT   STATE SERVICE
+21/tcp open  ftp
+| banner: 220-FileZilla Server v0.9.33 beta\x0D\x0A220-written by Tim Kos
+|_se (Tim.Kosse@gmx.de)\x0D\x0A220 Please visit http://sourceforge.net...
+</code></pre>
+
+<p>So this is a FileZilla server, version 0.9.33,
+which implies the OS is probably Windows.</p>
+
+<h1>Service identification</h1>
+
+<p>This step detect what service is running on a specific port of a host.</p>
+
+<p>This is the detection on port 3389: <code>sudo nmap xxx.xxx.xxx.234 -p 3389 -sV</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>sudo nmap xxx.xxx.xxx.234 -p 80 -sV                
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:23 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.072s latency).
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.2.17 ((Win32) PHP/5.3.5)
+</code></pre>
+
+<h1>Operating system identification</h1>
+
+<p>Command: <code>nmap &lt;target-ip&gt; -O</code>;</p>
+
+<p>Example:</p>
+
+<pre><code>$ sudo nmap xxx.xxx.xxx.143 -O
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 08:43 CST
+Nmap scan report for xxx.com (xxx.xxx.xxx.143)
+Host is up (0.32s latency).
+Not shown: 984 closed ports
+PORT     STATE    SERVICE
+22/tcp   open     ssh
+80/tcp   open     http
+135/tcp  filtered msrpc
+139/tcp  filtered netbios-ssn
+445/tcp  filtered microsoft-ds
+593/tcp  filtered http-rpc-epmap
+901/tcp  filtered samba-swat
+1068/tcp filtered instl_bootc
+1723/tcp filtered pptp
+3000/tcp open     ppp
+3128/tcp filtered squid-http
+4444/tcp filtered krb524
+5800/tcp filtered vnc-http
+5900/tcp filtered vnc
+6129/tcp filtered unknown
+6667/tcp filtered irc
+Aggressive OS guesses: Linux 3.2 - 3.6 (96%), Linux 2.6.32 - 2.6.39 (94%), Linux 2.6.32 - 3.0 (93%), Linux 3.5 (92%), Linux 2.6.32 (92%), IPFire firewall 2.11 (Linux 2.6.32) (92%), Linux 2.6.15 - 2.6.26 (likely embedded) (90%), Linux 2.6.32 - 2.6.33 (90%), Linux 2.6.32 - 2.6.35 (90%), Linux 2.6.18 (90%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 23 hops
+
+OS detection performed. Please report any incorrect results at http://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 83.20 seconds
+</code></pre>
+
+<p>Ref: &ldquo;Kali Linux Network Scanning Cookbook&rdquo; by Justin Hutchens.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/posts/4">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/posts/2">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

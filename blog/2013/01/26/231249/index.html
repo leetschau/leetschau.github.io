@@ -1,0 +1,297 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>BinarySearchST计算成本的测试代码 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="下面是在原有BinarySearchST类上的修改，增加了两个成员（visitTimes与visitTime）和一个方法（getComparisionTimes），查找的成本主要体现在rank方法中的“cmp=key.compareTo(keys[m])”，在这一句后面加上visitTime++ &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2013/01/26/231249/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">BinarySearchST计算成本的测试代码</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-26T23:12:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>下面是在原有BinarySearchST类上的修改，增加了两个成员（visitTimes与visitTime）和一个方法（getComparisionTimes），查找的成本主要体现在rank方法中的“cmp=key.compareTo(keys[m])”，在这一句后面加上visitTime++来标记访问次数增加了一次；写入的成本体现在put方法的两个位置，当key已经在keys中时，本次put的总成本是visitTime+1，当key不在keys数组中时（增加一个新元素），每移动一个元素，visitTime要加1，注意每次put操作记录结束后，除了要将次数存入visitTimes数组，还要将visitTime清零。</p>
+
+<p>另外下面的代码省略了与原BinarySearchST类相同的成员和方法。</p>
+
+<p> public class BinarySearchST<Key extends Comparable<Key>, Value> {
+  private final List<Integer> visitTimes = new ArrayList<Integer>(); // 每次put访问数组的次数的集合
+  int visitTime = 0; // 一次put操作中访问数组的次数计数器
+  public Value get(Key key) {
+   if (isEmpty())
+    return null;
+   int i = rank(key);
+   visitTime++;
+   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0)
+    return vals[i];
+   return null;
+  }
+  public int rank(Key key) {
+   int lo = 0, hi = N - 1;
+   while (lo &lt;= hi) {
+    int m = lo + (hi - lo) / 2;
+    int cmp = key.compareTo(keys[m]);
+    visitTime++;
+    if (cmp &lt; 0)
+     hi = m - 1;
+    else if (cmp > 0)
+     lo = m + 1;
+    else {
+     return m;
+    }
+   }
+   return lo;
+  }
+  public void put(Key key, Value val) {
+   if (val == null) {
+    delete(key);
+    return;
+   }
+   int i = rank(key);
+   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0) {
+    vals[i] = val;
+    visitTimes.add(visitTime + 1); // 查找了visitTime次，写入的成本是1
+    visitTime = 0;
+    return;
+   }
+   if (N == keys.length)
+    resize(2 * keys.length);
+   for (int j = N; j > i; j&ndash;) {
+    keys[j] = keys[j - 1];
+    vals[j] = vals[j - 1];
+    visitTime++;
+   }
+   keys[i] = key;
+   vals[i] = val;
+   N++;
+   visitTimes.add(visitTime);
+   visitTime = 0;
+   assert check();
+  }
+  public List<Integer> getComparisionTimes() {
+   return visitTimes;
+  }
+ }</p>
+
+<p>计算成本的图像演示代码FrequencyCounter类见笔记 SequentialSearchST算法成本的图形演示 。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2013-01-26T23:12:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/algorithm/'>algorithm</a>, <a class='category' href='/blog/categories/robert-sedgewick/'>robert sedgewick</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2013/01/26/231249/" data-via="" data-counturl="http://leetschau.github.io/blog/2013/01/26/231249/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/01/25/072710/" title="Previous Post: 键盘插拔对用户登录的影响实验">&laquo; 键盘插拔对用户登录的影响实验</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/01/27/132736/" title="Next Post: 计算成本图像演示方法的改进">计算成本图像演示方法的改进 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
