@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Git | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/git/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-06-04T20:48:19+08:00</updated>
+  <updated>2015-07-15T11:08:23+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,77 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Trace File Change History in Git Repository]]></title>
+    <link href="http://leetschau.github.io/blog/2015/06/30/101243/"/>
+    <updated>2015-06-30T10:12:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/06/30/101243</id>
+    <content type="html"><![CDATA[<p>The website need hide some menu items under developing,
+by comment out the html codes (at line 19~24 in file &ldquo;client/comTemp.html&rdquo;).
+But last night we found they reappeared in the newest version.
+Apparently someone used the older version (in which they were not commented out)
+overwrite the latest version by error (without intention).</p>
+
+<p>How to find out who, at which commit make this mistake?</p>
+
+<p><strong>Step 1</strong>: get the error version.</p>
+
+<pre><code>$ git blame -L 19,24 client/comTemp.html
+dc7d385a (Tom     2015-06-26 17:39:28 +0800 19)    &lt;li&gt;
+8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="http://leetschau.github.io/mall"&gt;Mall&lt;/a&gt;
+6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
+6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
+8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="http://leetschau.github.io/services"&gt;Services&lt;/a&gt;
+dc7d385a (Tom     2015-06-26 17:39:28 +0800 24)    &lt;/li&gt;
+</code></pre>
+
+<p>Here the line 19 should be <code>&lt;!--&lt;li&gt;</code> and line 24 should be <code>&lt;/li&gt;--&gt;</code>,
+to hide &ldquo;Mall&rdquo; and &ldquo;Services&rdquo;, which are under developing.</p>
+
+<p><strong>Step 2</strong>: get the newest right version.</p>
+
+<p>The wrong commit is &ldquo;dc7d385a&rdquo;, so we have to find the nearest change <strong>before</strong> it:</p>
+
+<pre><code>$ git blame -L 19,24 'dc7d385a^' -- client/comTemp.html
+96269db1 (Bob     2015-06-10 15:36:31 +0800 19)    &lt;!--&lt;li&gt;
+8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="http://leetschau.github.io/mall"&gt;Mall&lt;/a&gt;
+6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
+6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
+8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="http://leetschau.github.io/services"&gt;Services&lt;/a&gt;
+96269db1 (Bob     2015-06-10 15:36:31 +0800 24)    &lt;/li&gt;--&gt;
+</code></pre>
+
+<p>So we know Mall and Services were commented out at commit 96269db1, 2015-06-10,
+and uncommented by error at commit dc7d385a, 2015-06-26, by Tom.</p>
+
+<p><strong>Step 3</strong>: show code changes.</p>
+
+<pre><code>$ git show dc7d385a -- client/comTemp.htm
+...
+-    &lt;!--&lt;li&gt;
++    &lt;li&gt;
+       &lt;a href="http://leetschau.github.io/mall"&gt;Mall&lt;/a&gt;
+     &lt;/li&gt;
+     &lt;li&gt;
+       &lt;a href="http://leetschau.github.io/services"&gt;Services&lt;/a&gt;
+-    &lt;/li&gt;--&gt;
++    &lt;/li&gt;
+...
+</code></pre>
+
+<p>It shows in commit dc7d385a,
+two lines were deleted: &ldquo;<!--<li>&rdquo; and &ldquo;</li>&ndash;>&rdquo;,
+while two lines were added: &ldquo;<li>&rdquo; and &ldquo;</li>&rdquo;.</p>
+
+<p><strong>Step 4 (optional)</strong>: revert the commit</p>
+
+<pre><code>git revert dc7d385a
+</code></pre>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket">http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Git初体验]]></title>
@@ -282,128 +353,6 @@ So it&rsquo;s not necessary if you don&rsquo;t want sync with remote.</p></li>
 <li><p><a href="http://serverfault.com/questions/175052/how-to-tell-which-local-branch-is-tracking-which-remote-branch-in-git">http://serverfault.com/questions/175052/how-to-tell-which-local-branch-is-tracking-which-remote-branch-in-git</a></p></li>
 <li><p><a href="http://stackoverflow.com/questions/1783405/checkout-remote-git-branch">http://stackoverflow.com/questions/1783405/checkout-remote-git-branch</a></p></li>
 </ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Git-flow Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2015/01/29/141348/"/>
-    <updated>2015-01-29T14:13:48+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/01/29/141348</id>
-    <content type="html"><![CDATA[<p>git is a powerful version control tool, while its large amount of commands and options make it hard to use.</p>
-
-<p>So <a href="https://github.com/nvie/gitflow">git-flow</a> was created to make git mush convenient. It&rsquo;s a high level branching tools for git.</p>
-
-<p>Fist install it with <code>apt-get install git-flow</code> on Debian-family distros.</p>
-
-<h1>Usage</h1>
-
-<h2>Workflow on a single feature</h2>
-
-<p>The following paragraphs is from [Why aren&rsquo;t you using git-flow?}(<a href="http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/">http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/</a>).</p>
-
-<p>Branch &ldquo;master&rdquo; is always &ldquo;production ready&rdquo; code. Commits are never made directly to master. Rather, code on master only gets there after a production release branch is created and &ldquo;finished&rdquo; (more on that in a sec). Thus the code on master is always able to be released to production. Also, master is always in a predictable state, so you never need to worry if master (and thus production) has changes one of your other branches doesn&rsquo;t.</p>
-
-<p>&ldquo;develop&rdquo; is the branch you&rsquo;ll be doing most of your work off of; it&rsquo;s also the branch that represents the code to be deployed in the next release. feature branches represent non-trivial features and fixes that have not yet been deployed (a completed feature branch is merged back into develop). Updating master is done through the creation of a release.</p>
-
-<p>Most of your work is done on the develop branch. This branch contains all of the completed features and bug fixes yet to be released; nightly builds or continuous integration servers should target develop, as it represents the code that will be included in the next release. For one-off commits, feel free to commit to develop directly.</p>
-
-<p>Use <code>git flow help</code> or <code>git flow feature help</code> to list all available commands.</p>
-
-<pre><code>$ git flow init  // Convert an existing git repo to git-flow style:
-
-$ git flow feature start &lt;feature-name&gt;
-
-$ git commit -m "now finish this feature"
-
-// if you want cancel this feature:
-$ git flow feature  // list the current feature name, here is "searchSource"
-$ git flow feature delete searchSource
-// or do it manually
-$ git checkout develop  // switch to "develop" branch
-$ git branch  // list current branches
-$ git branch -d feature/&lt;feature-name&gt;   // "feature/" is the default prefix of all feature branches
-$ git branch  // verify the feature is deleted
-
-// push feature to remote repository
-$ git flow feature publish
-
-// get feature commit from remote repository
-$ git flow feature pull
-
-// after the feature is finished and tested
-$ git flow feature finish &lt;feature-name&gt;
-</code></pre>
-
-<p>Note that do not add &ldquo;feature/&rdquo; prefix before feature name.
-This command merge feature branch back into develop branch, so the feature branch disappear from now on.
-If you don&rsquo;t want save your feature branch into remote repo, push to remote AFTER you finish your feature with this &ldquo;finish&rdquo; command.
-There is a corresponding &ldquo;release&rdquo; command:</p>
-
-<pre><code>$ git flow release start v0.1.0
-$ git flow release finish v0.1.0
-</code></pre>
-
-<p>See <a href="http://danielkummer.github.io/git-flow-cheatsheet/">git-flow cheatsheet</a> for details of git-flow.</p>
-
-<h2>Switching between multiple features</h2>
-
-<p>Say you now have finished version 1.0 and tag it with &ldquo;1.0&rdquo;.
-Next you will add function A to the product.
-You have two methods to achieve function A, &ldquo;search source&rdquo; and &ldquo;full text&rdquo;.
-You want to experiment them one by one, so create the first test branch with <code>git flow feature start searchSource</code>,
-After some commits, now you want to evaluate the second.</p>
-
-<p>You can&rsquo;t <code>git flow feature finish searchSource</code> for two reasons:</p>
-
-<p>First you may switching back to this feature in the future.
-If you finish this feature, this branch disappeared.</p>
-
-<p>Second you need experiment &ldquo;full text&rdquo; based on version 1.0.
-But if you &ldquo;finish&rdquo; feature &ldquo;search source&rdquo;, the modifications will be added to branch develop.
-If you <code>git flow feature start fullText</code>, the codes won&rsquo;t be that in version 1.0.</p>
-
-<p>So what you want is working on multiple branches simultaneously:</p>
-
-<pre><code>$ git flow feature start searchSource
-... // some developments on branch searchSource
-$ git commit -m "finish a milestone by method search source"
-$ git flow feature start fullText
-... // some developments on branch fullText
-$ git commit -m "finish a milestone by method full text"
-$ git flow feature list
-$ git flow feature checkout searchSource
-... // some developments on branch searchSource
-$ git commit -m "finish the 2nd milestone by method search source"
-$ git flow feature checkout fullText
-... // some developments on branch fullText
-$ git commit -m "finish the 2nd milestone by method full text"
-</code></pre>
-
-<p>If you have some casual modifications which you don&rsquo;t want to commit, use <code>git stash</code> instead of <code>git commit</code>.
-Use <code>git stash list</code> to list all stashed changes, and <code>git stash pop</code> to take the stashed codes out.
-Or <code>git stash apply</code> to take codes out without removing saved stash record.</p>
-
-<p>Finally you choose &ldquo;full text&rdquo; to achieve function A.
-So add it to your develop code base: <code>git flow feature finish fullText</code>.
-And leave the branch &ldquo;search source&rdquo; alone.</p>
-
-<p>If you are sure &ldquo;search source&rdquo; are useless any more,
-print all existing features with <code>git flow feature list</code>,
-then remove it with <code>git flow feature delete searchSource</code>.</p>
-
-<p>There is a GUI tool called <code>gitk</code>, which can be installed with <code>apt-get install gitk</code>.
-See commits on current branch with <code>gitk</code>, or see all branches with <code>gitk --all</code>.</p>
-
-<p>There is also a <a href="https://github.com/bobthecow/git-flow-completion">git-flow-completion</a> tool for zsh.
-Install it if you like.</p>
-
-<ol>
-<li><p>Download <a href="http://sourceforge.net/p/zsh/code/ci/master/tree/Completion/Unix/Command/_git?format=raw">_git</a> and replace /usr/share/zsh/functions/Completion/Unix/_git;</p></li>
-<li><p>Download <a href="https://raw2.github.com/bobthecow/git-flow-completion/master/git-flow-completion.zsh">git-flow-completion.zsh</a>, save it as ~/.git-flow-completion.zsh;</p></li>
-<li><p>Add &ldquo;source ~/.git-flow-completion.zsh&rdquo; into ~/.zshrc;</p></li>
-</ol>
 
 ]]></content>
   </entry>

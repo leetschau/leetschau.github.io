@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="首先以ant为例说明： 设置环境变量
-首先要设ANT_HOME，其次要设path（只设path不设ANT_HOME，ant会报错，所以ANT_HOME必须设）。 os.environ[&lsquo;ANT_HOME&rsquo;] = os.path.join(root_path,&lsquo; &hellip;">
+  <meta name="description" content="原始数据如下图，现需对每一种语言分类汇总各项指标，例如需计算3个项目中所有java语言增加的总行数（Addition列的52881、4828、14621的和）。每一个项目中语言的种类和数量是不可预知的，但针对一种语言进行的各项统计是确定的（这里共进行8项统计，其中前7项要按语言汇总，即做和， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/01/04/161706/">在python中调用可执行程序时如何设置环境变量</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/19/083210/">代码行汇总算法</a></h1>
     
     
       <p class="meta">
@@ -81,25 +80,49 @@
 
 
 
-<time class='entry-date' datetime='2011-01-04T16:17:06+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:17 pm</span></time>
+<time class='entry-date' datetime='2011-01-19T08:32:10+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:32 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>首先以ant为例说明： 设置环境变量
-首先要设ANT_HOME，其次要设path（只设path不设ANT_HOME，ant会报错，所以ANT_HOME必须设）。</p>
+  <div class="entry-content"><p>原始数据如下图，现需对每一种语言分类汇总各项指标，例如需计算3个项目中所有java语言增加的总行数（Addition列的52881、4828、14621的和）。每一个项目中语言的种类和数量是不可预知的，但针对一种语言进行的各项统计是确定的（这里共进行8项统计，其中前7项要按语言汇总，即做和，第8项RATE对某种语言是固定值，汇总时不要相加，照写即可）。</p>
 
-<p>os.environ[&lsquo;ANT_HOME&rsquo;] = os.path.join(root_path,&lsquo;tools&rsquo;,&lsquo;apache-ant-1.8.1&rsquo;)</p>
+<p>算法分为3步：</p>
 
-<p>os.environ[&lsquo;path&rsquo;] = os.path.join(root_path,&lsquo;tools&rsquo;,&lsquo;apache-ant-1.8.1&rsquo;,&lsquo;bin&rsquo;)
- 调用格式
-output = os.popen(r'ant init').read()</p>
+<p>1、将取得的数据依次放入list中，形成一个一维list；</p>
 
-<p>print(output)</p>
+<p>2、顺序遍历该list，获得语言项的下标位置，每种语言的名字是字典的key，下标列表是对应的value；</p>
 
-<p> 这里要注意的是 不能用 sys.path.append(ant_path)代替 os.environ[&lsquo;path&rsquo;]=&hellip;这一句，因为sys.path中虽然有ant的路径，但使用os.popen(&hellip;)时python只在系统的path里找可执行程序名，不会去sys.path里找（sys.path仅用于python找包，见博文“python添加新包的方法”），如果path中指定的ant路径不存在，python不会继续找sys.path，而是直接给出一个空结果（不会返回“程序名不存在”这样的提示信息，因为python直接调用操作系统底层的C API，而提示信息是cmd.exe加上的）。</p>
+<p>3、根据上面生成的字典依次对相同语言的对应条目进行做和，最后一项照写；</p>
+
+<p>下面是代码实现，其中 tested 是原始数据在第一步后形成的一维list， index_dict 是第二步后形成的下标列表字典， summary 是最终的汇总数据列表。</p>
+
+<pre><code>tested = ['java','4','5','0.41','xml','3','7','0.23','java','23','42','0.41','xml','63','82','0.23'] 
+index_dict = {} 
+for item in tested: 
+    if item.isalpha(): 
+        if not index_dict.has_key(item): index_dict[item] = [] 
+        index_dict[item].append(tested.index(item)) 
+        tested[tested.index(item)]='-' 
+print(index_dict) 
+summary=[] 
+for item in index_dict: 
+    summary.append(item) 
+    index_list = [k+1 for k in index_dict[item]] 
+    summary.append(sum(int(tested[k]) for k in index_list)) 
+    index_list = [k+2 for k in index_dict[item]] 
+    summary.append(sum(int(tested[k]) for k in index_list)) 
+    summary.append(tested[index_dict[item][0]+3]) 
+print(summary) 
+</code></pre>
+
+<p>输出是（python 2.6）：</p>
+
+<pre><code>{'xml': [4, 12], 'java': [0, 8]} 
+['xml', 66, 89, '0.23', 'java', 27, 47, '0.41']
+</code></pre>
 </div>
   
   
@@ -112,7 +135,7 @@ output = os.popen(r'ant init').read()</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/01/04/103251/">Python中两种拷贝目录方法的比较</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/18/113744/">用minidom解析xml文档</a></h1>
     
     
       <p class="meta">
@@ -121,21 +144,66 @@ output = os.popen(r'ant init').read()</p>
 
 
 
-<time class='entry-date' datetime='2011-01-04T10:32:51+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:32 am</span></time>
+<time class='entry-date' datetime='2011-01-18T11:37:44+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:37 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>首先是用python自己的api：
-shutil.copytree(&lsquo;./build/tested/doc&rsquo;, &lsquo;./build/tested/build/doc&rsquo;)</p>
+  <div class="entry-content"><p>原始xml文档（下划线部分是要解析的数据）：</p>
 
-<p>优点是改变平台时不需要修改代码，缺点是doc文件夹下所有的东西都会被拷贝，包括隐藏目录；
- 其次是使用windows的api：
-result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;, &lsquo;.\build\tested\build\doc&rsquo;,&lsquo;/I&rsquo;])</p>
+<p> &lt;?xml version=&ldquo;1.0&rdquo;?></p>
 
-<p>与上面的优缺点正好相反。</p>
+<p> &lt;!DOCTYPE coverage SYSTEM &ldquo;<a href="http://cobertura.sourceforge.net/xml/coverage-04.dtd">http://cobertura.sourceforge.net/xml/coverage-04.dtd</a>&rdquo;></p>
+
+<p> <coverage  line-rate="0.0" branch-rate="0.0" lines-covered="0" lines-valid="4358" branches-covered="0" branches-valid="1280" complexity="1.538085255066387"  version="1.9.1" timestamp="1294906695765"></p>
+
+<p> <packages /></p>
+
+<p> </coverage></p>
+
+<p>解析为list：</p>
+
+<p> test_datasets = []</p>
+
+<p> import xml.dom.minidom</p>
+
+<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
+
+<p> raw_test_res = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0]</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-covered&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-valid&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;line-rate&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-covered&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-valid&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branch-rate&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;complexity&rsquo;].value)</p>
+
+<p> return test_datasets</p>
+
+<p>解析为字典：</p>
+
+<p> test_datasets = {}</p>
+
+<p> import xml.dom.minidom</p>
+
+<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
+
+<p> raw_data_set = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0].attributes</p>
+
+<p> for the_attr in raw_data_set.values():</p>
+
+<p>  test_datasets[the_attr.name] = the_attr.value</p>
+
+<p> return test_datasets</p>
 </div>
   
   
@@ -148,7 +216,7 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/12/31/092310/">同时发布两种产品的ant脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/17/083035/">关于Python的嵌套域（nested Scope）</a></h1>
     
     
       <p class="meta">
@@ -157,39 +225,38 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
 
 
 
-<time class='entry-date' datetime='2010-12-31T09:23:10+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2010</span></span> <span class='time'>9:23 am</span></time>
+<time class='entry-date' datetime='2011-01-17T08:30:35+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:30 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p><target  name= "create_jar"  depends=  "compile" >
-     <jar  destfile= "${build.dist.dir}/${product.name}-${ivy.revision}-jar.jar"  basedir=  "${build.class.dir}" >
-      <manifest>
-       <attribute  name= "Vendor"  value= "${vendor.name}"  />
-       <attribute  name= "Product-Name"  value= "${product.name}"  />
-       <attribute  name= "Version"  value= "${ivy.revision}"  />
-       <attribute  name= "Build-Date"  value= "${build.date}"  />
-       <attribute  name= "Build-Time"  value= "${build.time}"  />
-      </manifest>
-     </jar>
-     <jar  destfile= "${build.dist.dir}/${product.name}-${ivy.revision}-source.jar"  basedir=  "${src.dir}" >
-      <manifest>
-       <attribute  name= "Vendor"  value= "${vendor.name}"  />
-       <attribute  name= "Product-Name"  value= "${product.name}"  />
-       <attribute  name= "Version"  value= "${ivy.revision}"  />
-       <attribute  name= "Build-Date"  value= "${build.date}"  />
-       <attribute  name= "Build-Time"  value= "${build.time}"  />
-      </manifest>
-     </jar>
-   </target></p>
+  <div class="entry-content"><p>周五下午因为嵌套函数的问题反复折腾了几个小时，今天终于搞明白了，python2.6手册里对“nested scope”有一段定义，并结合“OReilly - Python in a Nutshell”第4.10.6.2节，总结如下： 1 python支持嵌套函数；
+ 2 内层函数可以访问外层函数中定义的变量，但不能重新赋值（rebind）；
+ 3 内层函数的local namespace不包含外层函数定义的变量（见下面的演示程序）；
+ 4 避免出现低版本（&lt;=2.1）不支持nested scope问题的方法：在内层函数参数列表中使用默认参数：
+ (copied from &ldquo;OReilly - Python in a Nutshell&rdquo; section 4.10.6.2)
+ def make_adder_1(augend):    # works with any version
+ def add(addend, <em>augend=augend ): return addend+</em>augend
+ return add
+ 演示程序：
+ def outterfunc():
+  def innerfunc():
+   cc = bb+&lsquo;2&rsquo;
+   print &lsquo;inner:&rsquo;,locals()
+   # bb = 3 #这句会造成运行失败
+  bb = &lsquo;3&rsquo;
+  outer = &lsquo;out&rsquo;
+  innerfunc()
+  print &lsquo;outter:&rsquo;,locals()
+ bb=31
+ outterfunc()
+ 输出：
+ inner: {&lsquo;cc&rsquo;: &lsquo;32&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}
+ outter: {&lsquo;innerfunc&rsquo;: <function innerfunc at 0x01F0C1F0>, &lsquo;outer&rsquo;: &lsquo;out&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}</p>
 
-<p>   <target  name= "publish_jar"  depends=  "create_jar" >
-     &lt;ivy:publish  artifactspattern= &ldquo;${build.dist.dir}/[artifact]-[revision]-[type].[ext]&rdquo;
-      resolver= &ldquo;${publish.resolver}&rdquo;  overwrite= &ldquo;true&rdquo;
-      organisation= &ldquo;com.boco.ty&rdquo;  module= &ldquo;gapi&rdquo;  revision= &ldquo;alpha&rdquo; />
-   </target></p>
+<p> 从输出可以看到，外层函数里定义的outer变量没有出现在内层函数的local namespace里，但被引用的变量bb却出现了，这一特点值得注意。</p>
 </div>
   
   
@@ -202,7 +269,7 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/12/30/150304/">Python的目录遍历方法说明</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/13/152557/">python的ConfigParser模块使用方法</a></h1>
     
     
       <p class="meta">
@@ -211,96 +278,40 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
 
 
 
-<time class='entry-date' datetime='2010-12-30T15:03:04+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>3:03 pm</span></time>
+<time class='entry-date' datetime='2011-01-13T15:25:57+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:25 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>python的os.walk()方法十分强大，它对目录的遍历不能指定深度，也就是一直遍历到最深处为止，且采用深度优先的遍历方法，第一个参数是要遍历的文件夹路径，第二个参数topdown如果为真，则从根向下遍历，若为假，则从最深处向根遍历，示例如下：</p>
+  <div class="entry-content"><p>ConfigParser模块读取的配置文件的基本格式是：分节，节名称用中括号括起来，每节内有key:value对，中间用冒号分隔，冒号前的空格会被忽略掉；</p>
 
-<p> import os</p>
+<p>[SectionName1]</p>
 
-<p> for root, dirs, files in os.walk(&lsquo;f:\aa&rsquo;, topdown=False):</p>
+<p>name1: value1</p>
 
-<p>  print(&lsquo;root=&rsquo;,root)</p>
+<p>name2: value2</p>
 
-<p>  print(&lsquo;dirs=&rsquo;,dirs)</p>
+<p>[SectionName2]</p>
 
-<p>  print(&lsquo;files=&rsquo;,files)</p>
+<p>name3: value3</p>
 
-<p>输出如下：</p>
+<p>配置文件中可以有注释，有两种风格，一种是#号开头，一种是分号开头。#号必须在行首，分号可以在行中， 但分号前必须有一个空格 。下面的代码读取build.cfg文件中mail节中to_addr的内容：</p>
 
-<p> root= f:\aa\22\33</p>
+<p> import ConfigParser</p>
 
-<p> dirs= []</p>
+<p> config = ConfigParser.ConfigParser()</p>
 
-<p> files= [&lsquo;f44&rsquo;]</p>
+<p> config.read(&lsquo;build.cfg&rsquo;)</p>
 
-<p> root= f:\aa\22</p>
+<p> to_addr = config.get(&lsquo;mail&rsquo;,&lsquo;to_addr&rsquo;)</p>
 
-<p> dirs= [&lsquo;33&rsquo;]</p>
+<p>build.cfg的内容为：</p>
 
-<p> files= [&lsquo;f33&rsquo;]</p>
+<p>[mail]</p>
 
-<p> root= f:\aa\222\333</p>
-
-<p> dirs= []</p>
-
-<p> files= []</p>
-
-<p> root= f:\aa\222</p>
-
-<p> dirs= [&lsquo;333&rsquo;]</p>
-
-<p> files= []</p>
-
-<p> root= f:\aa</p>
-
-<p> dirs= [&lsquo;22&rsquo;, &lsquo;222&rsquo;]</p>
-
-<p> files= [&lsquo;f22&rsquo;]</p>
-
-<p>如果去掉第二行中的“topdown=False”，输出如下：</p>
-
-<p> root= f:\aa</p>
-
-<p> dirs= [&lsquo;22&rsquo;, &lsquo;222&rsquo;]</p>
-
-<p> files= [&lsquo;f22&rsquo;]</p>
-
-<p> root= f:\aa\22</p>
-
-<p> dirs= [&lsquo;33&rsquo;]</p>
-
-<p> files= [&lsquo;f33&rsquo;]</p>
-
-<p> root= f:\aa\22\33</p>
-
-<p> dirs= []</p>
-
-<p> files= [&lsquo;f44&rsquo;]</p>
-
-<p> root= f:\aa\222</p>
-
-<p> dirs= [&lsquo;333&rsquo;]</p>
-
-<p> files= []</p>
-
-<p> root= f:\aa\222\333</p>
-
-<p> dirs= []</p>
-
-<p> files= []</p>
-
-<p>如果仅仅是列出第一层目录名，则用listdir()：</p>
-
-<p> print(os.listdir(&lsquo;f:\aa&rsquo;))</p>
-
-<p>的输出是：</p>
-
-<p> [&lsquo;22&rsquo;, &lsquo;222&rsquo;, &lsquo;f22&rsquo;]</p>
+<p>to_addr: <a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#x3a;&#x6c;&#105;&#x63;&#x68;&#97;&#x6f;&#x31;&#64;&#98;&#111;&#99;&#x6f;&#x2e;&#x63;&#x6f;&#x6d;&#x2e;&#99;&#110;">&#108;&#x69;&#99;&#104;&#97;&#x6f;&#x31;&#64;&#x62;&#x6f;&#99;&#111;&#46;&#99;&#111;&#x6d;&#46;&#x63;&#x6e;</a> ;this is comments</p>
 </div>
   
   
@@ -313,7 +324,7 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/12/30/110743/">Python添加新包的方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/12/153209/">用python发送各种形式的邮件</a></h1>
     
     
       <p class="meta">
@@ -322,29 +333,367 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
 
 
 
-<time class='entry-date' datetime='2010-12-30T11:07:43+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:07 am</span></time>
+<time class='entry-date' datetime='2011-01-12T15:32:09+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:32 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>python查找包实际上是在sys.path中找，利用这一点可以方便的在运行时添加新包。例如现在要添加一个名为pysvn的包，原始安装包是一个zip包，其中只有一个名为pysvn的目录，所有文件都在这个目录下（例如<strong>init</strong>.py以及一堆dll文件），将这个包解压至E:\BVT\GODU-BVT\pyTest下，也就是E:\BVT\GODU-BVT\pyTest\pysvn下有 <strong>init</strong>.py以及一堆dll文件，然后运行如下脚本：
- import sys</p>
+  <div class="entry-content"><p>分别是发送纯文本邮件、html格式邮件，以及带附件的html格式邮件。纯文本邮件消息体是普通字符串，html格式邮件中消息体是MIMEText型对象，这种对象的特点是不能加附件；带附件的html格式邮件中消息体是MIMEMultipart型对象，正文和附件都用attach()方法添加。</p>
 
-<p> sys.path.append(&lsquo;E:\BVT\GODU-BVT\pyTest&rsquo;)</p>
+<p>代码如下（红色字体部分是一个html格式文本的示例，可跳过不看）：</p>
 
-<p> import pysvn</p>
+<p> import smtplib</p>
+
+<p> from email.mime.text import MIMEText</p>
+
+<p> from email.mime.multipart import MIMEMultipart</p>
+
+<p> if <strong>name</strong>==&lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  msg_body=&lsquo;&rsquo;&lsquo; &lt;!DOCTYPE HTML PUBLIC &ldquo;-//W3C//DTD HTML 4.01 Transitional//EN&rdquo;> <html xmlns:lxslt="http://xml.apache.org/xslt" xmlns:stringutils="xalan://org.apache.tools.ant.util.StringUtils"></p>
+
+<p> <head></p>
+
+<p> <META http-equiv="Content-Type" content="text/html; charset=US-ASCII"> <title>BVT Report</title> <style type="text/css"></p>
+
+<p>  body {</p>
+
+<p>   font:normal 68% verdana,arial,helvetica;</p>
+
+<p>   color:#000000;</p>
+
+<p>  }</p>
+
+<p>  table tr td, table tr th {</p>
+
+<p>   font-size: 68%;</p>
+
+<p>  }</p>
+
+<p>  table.details tr th{</p>
+
+<p>   font-weight: bold;</p>
+
+<p>   text-align:left;</p>
+
+<p>   background:#a6caf0;</p>
+
+<p>  }</p>
+
+<p>  table.details tr td{</p>
+
+<p>   background:#eeeee0;</p>
+
+<p>  }</p>
+
+<p>  p {</p>
+
+<p>   line-height:1.5em;</p>
+
+<p>   margin-top:0.5em; margin-bottom:1.0em;</p>
+
+<p>  }</p>
+
+<p>  h1 {</p>
+
+<p>   margin: 0px 0px 5px; font: 165% verdana,arial,helvetica</p>
+
+<p>  }</p>
+
+<p>  h2 {</p>
+
+<p>   margin-top: 1em; margin-bottom: 0.5em; font: bold 125% verdana,arial,helvetica</p>
+
+<p>  }</p>
+
+<p>  h3 {</p>
+
+<p>   margin-bottom: 0.5em; font: bold 115% verdana,arial,helvetica</p>
+
+<p>  }</p>
+
+<p>  h4 {</p>
+
+<p>   margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica</p>
+
+<p>  }</p>
+
+<p>  h5 {</p>
+
+<p>   margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica</p>
+
+<p>  }</p>
+
+<p>  h6 {</p>
+
+<p>   margin-bottom: 0.5em; font: bold 100% verdana,arial,helvetica</p>
+
+<p>  }</p>
+
+<p>  .Error {</p>
+
+<p>   font-weight:bold; color:red;</p>
+
+<p>  }</p>
+
+<p>  .Failure {</p>
+
+<p>   font-weight:bold; color:purple;</p>
+
+<p>  }</p>
+
+<p>  .Properties {</p>
+
+<p>   text-align:right;</p>
+
+<p>  }</p>
+
+<p>  </style></p>
+
+<p> </head></p>
+
+<p> <body></p>
+
+<p> <h1>Unit Test Results Summary</h1></p>
+
+<p> <table class="details" border="0" cellpadding="5" cellspacing="2" width="95%"> <tr valign="top"> <th>Tests</th><th>Failures</th><th>Errors</th><th>Success rate</th><th>Time</th> </tr> <tr valign="top" class="Error"> <td>382</td><td>3</td><td>382</td><td>36.0466666667%</td><td>1.65</td></p>
+
+<p> </tr></p>
+
+<p> </table></p>
+
+<p> <hr/></p>
+
+<p> <h1>Diffcount Report</h1></p>
+
+<p> <h2>GODU SERVER</h2></p>
+
+<p> <table class="details" border="0" cellpadding="5" cellspacing="2" width="95%"> <tr valign="top"> <th>LANG</th><th>ADD</th><th>MOD</th><th>DEL</th><th>A&amp;M</th><th>BLK</th><th>CMT</th><th>NBNC</th><th>RATE</th></p>
+
+<p> </tr></p>
+
+<p> <tr valign="top" class="Error"><td>Java</td><td>52774</td><td>0</td><td>0</td><td>52774</td><td>5501</td><td>8036</td><td>39344</td><td>0.41</td></tr><tr valign="top" class="Error"><td>XML</td><td>399</td><td>0</td><td>0</td><td>399</td><td>0</td><td>0</td><td>399</td><td>0.12</td></tr></p>
+
+<p> </table></p>
+
+<p> <h2>GAPI</h2></p>
+
+<p> <table class="details" border="0" cellpadding="5" cellspacing="2" width="95%"> <tr valign="top"> <th>LANG</th><th>ADD</th><th>MOD</th><th>DEL</th><th>A&amp;M</th><th>BLK</th><th>CMT</th><th>NBNC</th><th>RATE</th></p>
+
+<p> </tr></p>
+
+<p> <tr valign="top" class="Error"><td>Java</td><td>52774</td><td>0</td><td>0</td><td>52774</td><td>5501</td><td>8036</td><td>39344</td><td>0.41</td></tr><tr valign="top" class="Error"><td>XML</td><td>399</td><td>0</td><td>0</td><td>399</td><td>0</td><td>0</td><td>399</td><td>0.12</td></tr></p>
+
+<p> </table></p>
+
+<p> <h2>GODU WEB</h2></p>
+
+<p> <table class="details" border="0" cellpadding="5" cellspacing="2" width="95%"> <tr valign="top"> <th>LANG</th><th>ADD</th><th>MOD</th><th>DEL</th><th>A&amp;M</th><th>BLK</th><th>CMT</th><th>NBNC</th><th>RATE</th></p>
+
+<p> </tr></p>
+
+<p> <tr valign="top" class="Error"><td>Java</td><td>52774</td><td>0</td><td>0</td><td>52774</td><td>5501</td><td>8036</td><td>39344</td><td>0.41</td></tr><tr valign="top" class="Error"><td>XML</td><td>399</td><td>0</td><td>0</td><td>399</td><td>0</td><td>0</td><td>399</td><td>0.12</td></tr></p>
+
+<p> </table></p>
+
+<p> </body></p>
+
+<p> </html></p>
+
+<p> &lsquo;&rsquo;'</p>
+
+<p>  mail_server = smtplib.SMTP(&lsquo;124.127.106.5&rsquo;) # use &lsquo;smtp.163.com&rsquo; to send email with 163</p>
+
+<p>  mail_server.set_debuglevel(1)</p>
+
+<p>  mail_server.login(&lsquo;lichao1&rsquo;, &lsquo;abaqus67&rsquo;)</p>
+
+<p>  #发送纯文本邮件</p>
+
+<p>  #from_addr = &lsquo;LiChao<a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#x6c;&#x69;&#x63;&#x68;&#97;&#111;&#x31;&#64;&#98;&#111;&#x63;&#111;&#x2e;&#x63;&#111;&#x6d;&#46;&#99;&#x6e;">&#x6c;&#x69;&#x63;&#x68;&#x61;&#111;&#49;&#x40;&#98;&#111;&#99;&#111;&#x2e;&#x63;&#x6f;&#x6d;&#x2e;&#x63;&#110;</a>&rsquo;</p>
+
+<p>  #to_addr = &lsquo;LiChao<a href="&#109;&#x61;&#105;&#x6c;&#116;&#111;&#58;&#108;&#x69;&#x63;&#104;&#x61;&#111;&#x31;&#64;&#98;&#111;&#x63;&#111;&#x2e;&#x63;&#111;&#109;&#x2e;&#x63;&#x6e;">&#108;&#105;&#x63;&#x68;&#97;&#x6f;&#x31;&#x40;&#98;&#x6f;&#x63;&#x6f;&#x2e;&#99;&#111;&#x6d;&#x2e;&#99;&#110;</a>&rsquo;</p>
+
+<p>  #subj = &lsquo;hello&rsquo;</p>
+
+<p>  #date = datetime.datetime.now().strftime(&ldquo;%d/%m/%Y %H:%M&rdquo;)</p>
+
+<p>  #msg = &ldquo;From: %s\nTo: %s\nSubject: %s\nDate: %s\n\n%s&rdquo; % (from_addr, to_addr, subj, date, message_body)</p>
+
+<p>  #mail_server.sendmail(from_addr, to_addr, msg)</p>
+
+<p>  #发送html格式邮件</p>
+
+<p>  #msg = MIMEText (msg_body, &lsquo;html&rsquo;)</p>
+
+<p>  #msg[&lsquo;From&rsquo;] = &lsquo;LiChao<a href="&#109;&#97;&#105;&#x6c;&#116;&#111;&#58;&#108;&#105;&#x63;&#104;&#x61;&#x6f;&#49;&#64;&#98;&#x6f;&#x63;&#x6f;&#46;&#99;&#111;&#x6d;&#x2e;&#x63;&#x6e;">&#x6c;&#105;&#x63;&#x68;&#97;&#x6f;&#49;&#x40;&#98;&#111;&#x63;&#111;&#x2e;&#x63;&#x6f;&#x6d;&#46;&#99;&#x6e;</a>&rsquo;</p>
+
+<p>  #msg[&lsquo;To&rsquo;] = &lsquo;LiChao<a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#58;&#108;&#x69;&#x63;&#104;&#x61;&#111;&#49;&#64;&#98;&#x6f;&#x63;&#111;&#46;&#x63;&#111;&#x6d;&#x2e;&#x63;&#110;">&#108;&#105;&#99;&#104;&#97;&#x6f;&#49;&#64;&#98;&#111;&#x63;&#111;&#x2e;&#99;&#111;&#x6d;&#x2e;&#99;&#x6e;</a>&rsquo;</p>
+
+<p>  #msg[&lsquo;Subject&rsquo;] = &lsquo;hello&rsquo;</p>
+
+<p>  #mail_server.sendmail(&lsquo;LiChao<a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#x3a;&#x6c;&#x69;&#99;&#104;&#x61;&#111;&#x31;&#64;&#98;&#x6f;&#x63;&#x6f;&#x2e;&#x63;&#x6f;&#109;&#46;&#99;&#x6e;">&#108;&#x69;&#99;&#104;&#x61;&#111;&#x31;&#x40;&#98;&#x6f;&#99;&#111;&#46;&#x63;&#111;&#x6d;&#x2e;&#x63;&#110;</a>&rsquo;, &lsquo;LiChao<a href="&#x6d;&#x61;&#x69;&#108;&#116;&#111;&#58;&#108;&#x69;&#99;&#104;&#97;&#111;&#49;&#64;&#98;&#x6f;&#99;&#x6f;&#46;&#x63;&#x6f;&#109;&#x2e;&#x63;&#110;">&#x6c;&#105;&#x63;&#104;&#97;&#111;&#49;&#x40;&#98;&#111;&#99;&#111;&#46;&#x63;&#111;&#x6d;&#x2e;&#99;&#x6e;</a>&rsquo;, msg.as_string())</p>
+
+<p>  #发送带附件的html格式邮件</p>
+
+<p>  msg = MIMEMultipart ()</p>
+
+<p>  part2 = MIMEText(msg_body, &lsquo;html&rsquo;)</p>
+
+<p>  msg. attach (part2)</p>
+
+<p>  att = MIMEText(open(&lsquo;e:\BVT\GODU-BVT\GCIF\build\2011-01-12\GAPI\build\result\junit\junit-noframes.html&rsquo;, &lsquo;rt&rsquo;).read())</p>
+
+<p>  att[&ldquo;Content-Type&rdquo;] = &lsquo;application/octet-stream&rsquo;</p>
+
+<p>  att[&ldquo;Content-Disposition&rdquo;] = &lsquo;attachment; filename=&ldquo;JUnitReport.html&rdquo;&rsquo;</p>
+
+<p>  msg. attach (att)</p>
+
+<p>  msg[&lsquo;From&rsquo;] = &lsquo;LiChao<a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#x3a;&#x6c;&#x69;&#99;&#x68;&#x61;&#x6f;&#x31;&#64;&#98;&#111;&#99;&#111;&#x2e;&#99;&#111;&#x6d;&#x2e;&#x63;&#110;">&#x6c;&#105;&#x63;&#104;&#x61;&#x6f;&#x31;&#x40;&#x62;&#x6f;&#x63;&#111;&#x2e;&#99;&#111;&#109;&#x2e;&#x63;&#x6e;</a>&rsquo;</p>
+
+<p>  msg[&lsquo;To&rsquo;] = &lsquo;LiChao<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#58;&#108;&#105;&#x63;&#x68;&#x61;&#111;&#x31;&#64;&#98;&#111;&#x63;&#x6f;&#x2e;&#99;&#x6f;&#109;&#46;&#99;&#x6e;">&#108;&#105;&#99;&#104;&#x61;&#111;&#x31;&#x40;&#x62;&#x6f;&#99;&#x6f;&#x2e;&#99;&#111;&#109;&#x2e;&#x63;&#x6e;</a>&rsquo;</p>
+
+<p>  msg[&lsquo;Subject&rsquo;] = &lsquo;hello&rsquo;</p>
+
+<p>  mail_server.sendmail(&lsquo;LiChao<a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#111;&#58;&#108;&#105;&#99;&#104;&#x61;&#x6f;&#49;&#64;&#x62;&#x6f;&#99;&#111;&#46;&#x63;&#x6f;&#109;&#x2e;&#99;&#x6e;">&#x6c;&#105;&#99;&#104;&#x61;&#111;&#49;&#64;&#98;&#x6f;&#99;&#111;&#x2e;&#x63;&#111;&#x6d;&#46;&#x63;&#x6e;</a>&rsquo;, &lsquo;LiChao<a href="&#109;&#97;&#105;&#108;&#x74;&#x6f;&#58;&#108;&#x69;&#x63;&#x68;&#97;&#111;&#x31;&#x40;&#x62;&#x6f;&#x63;&#x6f;&#x2e;&#x63;&#111;&#109;&#x2e;&#x63;&#x6e;">&#108;&#105;&#x63;&#x68;&#x61;&#111;&#49;&#x40;&#98;&#x6f;&#99;&#111;&#x2e;&#99;&#x6f;&#109;&#46;&#99;&#110;</a>&rsquo;, msg.as_string())</p>
+
+<p>  mail_server.quit()</p>
+
+<p> 注意：sendmail()发送邮件时，如果收件人有多个，必须放在一个list中作为参数，如果是字符串，则只发给第一个人，似乎只有python2.6要求是list型参数。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/11/100823/">用lxml模块解析JUnit生成的测试报告</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-01-11T10:08:23+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:08 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>JUnit的测试结果首先保存在xml文档中，然后生成html格式的测试报告，这份报告中的数据是用一段javascript代码根据 xml文档的数据 计算出来的，因此我们要获取测试结果数据，就只能分析html文档，这方面lxml模块（codespeak.net/lxml/）的功能比较令人满意，利用lxml的xpath语法可以方便地得到某个标签的内容，下面是一个分析样例文本：</p>
+
+<p> &lt;!DOCTYPE HTML PUBLIC &ldquo;-//W3C//DTD HTML 4.01 Transitional//EN&rdquo;></p>
+
+<p> <html xmlns:lxslt="http://xml.apache.org/xslt" xmlns:stringutils="xalan://org.apache.tools.ant.util.StringUtils"></p>
+
+<p> <head></p>
+
+<p> <META http-equiv="Content-Type" content="text/html; charset=US-ASCII"></p>
+
+<p> <title>Unit Test Results.</title></p>
+
+<p> <script type="text/javascript" language="JavaScript"></p>
+
+<p> &hellip;(1000多行)</p>
+
+<p> </script></p>
+
+<p> </head></p>
+
+<p> <body></p>
+
+<p> <a name="top"></a></p>
+
+<p> <h1>Unit Test Results.</h1></p>
+
+<p> <table width="100%"></p>
+
+<p> <tr></p>
+
+<p> <td align="left"></td><td ....</td></p>
+
+<p> </tr></p>
+
+<p> </table></p>
+
+<p> <hr size="1"></p>
+
+<p> <h2>Summary</h2></p>
+
+<p> <table class="details" border="0" cellpadding="5" cellspacing="2" width="95%"></p>
+
+<p> <tr valign="top"></p>
+
+<p> <th>Tests</th><th>Failures</th><th>Errors</th><th>Success rate</th><th>Time</th></p>
+
+<p> </tr></p>
+
+<p> <tr valign="top" class="Error"></p>
+
+<p> <td>24</td><td>0</td><td>24</td><td>0.00%</td><td>0.155</td></p>
+
+<p> </tr></p>
+
+<p> </table></p>
+
+<p> <table ...></p>
+
+<p> <tr ...></p>
+
+<p> </tr></p>
+
+<p> </table></p>
 
 <p> &hellip;</p>
 
-<p> 就可以使用pysvn模块了。另外，用</p>
+<p> </body></p>
 
-<p> import sys</p>
+<p> </html></p>
 
-<p> sys.path</p>
+<p>效果见下图：</p>
 
-<p> 可以看到，${PYTHON_HOME}\lib\site-packages已经被预先加入到sys.path中了，所以更简单的方法是直接把pysvn解压到${PYTHON_HOME}\lib\site-package目录下，这样导入包时就可以省略前面的sys.path.append动作，但由于权限问题操作系统不允许解压到site-packages下时，这一招就没用了。</p>
+<p>解析html的目的是取出文本中黑体字表示的数据。</p>
+
+<p>解析函数是：</p>
+
+<p> from lxml import html</p>
+
+<p> def parseJUnitReport(html_filename):</p>
+
+<p> html_doc = html.parse(html_filename).getroot()</p>
+
+<p> res_tbl = html_doc.xpath(&ldquo;//html//body//table&rdquo;)[1]</p>
+
+<p> test_item_names = [k.text for k in res_tbl.xpath(&lsquo;.//tr//th&rsquo;)] # list comprehension</p>
+
+<p> test_datasets = [k.text for k in res_tbl.xpath(&lsquo;.//tr//td&rsquo;)]</p>
+
+<p> return dict(zip(test_item_names,test_datasets))</p>
+
+<p>测试代码：</p>
+
+<p> aa = &lsquo;e:\BVT\GODU-BVT\GCIF\build\GAPI\build\result\junit\junit-noframes.html&rsquo;</p>
+
+<p> print build.parseJUnitReport(aa)</p>
+
+<p>运行结果如下：</p>
+
+<p> {&lsquo;Failures&rsquo;: &lsquo;0&rsquo;, &lsquo;Tests&rsquo;: &lsquo;24&rsquo;, &lsquo;Errors&rsquo;: &lsquo;24&rsquo;, &lsquo;Success rate&rsquo;: &lsquo;0.00%&rsquo;, &lsquo;Time&rsquo;: &lsquo;0.155&rsquo;}</p>
+
+<p>从解析函数可以看到：</p>
+
+<p>导入lxml.html后，其parse方法的参数是一个文件路径字符串，用xpath()方法得到的是一个包含<body>内所有的<table>的list，由于目标table位于第二位，所以取[1]得到table对象res_tbl，然后在它的下面取<tr>里的<th>，得到标题行，对于每个得到的节点，需要用它的text属性得到文本内容，这里使用了list的comprehension功能，用一行代码就取到每个元素的text属性并组成了新的list（test_item_names和test_datasets），然后用zip方法将两个list组合成了一个list，再用dict方法将list转换成了字典。</p>
 </div>
   
   
@@ -357,7 +706,7 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/12/29/171709/">Ant流程控制之for语句</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/10/153031/">Unix中切换用户和查询当前用户名</a></h1>
     
     
       <p class="meta">
@@ -366,34 +715,26 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
 
 
 
-<time class='entry-date' datetime='2010-12-29T17:17:09+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:17 pm</span></time>
+<time class='entry-date' datetime='2011-01-10T15:30:31+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:30 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在ant脚本中实现for循环需要使用ant-contrib.jar（<a href="http://ant-contrib.sourceforge.net/%EF%BC%89%EF%BC%8C%E5%9C%A8%E4%BD%BF%E7%94%A8%E5%89%8D%E9%9C%80%E8%A6%81%E5%B0%86%E8%AF%A5jar%E5%8C%85%E6%94%BE%E5%9C%A8ant%E7%9A%84classpath%E4%B8%AD%EF%BC%8C%E5%B9%B6%E5%9C%A8build%E8%84%9A%E6%9C%AC%E4%B8%AD%E5%AE%9A%E4%B9%89%EF%BC%9A">http://ant-contrib.sourceforge.net/%EF%BC%89%EF%BC%8C%E5%9C%A8%E4%BD%BF%E7%94%A8%E5%89%8D%E9%9C%80%E8%A6%81%E5%B0%86%E8%AF%A5jar%E5%8C%85%E6%94%BE%E5%9C%A8ant%E7%9A%84classpath%E4%B8%AD%EF%BC%8C%E5%B9%B6%E5%9C%A8build%E8%84%9A%E6%9C%AC%E4%B8%AD%E5%AE%9A%E4%B9%89%EF%BC%9A</a></p>
+  <div class="entry-content"><p>切换用户：</p>
 
-<p> <taskdef classpath="ant-contrib.jar" resource="net/sf/antcontrib/antlib.xml"/></p>
+<p>su - username</p>
 
-<p>然后就可以在脚本中使用了：</p>
+<p>注意横杠的两边都要有空格；</p>
 
-<p> <target name="ex"></p>
+<p>查询当前用户名称：</p>
 
-<p> <echo message="The first five letters of the alphabet are:"/></p>
+<p>whoami</p>
 
-<p> <for list="a,b,c,d,e" param="letter"></p>
+<p>查询主机上所有登录用户：</p>
 
-<p> <sequential></p>
-
-<p> <echo>Letter @{letter}</echo></p>
-
-<p> </sequential></p>
-
-<p> </for></p>
-
-<p> </target></p>
+<p>who -uH</p>
 </div>
   
   
@@ -406,7 +747,7 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/12/29/103501/">Run JUnit Test in Command Line</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/07/162221/">几种常见的编程等宽字体</a></h1>
     
     
       <p class="meta">
@@ -415,51 +756,38 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
 
 
 
-<time class='entry-date' datetime='2010-12-29T10:35:01+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:35 am</span></time>
+<time class='entry-date' datetime='2011-01-07T16:22:21+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:22 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在F盘下生成JunitCLEx.java文件：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>import org.junit.Test; 
-</span><span class='line'>import static org.junit.Assert.assertEquals;
-</span><span class='line'>public class JunitCLEx{ 
-</span><span class='line'>    @Test
-</span><span class='line'>    public void hello() {
-</span><span class='line'>        assertEquals(24+5,26);
-</span><span class='line'>    }
-</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+  <div class="entry-content"><ul>
+<li><p>Consolas：2005年微软随VS.NET 2005发布的一款专用编程字体，Windows自带，Linux上付费安装；</p></li>
+<li><p>Dejavu Sans Mono: Mint 14 build-in, 贴近手写体；</p></li>
+<li><p>Liberation Mono: Mint 14 build-in, much like Dejavu Mono, 似乎更方正一些；</p></li>
+<li><p>Droid Sans Mono: Mint 14 build-in，0中间没有斜线；</p></li>
+<li><p>Inconsolata: 字体比较小，低分辨率下可能比较好看，install it on Ubuntu with <code>apt-get install ttf-inconsolata</code></p></li>
+<li><p>Courier New：经典、常见；</p></li>
+<li><p>Monaco：比较不常见；</p></li>
+<li><p>Lucida Sans Typewriter：字形偏瘦，不是我喜欢的类型；</p></li>
+<li><p>Lucida Console：字形尚可，但行间距太窄</p></li>
+<li><p>Fixedsys：阵型字体，方方正正，感觉比较生硬；</p></li>
+</ul>
 
 
-<p>再生成一个run.bat文件：</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>set CLASSPATH=d:\workspace\GAPI_TEST\build\lib\junit-4.8.2.jar;f:\
-</span><span class='line'>javac JunitCLEx.java
-</span><span class='line'>java org.junit.runner.JUnitCore JunitCLEx</span></code></pre></td></tr></table></div></figure>
-
-
-<p>运行这个批处理，看看结果，再把JunitCLEx.java中<code>assertEquals(24+5,26);</code>中的26改为29，重新运行一遍看看结果。</p>
-
-<p>命令行运行JUnit的基本过程分三步：</p>
+<p>编程用字体选择标准：</p>
 
 <ol>
-<li><p>设置classpath（注意测试代码自己的路径也要加进去）；</p></li>
-<li><p>编译测试代码；</p></li>
-<li><p>运行JUnit：java org.junit.runner.JUnitCore &lt;测试类名>；</p></li>
+<li><p>所有字符等宽</p></li>
+<li><p>简洁、清晰、规范的字符形体</p></li>
+<li><p>支持ASCII码为128以上的扩展字符集</p></li>
+<li><p>空白字符(ASCII: 0x20)与其他字符等宽</p></li>
+<li><p>&lsquo;1'、'l'和'i'等三个字符易于区分</p></li>
+<li><p>&lsquo;0'、'o'和'O'等三个字符易于区分</p></li>
+<li><p>双引号、单引号的前后部分易于区分，最好是镜像对称的</p></li>
+<li><p>清晰的标点符号外形，尤其是大括符、圆括符和方括符</p></li>
 </ol>
 
 </div>
@@ -474,7 +802,7 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/12/28/155925/">在ant脚本中调用另外的ant脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/06/201913/">Ivy缓存的自动更新问题</a></h1>
     
     
       <p class="meta">
@@ -483,16 +811,50 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
 
 
 
-<time class='entry-date' datetime='2010-12-28T15:59:25+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>3:59 pm</span></time>
+<time class='entry-date' datetime='2011-01-06T20:19:13+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:19 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>例如在build.xml中要运行 ${tested.dir}下的build.xml：
- <ant antfile="${tested.dir}/build.xml" InheritAll="false"></ant>
-注意其中的InheritAll=&ldquo;false"，是避免主脚本中的变量定义<property name="..." value="..."/>进入被调脚本中；</p>
+  <div class="entry-content"><p>ivy的哲学是“一个版本，一个jar包”，即要求只要更新jar包，就必须使用新的版本号，但在某些情况下这个原则有问题，比如项目A的测试版本放在产品库的测试区中，更新频率非常高，一天之内就可能更新好几次，这样每次一个新版本号太浪费空间了，一般就都命名为alpha版（或者snapshot版），每次新提交时覆盖旧的jar包以及ivy文件。假设项目B用A的产品，能不能在A提交一个新的jar包后，就自动更新B的本地缓存呢？答案是可以。</p>
+
+<p>要实现本地缓存的自动更新，需要在3处进行说明：</p>
+
+<p>首先是项目B的ivy.xml文件中，在依赖A的条目上指明“changing=&ldquo;true"”：</p>
+
+<p><dependency org="com.boco.ty" name="godu-adapter" rev="alpha" conf="compile->master" changing=&ldquo;true&rdquo; /></p>
+
+<p>其次是项目A的ivy.xml的说明部分（<info>标签里）不要设置publication属性，例如：</p>
+
+<p><info organisation="com.boco.ty" module="godu-common" revision="alpha" status="integration"/></p>
+
+<p>对应的发布产品A的ant任务（ivy:publish）中也不要设置pubdate属性，这样A被发布到产品库中后，其ivy文件的<info>标签里会自动增加publication=&ldquo;&hellip;"，就是发布时的真实时间，ivy的自动更新机制就是比较cache和产品库中的这个标志是否一致来决定是否更新缓存；</p>
+
+<p>最后是要在设置文件里指明自动更新，就是在resolvers里将checkmodified设置为true，注意当使用chain resolver时，两处都要设置，例如：</p>
+
+<p><chain name="chain-repo" returnFirst="true" checkmodified="true "></p>
+
+<p><sftp name="chain-release"></p>
+
+<p><artifact pattern="${release.repo.dir}/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]" /></p>
+
+<p><ivy pattern="${release.repo.dir}/[organisation]/[module]/[type]s/[artifact]-[revision].xml" /></p>
+
+<p></sftp></p>
+
+<p><sftp name="chain-test" checkmodified="true" ></p>
+
+<p><artifact pattern="${test.repo.dir}/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]" /></p>
+
+<p><ivy pattern="${test.repo.dir}/[organisation]/[module]/[type]s/[artifact]-[revision].xml" /></p>
+
+<p></sftp></p>
+
+<p></chain></p>
+
+<p>由于发布区不存在alpha版本问题，因此发布区的resolver就不必自动更新了。网上有说checkmodified和changingPattern两个属性都要设置，根据我的实验，后者不设也能实现自动更新，所以就不要自找麻烦了。</p>
 </div>
   
   
@@ -505,7 +867,7 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/12/23/162834/">Ant的copy标签使用方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/06/155629/">Python的telnet客户端交互</a></h1>
     
     
       <p class="meta">
@@ -514,228 +876,60 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
 
 
 
-<time class='entry-date' datetime='2010-12-23T16:28:34+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>4:28 pm</span></time>
+<time class='entry-date' datetime='2011-01-06T15:56:29+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:56 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>对于ant里拷贝用的<copy>标签的用法，此文（来自 <a href="http://electiger.blog.51cto.com/112940/39575">http://electiger.blog.51cto.com/112940/39575</a> ）讲得很好，注意其中黑体字部分，今天被这个问题耽误了20分钟。</p>
+  <div class="entry-content"><p>代码实例：</p>
 
-<p>Ant真是太方便了，以前都没注意到它。功能很强大，能创建数据库，配置服务器，部署发布应用……只需要写好build.xml文件，剩下的就交给ant来“安装”你的WEB应用了。</p>
+<p> import telnetlib</p>
 
-<p>Appfuse的第一个ant命令是ant new，其任务是建立一个新命名的project，少不了会复制很多文件。build.xml中也有很多copy操作，为了搞清楚ant new到底干了些什么事，还是先把copy操作了解一下。看了会ant的DOCS，网上也找了些文章，发现copy这部分都是一带而过，讲得很浅，于是我就只有自己实验下，发现还有点收获。 ant版本为1.6.5。</p>
+<p> ftp_serv_addr = &lsquo;10.0.2.47&rsquo;</p>
 
-<ol>
-<li>拷贝单个文件到指定目录下。</li>
-</ol>
+<p> ftp_usrname = &lsquo;godu1&rsquo;</p>
 
+<p> ftp_password = &lsquo;godu1&rsquo;</p>
 
-<p>例：<copy todir="${basedir}/new" file="${basedir}/old/old1.txt1"></p>
+<p> tn = telnetlib.Telnet(ftp_serv_addr)</p>
 
-<p>将${basedir}/old/old.txt文件拷贝到${basedir}/new下</p>
+<p> tn.read_until(&lsquo;ogin: &rsquo;)</p>
 
-<ol>
-<li>拷贝一批文件到指定目录下</li>
-</ol>
+<p> tn.write(ftp_usrname+&lsquo;\n&rsquo;)</p>
 
+<p> tn.read_until(&lsquo;assword: &rsquo;)</p>
 
-<p>例：<copy todir="${basedir}/new"></p>
+<p> tn.write(ftp_password+&lsquo;\n&rsquo;)</p>
 
-<p>   <fileset dir="${basedir}/old"></p>
+<p> tn.read_until(&lsquo;$ &rsquo;)</p>
 
-<pre><code>&lt;include name="old1.txt" /&gt;
+<p> aa = tn.write(&lsquo;ps -ef|grep CMD\n&rsquo;)</p>
 
-&lt;include name="old2.txt" /&gt;
+<p> print(aa)</p>
 
-&lt;exclude name="old8.txt" /&gt;
-</code></pre>
+<p> print(&lsquo;=====&rsquo;)</p>
 
-<p>   </fileset></p>
+<p> bb = tn.read_until(&lsquo;$ &rsquo;)</p>
 
-<p>  </copy></p>
+<p> print(bb)</p>
 
-<p>  这里fileset定义的是原文件的组成形式，<include/>子属性表示包括，<exclude/>子属性表示排除，很简单，通过他们组合实现多文件的筛选，当然我这个例子用得很傻。比如</p>
+<p>运行结果：</p>
 
-<pre><code>&lt;include name="appgen/**"/&gt;
+<p> None</p>
 
-&lt;include name="ibatis/**"/&gt;
+<hr />
 
-&lt;exclude name="**/*.log"/&gt;
-</code></pre>
+<p> ps -ef|grep CMD</p>
 
-<p>  拷贝appget目录和ibatis目录下除了.log文件以外的其它所有文件和子目录。</p>
+<p> UID  PID PPID C STIME TTY   TIME CMD</p>
 
-<p>  可以把<fileset/>简写成<fileset dir="${basedir}/old" includes="old1.txt,old2.txt" />，includes可以理解成include的复数形式，包含多个文件时用逗号隔开，excludes也一样。</p>
+<p> godu1  4973 4945 0 16:00 pts/2 00:00:00 grep CMD</p>
 
-<ol>
-<li>拷贝一个目录到指定目录下</li>
-</ol>
+<p> [godu1@goduserver ~]$</p>
 
-
-<p>例：<copy todir="${basedir}/new"></p>
-
-<p>   <fileset dir="${basedir}/old"></p>
-
-<pre><code>&lt;include name="appgen" /&gt;
-
-&lt;include name="appgen/" /&gt;
-
-&lt;include name=appgen/**" /&gt;
-
-&lt;include name="appgen/***" /&gt;
-</code></pre>
-
-<p>   </fileset></p>
-
-<p>  </copy></p>
-
-<p>  同样使用<fileset/>属性，name指定目录名，不过这里要分两种情况，用<include/>子属性和不用<include/>子属性.</p>
-
-<p>  若使用<include/>， 又要分三种情况</p>
-
-<p>   若是“appgen”，则只会拷贝名为appgen的空目录过去，它里面的文件和子目录则不会拷贝。</p>
-
-<p>   若是“appgen/”，或“appgen/**”，则会把整个appgen目录拷贝过去，包括里面的文件和子目录。</p>
-
-<p>   若是“appgen/<em>”，则只会把该目录和该目录下第一级子目录的所有东西拷贝过去，而不会拷贝第二级和第二级以下的。注：“appgen/</em>”这儿是一个<em>号，</em>号若大于两个，也跟一个<em>号是同样效果。比如“appgen/</em>”和“appgen/****”都只拷贝appgen目录下第一级子目录。</p>
-
-<p>注：若appeng这个目录本身就是个空目录，无论怎么写，这个空目录都不会被拷贝。也就是说，copy操作不会产生创建空目录的作用，要想创建空目录，只有用mkdir。</p>
-
-<p>  若不使用任何<include>属性，如</p>
-
-<p>   <fileset dir="${basedir}/old"></p>
-
-<p>   </fileset></p>
-
-<p>  则会拷贝${basedir}/old下的所有文件和子目录。</p>
-
-<p>注： 使用<exclude/>排除目录时，目录名必须写成“dirName/”或“dirName/**”形式，否则不会生效。</p>
-
-<p>  以上是三种拷贝到目录的种类，注意如果计算机中没有todir指定的路径，ant将会自动创建这个路径。</p>
-
-<ol>
-<li>拷贝单个的文件：</li>
-</ol>
-
-
-<p>〈copy tofile=&ldquo;old.txt&rdquo; file=&ldquo;new.txt&rdquo; /〉就这么简单就行了。</p>
-
-<p>当然也可以写成</p>
-
-<p> <copy tofile="${basedir}/new/new.txt"></p>
-
-<p>  <fileset dir="${basedir}/old" includes="old.txt" /></p>
-
-<p> </copy></p>
-
-<p>  这里includes就只能写一个文件，不能写上多个文件，因为不能将多个文件复制到一个文件中去，所以这样麻烦的写法是没有意义的。</p>
-
-<p>  复制肯定还要涉及到同名覆盖的问题，ant在copy类的API中说明：Files are only copied if the source file is newer than the destination file，这里的newer是指文件的修改时间，即使你在修改时文件内容没有任何变化，只是导致修改时间变了，ant同样会覆盖同名文件，也就是说，ant不会检查文件内容。</p>
-
-<p>  对于是复制目录的情况，由于目录没有修改时间，ant还是通过检查目录内文件的修改时间来决定是否覆盖的，若目录内某文件修改时间有变化，则会覆盖这个文件，而不是整个目录。</p>
-
-<p>如果要强行覆盖，<copy/>有个overwrite属性，默认为false，改成true就行了。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/12/23/111308/">依赖管理常用vim脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-12-23T11:13:08+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>11:13 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>为依赖条目加上配置说明 效果示例 ：</p>
-
-<p>转换前：
- <dependency org="saxpath" name="saxpath" rev="1.0-FCS"/></p>
-
-<p> <dependency org="aopalliance" name="aopalliance" rev="1.0"/></p>
-
-<p> <dependency org="org.hibernate" name="hibernate-core" rev="3.3.2.GA"/></p>
-
-<p>转换后：</p>
-
-<p> <dependency org="saxpath" name="saxpath" rev="1.0-FCS" conf="compile->master"/></p>
-
-<p> <dependency org="aopalliance" name="aopalliance" rev="1.0" conf="compile->master"/></p>
-
-<p> <dependency org="org.hibernate" name="hibernate-core" rev="3.3.2.GA" conf="compile->master"/></p>
-
-<p> 方法 ：在_vimrc文件里加上如下代码：
- function Add_Conf()</p>
-
-<p>  &ldquo;为ivy的dependency条目加上conf=&rdquo;&hellip;"</p>
-
-<p>  %s/\/>/ conf=&ldquo;compile->master&rdquo;\/></p>
-
-<p> endfunction</p>
-
-<p> command AddConf call Add_Conf()</p>
-
-<p> map <F8> <ESC>:AddConf<CR></p>
-
-<p> 将依赖条目变为下载条目</p>
-
-<p> 效果示例 ：</p>
-
-<p>转换前：</p>
-
-<p> <dependency org="saxpath" name="saxpath" rev="1.0-FCS" conf="compile->master"/></p>
-
-<p> <dependency org="aopalliance" name="aopalliance" rev="1.0" conf="compile->master"/></p>
-
-<p> <dependency org="org.hibernate" name="hibernate-core" rev="3.3.2.GA" conf="compile->master"/></p>
-
-<p>转换后：</p>
-
-<p> &lt;ivy:install organisation=&ldquo;saxpath&rdquo; module=&ldquo;saxpath&rdquo; revision=&ldquo;1.0-FCS&rdquo; from=&ldquo;${from.resolver}&rdquo; to=&ldquo;${to.resolver}&rdquo;/></p>
-
-<p> &lt;ivy:install organisation=&ldquo;aopalliance&rdquo; module=&ldquo;aopalliance&rdquo; revision=&ldquo;1.0&rdquo; from=&ldquo;${from.resolver}&rdquo; to=&ldquo;${to.resolver}&rdquo;/></p>
-
-<p> &lt;ivy:install organisation=&ldquo;org.hibernate&rdquo; module=&ldquo;hibernate-core&rdquo; revision=&ldquo;3.3.2.GA&rdquo; from=&ldquo;${from.resolver}&rdquo; to=&ldquo;${to.resolver}&rdquo;/></p>
-
-<p> 方法 ：在_vimrc文件里加上如下代码：</p>
-
-<p> function Dep_to_Install()</p>
-
-<p>  &ldquo; 将ivy的dependency条目转换为脚本安装条目</p>
-
-<p>  %s/dependency/ivy:install/g</p>
-
-<p>  %s/org=/organisation=/g</p>
-
-<p>  %s/name=/module=/g</p>
-
-<p>  %s/rev=/revision=/g</p>
-
-<p>  %s/conf=&ldquo;compile->master&rdquo;/from=&ldquo;${from.resolver}&rdquo; to=&ldquo;${to.resolver}&rdquo;/g</p>
-
-<p> endfunction</p>
-
-<p> command Dep2Inst call Dep_to_Install()</p>
-
-<p> map <F9> <ESC>:Dep2Inst<CR></p>
+<p>上面的例子首先说明了telnet客户端与服务端的交互都是用write方法发命令，用read_until方法接收返回结果。可以看到登录过程也是如此（只是返回结果的期望不同），write方法不返回结果，read_until方法返回所有接收到的字符串，包括命令提示符。</p>
 </div>
   
   
@@ -760,23 +954,23 @@ result = subprocess.call([&lsquo;xcopy&rsquo;, &lsquo;.\build\tested\doc&rsquo;,
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

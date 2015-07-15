@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Start mongodb server as a common user The default data path of Mongodb is /data/db, which you have to create as root. If you just want play around &hellip;">
+  <meta name="description" content="今天下载了一个zip文件，解压后出现一个文件名为"-==(czRGsl)==-.mp4"的文件，删除时出现下面的错误： [chad@chadleebj ~]$ rm *.mp4
+rm: invalid option -- '='
+Try `rm ./'-==(czRGsl)==-.mp4'' to &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +73,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/25/091714/">Mongodb Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/01/13/104859/">Linux命令行中删除特殊名字的文件</a></h1>
     
     
       <p class="meta">
@@ -80,139 +82,261 @@
 
 
 
-<time class='entry-date' datetime='2014-12-25T09:17:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:17 am</span></time>
+<time class='entry-date' datetime='2015-01-13T10:48:59+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:48 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Start mongodb server as a common user</h1>
+  <div class="entry-content"><p>今天下载了一个zip文件，解压后出现一个文件名为"-==(czRGsl)==-.mp4"的文件，删除时出现下面的错误：</p>
 
-<p>The default data path of Mongodb is /data/db, which you have to create as root.</p>
-
-<p>If you just want play around mongodb with some test data, you can create a temporary folder as data directory:</p>
-
-<pre><code>$ mkdir ~/docs/tmp/mongodb-repo
-$ cd ~/apps/mongodb-linux-x86_64-2.6.5
-$ bin/mongod --dbpath ~/docs/tmp/mongodb-repo
-// in a new shell
-$ ~/apps/mongodb-linux-x86_64-2.6.5/bin/mongo
+<pre><code>[chad@chadleebj ~]$ rm *.mp4
+rm: invalid option -- '='
+Try `rm ./'-==(czRGsl)==-.mp4'' to remove the file `-==(czRGsl)==-.mp4'.
+Try `rm --help' for more information
 </code></pre>
 
-<p>For convenience, add <code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH</code> into ~/.zshenvr,
-and <code>alias mongod='mongod --dbpath /home/chad/docs/tmp/mongodb-repo'</code> into ~/.bash_alias.</p>
+<p>加单引号和转义符都无效：</p>
 
-<p>Make sure the following lines exist in ~/.zshrc:</p>
+<pre><code>[chad@chadleebj ~]$ rm '-==(czRGsl)==-.mp4'
+rm: invalid option -- '='
+Try `rm ./'-==(czRGsl)==-.mp4'' to remove the file `-==(czRGsl)==-.mp4'.
+Try `rm --help' for more information.
 
-<pre><code>if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
+[chad@chadleebj ~]$ rm \-\=\=\(czRGsl\)\=\=-.mp4
+rm: invalid option -- '='
+Try `rm ./'-==(czRGsl)==-.mp4'' to remove the file `-==(czRGsl)==-.mp4'.
+Try `rm --help' for more information
 </code></pre>
 
-<p>Now we can start mongo server and client anywhere in a shell.</p>
+<p>错误原因是将文件名的第一个字符"-&ldquo;当成了选项符号，又没有&rdquo;=&ldquo;这个选项造成的，所以首先要在rm后加&rdquo;&ndash;&ldquo;告诉命令后面的&rdquo;-&ldquo;不是选项符号：</p>
 
-<h2>Run mongod via sudo</h2>
+<pre><code>[chad@chadleebj ~]$ rm -- -==(czRGsl)==-.mp4
+-bash: syntax error near unexpected token `('
+</code></pre>
 
-<ol>
-<li><p>Extract MongoDB package to /opt as root and <code>mkdir -p /data/db</code>;</p></li>
-<li><p>Add MongoDB path into common user&rsquo;s .zshenv: <code>PATH=$PATH:/opt/mongodb-linux-x86_64-ubuntu1404-3.0.3/bin</code>;</p></li>
-<li><p>Add <code>alias mongod='sudo env PATH=$PATH mongod'</code> into .bash_aliases;</p></li>
-</ol>
+<p>其中的括号需要转义：</p>
+
+<pre><code>[chad@chadleebj ~]$ rm -- -==\(czRGsl)==-.mp4
+-bash: syntax error near unexpected token `)'
+
+[chad@chadleebj ~]$ rm -- -==\(czRGsl\)==-.mp4
+</code></pre>
+
+<p>搞定。</p>
+</div>
+  
+  
 
 
-<p>Now as a common user, start mongodb service with <code>mongod</code>, run client via <code>mongo</code>.</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/01/12/143532/">PDF Margin Trimming Tools</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>Note: Do NOT add <code>alias sudo='sudo env PATH=$PATH'</code> into .bash_aliases,
-as suggested in <a href="http://stackoverflow.com/questions/257616/sudo-changes-path-why#">http://stackoverflow.com/questions/257616/sudo-changes-path-why#</a></p>
 
-<p>For this will modify sudo&rsquo;s PATH globally. And the auto-completion won&rsquo;t work.
-For example: <code>sudo apti&lt;Tab&gt;</code> can&rsquo;t be converted to <code>sudo aptitude</code>.</p>
 
-<h1>Database Management</h1>
 
-<p>First start mongo server <code>mongod</code>. Then start the client with <code>mongo</code>.
-All the following commands is running in mongo shell, whose prompt is &lsquo;> &rsquo;.</p>
+<time class='entry-date' datetime='2015-01-12T14:35:32+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>2:35 pm</span></time>
+        
+      </p>
+    
+  </header>
 
-<p>List all existing database: <code>show dbs</code>;</p>
 
-<p>Create a new database &ldquo;meteor&rdquo; and switch to it: <code>use meteor</code>;</p>
+  <div class="entry-content"><p>I am looking for a tool to trim the margin of pdf files,
+to be more convenient to reading on my 10.0 inch tablet.</p>
 
-<p>Remove database &ldquo;mydb&rdquo;: <code>use mydb</code>, then <code>db.dropDatabase()</code>;</p>
+<p><a href="http://briss.sourceforge.net/">Briss</a> do the work well.
+It&rsquo;s a java program, so jvm need to be installed beforehand.</p>
 
-<h1>Backup and Restore</h1>
+<p>Download it (briss-0.9.tar.gz) and extract, run it with <code>java -jar briss-0.9.jar</code>,
+or <code>java -jar briss-0.9.jar &lt;target.pdf&gt;</code>, see README.txt for details.</p>
+
+<p>After several tries, I found the right process is NOT open pdf directly with briss.
+The following is the recommended way:</p>
+
+<p>First open the target pdf with <code>evince &lt;target.pdf&gt;</code>, see if the margin area is the same.
+If not, remember the special page numbers.</p>
+
+<p>For example, the first 6 pages, including cover, copy right page, etc, are different with the remaining pages.
+When starting briss, input &ldquo;1-6&rdquo; when asked for &ldquo;Enter pages to be excluded from merging&rdquo;.
+Briss open page 1 to 6 respectively, and put all odd and even pages into 2 other &ldquo;clusters&rdquo;.</p>
+
+<p>A cluster is group of pages share the same margin settings.
+So all odd pages use the same margin settings,
+and all even pages use same margin settings, (which may be different with the odd cluster).</p>
+
+<p>Use mouse to set the rectange in each cluster, then [Action -> Preview],
+if it&rsquo;s ok, [Action -> Crop PDF].</p>
+
+<p>For convenience, add the following codes into ~/.bash_aliases:</p>
+
+<pre><code>function briss(){
+  java -jar $HOME/apps/briss-0.9/briss-0.9.jar $1
+}
+</code></pre>
+
+<p>So now crop pdf with <code>briss &lt;target.pdf&gt;</code>.</p>
+
+<p>If define alias with <code>alias briss='java -jar $HOME/apps/briss-0.9/briss-0.9.jar'</code>, tab-completion doesn&rsquo;t work.
+So here we use function.</p>
+
+<p>I also tried pdfcrop, which is installed with <code>sudo apt-get install texlive-extra-utils</code>.
+After cropped, the page index information is lost.
+And page size vary with the text area.
+So it&rsquo;s not recommended.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/01/11/022211/">网站线框图绘制工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-01-11T02:22:11+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>2:22 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>纸和笔</h1>
+
+<p>修改比较麻烦，复制成本高，表达能力强。</p>
+
+<h1>软件工具</h1>
+
+<h2>Pencil</h2>
+
+<p><a href="http://pencil.evolus.vn/">Pencil</a>可以通过下载Firefox插件或者deb包的方式在Linux上安装，接近于手画，目前找到的唯一一个开源软件。</p>
+
+<p>开发过程中，需要安装它的Dojo Widgets，其中包含按钮，文本框等一些必需的控件，</p>
+
+<p>Pencil只能导出为单页html文件，试验发现其TabNav和jQuery两个模板导出的html网页可以比较好地模拟多页html效果。</p>
+
+<p>Dojo widgets和TabNav, jQuery两个模板都可以在官网的<a href="http://pencil.evolus.vn/Stencils-Templates.html">Stencils</a>页面上找到下载信息。</p>
+
+<p>这里下载到的是Dojo.GUI_v6.zip, TabNav.zip和JQUERY.zip这3个文件。</p>
+
+<h2>Cacoo</h2>
+
+<p><a href="https://cacoo.com/">Cacoo</a>是一个在线工具，基于flash开发，优点是有比较好的模板，可以直接在上面改，缺点是必须有网络，运行速度略慢，不能导出源代码，免费版有数量限制。</p>
+
+<h2>Axure RP Pro</h2>
+
+<p><a href="http://www.axure.com/">Axure RP</a>大概是国内知名度最高的原型开发工具了，功能强大，学习资料多，绿色版运行需要先安装Microsoft .NET framework 4.0.</p>
+
+<p>其他还有很多在线线框图制作网站，一般都是收费的，或者限制功能版免费，功能类似于Cacoo，搜索"wireframing tool quora"可以找到一些比较好的推荐文章。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/01/05/183154/">Manipulating CSV Files in Command Line</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-01-05T18:31:54+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:31 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>csvkit</h1>
+
+<p>Here we manipulate csv files with <a href="https://github.com/onyxfish/csvkit">csvkit</a>.
+It&rsquo;s developed with Python. So install it with <code>sudo pip install csvkit</code>;</p>
+
+<p>Convert xls, xlsx file into csv file: <code>in2csv input.xlsx &gt; data.csv</code>;</p>
+
+<p>List column titles of a csv file: <code>csvcut -n data.csv</code>;</p>
+
+<p>Print statistic information for each columns in a csv file: <code>csvstat data.csv</code>;</p>
+
+<p>Print the first, second, 11th, 16th column of first 9 records (another one for headline): <code>csvcut -c 1,2,11,16 data.csv|head</code>;</p>
+
+<p>If there are newline characters in records, add &ldquo;-l&rdquo; option to make it clear: <code>csvcut -l -c 1,2,11,16 data.csv|head</code>;</p>
+
+<p>Convert to json file with csvjson:, <code>head fairData150104.csv|csvjson -i 4</code>, where &ldquo;-i&rdquo; specify how many indent spaces, default is no indent.
+Or select some collomns to show: <code>csvcut -c 1,2,11,16 fairData150104.csv|head|csvjson -i 4</code></p>
+
+<h1>csvtool</h1>
+
+<p>Install: <code>sudo aptitude install csvtool</code>;</p>
 
 <ul>
-<li><p>Backup a database to a directory: <code>mongodump -d &lt;db_name&gt; -o &lt;bak_dir&gt;</code>;</p></li>
-<li><p>Backup a collection: <code>mongodump -d &lt;db_name&gt; -c &lt;collection_name&gt;</code>;</p></li>
-<li><p>Restore a collection: <code>mongorestore -d &lt;target_db_name&gt; -c &lt;target_collection_name&gt; &lt;target_collection_name&gt;.bson</code>;</p></li>
+<li><p>csvtool sub <n1> <n2> <n3> <n4> data.csv:</p>
+
+<p>  Take a square subset of the CSV, top left at row <n1>, column <n2>,
+  which is <n3> deep and <n4> wide.
+  <n1> and <n2> count from 1, or from 0 if -z option is given.</p>
+
+<p>  Example: <code>csvtool sub 1 16 1 1 data.csv</code></p></li>
+<li><p>csvtool take <n> data.csv: take first <n> rows of the csv, like &ldquo;head&rdquo; in shell;</p></li>
+<li><p>csvtool drop <n> data.csv: drop the first <n> rows and return the rest (if any).</p></li>
 </ul>
 
 
-<h2>Sync Database Remotely</h2>
+<p>See <code>csvtool -h</code> for details.</p>
 
-<p>Here we backup database &ldquo;test&rdquo; in local mongodb,
-transfer it to a remote host (we name it &ldquo;ld&rdquo;),
-and restore this database into host&rsquo;s mongodb.</p>
+<p>To print the <em>n</em>th record easily, add the following function into ~/.bash_alias file:</p>
 
-<pre><code># on local host
-cd
-mongodump -d test -c fairs
-scp -r dump ld:~/
-rm -rf dump
-# on remote host ld
-cd ~/dump
-mongorestore -d meteor test
+<pre><code>function ctls(){
+  if test $# -eq 3; then
+    csvtool drop $2 $1 | csvtool take $3 -
+  else
+    echo ctls: csvtool list specified record
+    echo Synopsis: ctls '&lt;filename&gt; &lt;startNo&gt; &lt;count&gt;'
+  fi
+}
 </code></pre>
 
-<p>In the last command, the &ldquo;meteor&rdquo; is the target database,
-the following &ldquo;test&rdquo; is a folder name contains dumped data from local host.</p>
+<p>Now print the 3rd record of data.csv with <code>ctls data.csv 3 1</code>.</p>
 
-<h1>Data Refinement</h1>
+<p>The &ldquo;-&rdquo; in &ldquo;csvtool take&rdquo; means &ldquo;get input from stdin instead of a file&rdquo;.</p>
+
+<h1>Put them together</h1>
 
 <ul>
-<li><p>Remove duplicated documents in a collection (&ldquo;fairs&rdquo;) based on a key (&ldquo;chnName&rdquo;):
-  <code>db.fairs.ensureIndex({chnName:1}, {unique : true, dropDups : true})</code>;</p></li>
-<li><p>map-reduce example: the &ldquo;mapReduce&rdquo; function has 3 arguments:
-  the mapper, the reducer, and the definition of input (query) and output (out).</p>
-
-<p>  The &ldquo;emit&rdquo; function has 2 arguments, the first is the &ldquo;key&rdquo;, the 2nd is the value.</p>
-
-<p>  In the following demo, the first mapReducer calculates the average of all ranks of fair with id &ldquo;54cef40a191f3bb2ef12bdf7&rdquo;,
-  the second mapReducer calculates every fair&rsquo;s average of user ranks.</p>
-
-<p>  The result of mapReduce is put into a new collection, instead of returning a object.</p>
-
-<pre><code>  &gt; db.userComments.find()
-  { "_id" : "5fSQFR4kSLGLc9nLk", "fairId" : "54cef40a191f3bb2ef12bdf7", "userId" : "gpxst3JwJNPT33maf", "rank" : 4 }
-  { "_id" : "oRmXmdPnsvSQNSNK3", "fairId" : "54cef40a191f3bb2ef12bdf7", "userId" : "yiio2r3fQ64nqAC4j", "rank" : 5 }
-  { "_id" : "DePtvHcNvwMpLPdq8", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "yiio2r3fQ64nqAC4j", "rank" : 2 }
-  { "_id" : "eX9jWZt74cHMg3jAe", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "gpxst3JwJNPT33maf", "rank" : 5 }
-  { "_id" : "xntPL4Pnyasen2jcx", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "bc3iNrRpN7Wdi26zP", "rank" : 4 }
-  &gt; db.userComments.mapReduce(function(){ emit(this.fairId, this.rank); },
-                              function(key, values) { return Array.avg(values); },
-                              { query: { fairId: "54cef40a191f3bb2ef12bdf7" }, out: "rank_avg" } );
-  {
-    "result" : "rank_avg",
-    "timeMillis" : 60,
-    "counts" : {
-      "input" : 2,
-      "emit" : 2,
-      "reduce" : 1,
-      "output" : 1
-    },
-    "ok" : 1
-  }
-  &gt; db.rank_avg.find()
-  { "_id" : "54cef40a191f3bb2ef12bdf7", "value" : 4.5 }
-
-  &gt; db.userComments.mapReduce(function(){ emit(this.fairId, this.rank); },
-                              function(key, values) { return Array.avg(values); },
-                              { out: "rank_avg" } );
-  &gt; db.rank_avg.find()
-  { "_id" : "54cef40a191f3bb2ef12bdf7", "value" : 4.5 }
-  { "_id" : "54cef40a191f3bb2ef12bdf8", "value" : 3.6666666666666665 }
-</code></pre></li>
+<li><p>Count the number of records which the 7th field is empty: <code>csvgrep -c 7 -r "^$" data.csv | csvtool height -</code>;</p></li>
+<li><p>Count the number of records which the 7th field is NOT empty: <code>csvgrep -c 7 -r "^.+$" data.csv | csvtool height -</code>;</p></li>
+<li><p>Print data on screen without line wrap: <code>less -S &lt;filename&gt;</code>;</p></li>
 </ul>
 
 </div>
@@ -227,7 +351,7 @@ the following &ldquo;test&rdquo; is a folder name contains dumped data from loca
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/24/174727/">CentOS服务器根目录空间被占满的解决方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/01/04/173843/">Compare Users in 2 Days With Spark</a></h1>
     
     
       <p class="meta">
@@ -236,32 +360,52 @@ the following &ldquo;test&rdquo; is a folder name contains dumped data from loca
 
 
 
-<time class='entry-date' datetime='2014-12-24T17:47:27+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
+<time class='entry-date' datetime='2015-01-04T17:38:43+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:38 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>60和61服务器根目录(/)50G空间全被占满，用<code>du -shx /*</code>查看，非挂载目录的空间加起来远达不到50GB，
-查了一下，怀疑原因是原来挂在/mnt下的data1和data2目录下的两块大容量磁盘由于某种原因没有挂载上，
-但cloudera manager管理的hadoop和hdfs系统仍然在向这两个目录下存放大文件，导致空间被耗光，
-验证方法是用<code>mount</code>命令检查/mnt下是否有挂载，如果有，将它们卸载掉，看/mnt下是否还有文件，
-有的话删除掉就好了。</p>
+  <div class="entry-content"><p>We have 2 log files. One contains logs created in 2014.11.22, the other all in 2014.11.23.
+Each have about 240 million logs in it, with file size 30GB.</p>
 
-<p>如果不是这个原因，还可能是被删除的大文件没有释放，用<code>lsof|grep "deleted"</code>检查；</p>
+<p>The log in these files are like this:</p>
 
-<p>参考：</p>
+<blockquote><p>&ldquo;460015482006002&rdquo;,&ldquo;深圳市&rdquo;,&ldquo;广东省&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;42705&rdquo;,&ldquo;16111&rdquo;,&ldquo;460014270516111&rdquo;,&ldquo;MAP&rdquo;</p></blockquote>
 
-<p><a href="http://serverfault.com/questions/275206/disk-full-du-tells-different-how-to-further-investigate">Disk full, du tells different. How to further investigate?</a></p>
+<p>The number in the first column &ldquo;460015482006002&rdquo; represents a unique user, which is called &ldquo;IMSI&rdquo;.
+We need to find all IMSI number <strong>only</strong> exists in 2014.11.22.</p>
 
-<p><a href="http://serverfault.com/questions/57098/du-vs-df-difference">du vs. df difference</a></p>
+<p>Given the huge size of log files, we compute with Apache Spark.</p>
 
-<p><a href="http://serverfault.com/questions/62119/how-do-i-find-out-what-is-using-up-all-the-space-on-my-partition">How do I find out what is using up all the space on my / partition?</a></p>
+<p>Create only22.scala:</p>
 
-<p><a href="http://askubuntu.com/questions/266825/what-do-i-do-when-my-root-filesystem-is-full">What do I do when my root filesystem is full?</a></p>
+<pre><code>import java.util.Date
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
-<p><a href="http://serverfault.com/questions/513136/centos-dev-root-is-getting-full-cannot-find-disk-space-usage">Centos , /dev/root is getting full. Cannot find disk space usage</a></p>
+val SIG_DATA1 = "datamine/drawdata_20141122_cs.utf8.csv"
+val SIG_DATA2 = "datamine/drawdata_20141123_cs.utf8.csv"
+val USER_ID_POS = 1
+
+def get_users(data: String): Set[String] = {
+  val raw_data = sc.textFile(data).map(_.split("\"").toList)
+  val raw_sig_map = raw_data.filter(x =&gt; x.size &gt; 17)
+  val users = raw_sig_map.map(_(USER_ID_POS)).distinct
+  return users.toArray.toSet
+}
+
+val u1 = get_users(SIG_DATA1)
+val u2 = get_users(SIG_DATA2)
+val only22 = u1 -- u2
+scala.tools.nsc.io.File("only22.txt").writeAll(only22.toString)
+</code></pre>
+
+<p>Run it: <code>spark-shell --master spark://cloud142:7077 --driver-memory 6g --driver-cores 5 --total-executor-cores 28 --executor-memory 20g -i only22.scala</code></p>
+
+<p>In file only22.txt, all elements in the set are written in one line.
+So we have to replace all &ldquo;,&rdquo; with newline character: <code>sed -i 's/,/\n/g' only22.txt</code>;</p>
 </div>
   
   
@@ -274,7 +418,7 @@ the following &ldquo;test&rdquo; is a folder name contains dumped data from loca
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/24/152921/">HTML笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a></h1>
     
     
       <p class="meta">
@@ -283,171 +427,145 @@ the following &ldquo;test&rdquo; is a folder name contains dumped data from loca
 
 
 
-<time class='entry-date' datetime='2014-12-24T15:29:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:29 pm</span></time>
+<time class='entry-date' datetime='2014-12-31T10:10:55+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:10 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>HTML 布局原理</h1>
+  <div class="entry-content"><p>下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如"深圳东莞"的"圳"和"莞"两个字，原因不明。
+需要在vi中用"/\&lt;[A-Z]>搜索这种情况。</p>
 
-<p>HTML元素分为块级元素(block element)和行内元素(inline element)，
-前者独占一行，也就是元素的头和尾会被自动加上换行符，如<div>, <h1>, <p>, <ul>, <table>等；</p>
+<p>实现过程是：首先尝试用unicode, utf8和gbk解码字符串，然后用GBK编码字符串，利用GBK汉字是按拼音顺序编码的原理查出其首字母。</p>
 
-<p>后者不会独占一行，如<span>, <b>, <td>, <a>, <img>等；</p>
+<pre><code>#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-<p>CSS布局原理：<a href="http://www.w3schools.com/css/css_boxmodel.asp">CSS Box Model</a>.</p>
+def get_word_initial(inp):
+    if isinstance(inp, unicode):
+        unicode_str = inp
+    else:
+        try:
+            unicode_str = inp.decode('utf8')
+        except:
+            try:
+                unicode_str = inp.decode('gbk')
+            except:
+                print 'unknown coding'
+                return
 
-<p>一个CSS box从外向内分为4部分：margin, border, padding, content.
-除了最内部的内容部分(content)，其他3部分都可以设置宽度，
-其中margin是块级元素边界(border)之外的透明区域；
-border是边界线，默认宽度为0，即不可见；
-padding是内容(content)到边界之间的透明区域；</p>
+    init_list = [get_char_initial(i) for i in unicode_str]
+    return "".join(init_list)
 
-<p>将下面的代码保存在一个html文件中，可以看到各部分的作用：</p>
+def get_char_initial(unicode1):
+    gbkStr = unicode1.encode('gbk')
+    try:
+        ord(gbkStr)
+        return gbkStr
+    except:
+        asc = ord(gbkStr[0]) * 256 + ord(gbkStr[1]) - 65536
+        if asc &gt;= -20319 and asc &lt;= -20284:
+            return 'A'
+        if asc &gt;= -20283 and asc &lt;= -19776:
+            return 'B'
+        if asc &gt;= -19775 and asc &lt;= -19219:
+            return 'C'
+        if asc &gt;= -19218 and asc &lt;= -18711:
+            return 'D'
+        if asc &gt;= -18710 and asc &lt;= -18527:
+            return 'E'
+        if asc &gt;= -18526 and asc &lt;= -18240:
+            return 'F'
+        if asc &gt;= -18239 and asc &lt;= -17923:
+            return 'G'
+        if asc &gt;= -17922 and asc &lt;= -17418:
+            return 'H'
+        if asc &gt;= -17417 and asc &lt;= -16475:
+            return 'J'
+        if asc &gt;= -16474 and asc &lt;= -16213:
+            return 'K'
+        if asc &gt;= -16212 and asc &lt;= -15641:
+            return 'L'
+        if asc &gt;= -15640 and asc &lt;= -15166:
+            return 'M'
+        if asc &gt;= -15165 and asc &lt;= -14923:
+            return 'N'
+        if asc &gt;= -14922 and asc &lt;= -14915:
+            return 'O'
+        if asc &gt;= -14914 and asc &lt;= -14631:
+            return 'P'
+        if asc &gt;= -14630 and asc &lt;= -14150:
+            return 'Q'
+        if asc &gt;= -14149 and asc &lt;= -14091:
+            return 'R'
+        if asc &gt;= -14090 and asc &lt;= -13119:
+            return 'S'
+        if asc &gt;= -13118 and asc &lt;= -12839:
+            return 'T'
+        if asc &gt;= -12838 and asc &lt;= -12557:
+            return 'W'
+        if asc &gt;= -12556 and asc &lt;= -11848:
+            return 'X'
+        if asc &gt;= -11847 and asc &lt;= -11056:
+            return 'Y'
+        if asc &gt;= -11055 and asc &lt;= -10247:
+            return 'Z'
+        return ''
 
-<pre><code>&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-  &lt;head&gt;
-    &lt;style&gt;
-    div {
-        background-color: lightgrey;
-        width: 300px;
-        padding: 15px;
-        border: 5px solid navy;
-        margin: 25px;
-    }
-    &lt;/style&gt;
-  &lt;/head&gt;
-  &lt;body&gt;
-    &lt;div&gt;Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod.
-    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
-    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt.&lt;/div&gt;
-  &lt;/body&gt;
-&lt;/html&gt;
+if __name__ == "__main__":
+    str_input='广州火车站A2c'
+    print(get_word_initial(str_input))
 </code></pre>
 
-<h1>HTML5</h1>
+<p>下面是一个完整的使用场景，利用上面的代码为小区的地理位置表添加ID字段。
+首先将上面的代码保存在chnInit.py中，然后相同目录下创建一个addID.py文件：</p>
 
-<p>测试浏览器对HTML5的支持度：用待测浏览器打开<a href="https://html5test.com/">HTML5test</a>，该网页会列出浏览器对HTML5每一项特性支持与否。</p>
+<pre><code>import chnInit
+import sys
 
-<h2>Semantic Element</h2>
-
-<p>Ref: <a href="http://www.w3schools.com/html/html5_semantic_elements.asp">HTML5 Semantic Elements</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/23/180824/">Build Executable Jar in Command Line</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-23T18:08:24+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:08 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Build a executable jar file using external jars:</p>
-
-<pre><code>$ find .
-./Mod1.java
-./mf
-./lib
-./lib/commons-io-2.4.jar
-
-$ cat Mod1.java
-import org.apache.commons.io.FileUtils;
-import java.io.File;
-
-public class Mod1 {
-  public static void main (String[] args) {
-    String[] scriptExt = new String[] { "scala" };
-    System.out.println("List all scala files: " + FileUtils.listFiles(new File("/home/chad/docs/tmp"), scriptExt, false));
-  }
-}
-
-$ cat mf
-Class-Path: lib/commons-io-2.4.jar
-Main-Class: Mod1
-$ javac -cp lib/* Mod1.java
-$ jar cfm pkg.jar mf Mod1.class
-$ java -jar pkg.jar
-List all scala files: [/home/chad/docs/tmp/sf2.scala, /home/chad/docs/tmp/lookup.scala, /home/chad/docs/tmp/spark-filter.scala, /home/chad/docs/tmp/hw.scala, /home/chad/docs/tmp/newDel.scala, /home/chad/docs/tmp/scalaTime.scala, /home/chad/docs/tmp/sf3.scala]
+target = sys.argv[1]
+inclID = sys.argv[2]
+with open(target, 'r') as src:
+    with open(inclID, 'w') as dst:
+        for content in src:
+            line = content.strip()
+            cgi = line.split(' ,')[0]
+            node = line.split(' ,')[1].split(' ')[0]
+            city = line.split(' ,')[1].split(' ')[1]
+            nodeID = chnInit.get_word_initial(node)
+            cityID = chnInit.get_word_initial(city)
+            dst.write(cgi + ' ,' + city + ' ' + cityID + ' ' + node + ' ' + nodeID + '\n')
 </code></pre>
 
-<p>Note that classpath wildcard can&rsquo;t be used in manifest file (here is mf), which means &ldquo;Class-Path: lib/*&rdquo; doesn&rsquo;t work.
-See <a href="http://www.ibm.com/developerworks/library/j-5things6/">5 things you didn&rsquo;t know about &hellip; JARs</a> for explanations.</p>
+<p>相同目录下保存输入文件input.csv，然后运行脚本：</p>
 
-<p>The &ldquo;-cp&rdquo; option or &ldquo;CLASSPATH=&hellip;&rdquo; is invalid in <code>java -jar xxx.jar</code>.
-So if you don&rsquo;t want to create manifest file by hand, run java program with <code>java -cp ... MainClass</code>:</p>
+<pre><code>$ head input.csv
+460010973309433 ,白云国际机场 广州
+...
 
-<pre><code>$ tree
-.
-├── com
-│   └── boco
-│       └── example
-│           └── Example.java
-└── lib
-    └── commons-io-2.4.jar
-4 directories, 2 files
+$ python addID.py input.csv loc_map.csv
+$ head loc_map.csv
+460010973309433 ,广州 GZ 白云国际机场 BYGJJC
+...
+</code></pre>
 
-$ cat com/boco/example/Example.java
-package com.boco.example;
+<p>根据Python文档7.2.1节："Methods of File Objects"中的描述：</p>
 
-import org.apache.commons.io.FileUtils;
-import java.io.File;
-import java.util.Collection;
-import org.apache.commons.io.filefilter.DirectoryFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
+<blockquote><p>For reading lines from a file, you can loop over the file object.
+This is memory efficient, fast, and leads to simple code:</p></blockquote>
 
-public class Example {
-  public static void main (String[] args) {
-    Collection&lt;File&gt; found = FileUtils.listFiles(new File("."), TrueFileFilter.INSTANCE, DirectoryFileFilter.DIRECTORY);
-    System.out.println("List files with apache-commons.FileUtils:");
-    for (File f : found) {
-      System.out.println(f);
-    }
-    System.out.println("--- OVER ---");
-  }
-}
-$ javac -cp lib/commons-io-2.4.jar com/boco/example/Example.java
-$ jar cf example.jar com
-$ mv example.jar lib
-$ tree
-.
-├── com
-│   └── boco
-│       └── example
-│           ├── Example.class
-│           └── Example.java
-└── lib
-    ├── commons-io-2.4.jar
-    └── example.jar
-4 directories, 4 files
-$ java -cp "lib/*" com.boco.example.Example
-List files with apache-commons.FileUtils:
-./com/boco/example/Example.java
-./com/boco/example/Example.class
-./lib/example.jar
-./lib/commons-io-2.4.jar
---- OVER ---
+<pre><code>with open(target, 'r') as f:
+    for line in f:
+        ...
+</code></pre>
+
+<p>这种方式比较节省内存，适于处理大文件。
+当处理小文件时，可以用下面的方法将完整内容保存在一个变量中：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    read_data = f.read()
 </code></pre>
 </div>
   
@@ -461,7 +579,7 @@ List files with apache-commons.FileUtils:
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/23/084146/">Deploy Web Server on Linode</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a></h1>
     
     
       <p class="meta">
@@ -470,409 +588,228 @@ List files with apache-commons.FileUtils:
 
 
 
-<time class='entry-date' datetime='2014-12-23T08:41:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>8:41 am</span></time>
+<time class='entry-date' datetime='2014-12-29T19:31:56+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:31 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Setup Virtual Host</h1>
+  <div class="entry-content"><p>The foloowing codes demonstrate the creation &copy;, query &reg;, update (U) and delete (D) operations on mongodb collections.</p>
 
-<p>Buy a Linode instance on <a href="https://www.linode.com/">linode</a>. Note its IP address on the home page in your user account.
-Install a Linux system and <a href="https://www.linode.com/docs/security/securing-your-server/">secure it</a>.</p>
+<p>It also shows how to rename collections and keys of documents.</p>
 
-<p>Ref: <a href="https://www.linode.com/docs/getting-started">Getting Started</a> for instructions.</p>
+<pre><code>$ mongo
+db.fairs.insert({'name': 'bikeShow', 'time': '2014.12.24', 'location': 'Beijing', 'products': ['bike', 'car', 'truck']})
+db.fairs.insert({'name': 'clothShow', 'time': '2014.2.14', 'location': 'Shanghai', 'products': ['silk', 'wood', 'paper']})
+db.fairs.insert({'name': 'MyFruits', 'time': '2011.4.18', 'location': 'Guangzhou', 'products': ['berry', 'apple', 'banana']})
 
-<h1>Connect domain name and IP address</h1>
+db.newfairs.find({}, {name: 1})
+db.newfairs.find({}, {'name.chn': 1})
 
-<p>Here we link multiple Domain names to the same IP address.
-Then direct different domain requests to its corresponding port using nginx.</p>
+db.fairs.renameCollection('newfairs')
 
-<p>First register (purchase) a domain name, if you haven’t already.
-Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
-
-<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 ->  解析设置 -> 设置网站解析 -> 把域名指向我的网站-添加IP地址&rdquo;,
-add your Linode instance IP address as &ldquo;A&rdquo; record,
-Then wait up to 24 hours for the changes to take effect.
-I waited about 30 minutes to take effect.</p>
-
-<p>Next set your domain name to use Linode’s name servers (&ldquo;ns1.linode.com&rdquo; to &ldquo;ns5.linode.com&rdquo;)
-in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DNS服务器 -> 修改域名DNS&rdquo;.</p>
-
-<p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
-Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
-Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#111;&#58;&#108;&#x63;&#64;&#49;&#50;&#54;&#x2e;&#99;&#x6f;&#x6d;">&#108;&#x63;&#64;&#49;&#x32;&#54;&#x2e;&#99;&#111;&#x6d;</a>&rdquo;.
-Then click &ldquo;Add a Master Zone&rdquo;.</p>
-
-<h2>Setting Reverse DNS</h2>
-
-<p>On linode instance dashboard -> Remote access -> Reverse DNS, enter &ldquo;niufairs.com&rdquo;, and press &ldquo;Look up&rdquo;.</p>
-
-<p>Ref: <a href="https://www.linode.com/docs/websites/hosting-a-website">Hosting a website</a>.</p>
-
-<h1>Config Relationship betwwen domain and port</h1>
-
-<p>Fist install nginx.</p>
-
-<p>Edit /etc/nginx/nginx.conf as follows:</p>
-
-<pre><code>events {
-  worker_connections  1024;
-}
-
-http {
-  server {
-    server_name niufairs.cn;
-
-    location / {
-      proxy_pass http://localhost:3000/;
-    }
-  }
-
-  server {
-    server_name niufairs.com;
-
-    location / {
-      proxy_pass http://localhost:4000/;
-    }
-  }
-
-  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-  '$status $body_bytes_sent "$http_referer" '
-  '"$http_user_agent" "$http_x_forwarded_for"';
-
-  access_log  /var/log/nginx/access.log  main;
-}
+db.newfairs.update({}, {$rename: {'time': 'date'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'name': 'names'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'names': 'name.chn'} }, {multi: true} )
+db.newfairs.update({}, {$unset: {'date': ""}}, {multi: true})
+db.newfairs.remove({})
+db.newfairs.drop()
+exit
 </code></pre>
 
-<p>Test if this conf is right: <code>nginx -t</code>;</p>
+<p>You can&rsquo;t use <code>{$rename: {'name': 'name.chn'}}</code> directly for &ldquo;$rename must not be on the same path&rdquo;.</p>
 
-<p>If test ok, reload conf: <code>nginx -s reload</code>;</p>
+<ul>
+<li><p>Find docs whose &ldquo;website&rdquo; field is not null: <code>db.fairs.findOne({$where: "this.website.length &gt; 0" } )</code>;</p></li>
+<li><p>Remove all docs whose &ldquo;position&rdquo; field is an empty string: <code>db.fairs.remove( { $where: "this.position.length == 0" } )</code>;</p></li>
+</ul>
 
-<p>Now start 2 meteor app on port 3000 and 4000, and you can use niufairs.cn and niufairs.com to visit them respectively.</p>
+</div>
+  
+  
 
-<p>If you want server some static files, add a new &ldquo;server&rdquo; section in &ldquo;http&rdquo; of nginx.conf:</p>
 
-<pre><code>http {
-  server {
-    server_name newfairs.cn;
-    location / {
-      root /data/www;
-    }
-    location /images/ {
-      root /data;
-    }
-  }
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a></h1>
+    
+    
+      <p class="meta">
+        
 
-  server {
+
+
+
+<time class='entry-date' datetime='2014-12-29T15:14:19+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:14 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>启动node.js命令行，创建一个最简单的对象，然后遍历其属性：</p>
+
+<pre><code>$ node
+&gt; var myobj = {k1: "p1", k2: 'p2'}
+
+&gt; for (var key in myobj) {
+... console.log(key);
+... console.log(myobj.key);
+... console.log(myobj[key]);
+... }
+k1
+undefined
+p1
+k2
+undefined
+p2
+&gt; myobj.k1
+'p1'
+
+&gt; var ak = 'k4'
+undefined
+&gt; myobj.ak = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4' }
+&gt; myobj[ak] = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4' }
+
+&gt; myobj[nk] = 'p5'
+ReferenceError: nk is not defined
+    at repl:1:8
+    at REPLServer.self.eval (repl.js:110:21)
     ...
+&gt; myobj['nk'] = 'p5'
+'p5'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4',
+  nk: 'p5' }
+</code></pre>
+
+<p>点操作符 (myobj.key) 和中括号 (myobj[key]) 都能用于获取和添加对象属性，
+二者的区别在于，点操作符后面的属性名称按照字面量处理，
+中括号中的属性名称按照变量名处理。</p>
+
+<p>如果想通过变量名读写对象属性，必须用中括号操作符，
+如果想不写引号直接引用属性名称，必须用点操作符。</p>
+
+<p>搜索"javascript object dot square bracket"查找相关文章。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-29T11:28:03+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>为一个用户增加可执行文件通常有两种方法，
+第一种是将可执行文件所在的目录添加到命令行自启动文件中（例如~/.profile，~/.bashrc，~/.zshenv等），
+这种方法的优点是无需root权限，绿色无污染，
+缺点是只对命令行有效，只对一个用户有效，
+并且不适用于从全局启动目录（如i3wm的dmenu命令行）中启动图形界面程序；</p>
+
+<p>另一种是把可执行文件添加到/usr/local/bin目录中，这个目录一般用来存放用户自定义的全局可执行命令，
+优缺点与上面修改自启动文件的方式相反；</p>
+
+<p>一段时间后/usr/local/bin下可能会有很多文件，清理的方法根据来源不同而不同：
+对于链接，直接删除；
+对非链接文件，用<code>dpkg -l</code>确认是否为apt-get或者dpkg安装的，然后用<code>apt-get remove</code>删除；
+如果不是上面的情况，用<code>pip list|grep &lt;filename&gt;</code>检查是否用pip安装的，若是，用<code>pip uninstall</code>删除。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-27T10:39:44+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Usually we can run shell command in Java program with <code>Runtime.getRuntime.exec(shellName);</code>.
+But if the shell command is <code>java -cp "lib/*" MainClass</code>, you can&rsquo;t get any output from &ldquo;line = reader.readLine()&rdquo;.</p>
+
+<p>You have to use ProcessBuilder instead of Runtime.exec to execute these commands.
+Maybe the reason is the double quotes after &ldquo;-cp&rdquo; option is mandatory, which are conflict with double quotes in parameters of Runtime.exec.</p>
+
+<pre><code>public static final String USER_PLUGIN_PATH = "plugins";
+public static final String USER_CLASSPATH = USER_PLUGIN_PATH + "/lib/*";
+public void runJavaProgram(String mainClass) {
+  logger.info("Running java program in class: " + mainClass);
+  try {
+    ProcessBuilder pb = new ProcessBuilder("java", "-cp", USER_CLASSPATH, mainClass);
+    pb.redirectErrorStream(true);
+    Process process = pb.start();
+    // Process process = Runtime.getRuntime().exec("java -cp " + USER_CLASSPATH + mainClass);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    String line = "";
+    String output = "";
+    while ((line = reader.readLine()) != null) {
+      logger.debug(line);
+      output += line + System.getProperty("line.separator");
+    }
+    process.waitFor();
+  } catch (IOException e) {
+    e.printStackTrace();
+  } catch (InterruptedException e) {
+    e.printStackTrace();
   }
 }
 </code></pre>
-
-<h1>Configure Email Server</h1>
-
-<p>I bought an <strong>business</strong> account on <a href="https://www.fastmail.com/">FastMail</a>, and
-configure 3 places to make the mail server functional:</p>
-
-<ol>
-<li><p>In FastMail <a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#x6f;&#x3a;&#109;&#97;&#115;&#116;&#101;&#x72;&#x75;&#115;&#x65;&#x72;&#x40;&#x6e;&#105;&#117;&#102;&#x61;&#x69;&#114;&#x73;&#x2e;&#99;&#x6f;&#x6d;">&#x6d;&#97;&#115;&#116;&#x65;&#x72;&#x75;&#x73;&#x65;&#x72;&#x40;&#x6e;&#x69;&#117;&#102;&#97;&#x69;&#x72;&#x73;&#46;&#99;&#111;&#109;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
-<li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
-
-<p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
-<li><p>Add the following record on &ldquo;niufairs.com&rdquo; on Linode.com:</p>
-
-<p> MX Records ->  Mail Server: in1-smtp.messagingengine.com, Preference: 10, TTL: Default.</p></li>
-</ol>
-
-
-<p>Refs:</p>
-
-<ul>
-<li><p><a href="http://stackoverflow.com/questions/15678224/nginx-proxy-several-domains-to-different-ports">Nginx proxy several domains to different ports</a></p></li>
-<li><p><a href="http://nginx.org/en/docs/beginners_guide.html#static">Serving Static Content</a></p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/21/110312/">CSS and LESS Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-21T11:03:12+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:03 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>CSS selector rules: <a href="http://www.w3schools.com/cssref/css_selectors.asp">CSS Selectors</a></p>
-
-<p>CSS Combination rules: <a href="http://www.w3schools.com/css/css_combinators.asp">CSS Combinators</a></p>
-
-<p>Addition to the above rules, you can use &ldquo;element.class&rdquo; to specify a specified elment.
-For example, &ldquo;p.bluecolor&rdquo; will select &ldquo;all p elements with class bluecolor&rdquo;.
-A <div class="bluecolor"> will not be included.
-See <a href="http://css.maxdesign.com.au/selectutorial/selectors_class.htm">Class selectors</a> for details.</p>
-
-<p>LESS introduction: <a href="http://www.elated.com/articles/less-is-more-make-your-css-coding-easier-with-less/">LESS Is More: Make Your CSS Coding Easier with LESS</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/20/230618/">Meteor MongoDB Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-20T23:06:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Connect to a mongodb of a Meteor app: run <code>meteor</code> at the project root. Start another shell, go to this folder, and run <code>meteor mongo</code>;</p></li>
-<li><p>List all available commands: <code>help</code>;</p></li>
-<li><p>List DB operation methods: <code>db.help()</code>;</p></li>
-<li><p>List all existing collection names: <code>show collections</code>;</p></li>
-<li><p>List all available commands of a collection: <code>db.&lt;collection-name&gt;.help()</code>;</p></li>
-<li><p>Show collection information: <code>db.&lt;collection-name&gt;.stats()</code>;</p></li>
-<li><p>Print all &ldquo;name&rdquo; field of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {name_chn: 1})</code>;</p></li>
-<li><p>Print all fields except &ldquo;name_chn&rdquo; of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {products: 0})</code>;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/17/114238/">Meteor Resources</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-17T11:42:38+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Learning Resources</h1>
-
-<h2>Published Books</h2>
-
-<ul>
-<li><p>Instant Meteor JavaScript Framework Starter by Gabriel Manricks of PACKT, 2013;</p></li>
-<li><p>Getting Started with Meteor.js JavaScript Framework by Isaac Strack of PACKT, 2012;</p></li>
-</ul>
-
-
-<h2>Upcoming Books</h2>
-
-<ul>
-<li><p>Beginning Meteor by Aaron Gray of APress, march 25, 2015;</p></li>
-<li><p>Building Single-page Web Apps with Meteor by Fabian Vogelsteller of PACKT, december 26, 2014;</p></li>
-</ul>
-
-
-<h2>Free Resources</h2>
-
-<p><a href="https://bulletproofmeteor.com/">Bulletproof Meteor</a></p>
-
-<p><a href="http://themeteorchef.com/">The Meteor Chef</a></p>
-
-<p><a href="http://eventedmind.com/">Evented Mind</a></p>
-
-<p><a href="http://meteortips.com/">Meteor Tips</a></p>
-
-<p><a href="https://www.udemy.com/build-your-first-real-time-web-application-with-meteorjs">Build Your First Real-Time Web Application with MeteorJS</a></p>
-
-<p><a href="http://meteorjs.club/">Josh Owen&rsquo;s Meteor Club</a></p>
-
-<h2>Paid Resources</h2>
-
-<p><a href="https://www.discovermeteor.com/">Discover Meteor</a></p>
-
-<p>Ref: <a href="http://www.sitepoint.com/9-ways-meteor-1-0-will-take-world/">9 Ways Meteor 1.0 Will Take You Out of This World</a></p>
-
-<h1>For Meteor Jobs</h1>
-
-<p><a href="http://www.weworkmeteor.com/">We Work Meteor</a></p>
-
-<h1>Test Tools</h1>
-
-<p><a href="https://kadira.io/">Kadira</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/16/170917/">Scala的模式匹配</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-16T17:09:17+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面是一个RDD，每一个元素是一个Array，这个Array由几个tuple组成，
-现在需要将其中第二个元素是13的tuple（比如(-36522769,13)）的一个元素后面追加字符串".000"，其余不变，
-实现方法如下：</p>
-
-<pre><code>val data = RDD[Array[(String, Int)]] = RDD(
-        Array((-36522769,13), (8014,14), (2014-09-19 00:10:47,17), (3,18), (FF-693960651,134)),
-        Array((-905910021.0000000000,13), (200,14), (2014-09-19 00:02:11,17), (3,18), (FF--112226702,134)),
-        Array((-2033866158.0000000000,13), (200,14), (2014-09-19 00:07:12,17), (3,18), (FF--112226702,134)),
-        Array((1712341836.0000000000,13), (200,14), (2014-09-19 00:07:06,17), (3,18), (FF--112226702,134)),
-        Array((-896432680.0000000000,13), (8014,14), (2014-09-19 00:12:17,17), (3,18), (FF-693960651,134)),
-        Array((-1205034451.0000000000,13), (200,14), (2014-09-19 00:07:21,17), (3,18), (FF--112226702,134)),
-        Array((-2117505875.0000000000,13), (15089,14), (2014-09-19 00:41:47,17), (2,18), (FF-1139491304,134))) 
-
-val res = data.map(x =&gt; x.map { case (y,13) =&gt; (y + ".000", 13)
-                                case z =&gt; z
-                              })
-</code></pre>
-
-<p>如果把13变为一个变量，比如<code>val BAD_NUM = 13</code>, 这时直接改写为<code>case (y, BAD_NUM) =&gt; ...</code>，将出现错误，
-因为解析器将BAD_NUM视为一个自由变量，而不是外部等于13的那个变量，解决方法是用反引号把BAD_NUM扩起来，写为：</p>
-
-<pre><code>case (y, `BAD_NUM`) =&gt; (y + ".000", BAD_NUM)
-</code></pre>
-
-<p>推荐文章：</p>
-
-<p><a href="http://kerflyn.wordpress.com/2011/02/14/playing-with-scalas-pattern-matching/">Playing with Scala’s pattern matching</a>;</p>
-
-<p><a href="http://docs.scala-lang.org/tutorials/tour/pattern-matching.html">Pattern Matching in Scala Documenation</a></p>
-
-<p><a href="http://docs.scala-lang.org/cheatsheets/">Pattern matching section in Scala cheatsheet</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/15/175800/">网站配色技术</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-15T17:58:00+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>颜色有多种表示方式，印刷业常用的CMYK方法是4种颜料的组合值表示一种颜色，
-RGB常用于显示器，用3原色的值表示一种颜色。</p>
-
-<p>HSL是用色调hue，纯度Saturation（也叫饱和度）和亮度lightness组合表示一种颜色，
-其中色调是平时所说的颜色；
-纯度可以理解为颜料的浓度，最小值是灰色（没有颜料），最大值是最纯净的颜色（比如完全的红色，完全的绿色等）；
-亮度是明亮程度，最小值是黑色，最大值的白色。</p>
-
-<p>RGB与HSL的相互关系可以在<a href="http://www.snook.ca/technical/colour_contrast/colour.html">Colour Contrast Check</a>上面通过拖动各个滑块来观察，
-这个网站主要用于检查背景色和文字颜色的对比度，用户输入两种颜色的值，它计算出亮度差(brightness difference)，色调差(color difference)，颜色是否匹配(color compliant)，以及是否符合WCAG 2规范等。</p>
-
-<p>亮度差和色调差的具体计算方法可以搜索关键词"calculate color brightness difference".</p>
-
-<h1>搜索关键词</h1>
-
-<ul>
-<li><p>website color shemes</p></li>
-<li><p>text background contrast calculator</p></li>
-<li><p>文字 背景 对比</p></li>
-</ul>
-
-
-<h1>配色理论和实践</h1>
-
-<ul>
-<li><p><a href="http://www.had2know.com/technology/color-contrast-calculator-web-design.html">How to Calculate Color Contrast from RGB Values</a></p></li>
-<li><p><a href="http://jingyan.baidu.com/article/ed2a5d1f1170f109f6be1787.html">网页配色技巧：不同背景下文字颜色搭配</a></p></li>
-<li><p><a href="http://www.onextrapixel.com/2013/10/25/40-stunning-website-designs-with-great-color-schemes/">40 Stunning Website Designs with Great Color Schemes</a></p></li>
-<li><p><a href="http://www.dtelepathy.com/blog/inspiration/beautiful-color-palettes-for-your-next-web-project">50 Beautiful Color Palettes for Your Next Web Project</a></p></li>
-</ul>
-
-
-<h1>配色工具和软件</h1>
-
-<ul>
-<li><p><a href="http://www.gpick.org/">gpick</a></p></li>
-<li><p><a href="http://libregraphicsworld.org/blog/entry/creating-color-schemes-with-gpick">Creating color schemes with Gpick</a></p></li>
-<li><p><a href="http://www.456bereastreet.com/archive/200709/10_colour_contrast_checking_tools_to_improve_the_accessibility_of_your_design/">10 colour contrast checking tools to improve the accessibility of your design</a></p></li>
-<li><p><a href="http://www.snook.ca/technical/colour_contrast/colour.html">Colour Contrast Check</a>;</p></li>
-<li><p><a href="http://paletton.com/">paletton.com</a></p></li>
-</ul>
-
 </div>
   
   
@@ -897,23 +834,23 @@ RGB常用于显示器，用3原色的值表示一种颜色。</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

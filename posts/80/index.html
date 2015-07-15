@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="打开一个命令行窗口，输入命令： chcp 936 （将窗口当前代码页改为GBK）； 窗口标题栏上【右键->默认值->默认代码页】改为【936&hellip;GBK】即可。 使用plink在windows命令行窗口连接linux服务器时，GBK代码页会导致显示问题，就需要把窗口代码页改为UTF-8 &hellip;">
+  <meta name="description" content="Upstream &amp; Downstream Upstream指网络层向应用层传播，Downstream相反，应用层向网络层传播，所以Upstream Events的代表是messageReceived，DownStream Events的代表是write方法； Netty &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/02/28/211057/">Win7命令行窗口中文变为乱码的修复方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/03/26/113633/">Netty笔记</a></h1>
     
     
       <p class="meta">
@@ -80,18 +80,24 @@
 
 
 
-<time class='entry-date' datetime='2012-02-28T21:10:57+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:10 pm</span></time>
+<time class='entry-date' datetime='2012-03-26T11:36:33+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:36 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>打开一个命令行窗口，输入命令： chcp 936 （将窗口当前代码页改为GBK）；</p>
+  <div class="entry-content"><h1>Upstream &amp; Downstream</h1>
 
-<p>窗口标题栏上【右键->默认值->默认代码页】改为【936&hellip;GBK】即可。</p>
+<p>Upstream指网络层向应用层传播，Downstream相反，应用层向网络层传播，所以Upstream Events的代表是messageReceived，DownStream Events的代表是write方法；</p>
 
-<p>使用plink在windows命令行窗口连接linux服务器时，GBK代码页会导致显示问题，就需要把窗口代码页改为UTF-8： chcp 65001</p>
+<p>Netty javadoc中对ChannelEvent和ChannelPipeline的说明；</p>
+
+<p>2013-05-08更新：</p>
+
+<p>upstream消息（从网络对端读取消息）从pipeline的handler链的头执行到尾，downstream消息（向网络对端写消息）从handler链的尾执行到头，参考Netty doc &ldquo;Interface ChannelPipeline"中的图示；</p>
+
+<h1>通道隔离和状态设置</h1>
 </div>
   
   
@@ -104,7 +110,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/02/24/175138/">自动生成/取消列表编号的ahk脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/03/23/124324/">Netty Echo Server传输机制分析</a></h1>
     
     
       <p class="meta">
@@ -113,51 +119,598 @@
 
 
 
-<time class='entry-date' datetime='2012-02-24T17:51:38+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:51 pm</span></time>
+<time class='entry-date' datetime='2012-03-23T12:43:24+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>12:43 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>生成效果如下：</p>
+  <div class="entry-content"><p>工作目录：/home/godu/backup；上传netty-3.2.6.Final.jar；
+源文件：
+EchoServer.java import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
+import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+public class EchoServer {
+  public static void main(String[] args) throws Exception {
+   // Configure the server.
+   ServerBootstrap bootstrap = new ServerBootstrap(
+     new NioServerSocketChannelFactory(
+        Executors.newCachedThreadPool(),
+        Executors.newCachedThreadPool()));
+   // Set up the pipeline factory.
+   bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+    public ChannelPipeline getPipeline() throws Exception {
+     return Channels.pipeline(new EchoServerHandler());
+    }
+   });
+   // Bind and start to accept incoming connections.
+   bootstrap.bind(new InetSocketAddress(8349));
+  }
+}
+EchoServerHandler.java import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+public class EchoServerHandler extends SimpleChannelUpstreamHandler {
+  private static final Logger logger = Logger
+    .getLogger(EchoServerHandler.class.getName());
+  private final AtomicLong transferredBytes = new AtomicLong();
+  public long getTransferredBytes() {
+   return transferredBytes.get();
+  }
+  @Override
+  public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
+   // Send back the received message to the remote peer.
+   transferredBytes.addAndGet(((ChannelBuffer) e.getMessage())
+     .readableBytes());
+   e.getChannel().write(e.getMessage());
+  }
+  @Override
+  public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
+   // Close the connection when an exception is raised.
+   logger.log(Level.WARNING, &ldquo;Unexpected exception from downstream.&rdquo;,
+     e.getCause());
+   e.getChannel().close();
+  }
+}
+启动Echo Server：
+javac -cp .:./netty-3.2.6.Final.jar EchoServerHandler.java
+javac -cp .:./netty-3.2.6.Final.jar EchoServer.java
+java -cp .:./netty-3.2.6.Final.jar EchoServer</p>
 
-<p>原始文本：</p>
+<p>连接Server：XShell里运行： telnet 10.0.2.47 8349 ，建立连接后输入 bcde 并回车后可以看到收到了bcde，整个过程用wireshark监控内容如下（监控完后导出结果方法：File->Export->File，保存类型为txt）： No.  Time  Source    Destination   Protocol Length Info
+  1 0.000000 10.32.1.103   10.0.2.47    TCP  66  10811 > 8394 [SYN] Seq=0 Win=8192 Len=0 MSS=1460 WS=256 SACK_PERM=1
+Frame 1: 66 bytes on wire (528 bits), 66 bytes captured (528 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 0, Len: 0
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 0 (relative sequence number)
+ Header length: 32 bytes
+ Flags: 0x02 (SYN)
+ Window size value: 8192
+ [Calculated window size: 8192]
+ Checksum: 0x976d [validation disabled]
+ Options: (12 bytes)
+No.  Time  Source    Destination   Protocol Length Info
+  2 0.000267 10.0.2.47    10.32.1.103   TCP  66  8394 > 10811 [SYN, ACK] Seq=0 Ack=1 Win=5840 Len=0 MSS=1460 SACK_PERM=1 WS=128
+Frame 2: 66 bytes on wire (528 bits), 66 bytes captured (528 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 0, Ack: 1, Len: 0
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 0 (relative sequence number)
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 32 bytes
+ Flags: 0x12 (SYN, ACK)
+ Window size value: 5840
+ [Calculated window size: 5840]
+ Checksum: 0x0552 [validation disabled]
+ Options: (12 bytes)
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  3 0.000295 10.32.1.103   10.0.2.47    TCP  54  10811 > 8394 [ACK] Seq=1 Ack=1 Win=65536 Len=0
+Frame 3: 54 bytes on wire (432 bits), 54 bytes captured (432 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 1, Ack: 1, Len: 0
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x5bf4 [validation disabled]
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  4 5.669101 10.32.1.103   10.0.2.47    TCP  58  10811 > 8394 [PSH, ACK] Seq=1 Ack=1 Win=65536 Len=4
+Frame 4: 58 bytes on wire (464 bits), 58 bytes captured (464 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 1, Ack: 1, Len: 4
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ [Next sequence number: 5 (relative sequence number)]
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x18 (PSH, ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x951f [validation disabled]
+ [SEQ/ACK analysis]
+Data (4 bytes)
+0000 62 63 64 65           bcde
+ Data: 62636465
+ [Length: 4]
+No.  Time  Source    Destination   Protocol Length Info
+  5 5.669359 10.0.2.47    10.32.1.103   TCP  60  8394 > 10811 [ACK] Seq=1 Ack=5 Win=5888 Len=0
+Frame 5: 60 bytes on wire (480 bits), 60 bytes captured (480 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 1, Ack: 5, Len: 0
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ Acknowledgement number: 5 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 46
+ [Calculated window size: 5888]
+ [Window size scaling factor: 128]
+ Checksum: 0x5cc2 [validation disabled]
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  6 5.669397 10.32.1.103   10.0.2.47    TCP  56  10811 > 8394 [PSH, ACK] Seq=5 Ack=1 Win=65536 Len=2
+Frame 6: 56 bytes on wire (448 bits), 56 bytes captured (448 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 5, Ack: 1, Len: 2
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 5 (relative sequence number)
+ [Next sequence number: 7 (relative sequence number)]
+ Acknowledgement number: 1 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x18 (PSH, ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x4edc [validation disabled]
+ [SEQ/ACK analysis]
+Data (2 bytes)
+0000 0d 0a            ..
+ Data: 0d0a
+ [Length: 2]
+No.  Time  Source    Destination   Protocol Length Info
+  7 5.669574 10.0.2.47    10.32.1.103   TCP  60  8394 > 10811 [ACK] Seq=1 Ack=7 Win=5888 Len=0
+Frame 7: 60 bytes on wire (480 bits), 60 bytes captured (480 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 1, Ack: 7, Len: 0
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ Acknowledgement number: 7 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 46
+ [Calculated window size: 5888]
+ [Window size scaling factor: 128]
+ Checksum: 0x5cc0 [validation disabled]
+ [SEQ/ACK analysis]
+No.  Time  Source    Destination   Protocol Length Info
+  8 5.682922 10.0.2.47    10.32.1.103   TCP  60  8394 > 10811 [PSH, ACK] Seq=1 Ack=7 Win=5888 Len=6
+Frame 8: 60 bytes on wire (480 bits), 60 bytes captured (480 bits)
+Ethernet II, Src: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1), Dst: Dell_22:74:95 (b8:ac:6f:22:74:95)
+Internet Protocol Version 4, Src: 10.0.2.47 (10.0.2.47), Dst: 10.32.1.103 (10.32.1.103)
+Transmission Control Protocol, Src Port: 8394 (8394), Dst Port: 10811 (10811), Seq: 1, Ack: 7, Len: 6
+ Source port: 8394 (8394)
+ Destination port: 10811 (10811)
+ [Stream index: 0]
+ Sequence number: 1 (relative sequence number)
+ [Next sequence number: 7 (relative sequence number)]
+ Acknowledgement number: 7 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x18 (PSH, ACK)
+ Window size value: 46
+ [Calculated window size: 5888]
+ [Window size scaling factor: 128]
+ Checksum: 0x88df [validation disabled]
+ [SEQ/ACK analysis]
+Data (6 bytes)
+0000 62 63 64 65 0d 0a         bcde..
+ Data: 626364650d0a
+ [Length: 6]
+No.  Time  Source    Destination   Protocol Length Info
+  9 5.887726 10.32.1.103   10.0.2.47    TCP  54  10811 > 8394 [ACK] Seq=7 Ack=7 Win=65536 Len=0
+Frame 9: 54 bytes on wire (432 bits), 54 bytes captured (432 bits)
+Ethernet II, Src: Dell_22:74:95 (b8:ac:6f:22:74:95), Dst: Hangzhou_8d:96:e1 (00:0f:e2:8d:96:e1)
+Internet Protocol Version 4, Src: 10.32.1.103 (10.32.1.103), Dst: 10.0.2.47 (10.0.2.47)
+Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), Seq: 7, Ack: 7, Len: 0
+ Source port: 10811 (10811)
+ Destination port: 8394 (8394)
+ [Stream index: 0]
+ Sequence number: 7 (relative sequence number)
+ Acknowledgement number: 7 (relative ack number)
+ Header length: 20 bytes
+ Flags: 0x10 (ACK)
+ Window size value: 256
+ [Calculated window size: 65536]
+ [Window size scaling factor: 256]
+ Checksum: 0x5be8 [validation disabled]
+ [SEQ/ACK analysis]
+可以看到第4个包是C向S发送bcde，第6个是向S发送回车，第8个包是S向C返回bcde回车；</p>
+</div>
+  
+  
 
-<p> the first line;</p>
 
-<p> the second line;</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/23/082859/">Totalcmd解压插件</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p> the third line;</p>
 
-<p>转换后文本：</p>
+
+
+<time class='entry-date' datetime='2012-03-23T08:28:59+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>8:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>bz2: BZIP2 ;</p>
+
+<p>7z: wcx_7zip_0.7.6.5.bin.zip;</p>
+
+<p>另有wcx_7z_plugin_1.0.1.0，需要额外找7zip4.x版exe文件，不好用；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/20/085110/">用autohotkey运行命令行指令</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-20T08:51:10+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:51 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>网卡识别错误导致无法上网，需要在命令行中输入ipconfig /release和ipconfig /renew两个命令，执行这个动作的ahk脚本是：</p>
+
+<p> RunWait, %comspec% /c ipconfig /release &amp;&amp; ipconfig /renew</p>
+
+<p>其中RunWait的意思是以同步方式执行本条指令，即当ipconfig执行完毕后ahk脚本才执行（RunWait）后面的脚本，Run是异步方式；</p>
+
+<p> %comspec% /c ipconfig /release &amp;&amp; ipconfig /renew 是windows的命令行语法，可以用如下方法验证：</p>
+
+<p> C:\Users\chad> echo %comspec%
+C:\Windows\system32\cmd.exe
+C:\Users\chad> %comspec% /c dir /w &amp;&amp; dir /w &amp;&amp; pause</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/19/144550/">关于ansi转义序列控制符</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-19T14:45:50+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:45 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>颜色控制符</h1>
+
+<h2>现象</h2>
+
+<p>Telnet发送ls指令收到的目录名（此目录名为2.1，用粗体标出）：</p>
+
+<p> <ESC>[00m<ESC>[01;34m 2.1 <ESC>[00m</p>
+
+<p>对应的原始字节流是（16进制）：</p>
+
+<p> 1b 5b 30 30 6d 1b 5b 30 31 3b 33 34 6d 32 2e 31 1b 5b 30 30 6d</p>
+
+<h2>解释</h2>
+
+<p>这些正文前后奇怪的字符序列是 ANSI escape sequence ，也就是为了在 字符终端 （俗语所云的“命令行窗口”）上显示控制格式、字体颜色等东西，由 ANSI 制定的，服务器发送给 终端 的字符序列定义，例如下图中为了区别文件和目录，服务器将文件名的颜色设为白色，而将目录名（Desktop）设为蓝色，</p>
+
+<p> 终端收到原始报文</p>
+
+<p> anaconda-ks.cfg<SPACE><SPACE><ESC>[00m<ESC>[01;34mDesktop<ESC>[00m<SPACE><SPACE>install.log</p>
+
+<p>后，按照ANSI标准解释其中的转义序列，再形成我们看到的不同颜色。这个标准中关于字体颜色定义部分叫做SGR( Select Graphic Rendition )，格式是：</p>
+
+<p> CSI code_num m</p>
+
+<p>其中CSI( Control Sequence Introducer ，这里是 <ESC>[ )是控制符起始标志，code_num是字体颜色代号（详见ansi escape code的 SGR parameters 一节中对代码30~37的说明），可以是单一代码，也可以是用分号分隔的多个代码，其中00表示关闭所有颜色选项（可以理解为“复位”），01表示“亮色”，34表示“蓝色”，所以上图的原始报文可以翻译为：</p>
+
+<p> anaconda-ks.cfg &lt;颜色初始化>&lt;亮色、蓝色>Desktop&lt;颜色初始化> install.log</p>
+
+<p>下面是一个"ls -l"命令的结果截图和对应的原始ASCII码，其中字体颜色有：蓝色（30+4），红色（30+1），绿色（30+2）以及绿色背景（40+2）；</p>
+
+<p> drwxr-xr-x 2 godu boco  4096 2011-04-15 <ESC>[01;34maaa111<ESC>[00m
+drwxr-xr-x 4 godu boco  4096 2011-03-03 <ESC>[01;34maatest<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco  4899 2011-06-14 <ESC>[00mcrc32.c<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco  579 2011-06-14 <ESC>[00mcrc32 oracle.txt<ESC>[00m
+drwxr-xr-x 4 godu boco  4096 2011-05-11 <ESC>[01;34mGoduDb_test<ESC>[00m
+-rw&mdash;&mdash;- 1 godu boco 2836280 2011-05-11 <ESC>[01;31mGoduDb_test.zip<ESC>[00m
+drwxr-xr-x 7 godu boco  4096 2011-04-28 <ESC>[01;34mGODU-platform<ESC>[00m
+drwxr-xr-x 7 godu boco  4096 2010-12-20 <ESC>[01;34mGODU-platform_bak5-6<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 56420261 2011-05-06 <ESC>[01;31mGODU-platform-V2.1_P2_20110506.tar.gz<ESC>[00m
+-rwxr-xr-x 1 godu boco  7652 2011-06-14 <ESC>[01;32mlibcrc32.so<ESC>[00m
+drwxr-xr-x 60 godu boco  4096 2011-05-06 <ESC>[01;34mterracotta<ESC>[00m
+drwxrwxrwx 13 godu boco  4096 2011-02-16 <ESC>[34;42mterracotta-2.7.2<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 58982400 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 49970439 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar.gz<ESC>[00m</p>
+
+<h1>光标定位和擦除屏幕</h1>
+
+<p>屏幕绘制方面的主要有“指定光标位置”（CSI n;m H）和“擦除显示”两类，后者包括“擦除屏幕”（CSI n J）和“擦除行”（CSI n K）两小类，参数用法见 wiki对CSI Codes的说明 ，其中“擦除行”被用于用户输入退格键（Backspace）的处理，当用户（client）向server发送退格键（0x08）时，server返回的是"08 1b 5b 4b"，也就是"Backspace <ESC>[K"，其中Backspace使光标向前一个字符，"<ESC>[&ldquo;是转义字符起始标志（CSI），"CSI K"表示擦除光标到行尾的所有内容。</p>
+
+<p>下面是一个mina server的handler的sessionOpened方法，使用了CSI5;5H和CSI2J，客户端连入这个server的效果如下图：</p>
+
+<p>  @Override
+ public void sessionOpened(IoSession session) {
+  byte[] aes = { 0x1b, 0x5b, 0x35, 0x3b, 0x35, 0x48, 0x1b, 0x5b, 0x32,
+   0x4a, 0x1b, 0x5b, 0x30, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x34,
+   0x3b, 0x34, 0x32, 0x6d, 0x32, 0x2e, 0x31, 0x1b, 0x5b, 0x30,
+   0x30, 0x6d };
+  String aesStr = new String(aes);
+  session.write(aesStr);
+  System.out.println(aesStr);
+ }</p>
+
+<p><ESC>(B: Set to US ASCII character set(see &ldquo; VT100 ESC sequences "for detail);</p>
+
+<h1>设置窗口标题（Set Window Title）</h1>
+
+<p>用putty登录10.0.2.47的23端口，收到的原始报文如下（用Wireshark抓包）：</p>
+
+<p>\033]0;godu@goduserver:~\007[godu@goduserver ~]$</p>
+
+<p>可以看到登录成功后窗体标题变了，原因就是上面的“\033]0;&hellip;\007”造成的；</p>
+
+<p>参考：<a href="https://wiki.archlinux.org/index.php/Color_Bash_Prompt">Color Bash Prompt</a></p>
+
+<h1>切换屏幕</h1>
+
+<p>&ldquo;\033[?1049h"和&rdquo;\033[?1049l"分别是切换到新屏幕和切换回来，演示程序见笔记 演示切换屏幕控制序列的程序 。</p>
+
+<p>参考：<a href="https://groups.google.com/forum/?fromgroups=#!topic/vim_use/8NorwlYFHVQ">Alternate screen buffer in Xterm/FreeBSD </a>和<a href="http://www.digipedia.pl/usenet/thread/16656/2297/">DECSC in tmux vs xterm</a></p>
+
+<h1>光标显示/隐藏</h1>
+
+<p>&ldquo;\033[?25h"和&rdquo;\033[?25l"分别是显示和隐藏光标；</p>
+
+<h1>模式</h1>
+
+<p>Normal和Application模式的区别见<a href="http://ttssh2.sourceforge.jp/manual/en/usage/tips/appkeypad.html">Cursor key mode</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/15/093417/">用Wireshark分析Telnet交互过程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-15T09:34:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Windows系统下
+用XShell作为Telnet客户端连接47服务器，整个过程可以用Wireshark（验证版本：1.6.5）完整地记录下来。</p>
+
+<p>Wireshark->Capture->Interface中设置要监视的网卡；</p>
+
+<p>Wireshark->Capture->Options->Capture Filter后写要监控的目标主机IP地址，这里写： host 10.0.2.47 ；</p>
+
+<p>Wireshark->Capture->Start；</p>
+
+<p>启动XShell连接47：Xshell:> telnet 10.0.2.47 ；</p>
+
+<p>Wireshark将显示整个交互过程（见下图），可以看到主界面分为3部分，上面按时间顺序列出了每次交互的数据包（packet）；中间是这个数据包的详细内容，第一层Frame 14（xx层？）是xxx，第二层Ethernet II（链路层）主要由源和目标主机的网卡（Mac）地址组成，用ifconfig -a(Linux)或者ipconfig /all(windows)可以验证，第3层（网络层）是IP协议报头，主要包括源和目标的IP地址等，第4层（传输层）是TCP协议报头，主要包括源和目标的端口号、包序列号等，第5层（应用层）是Telnet数据；主界面的下部是此数据包的具体内容，以16进制显示。</p>
+
+<p>连接后首先进行选项协商，然后传输数据，下面以“是否回显”为例详细说明协商过程，图中10.0.2.47是Telnet Server，10.32.1.56是Client。</p>
+
+<p>第14步S要求C回显：ff fd 01，即IAC DO ECHO（见上图）；</p>
+
+<p>第17步C回答S客户端不回显：ff fc 01，即IAC WONT ECHO；</p>
+
+<p>第19步S通知C服务端将回显：ff fb 01，即IAC WILL ECHO；</p>
+
+<p>第20步C同意服务端回显：ff fd 01，即IAC DO ECHO；</p>
+
+<p>选项协商中各种搭配的具体含义参见“ The Telnet Protocol ”；</p>
+
+<p>更改XSehll窗口尺寸引起的window size negotiation：</p>
+
+<p>ff fa 1f 00 62 00 1b ff f0，即IAC SB 31(Options: Window Size) 98 27 IAC SE</p>
+
+<p>转换为Telnet语句：</p>
+
+<p>Suboption Begin: Negotiate About window size</p>
+
+<p>Width: 98 Height: 27</p>
+
+<p>Command: Suboption End</p>
+
+<p>命令行用法</p>
+
+<p>C:\Program Files\Wireshark>tshark -D
+1. \Device\NPF<em>{4DF0B9FD-57A8-43FC-9EC9-354B454E475D} (VMware Virtual Ethernet Adapter)
+2. \Device\NPF</em>{CA8CAD23-7ADD-4F2B-8A77-1E9E6810FE38} (Broadcom NetLink &trade; Gigabit Ethernet Driver)
+3. \Device\NPF_{53720D33-0B96-48DB-A977-07A0EC43F65B} (VMware Virtual Ethernet Adapter)</p>
+
+<p>tshark -f &ldquo;host 10.0.2.47&rdquo; -i 2 -c 20 -w myfile</p>
+
+<p>用wireshark打开myfile</p>
+
+<p>用tshark -F可以看到snoop好像是可以在solaris上打开的输入监控文件格式
+ Linux下
+47上目前的操作系统是Red Hat Enterprise Linux Server release 5.4，安装tshark需要 libsmi-0.4.5-2.el5.x86_64.rpm 和 wireshark-1.0.15-1.el5_6.4.x86_64.rpm 两个包，安装过程很简单，首先将这个包上传到47上，然后执行：</p>
+
+<p> rpm -ivh libsmi-0.4.5-2.el5.x86_64.rpm</p>
+
+<p> rpm -ivh wireshark-1.0.15-1.el5_6.4.x86_64.rpm</p>
+
+<p> verify:</p>
+
+<p> [root@goduserver tool]# whereis tshark
+tshark: /usr/sbin/tshark /usr/share/man/man1/tshark.1.gz</p>
+
+<p> rpm包下载站点： pkgs.org ，备用站点： <a href="http://rpm.pbone.net/">http://rpm.pbone.net/</a></p>
+
+<p>获取网卡列表：</p>
+
+<p>[root@goduserver tool]# tshark -D
+1. eth3
+2. &hellip;</p>
+
+<p> 获取监测数据：</p>
+
+<p>[root@goduserver help]# tshark -i eth3 -w myoutput host 10.32.1.59</p>
+
+<p>普通用户权限不够无法进行监测：</p>
+
+<p>[godu@goduserver ~]$ tshark -i eth3 host 10.32.1.59</p>
+
+<p>Capturing on eth3</p>
+
+<p>tshark: The capture session could not be initiated (socket: Operation not permitted)&hellip;</p>
+
+<p>读取监测数据：</p>
+
+<p>[root@goduserver tool]# tshark -r myoutput -x -V</p>
+
+<p>将监测数据保存为文本：</p>
+
+<p>[root@goduserver tool]# tshark -r myoutput -x -V > mytxt</p>
+
+<p>或者将myoutput下载到PC上用Wireshark分析；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/12/162305/">Red Hat Enterprise上安装Telnet服务</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-12T16:23:05+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:23 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Red Hat Enterprise默认只提供ssh和sftp服务，没有提供telnet和ftp服务，安装过程是：</p>
 
 <ol>
-<li><p>the first line;</p></li>
-<li><p>the second line;</p></li>
-<li><p>the third line;</p></li>
+<li><p>用sftp上传telnet server安装包：telnet-server-0.17-39.el5.x86_64.rpm；</p></li>
+<li><p>使用root用户运行： rpm -ivh telnet*.rpm （普通用户安装会出现"can’t create transaction lock on&hellip;&ldquo;错误）-ivh中，i=install, v=Print verbose information, h=print hash marks；</p></li>
 </ol>
 
 
-<p> 取消则是生成的逆过程，用于列表中插入新内容后用“取消->再次生成”的方法刷新列表编号。</p>
+<p>2.1 安装前可以用 rpm -qpi telnet*.rpm 查看安装包的内容，参数含义：q=query, p=query an (uninstalled) package,i=display package information；</p>
 
-<p>生成脚本：</p>
+<ol>
+<li><p>修改/etc/xinetd.d/telnet，将"disable=yes"改为"disable=no"；</p></li>
+<li><p>重启xinetd： service xinetd restart （telnet服务进程由xinetd管理）。</p></li>
+</ol>
 
-<p> ^b::</p>
-
-<p>  clipboard =</p>
-
-<p>  SendInput, ^c</p>
-
-<p>  ClipWait</p>
-
-<p>  clipboard = my prefix %clipboard% my suffix</p>
-
-<p>  SendInput, ^v</p>
-
-<p> return</p>
-
-<p>取消脚本：</p>
 </div>
   
   
@@ -170,7 +723,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/02/24/161925/">Putty编译过程</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/03/12/111312/">Win7中开启Telnet Server</a></h1>
     
     
       <p class="meta">
@@ -179,29 +732,25 @@
 
 
 
-<time class='entry-date' datetime='2012-02-24T16:19:25+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:19 pm</span></time>
+<time class='entry-date' datetime='2012-03-12T11:13:12+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:13 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在Win7上用Visual Studio编译putty源代码。</p>
-
-<ol>
-<li>安装vs2005，只安装c++和.net framework sdk即可；</li>
-<li><p>将putty-src.zip解压到e:\MyDoc\VSProjects\Putty下；</p></li>
-<li><p>用vs2005打开e:\MyDoc\VSProjects\Putty\WINDOWS\MSVC\PUTTY.DSW；</p></li>
-<li><p>打开C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\Include\Security.h，在第一行加上“#define SECURITY_WIN32”；</p></li>
-<li><p>编译putty项目；</p></li>
+  <div class="entry-content"><ol>
+<li><p>控制面板->程序->打开或关闭Windows功能，勾选【Telnet服务器】；运行【服务】（开始搜索框中输入services.msc）中将"Telnet"设为手工启动；</p></li>
+<li><p>（此步似乎可不做？）【登录】标签页中选【此账户】，然后键入 NT AUTHORITY\LocalService，密码置空；</p></li>
+<li><p>创建一个新的标准用户client（控制面板->用户账户和家庭安全->用户账户->管理账户->创建一个新账户），密码telnetclient；</p></li>
+<li>运行secpol.msc（本地安全策略）; 打开本地策略->安全选项，找到网络访问&ndash;本地账户的共享和安全模型，右击属性，选择【经典】；</li>
+<li>本地用户和组（运行lusrmgr.msc）管理界面中，【组 -> TelnetClients】（如果没有TelnetClients组则创建之），将client用户加入到此组中：
+验证：用XShell/SecureCRT运行： telnet localhost ，看是否能连上；
+以后需要使用Telnet服务时运行services.msc找到Telnet服务启动即可。</li>
 </ol>
 
 
-<p>注：如果不做第4步，会报</p>
-
-<p> fatal error C1189: #error : You must define one of SECURITY_WIN32, SECURITY_KERNEL, or Generating Code&hellip;</p>
-
-<p>导致编译失败。</p>
+<p>参考： win7环境下telnet完整配置与测试</p>
 </div>
   
   
@@ -214,7 +763,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/02/23/192521/">移动窗口的ahk脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/03/12/102907/">在表中插入字段的sql语句</a></h1>
     
     
       <p class="meta">
@@ -223,22 +772,15 @@
 
 
 
-<time class='entry-date' datetime='2012-02-23T19:25:21+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>7:25 pm</span></time>
+<time class='entry-date' datetime='2012-03-12T10:29:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:29 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>有的程序启动后标题栏在桌面之外，造成程序窗口显示不全，而且无法拖动窗口改变位置，这时候无敌的autohotkey又可以大显身手了：</p>
-
-<p>首先看任务栏得到这个窗口的标题（这里假设为 YTubePlayer ），然后写如下脚本：</p>
-
-<p> SetTitleMatchMode, 2</p>
-
-<p> WinMove, YTubePlayer, , 20, 20</p>
-
-<p>这样窗口就移动到能够拖拽和更改大小的位置了。运行脚本的方法有两种，一是存为.ahk文件后双击运行（前提是已经将ahk与autohotkey进行了后缀关联），而是安装 SciTE4AutoHotkey ，在这个编辑器里写好脚本后直接F5运行即可。</p>
+  <div class="entry-content"><p>参考 给表增加一个字段的SQL怎写？
+alter table <table_name> add &lt;字段名> &lt;数据类型> default <default_value> primary key</p>
 </div>
   
   
@@ -251,7 +793,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/02/23/144902/">Ldap服务器配置记录</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/03/11/091522/">用autohotkey帮助触摸板实现鼠标中键单击</a></h1>
     
     
       <p class="meta">
@@ -260,321 +802,16 @@
 
 
 
-<time class='entry-date' datetime='2012-02-23T14:49:02+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
+<time class='entry-date' datetime='2012-03-11T09:15:22+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:15 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>1 Server</p>
+  <div class="entry-content"><p>笔记本的触摸板没有中键，但在Chrome里用中键单击实现“新标签页里打开链接”是一个很常用的动作，偏偏我又不愿意每次用笔记本的时候接鼠标，只好请出无所不能的Autohotkey大仙了，下面的脚本运行后，先将鼠标移动到链接上，然后Alt+Space就实现了中键单击的效果。</p>
 
-<p>使用OpenDS-2.2.1.zip。</p>
-
-<p>1.1 on Windows</p>
-
-<p>解压后运行$LDAP_HOME/setup.bat，会出现一个图形安装界面，使用默认值即可。</p>
-
-<p>管理工具在$LDAP_HOME/bat/control-panel.bat，也是图形界面，可以开启或者停止ldap服务；</p>
-
-<p>1.2 Server on Linux</p>
-
-<p>由root用户解压后运行$LDAP_HOME/setup（因为ldap默认绑定389端口，而linux/unix要求小于1024的端口只能由管理员使用）。</p>
-
-<p>2 Client</p>
-
-<p>Windows客户端是LdapBrowser，解压后运行其中的lbe.bat即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/22/170003/">MIT/GNU Scheme 笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-22T17:00:03+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Edwin是MIT/GNU Scheme安装包附带的一个文本编辑器，似乎是Emacs的一个变体；</p>
-
-<p>Evaluate a expression in Edwin: c-x, c-e;
-Quit Edwin: c-x, c-c;</p>
-
-<p>挂起Edwin返回到Scheme REPL模式：c-x, z（松开ctrl之后按z）</p>
-
-<p>Quit MIT/GNU Scheme: (exit)</p>
-
-<p>启动MIT/GNU Scheme REPL模式的ahk快捷键定义：</p>
-
-<p>^!s:: Run, &ldquo;C:\Program Files\MIT-GNU Scheme\bin\mit-scheme.exe&rdquo; &ndash;library &ldquo;C:\Program Files\MIT-GNU Scheme\lib&rdquo; ; Start MIT/GNU Scheme</p>
-
-<p>注：c-x表示同时按住ctrl和x键；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/09/140940/">GODU连接SSH网元的日志分析</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-09T14:09:40+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以下比较了登录密码正确和错误时日志的相同和不同之处。正常连接过程的日志：</p>
-
-<p> [INFO] [2012-02-09 13:56:39,067] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 管理模式，下发命令:cn id=1830753227]
-[DEBUG] [2012-02-09 13:56:39,071] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 13:56:39,074] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,075] [com.boco.godu.framework.command.CommandOpenne,984] - [NEID:1830753227;Channels:[channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]]
-[INFO] [2012-02-09 13:56:39,075] [com.boco.godu.framework.command.CommandOpenne,759] - [get channelid:52318885]
-[INFO] [2012-02-09 13:56:39,076] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] FOUND ID:52318885]
-[DEBUG] [2012-02-09 13:56:39,077] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 13:56:39,079] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] ==================PreOccupy the NE=================]
-[DEBUG] [2012-02-09 13:56:39,079] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] NEID:1830753227;;channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]
-[INFO] [2012-02-09 13:56:39,080] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 没有配置登录脚本]
-[INFO] [2012-02-09 13:56:39,080] [com.boco.godu.framework.ConnectorFactory,44] - [connecting ne with protocal:SSH]
-[INFO] [2012-02-09 13:56:39,081] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] Begin to Connection NE,10.0.2.47:22&hellip;&hellip;&hellip;&hellip;..]
-[INFO] [2012-02-09 13:56:39,081] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 开始连接网元awaitUninterruptibly127.0.0.1:8900]
-[DEBUG] [2012-02-09 13:56:39,082] [com.boco.godu.adapter.telnet.TelnetConnectorHandler,150] - [create session:10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;76]
-[INFO] [2012-02-09 13:56:39,083] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] SessionOpen,add 10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;76to sessionMap]
-[DEBUG] [2012-02-09 13:56:39,086] [org.apache.velocity.runtime.log.Log4JLogChute,168] - [ResourceManager : found com/boco/godu/adapter/proxy/internalPojo.vm with loader org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader]
-[INFO] [2012-02-09 13:56:39,093] [com.boco.godu.adapter.proxy.ssh.SshProxy,116] - [ssh client try to connect:10.0.2.47@22]
-[INFO] [2012-02-09 13:56:39,238] [com.boco.godu.adapter.proxy.ssh.SshProxy,136] - [SSH-2.0-OpenSSH_4.3&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-]
-[INFO] [2012-02-09 13:56:39,242] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] [OpenNe] Connect 10.0.2.47:22 completed!]
-[DEBUG] [2012-02-09 13:56:39,244] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step1, get NE Name]
-[DEBUG] [2012-02-09 13:56:39,244] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 2,Configure timeout]
-[INFO] [2012-02-09 13:56:39,245] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] [OpenNe] step 3, Terminal status fine]
-[DEBUG] [2012-02-09 13:56:39,245] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,247] [com.boco.godu.adapter.manager.ManagerMap,105] - [event:CONNECTION]
-[INFO] [2012-02-09 13:56:39,248] [com.boco.godu.common.util.GlobalUtil,430] - [get current platform:10_0_2_47&amp;&amp;1234&amp;&amp;0&amp;&amp;73]
-[DEBUG] [2012-02-09 13:56:39,248] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,249] [com.boco.godu.common.util.GlobalUtil,441] - [delete local or preoccupied ne:10_0_2_47&amp;&amp;1234&amp;&amp;0&amp;&amp;73]
-[DEBUG] [2012-02-09 13:56:39,250] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 4, remove the preoccupied ne]
-[DEBUG] [2012-02-09 13:56:39,250] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 5, config command status]
-[DEBUG] [2012-02-09 13:56:39,251] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 6,Config timeout]
-[INFO] [2012-02-09 13:56:39,251] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter LOGIN_ENDFLAG_FILTER; Class =com.boco.godu.adapter.filter.LoginEndFlagFilter]
-[INFO] [2012-02-09 13:56:39,252] [com.boco.godu.framework.command.CommandOpenne,1175] - [add connector EndFlag :>|&lt;|#|\$|%]
-[DEBUG] [2012-02-09 13:56:39,252] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 7,Config login_endflag_filter]
-[INFO] [2012-02-09 13:56:39,253] [com.boco.godu.adapter.manager.ManagerMap,105] - [event:NESUBSCRIBE]
-[DEBUG] [2012-02-09 13:56:39,253] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 8, establish pub/sub relation]
-[DEBUG] [2012-02-09 13:56:39,253] [com.boco.godu.common.util.IoSessionHelper,72] - [(0x0000004C: nio socket, client, /127.0.0.1:58043 => /127.0.0.1:8900) send 0 to messageReceive for cached bufferas buffer:2Last login: Thu Feb 9 13:55:24 2012 from goduserver
-]
-[INFO] [2012-02-09 13:56:39,254] [com.boco.godu.framework.command.CommandSetEndFlag,137] - [设置命令结束:vendor_id=1;ne_type=200;version=07B]
-[INFO] [2012-02-09 13:56:39,255] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter ChineseByteFilter; Class =com.boco.godu.adapter.filter.ChineseByteFilter]
-[INFO] [2012-02-09 13:56:39,255] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter ENDFLAGFILTER; Class =com.boco.godu.adapter.filter.CmdOverFilter]
-[DEBUG] [2012-02-09 13:56:39,255] [com.boco.godu.framework.commandover.CommandOverUtils,118] - [begin verify cmdover status by ne_type=200;version=07B;vendor_id=1]
-[DEBUG] [2012-02-09 13:56:39,256] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=1]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=1 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=2]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=2 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=3]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=3 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=4]
-[DEBUG] [2012-02-09 13:56:39,259] [com.boco.godu.framework.commandover.CommandOverUtils,129] - [END COMMAND OVER STATUS=4]
-[DEBUG] [2012-02-09 13:56:39,259] [com.boco.godu.framework.command.CommandSetEndFlag,202] - [命令结束表达式：{}]
-[DEBUG] [2012-02-09 13:56:39,279] [com.boco.godu.adapter.proxy.ssh.GODUSSHChannelEventListener,34] - [ssh channel receive:[91, 103, 111, 100, 117, 64, 103, 111, 100, 117, 115, 101, 114, 118, 101, 114, 32, 126, 93, 36, 32]as String:[godu@goduserver ~]$ ]
-[INFO] [2012-02-09 13:56:39,284] [com.boco.godu.adapter.filter.LoginEndFlagFilter,50] - [found login mark]
-登录密码错误时连接过程的日志： [INFO] [2012-02-09 14:00:08,073] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 管理模式，下发命令:cn id=1830753227]
-[DEBUG] [2012-02-09 14:00:08,077] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 14:00:08,078] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 14:00:08,078] [com.boco.godu.framework.command.CommandOpenne,984] - [NEID:1830753227;Channels:[channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]]
-[INFO] [2012-02-09 14:00:08,079] [com.boco.godu.framework.command.CommandOpenne,759] - [get channelid:52318885]
-[INFO] [2012-02-09 14:00:08,079] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] FOUND ID:52318885]
-[DEBUG] [2012-02-09 14:00:08,080] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 14:00:08,081] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] ==================PreOccupy the NE=================]
-[DEBUG] [2012-02-09 14:00:08,082] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] NEID:1830753227;;channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]
-[INFO] [2012-02-09 14:00:08,082] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 没有配置登录脚本]
-[INFO] [2012-02-09 14:00:08,083] [com.boco.godu.framework.ConnectorFactory,44] - [connecting ne with protocal:SSH]
-[INFO] [2012-02-09 14:00:08,083] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] Begin to Connection NE,10.0.2.47:22&hellip;&hellip;&hellip;&hellip;..]
-[INFO] [2012-02-09 14:00:08,084] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 开始连接网元awaitUninterruptibly127.0.0.1:8900]
-[DEBUG] [2012-02-09 14:00:08,085] [com.boco.godu.adapter.telnet.TelnetConnectorHandler,150] - [create session:10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79]
-[INFO] [2012-02-09 14:00:08,086] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] SessionOpen,add 10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79to sessionMap]
-[DEBUG] [2012-02-09 14:00:08,088] [org.apache.velocity.runtime.log.Log4JLogChute,168] - [ResourceManager : found com/boco/godu/adapter/proxy/internalPojo.vm with loader org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader]
-[INFO] [2012-02-09 14:00:08,098] [com.boco.godu.adapter.proxy.ssh.SshProxy,116] - [ssh client try to connect:10.0.2.47@22]
-[INFO] [2012-02-09 14:00:09,863] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] 关闭与网元的连接,返回到命令模式]
-[INFO] [2012-02-09 14:00:09,863] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] ====================Close NE routing information=======================10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79]
-[DEBUG] [2012-02-09 14:00:09,863] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[WARN] [2012-02-09 14:00:15,595] [com.boco.godu.adapter.proxy.facade.ConnectorMonitorThread,25] - [proxy id=5d1d1a0b-aa1c-4a94-8a1d-3aade8327313 is not alive,destroy it]
-二者比较可知，不同之处主要发生在“ ssh client try to connect:10.0.2.47@22 ” 这行日志后，正常的连接过程后面是：“ SSH-2.0-OpenSSH_4.3&mdash;&mdash;&mdash;&mdash;- ”，如果密码错误则后面的日志是“ 关闭与网元的连接,返回到命令模式 ”。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/02/174801/">基于Tor网络的HTTP代理搭建过程</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-02T17:48:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用工具： Vidalia , Tor and Polipo ；</p>
-
-<p>用Tor连接tor网络，vidalia是tor的图形化配置界面，但tor只提供socks5代理，需要用polipo将socks5转为http代理，以供其他程序使用，下面是搭建过程。</p>
-
-<p>第一步：安装Polipo，下载安装包（polipo-1.0.4.1-forbidden-1-win32.exe），运行之，安装在f:\Software\Polipo下，然后写配置文件（f:\Software\Polipo\polipo.conf）：</p>
-
-<p> socksParentProxy = &ldquo;localhost:9050&rdquo;</p>
-
-<p> socksProxyType = socks5</p>
-
-<p> diskCacheRoot=&ldquo;&rdquo;</p>
-
-<p> #disableLocalInterface=true</p>
-
-<p>第二步：下载 Tor Browser Bundle ，里面包括了Tor, Vidalia和一个便携版的Firefox，解压后运行Start Tor Browser.exe，出现vidalia界面：</p>
-
-<p>Vidalia Control Panal -> Settings -> General -> Proxy Application下勾选“Start a proxy &hellip;”，下面写上polipo.exe的路径，Application Arguments下面写： -c <polipo conf file path> ，如下图：</p>
-
-<p>配好后重启vidalia，验证tor和polipo运行成功的方法是命令行中运行： netstat -ano|findstr 9050 和 netstat -ano|findstr 8123 ，其中9050是tor绑定的端口，8123是polipo绑定的端口；</p>
-
-<p>第三步：配置要使用http代理的软件。</p>
-
-<p>以GreenBrowser为例：在【工具->代理->设置代理】里新建一个名为polipo，地址为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> 的代理，【工具->代理】下会多一个【polipo】项，选中它，在地址栏中输入 www.facebook.com , bingo!</p>
-
-<p>主要参考文章：</p>
-
-<p> Tor, Polipo &amp; Vidalia</p>
-
-<p>应用实例1：calibre的代理设置。</p>
-
-<p>在windows系统中设置一个名为 HTTP_PROXY 的环境变量，值为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> ，然后在calibre安装目录下运行</p>
-
-<p>calibre-debug -c &ldquo;from calibre import get_proxies; print get_proxies()&rdquo;</p>
-
-<p>如果出现 Using proxies: {&lsquo;http&rsquo;: &lsquo;127.0.0.1:8123&rsquo;} 说明配置成功，启动calibre，在Preference->Miscellaneous里可以看到代理已启动。</p>
-
-<p>应用实例2：iTunes的代理设置。</p>
-
-<p>iTunes使用IE的代理设置，所以只要在IE里设置好polipo的信息（ 127.0.0.1:8123 ）就OK了，但要注意Evernote也使用IE的代理设置，所以不需要iTunes联网时不要开启IE的代理。</p>
-
-<p>应用实例3：Eclipse的代理设置。</p>
-
-<p>Active Provider: Manual;</p>
-
-<p>HTTP -> Edit, Host: 127.0.0.1, Port: 8123，如下图：</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/01/112546/">文件夹监控工具比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-01T11:25:46+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>11:25 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>对文件夹监控软件的要求是：能同时监控多个指定的文件夹，能够根据事件类型决定是否监控（例如是否只监控文件夹生成或者删除等），能够记录监控日志。</p>
-
-<p><a href="http://leelusoft.blogspot.com/2011/10/watch-4-folder-23.html">Watch 4 Folder</a>: 目前的版本2.3监测不到子目录文件的变化，不可用；</p>
-
-<p>FolderMonitor和TrackFolderChanges同样功能太弱；</p>
-
-<p>另有<a href="http://www.watchdirectory.net/index.html">watchDirectory</a>，收费软件，没有试；</p>
-
-<p>基于TotalCMD的文件夹监控方法：改变前用TotalCMD的<a href="http://www.totalcmd.net/plugring/diskdir_extended.html">DiskDir Extended</a>扩展为文件夹的所有子文件夹和文件做一个记录（方法见 TotalCommander的两款目录插件 ），改变后再做一次，然后用文本比较工具（例如vim diff或者notepad++的都很好用）观察变化；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/01/19/104202/">Building Android Developing Environment With Eclipse</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-01-19T10:42:02+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Prerequisite &amp; background knowledge: W. Frank Ableson: Android in Action(3rd edition, Manning, 2012), chapter 1;</p>
-
-<p> Develop environment preparation: Installing the ADT Plugin ;</p>
-
-<p> Tutorial: Hello World Tutorial (see my notes in experience android developing with Eclipse )</p>
-
-<p> Troubleshooting: Can not create a AVD for Android 4.0 ;</p>
+<p> !Space:: SendInput, {MButton}</p>
 </div>
   
   
@@ -599,23 +836,23 @@ Quit Edwin: c-x, c-c;</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/05/28/102822/">Penetrate GFW With Sshuttle</a>
+        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/27/180718/">Store Small Images in MongoDB via Base64</a>
+        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/26/174257/">Meteor基础知识之系统篇</a>
+        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/15/142023/">Run MongoDB Server on Docker in VPS</a>
+        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/10/091733/">Git初体验</a>
+        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>
