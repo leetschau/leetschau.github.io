@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="比如在Eclipse中开发了一个服务，现在需要演示怎样在生产环境里启动这个服务，所以不能在Eclipse里启动这个服务，只能在命令行里启动，但这个服务可能依赖很多jar文件，有一个简单的方法可以得到Eclipse中的启动命令行，首先用debug模式启动这个服务，然后切换到debug &hellip;">
+  <meta name="description" content="Algorithms(by Robert Sedgewick)中运行算法程序一般是这样的： java AlgorithmClass &lt; inputFile.txt 例如第47页"java BinarySearch tinyW.txt &lt; tinyT.txt"，其中的"&lt;& &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,203 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/23/125458/">调试Algorithms一书中带有输入重定向的代码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-23T12:54:58+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>12:54 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Algorithms(by Robert Sedgewick)中运行算法程序一般是这样的：</p>
+
+<p> java AlgorithmClass &lt; inputFile.txt</p>
+
+<p>例如第47页"java BinarySearch tinyW.txt &lt; tinyT.txt"，其中的"&lt;&ldquo;是输入重定向（standard input redirect），即用文件（tiny.txt）的内容代替键盘（standard input）作程序的输入，在Eclipse中调试这种代码很麻烦，因为Eclipse不支持输入重定向（直接在参数里写&rdquo;&lt; tiny.txt"无效，但支持输出到某一指定文件中），有两个方法解决这个问题。</p>
+
+<p>首先是准备工作：</p>
+
+<ol>
+<li><p>Create a project in eclipse, then creating a folder named &ldquo;data&rdquo; in it;</p></li>
+<li><p>copy tinyT.txt &amp; tinyW.txt into &ldquo;data&rdquo;;</p></li>
+</ol>
+
+
+<h1>方法1：使用System.setIn()方法</h1>
+
+<ol>
+<li>modify &ldquo;int[] whitelist = In.readInts(args[0]);&rdquo; in BinarySearch.java as following:
+System.setIn(new FileInputStream(&ldquo;data/tinyT.txt&rdquo;));
+int[] whitelist = In.readInts(&ldquo;data/&rdquo; + &ldquo;tinyW.txt&rdquo;);</li>
+<li>run BinarySearch;
+Reference: <a href="http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file">http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file</a></li>
+</ol>
+
+
+<p>这个方法的不足之处是有时候程序在运行完后会报一个JNI异常，让人很不爽，于是有了下面第二个方法。</p>
+
+<h1>方法2：自己修改StdIn类</h1>
+
+<p>分析StdIn类的代码可知，它用了一个Scanner类包装了System.in，所以只要把System.in换成我们指定的文本文件就可以了，于是新建一个StdIn2类，代码与StdIn基本一样，增加了下面的方法：</p>
+
+<p> public static void setInputFile(String path) {
+  try {
+   scanner = new Scanner(new BufferedInputStream(new FileInputStream(
+     path)), charsetName);
+  } catch (FileNotFoundException e) {
+   e.printStackTrace();
+  }
+  scanner.useLocale(usLocale);
+ }</p>
+
+<p>其实就是把scanner的初始化方法放到了setInputFile中（包括声明scanner和static{}块中两处），然后修改算法代码：</p>
+
+<ol>
+<li><p>将BinarySearch中的StdIn重构为StdIn2；</p></li>
+<li><p>main()方法的开始处加上"StdIn2.setInputFile(&ldquo;data/tiny.txt&rdquo;);&ldquo;；</p></li>
+<li><p>运行代码。</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/21/120949/">用PhotoRec恢复误删除的文件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-21T12:09:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>12:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天尝试用<a href="http://www.cgsecurity.org/wiki/PhotoRec">PhotoRec</a>恢复被误删除的文件，效果不错，找回了被误删的pdf文件，另外被恢复的jpg，chm文件也能正常显示，但java文件和txt文件里面的内容似乎不是原文件内容。这个软件有下面的特点：</p>
+
+<ol>
+<li><p>命令行（字符）界面；</p></li>
+<li><p>不能指定要恢复的目录，只能指定恢复某一分区；</p></li>
+<li><p>不能指定要恢复文件的类型（扩展名），只能自己在被恢复的目录里找；</p></li>
+<li><p>U盘被格式化后这个软件能够恢复上面的文件；</p></li>
+<li><p>目录结构无法恢复，只能恢复文件；</p></li>
+</ol>
+
+
+<p>其他类似的软件见<a href="http://www.freewaregenius.com/the-best-free-data-recovery-tool-13-undelete-tools-compared/%E3%80%82">http://www.freewaregenius.com/the-best-free-data-recovery-tool-13-undelete-tools-compared/%E3%80%82</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/18/235212/">使用同一个无线路由器构建无线局域网</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-18T23:52:12+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>两台笔记本电脑，连接同一个无线路由器（基于ADSL），要构建无线局域网共享文件，首先要将网络位置设为“家庭网络”，然后首先改为家庭网络的机器会自动生成一个密码，在后面加入的机器中填入这个密码，就加入了同一个局域网了。</p>
+
+<p>要互相传文件，【开始->计算机】中会出现“家庭组”（见下图），打开下面的项目，就可以看到对方的文件了。</p>
+
+<p>参考：<a href="http://www.pc841.com/article/20110505-2415.html">Windows 7笔记本电脑实现无线网络共享详细教程</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/01/18/113138/">SortCompare.time的反射版本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-01-18T11:31:38+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:31 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>&ldquo;Algorithms&rdquo; by Robert Sedgewick, p256, SortCompare.time():</p>
+
+<p> public static double time(String alg, Double[] a) throws SecurityException,
+   NoSuchMethodException, ClassNotFoundException,
+   IllegalArgumentException, IllegalAccessException,
+   InvocationTargetException {
+  Stopwatch timer = new Stopwatch();
+  String originClassName = new Object(){}.getClass().getEnclosingClass().getName();
+  String packageName = originClassName.substring(0,
+    originClassName.lastIndexOf(&ldquo;.&rdquo;));
+  String className = packageName.concat(&ldquo;.&rdquo; + alg);
+  Class&lt;?> clazz = Class.forName(className);
+  Method sortMethod = clazz.getDeclaredMethod(&ldquo;sort&rdquo;, Comparable[].class);
+  Object[] param = { a };
+  sortMethod.invoke(null, param);
+  return timer.elapsedTime();
+ }</p>
+
+<p>这里面注意的有两点，一是在static方法里获取所在类名的方法，二是如何用反射调用参数为数组的方法（见笔记 用反射机制在运行时创建对象并执行方法 ）。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -335,203 +532,6 @@ D: delete bookmark(when cursor in bookmark table)</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/10/180314/">用Autohotkey让Kitty命令行变得更好用</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-10T18:03:14+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:03 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的脚本实现Win+K键激活一个输入框，给出了kitty命令行常用的几种格式，基本可分为两种：连接保存好的模板（session）和完全手工连接，前者用-load加Session名称，后者需要在命令行中写上详细的连接参数。</p>
-
-<p> #k:: ; telnet/ssh client: console style
- InputBox, myInp, Connect,
-  (
-   Input Connect Params:
-   Load a session: <kitty >-load 47
-   SSH Connection: <kitty ><a href="&#x6d;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#x75;&#x73;&#101;&#x72;&#64;&#x31;&#x30;&#x2e;&#48;&#46;&#x32;&#46;&#x34;&#x37;">&#117;&#115;&#x65;&#x72;&#64;&#49;&#x30;&#x2e;&#48;&#46;&#50;&#x2e;&#52;&#x37;</a> -pw myPwd
-   Telnet/Raw:  <kitty >-telnet/raw user@goduserver</p>
-
-<p>   With a auto-run script: <kitty ><a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#x3a;&#117;&#115;&#101;&#x72;&#64;&#x31;&#x30;&#46;&#48;&#46;&#x32;&#46;&#x34;&#55;">&#117;&#x73;&#x65;&#x72;&#x40;&#49;&#48;&#46;&#48;&#x2e;&#x32;&#x2e;&#x34;&#x37;</a> -pw myPwd -m f:\myjob
-  )
- if ErrorLevel
-  return
- else
-  Run, d:\apps\Kitty\kitty_portable.exe %myInp%
- return</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/10/173804/">Notes About Kitty</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-10T17:38:04+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:38 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>用Kitty的login script实现自动运行脚本</h1>
-
-<p>Kitty相对于putty的一个改进是增加了"Login Script"功能（在Connection -> Data中），这个script file的格式是：</p>
-
-<p> exp1</p>
-
-<p> send1</p>
-
-<p> exp2</p>
-
-<p> send2</p>
-
-<p> &hellip;</p>
-
-<h2>自动登录</h2>
-
-<p>主要是Telnet协议下的自动登录，SSH由于有输入密码的地方，所以用它来自动登录，基本的Telnet自动登录可以写成d:\some\path\loginSvr1.txt这个样子：</p>
-
-<p> assword:</p>
-
-<p> goduty
-因为用户名已经在"Auto-login" username里定义了，所以这个只“预期-发送”密码就可以了。</p>
-
-<h2>登录后的自动运行脚本</h2>
-
-<p>SSH协议可以通过配置用户名和密码的方法自动登录，但可以用login script脚本做自动任务，例如下面的autoJob.txt实现了登录后顺序执行"ls -l"和"pwd"指令：</p>
-
-<p> $
- ls -l
- $
- pwd</p>
-
-<p>这个脚本与-m参数不同，-m运行后会直接退出连接，这个脚本不退出。</p>
-
-<h1>Switch Full Screen mode in Kitty</h1>
-
-<p>Temporary: Ctrl + mouse right click -> Full Screen;</p>
-
-<p>Always enable alt+enter to switch full screen: modify &ldquo;FullScreenOnAltEnter\0\&rdquo; to &ldquo;FullScreenOnAltEnter\1\&rdquo; in $KITTY_HOME/Sessions/Default%20Settings</p>
-
-<h1>Search in Kitty</h1>
-
-<p>Ctrl + Righ click -> Copy to Clipboard, then paste in vim, then search;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/10/111604/">TotalCmd的sftp插件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-10T11:16:04+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:16 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>安装</h1>
-
-<ol>
-<li><p>从网上下载sftpplug.zip（最新是v1.3），在TC里打开这个文件会自动安装此插件；</p></li>
-<li><p>下载curl-7.28.1-devel-mingw32.zip（下载方法见sftpplugin.zip里的readme文件），将里面的libssh2.dll解压到$TC_HOME\Plugins\Wfx\sftpplug\下；</p></li>
-</ol>
-
-
-<h1>使用</h1>
-
-<p>在"System -> Network Neighborhood (Alt + R) -> Secure FTP"中，F7新建连接，建好后双击打开，F8删除，alt + enter修改设置；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/10/101218/">用plink做任务自动化</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-10T10:12:18+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的实例演示了列出服务器当前文件夹下j开头的所有文件。</p>
-
-<p>E:\MyDoc\ahkFiles>plink -pw mypwd <a href="&#x6d;&#x61;&#x69;&#x6c;&#116;&#111;&#58;&#117;&#x73;&#101;&#114;&#64;&#x31;&#x30;&#x2e;&#48;&#x2e;&#x32;&#46;&#52;&#x37;">&#x75;&#x73;&#101;&#x72;&#x40;&#x31;&#x30;&#46;&#48;&#x2e;&#x32;&#x2e;&#52;&#55;</a> &ldquo;ls|grep j*&rdquo;
-jdk-7u7-linux-x64.gz</p>
-
-<p>E:\MyDoc\ahkFiles>plink -pw goduty <a href="&#109;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#103;&#111;&#100;&#x75;&#x40;&#x31;&#48;&#x2e;&#48;&#46;&#x32;&#x2e;&#52;&#55;">&#103;&#x6f;&#x64;&#117;&#x40;&#49;&#48;&#x2e;&#x30;&#46;&#x32;&#46;&#x34;&#x37;</a> -m mybat</p>
-
-<p>mybat文件内容是：</p>
-
-<p> cd test</p>
-
-<p> ls</p>
-
-<p> exit</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/66">&larr; Older</a>
@@ -549,23 +549,23 @@ jdk-7u7-linux-x64.gz</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

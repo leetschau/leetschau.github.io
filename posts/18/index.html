@@ -9,7 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="之前一直以为Mint 14像Windows一样，过期之后还可以一直用，后来发现Linux和Windows的一个很大的不同，就是由于Linux是通过Repo安装和更新软件的，所以一旦发行版制作者不再维护这个版本，就会把该版本的Packages从Repo中移除，比如Mint 14是今年（2014年） &hellip;">
+  <meta name="description" content="Server # sudo apt-get install nfs-kernel-server nfs-common portmap
+# cat /etc/exports
+...
+/home/chad/warez 10.32.1.6 (ro,async,subtree_check)
+# &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +69,238 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/25/105006/">Share Files Between Linux Hosts With NFS</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-07-25T10:50:06+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Server</h1>
+
+<pre><code># sudo apt-get install nfs-kernel-server nfs-common portmap
+# cat /etc/exports
+...
+/home/chad/warez 10.32.1.6 (ro,async,subtree_check)
+# service nfs-kernel-server start
+</code></pre>
+
+<h1>Client</h1>
+
+<pre><code># apt-get install nfs-common
+# cat /etc/hosts
+...
+10.32.1.154 laptop
+# mount laptop:/home/chad/warez /mnt/netshare
+</code></pre>
+
+<p>Now you can read all files under /mnt/netshare, because the flag &ldquo;ro&rdquo; specified in /etc/exports on server host.</p>
+
+<p>Unmount it with <code>umount /mnt/netshare</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/24/153852/">Install Hadoop With CDH on CentOS</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-07-24T15:38:52+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:38 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Define hostname on every node</h1>
+
+<p>Add &ldquo;HOSTNAME=cloud60&rdquo; into file /etc/sysconfig/network on host 10.12.2.60. Then reboot system.
+Do this with it&rsquo;s own hostname on every node.</p>
+
+<h1>Add host name to every node</h1>
+
+<p>Add /etc/hosts to every node:</p>
+
+<pre><code>10.12.2.60 cloud60
+10.12.2.61 cloud61
+10.12.2.62 cloud62
+10.12.2.63 cloud63
+10.12.2.90 cloud90
+10.12.2.91 cloud91
+10.12.2.92 cloud92
+10.12.2.93 cloud93
+</code></pre>
+
+<p>where 10.12.2.60 is the manager node (where the cloudera manager is installed).</p>
+
+<h1>Local Repository</h1>
+
+<p>Copy DVD iso file to manager node, mount it. Create a link of /mnt/cdrom to /var/www/html with httpd:</p>
+
+<pre><code># mkdir /mnt/cdrom
+# mount -o loop /path/to/CentOS6.3-DVD.iso /mnt/cdrom
+# cd /var/www/html
+# ln -s /mnt/cdrom cdrom
+</code></pre>
+
+<p>Then add file cdrom.repo under /etc/yum.repos.d/:</p>
+
+<pre><code>[cdrom]
+name = CDROM
+baseurl = http://10.12.2.60/cdrom/
+gpgcheck = 0
+</code></pre>
+
+<h1>Other notes</h1>
+
+<ul>
+<li><p>Add user &ldquo;boco&rdquo; to &ldquo;sudoers&rdquo; on all nodes: add &ldquo;boco ALL=(ALL) NOPASSWD: ALL&rdquo; to /etc/sudoers;</p></li>
+<li><p>The manager node can ssh to any other node with no password (ssh-copy-id &hellip;);</p></li>
+<li><p>SSH from normal node to manager node to remove &ldquo;are you sure you want to continue connecting (yes/no)?&rdquo; prompt;</p></li>
+<li><p>Shutdown iptables on all nodes: <code>service iptables stop</code> and <code>chkconfig iptables off</code>;</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/23/154955/">Reset Forgotten Password in Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-07-23T15:49:55+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>3:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>CentOS</h1>
+
+<ol>
+<li><p>When system booting, press Space bar to interrupt the GRUB process;</p></li>
+<li><p>Press &ldquo;a&rdquo; and <Enter>;</p></li>
+<li><p>When see &ldquo;rhgb quiet&rdquo;, add &ldquo; 1&rdquo; after &ldquo;quiet&rdquo; and press <Enter>;</p></li>
+</ol>
+
+
+<p>Now CentOS boot in single user mode, you login as root, use <code>passwd</code> to reset password.</p>
+
+<h1>Mint</h1>
+
+<ol>
+<li><p>When system booting to the GRUB 2 menu, select the system entry you want to recover, press &ldquo;e&rdquo;;</p></li>
+<li><p>In the start script, find the line &ldquo;linux &hellip; ro quiet splash $vt_handoff&rdquo;;</p></li>
+<li><p>Modify &ldquo;ro&rdquo; to the end of line to &ldquo;rw init=/bin/bash&rdquo;;</p></li>
+<li><p>Press Ctrl-x to continue system start;</p></li>
+<li><p>Now you are in root shell, reset root password with <code>passwd</code>;</p></li>
+<li><p>Press Ctrl-Alt-Del to restart machine;</p></li>
+</ol>
+
+
+<p>Verified on Linux Mint 17.</p>
+
+<p>Ref: <a href="http://community.linuxmint.com/tutorial/view/1355">Reset forgotten/lost main user password in Linux Mint 12+</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/23/151635/">Fix NIC Name of Cloned CentOS VMs</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-07-23T15:16:35+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>3:16 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Sometimes the NIC name in output of <code>ip addr</code> or <code>ifconfig</code> is not the same with that defined in /etc/sysconfig/network-scripts/ifcfg-eth0, for example, in ifcfg-eth0, the first line is:</p>
+
+<pre><code>DEVICE="eth0"
+</code></pre>
+
+<p>but the output of <code>ip addr</code> is:</p>
+
+<pre><code>2: eth1: &lt;BROADCAST...
+</code></pre>
+
+<p>This is because the source of <code>ip addr</code> is /etc/udev/rules.d/70-persistent-net.rules. Edit this file to correct the NIC name.</p>
+
+<p>The total step to fix network of a centos VM is:</p>
+
+<ol>
+<li><p>vi /etc/sysconfig/network   // fix hostname and gateway IP</p></li>
+<li><p>vi /etc/sysconfig/network-scripts/ifcfg-eth0 // fix NIC name, host IP and netmask</p></li>
+<li><p>vi /etc/udev/rules.d/70-persistent-net.rules  // NIC name and hardware address should be the same with that in file ifcfg-eth0</p></li>
+<li><p>reboot</p></li>
+</ol>
+
+
+<h1>Update 2014-9-19</h1>
+
+<p>The MAC address is determined by <code>ifconfig -a</code>, so copy IP address after &ldquo;HWaddr&rdquo; in command output, and modify &ldquo;HWADDR&rdquo; in /etc/&hellip;/ifcfg-eth0, then <code>sudo service network restart</code>.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -461,238 +697,6 @@ Remove package: <code>yaourt -R customizepkg</code></p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/16/195552/">Add Xfce Desktop Environment for ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-16T19:55:52+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:55 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>After install ArchLinux and awesome, in console, run following as root:</p>
-
-<pre><code># pacman -S xfce4 xfce4-goodies variety networkmanager network-manager-applet xfce4-notifyd gnome-keyring
-# systemctl enable NetworkManager
-# systemctl start NetworkManager
-</code></pre>
-
-<p>Without gnome-keyring, you can find wireless hot-point, but you will disconnecting from it immediately.</p>
-
-<p>Add &ldquo;exec startxfce4&rdquo; in ~/.xinitrc. Then run &ldquo;startx&rdquo; in console.</p>
-
-<h1>Dell PC</h1>
-
-<h2>Video</h2>
-
-<p>You need install video drivers and fonts for this DELL PC.</p>
-
-<p>Firstly, use <code>lspci|grep VGA</code> to get video driver information, for example, for &ldquo;Intel Corporation 4 Series Chipset Integrated Graphics Controller&rdquo;, you need to install &ldquo;xf86-video-intel&rdquo;, see <a href="https://wiki.archlinux.org/index.php/Intel_Graphics#Installation">Intel Graphics on Arch Wiki</a>.</p>
-
-<h2>Font</h2>
-
-<p>Use &ldquo;dajavu&rdquo; to make font in Xfce desktop nicer, the second make system display Chinese character properly.</p>
-
-<pre><code># pacman -S ttf-dejavu adobe-source-han-sans-otc-fonts     // or adobe-source-han-sans-cn-fonts for only Chinese character
-# pacman -S ttf-ubuntu-font-family     // good-looking fonts for Variety: Ubuntu Condensed
-</code></pre>
-
-<h2>Time</h2>
-
-<pre><code># timedatectl status
-# timedatectl list-timezones
-# timedatectl set-timezone Asia/Hong_Kong
-</code></pre>
-
-<h2>Web browser</h2>
-
-<pre><code># pacman -S firefox    // chromium can't display Chinese character properly
-</code></pre>
-
-<h2>Other</h2>
-
-<pre><code># pacman -S git openssh
-</code></pre>
-
-<h2>Input Method</h2>
-
-<pre><code># pacman -S fcitx-im fcitx-configtool fcitx-googlepinyin fcitx-libpinyin
-</code></pre>
-
-<p>Search &ldquo;archlinux fcitx&rdquo; on Arch Wiki for installation details.</p>
-
-<p>For now fcitx is much better than ibus.</p>
-
-<pre><code># pacman -S ibus-libpinyin
-# su - chad
-$ ibus-setup
-</code></pre>
-
-<p>Then select &ldquo;Chinese - Intelligent Pinyin&rdquo; under &ldquo;Input Method&rdquo; tab, and click &ldquo;Preferences&rdquo; to customize it.
-The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
-&ldquo;ibus-pinyin&rdquo; can&rsquo;t work properly.
-&ldquo;ibus-rime&rdquo; can only input traditional Chinese.</p>
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/xfce#Installation">Xfce Installation on ArchWiki</a>
-<a href="https://wiki.archlinux.org/index.php/NetworkManager">NetworkManager on ArchWiki</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/16/191337/">Hello R Language Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-16T19:13:37+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:13 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install</h1>
-
-<h2>On Archlinux</h2>
-
-<pre><code>$ sudo pacman -Syu r
-$ yaourt -S rstudio-desktop-bin
-</code></pre>
-
-<h1>Usage</h1>
-
-<h2>In REPL</h2>
-
-<pre><code>$ R
-&gt; ints = 1:100
-&gt; doubleInts = sapply(ints, function(x) 2*x)
-&gt; head(doubleInts)
-[1] 2 4 6 8 10 12
-&gt; quit()
-</code></pre>
-
-<h2>Run R Script</h2>
-
-<pre><code>$ cat r-ex
-ints = 1:100
-doubleInts = sapply(ints, function(x) 2*x)
-head(doubleInts)
-$ Rscript r-ex
-[1]  2  4  6  8 10 12
-</code></pre>
-
-<h2>Run with RStudio</h2>
-
-<p>Start RStudio with <code>rstudio-bin</code>, then input commands like in normal REPL.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/16/103414/">Windows and CentOS Dual Boot on PC</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-16T10:34:14+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:34 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Install Windows 7;</p></li>
-<li><p>Install CentOS 6.4, choose &ldquo;Basic Storage Devices -> &hellip; -> Create Custom Layout&rdquo;, delete extended partition, create a root partition and a swap partition for CentOS;</p></li>
-<li><p>Verify the startup list;</p></li>
-<li><p>After installation of CentOS, login the system, you can edit /boot/grub/menu.lst to modify defaut startup system, default timeout, etc.</p></li>
-<li><p>During system startup, press up/down key before countdown over to activate the system boot menu to choose Windows or CentOS for startup.</p></li>
-</ol>
-
-
-<p>That&rsquo;s it.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/15/143554/">Fix Only Root Can Login on ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-15T14:35:54+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:35 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>After a new installation of ArchLinux, I created a user &ldquo;chad&rdquo;, and set his password via command passwd. But when the system start, I can only login as root. If I login as chad, it complains the password is incorrect, which it IS correct.</p>
-
-<p>Through some search on Internet, I realize it&rsquo;s maybe caused by wrong path of initial shell of chad. So I re-define his initial shell via root:</p>
-
-<pre><code>chsh -s /bin/bash chad
-</code></pre>
-
-<p>Now everything is OK.</p>
-
-<p>To avoid this problem, run <code>useradd -D</code>. If the path of &ldquo;SHELL&rdquo; is &ldquo;/bin/bash&rdquo;, then you can use &ldquo;useradd -m chad&rdquo; to create user. If you create user with <code>useradd -s /usr/bin/bash -m chad</code>, chad can&rsquo;t login, because the path of bash can only be &ldquo;/bin/bash&rdquo;.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/19">&larr; Older</a>
@@ -710,23 +714,23 @@ $ Rscript r-ex
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

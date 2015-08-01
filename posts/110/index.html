@@ -9,9 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="tk没有自己的编译环境，Ultraedit中仅3步就可以打造一个tk调试环境：
-1. 为UE添加tcl/tk语法高亮支持：从UE的网站上下载tcl/tk的wordfile；
-2. 添加编译命令到菜单中：UE主菜单【高级->工具配置】出现“工具配置窗口： 在【命令】标签页中： 点击按钮“插入” 【 &hellip;">
+  <meta name="description" content="该项目是应贾德文要求，做一个后端数值计算＋前端GUI实现，要求开发工具兼具较强的数值计算能力（尤其是矩阵和向量计算）、易用性（不需要内存、指针、堆栈、消息等专门知识）、用户图形界面（GUI）开发和程序打包（生成单一exe文件）功能。备选方案有pyhton、matlab和scilab， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +65,595 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/04/23/083909/">“柴油机总体分析系统”开发手记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-04-23T08:39:09+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>8:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>该项目是应贾德文要求，做一个后端数值计算＋前端GUI实现，要求开发工具兼具较强的数值计算能力（尤其是矩阵和向量计算）、易用性（不需要内存、指针、堆栈、消息等专门知识）、用户图形界面（GUI）开发和程序打包（生成单一exe文件）功能。备选方案有pyhton、matlab和scilab，matlab是商业软件，体积庞大，GUI和打包比较麻烦，scilab数值计算功能一般，语法比较独特，GUI采用Tcl实现，好像也没有打包功能，而python平台在这方面表现最好，numpy模块的数值计算功能强大，GUI设计方面，简单界面可选Tkinter，复杂的可选wxPython，打包用py2exe模块，因此本项目最终选择在WinXP + python2.5平台上完成。 tkinter的界面设计基本方法：多层frame嵌套；
+一般是两句定义一个控件，第一句定义控件特征，第二句定义放置方法，Label和Button可实现单语句定义；
+向量数字的格式化输出，同时转化为长度固定的字符串： Python中[for ii in aa]的强大功能：见附件的第212、213行（给resMtx幅值的语句，在表达式中使用for语句）； Text的tab控制输出格式：格式字符串也可实现对齐，但tab stop有4种对齐方式，功能更强； GUI字体的设置方法：定义专门的字体设置字符串； 中文GUI界面的编码问题：在文件头加上：# -<em>- coding:utf-8 -</em>-，指明用utf8编码； CheckBox的判断： 界面上取得的字符串转化为数组，进行数学运算后表现在界面上：
+from numpy import *
+from Tkinter import *
+def solve1():
+ resStr = inp_txt.get(&lsquo;1.0&rsquo;,END)
+ bb = fromstring(resStr,&rsquo;d',-1,&lsquo; &rsquo;).reshape(3,-1)
+ print type(bb)
+ print bb.shape
+ out_txt.insert(&lsquo;1.0&rsquo;, transpose(bb))
+root = Tk()
+top = Frame(root)
+top.pack(side=&lsquo;top&rsquo;)
+inp_txt = Text(top, font=(&lsquo;Times&rsquo;,12),height=5,width=30)
+inp_txt.insert(&lsquo;1.0&rsquo;,&lsquo;12 23\n34 45\n34.5 98.234&rsquo;)
+inp_txt.pack(side=&lsquo;top&rsquo;)
+Button(top, text=&lsquo;solve&rsquo;, command=solve1).pack(side=&lsquo;top&rsquo;,padx=40)
+out_txt = Text(top, font=(&lsquo;Times&rsquo;,12),height=5,width=30)
+out_txt.pack(side=&lsquo;top&rsquo;)
+root.mainloop()
+其他python编程实践：单句代码的折行、多句代码放在一行；pass语句的作用；</p>
+
+<p>下面是Anova.py文件内容：
+ # -<em>- coding:utf-8 -</em>-
+ from Tkinter import Tk, Frame, LabelFrame, Label, Entry, Text, Button, \
+  IntVar, Checkbutton, X, CENTER, NUMERIC, END
+ from numpy import zeros, transpose, fromstring, reshape
+ import rwMtx as rwm
+ from tkMessageBox import showwarning</p>
+
+<p> def Anova7(schMtx, calcMtx):
+  k = 7 # total number of factors
+  m = 3 # total number of levels
+  n = 18 # total number of experiments
+  r = n/m
+  # here add the format check
+  T = sum(calcMtx)
+  CT = T<strong>2/n
+  QT = sum(calcMtx</strong>2)
+  ST = QT - CT
+  K = zeros((m ,k))
+  K[0,0] = sum(calcMtx[0:3]) + sum(calcMtx[9:12])
+  K[1,0] = sum(calcMtx[3:6]) + sum(calcMtx[12:15])
+  K[2,0] = sum(calcMtx[6:9]) + sum(calcMtx[15:18])
+  K[0,1] = calcMtx[0]+calcMtx[3]+calcMtx[6]+calcMtx[9]+calcMtx[12]+calcMtx[15]
+  K[1,1] = calcMtx[1]+calcMtx[4]+calcMtx[7]+calcMtx[10]+calcMtx[13]+calcMtx[16]
+  K[2,1] = calcMtx[2]+calcMtx[5]+calcMtx[8]+calcMtx[11]+calcMtx[14]+calcMtx[17]
+  K[0,2] = calcMtx[0]+calcMtx[3]+calcMtx[8]+calcMtx[10]+calcMtx[14]+calcMtx[16]
+  K[1,2] = calcMtx[1]+calcMtx[4]+calcMtx[6]+calcMtx[11]+calcMtx[12]+calcMtx[17]
+  K[2,2] = calcMtx[2]+calcMtx[5]+calcMtx[7]+calcMtx[9]+calcMtx[13]+calcMtx[15]
+  K[0,3] = calcMtx[0]+calcMtx[5]+calcMtx[6]+calcMtx[10]+calcMtx[13]+calcMtx[17]
+  K[1,3] = calcMtx[1]+calcMtx[3]+calcMtx[7]+calcMtx[11]+calcMtx[14]+calcMtx[15]
+  K[2,3] = calcMtx[2]+calcMtx[4]+calcMtx[8]+calcMtx[9]+calcMtx[12]+calcMtx[16]
+  K[0,4] = calcMtx[0]+calcMtx[5]+calcMtx[7]+calcMtx[11]+calcMtx[12]+calcMtx[16]
+  K[1,4] = calcMtx[1]+calcMtx[3]+calcMtx[8]+calcMtx[9]+calcMtx[13]+calcMtx[17]
+  K[2,4] = calcMtx[2]+calcMtx[4]+calcMtx[6]+calcMtx[10]+calcMtx[14]+calcMtx[15]
+  K[0,5] = calcMtx[0]+calcMtx[4]+calcMtx[8]+calcMtx[11]+calcMtx[13]+calcMtx[15]
+  K[1,5] = calcMtx[1]+calcMtx[5]+calcMtx[6]+calcMtx[9]+calcMtx[14]+calcMtx[16]
+  K[2,5] = calcMtx[2]+calcMtx[3]+calcMtx[7]+calcMtx[10]+calcMtx[12]+calcMtx[17]
+  K[0,6] = calcMtx[0]+calcMtx[4]+calcMtx[7]+calcMtx[9]+calcMtx[14]+calcMtx[17]
+  K[1,6] = calcMtx[1]+calcMtx[5]+calcMtx[8]+calcMtx[10]+calcMtx[12]+calcMtx[15]
+  K[2,6] = calcMtx[2]+calcMtx[3]+calcMtx[6]+calcMtx[11]+calcMtx[13]+calcMtx[16]
+  Q = zeros(k)
+  for i in range(k):
+   Q[i] = sum(K[:,i]**2)/r
+  S = Q - CT
+  Se = ST - sum(S) # error of S
+  dofLevel = m - 1 # degree of freedom
+  dofSum = n - 1
+  dofErr = dofSum - dofLevel * k
+  sms = S / dofLevel # sum of mean square
+  errSms = Se / dofErr
+  F0 = sms / errSms
+  Ap = (F0 - F0.min())/((F0.max() - F0.min())/0.9) + 0.1
+  A = (Ap/sum(Ap)).transpose()
+  R = zeros((k,m))
+  for i in range(k):
+   R[i,:] = (schMtx[i,:] - schMtx[i,:].min())/((schMtx[i,:].max() - schMtx[i,:].min())/0.9) + 0.1
+  B = zeros(m)
+  for i in range(m):
+   dd = zeros(k)
+   for j in range(k):
+    dd[j] = min(A[j],R[j,i])
+   B[i] = max(dd)
+  min_index = B.argmin() # optimization result
+  # assemble the return value:
+  return B, schMtx[:,min_index]</p>
+
+<p> def Anova5(calcMtx):
+  k = 5 # total number of factors
+  m = 3 # total number of levels
+  n = 18 # total number of experiments
+  r = n/m
+  # here add the format check
+  T = sum(calcMtx)
+  CT = T<strong>2/n
+  QT = sum(calcMtx</strong>2)
+  ST = QT - CT
+  K = zeros((m ,k))
+  K[0,0] = sum(calcMtx[0:3]) + sum(calcMtx[9:12])
+  K[1,0] = sum(calcMtx[3:6]) + sum(calcMtx[12:15])
+  K[2,0] = sum(calcMtx[6:9]) + sum(calcMtx[15:18])
+  K[0,1] = calcMtx[0]+calcMtx[3]+calcMtx[6]+calcMtx[9]+calcMtx[12]+calcMtx[15]
+  K[1,1] = calcMtx[1]+calcMtx[4]+calcMtx[7]+calcMtx[10]+calcMtx[13]+calcMtx[16]
+  K[2,1] = calcMtx[2]+calcMtx[5]+calcMtx[8]+calcMtx[11]+calcMtx[14]+calcMtx[17]
+  K[0,2] = calcMtx[0]+calcMtx[3]+calcMtx[8]+calcMtx[10]+calcMtx[14]+calcMtx[16]
+  K[1,2] = calcMtx[1]+calcMtx[4]+calcMtx[6]+calcMtx[11]+calcMtx[12]+calcMtx[17]
+  K[2,2] = calcMtx[2]+calcMtx[5]+calcMtx[7]+calcMtx[9]+calcMtx[13]+calcMtx[15]
+  K[0,3] = calcMtx[0]+calcMtx[5]+calcMtx[7]+calcMtx[11]+calcMtx[12]+calcMtx[16]
+  K[1,3] = calcMtx[1]+calcMtx[3]+calcMtx[8]+calcMtx[9]+calcMtx[13]+calcMtx[17]
+  K[2,3] = calcMtx[2]+calcMtx[4]+calcMtx[6]+calcMtx[10]+calcMtx[14]+calcMtx[15]
+  K[0,4] = calcMtx[0]+calcMtx[4]+calcMtx[8]+calcMtx[11]+calcMtx[13]+calcMtx[15]
+  K[1,4] = calcMtx[1]+calcMtx[5]+calcMtx[6]+calcMtx[9]+calcMtx[14]+calcMtx[16]
+  K[2,4] = calcMtx[2]+calcMtx[3]+calcMtx[7]+calcMtx[10]+calcMtx[12]+calcMtx[17]
+  Q = zeros(k)
+  for i in range(k):
+   Q[i] = sum(K[:,i]**2)/r
+  S = Q - CT
+  Se = ST - sum(S) # error of S
+  dofLevel = m - 1 # degree of freedom
+  dofSum = n - 1
+  dofErr = dofSum - dofLevel * k
+  sms = S / dofLevel # sum of mean square
+  errSms = Se / dofErr
+  F0 = sms / errSms
+  optLevel = K.argmin(0)+1
+  resMtx = {&lsquo;factors&rsquo;:[&lsquo;A&rsquo;, &lsquo;B&rsquo;, &lsquo;C&rsquo;, &rsquo;D', &lsquo;E&rsquo;, &lsquo;Error&rsquo;, &lsquo;Sum&rsquo;], &rsquo;S':[&lsquo;%10.5f&rsquo;%ii for ii in S], &lsquo;Se&rsquo;:&lsquo;%10.5f&rsquo;%Se, &lsquo;ST&rsquo;:&lsquo;%10.5f&rsquo;%ST,\
+   &lsquo;dofLevel&rsquo;:dofLevel, &lsquo;dofErr&rsquo;:dofErr, &lsquo;dofSum&rsquo;:dofSum, &lsquo;sms&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in sms], &lsquo;errSms&rsquo;:&lsquo;%10.5f&rsquo;%errSms, &lsquo;F0&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in F0], &lsquo;optLevel&rsquo;:optLevel}
+  return resMtx</p>
+
+<p> def Anova4(calcMtx):
+  k = 4 # total number of factors
+  m = 3 # total number of levels
+  n = 9 # total number of experiments
+  r = n/m
+  # here add the format check
+  T = sum(calcMtx)
+  CT = T<strong>2/n
+  QT = sum(calcMtx</strong>2)
+  ST = QT - CT
+  K = zeros((m ,k))
+  K[0,0] = calcMtx[0]+calcMtx[1]+calcMtx[2]
+  K[1,0] = calcMtx[3]+calcMtx[4]+calcMtx[5]
+  K[2,0] = calcMtx[6]+calcMtx[7]+calcMtx[8]
+  K[0,1] = calcMtx[0]+calcMtx[3]+calcMtx[6]
+  K[1,1] = calcMtx[1]+calcMtx[4]+calcMtx[7]
+  K[2,1] = calcMtx[2]+calcMtx[5]+calcMtx[8]
+  K[0,2] = calcMtx[0]+calcMtx[5]+calcMtx[7]
+  K[1,2] = calcMtx[1]+calcMtx[3]+calcMtx[8]
+  K[2,2] = calcMtx[2]+calcMtx[4]+calcMtx[6]
+  K[0,3] = calcMtx[0]+calcMtx[4]+calcMtx[8]
+  K[1,3] = calcMtx[1]+calcMtx[5]+calcMtx[6]
+  K[2,3] = calcMtx[2]+calcMtx[3]+calcMtx[7]
+  Q = zeros(k)
+  for i in range(k):
+   Q[i] = sum(K[:,i]**2)/r
+  S = Q - CT
+  Se = min(S) # error of S
+  dofLevel = m - 1 # degree of freedom
+  dofSum = n - 1
+  dofErr = dofLevel
+  sms = S / dofLevel # sum of mean square
+  errSms = Se / dofErr
+  F0 = sms / errSms
+  optLevel = K.argmin(0)+1
+  resMtx = {&lsquo;factors&rsquo;:[&lsquo;A&rsquo;, &lsquo;B&rsquo;, &lsquo;C&rsquo;, &rsquo;D', &lsquo;Error&rsquo;, &lsquo;Sum&rsquo;], &rsquo;S':[&lsquo;%10.5f&rsquo;%ii for ii in S], &lsquo;Se&rsquo;:&lsquo;%10.5f&rsquo;%Se, &lsquo;ST&rsquo;:&lsquo;%10.5f&rsquo;%ST,\
+   &lsquo;dofLevel&rsquo;:dofLevel, &lsquo;dofErr&rsquo;:dofErr, &lsquo;dofSum&rsquo;:dofSum, &lsquo;sms&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in sms], &lsquo;errSms&rsquo;:&lsquo;%10.5f&rsquo;%errSms, &lsquo;F0&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in F0], &lsquo;optLevel&rsquo;:optLevel}
+  return resMtx</p>
+
+<p> def Anova3(calcMtx):
+  k = 3 # total number of factors
+  m = 3 # total number of levels
+  n = 9 # total number of experiments
+  r = n/m
+  # here add the format check
+  T = sum(calcMtx)
+  CT = T<strong>2/n
+  QT = sum(calcMtx</strong>2)
+  ST = QT - CT
+  K = zeros((m ,k))
+  K[0,0] = calcMtx[0]+calcMtx[1]+calcMtx[2]
+  K[1,0] = calcMtx[3]+calcMtx[4]+calcMtx[5]
+  K[2,0] = calcMtx[6]+calcMtx[7]+calcMtx[8]
+  K[0,1] = calcMtx[0]+calcMtx[3]+calcMtx[6]
+  K[1,1] = calcMtx[1]+calcMtx[4]+calcMtx[7]
+  K[2,1] = calcMtx[2]+calcMtx[5]+calcMtx[8]
+  K[0,2] = calcMtx[0]+calcMtx[5]+calcMtx[7]
+  K[1,2] = calcMtx[1]+calcMtx[3]+calcMtx[8]
+  K[2,2] = calcMtx[2]+calcMtx[4]+calcMtx[6]
+  Q = zeros(k)
+  for i in range(k):
+   Q[i] = sum(K[:,i]**2)/r
+  S = Q - CT
+  Se = ST - sum(S) # error of S
+  dofLevel = m - 1 # degree of freedom
+  dofSum = n - 1
+  dofErr = dofSum - dofLevel * k
+  sms = S / dofLevel # sum of mean square
+  errSms = Se / dofErr
+  F0 = sms / errSms
+  optLevel = K.argmin(0)+1
+  resMtx = {&lsquo;factors&rsquo;:[&lsquo;A&rsquo;, &lsquo;B&rsquo;, &lsquo;C&rsquo;, &lsquo;Error&rsquo;, &lsquo;Sum&rsquo;], &rsquo;S':[&lsquo;%10.5f&rsquo;%ii for ii in S], &lsquo;Se&rsquo;:&lsquo;%10.5f&rsquo;%Se, &lsquo;ST&rsquo;:&lsquo;%10.5f&rsquo;%ST,\
+   &lsquo;dofLevel&rsquo;:dofLevel, &lsquo;dofErr&rsquo;:dofErr, &lsquo;dofSum&rsquo;:dofSum, &lsquo;sms&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in sms], &lsquo;errSms&rsquo;:&lsquo;%10.5f&rsquo;%errSms, &lsquo;F0&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in F0], &lsquo;optLevel&rsquo;:optLevel}
+  return resMtx</p>
+
+<p> def Anova2(calcMtx):
+  k = 2 # total number of factors
+  m = 3 # total number of levels
+  n = 9 # total number of experiments
+  r = n/m
+  # here add the format check
+  T = sum(calcMtx)
+  CT = T<strong>2/n
+  QT = sum(calcMtx</strong>2)
+  ST = QT - CT
+  K = zeros((m ,k))
+  K[0,0] = calcMtx[0]+calcMtx[1]+calcMtx[2]
+  K[1,0] = calcMtx[3]+calcMtx[4]+calcMtx[5]
+  K[2,0] = calcMtx[6]+calcMtx[7]+calcMtx[8]
+  K[0,1] = calcMtx[0]+calcMtx[3]+calcMtx[6]
+  K[1,1] = calcMtx[1]+calcMtx[4]+calcMtx[7]
+  K[2,1] = calcMtx[2]+calcMtx[5]+calcMtx[8]
+  Q = zeros(k)
+  for i in range(k):
+   Q[i] = sum(K[:,i]**2)/r
+  S = Q - CT
+  Se = ST - sum(S) # error of S
+  dofLevel = m - 1 # degree of freedom
+  dofSum = n - 1
+  dofErr = dofSum - dofLevel * k
+  sms = S / dofLevel # sum of mean square
+  errSms = Se / dofErr
+  F0 = sms / errSms
+  optLevel = K.argmin(0)+1
+  resMtx = {&lsquo;factors&rsquo;:[&lsquo;A&rsquo;, &lsquo;B&rsquo;, &lsquo;Error&rsquo;, &lsquo;Sum&rsquo;], &rsquo;S':[&lsquo;%10.5f&rsquo;%ii for ii in S], &lsquo;Se&rsquo;:&lsquo;%10.5f&rsquo;%Se, &lsquo;ST&rsquo;:&lsquo;%10.5f&rsquo;%ST,\
+   &lsquo;dofLevel&rsquo;:dofLevel, &lsquo;dofErr&rsquo;:dofErr, &lsquo;dofSum&rsquo;:dofSum, &lsquo;sms&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in sms], &lsquo;errSms&rsquo;:&lsquo;%10.5f&rsquo;%errSms, &lsquo;F0&rsquo;:[&lsquo;%10.5f&rsquo;%ii for ii in F0], &lsquo;optLevel&rsquo;:optLevel}
+  return resMtx</p>
+
+<p> def F0_evaluate(input_array, factor_number):
+  #F0数组显著性判断函数
+  #print input_array
+  if factor_number==5:
+   F_005 = 4.74
+   F_001 = 9.55
+  elif factor_number==2:
+   F_005 = 6.94
+   F_001 = 18
+  else:
+   F_005 = 19
+   F_001 = 99
+  eval_res = []
+  for theValue in input_array:
+   theNumber = float(theValue)
+   if theNumber>F_001: eval_res.append(&lsquo;<em>*&rsquo;)
+   elif theNumber&lt;F_005: eval_res.append(&lsquo;-&rsquo;)
+   else: eval_res.append(&lsquo;</em>&rsquo;)
+  return eval_res</p>
+
+<p> def solve_7():
+  tStr = txt_sch.get(&lsquo;1.0&rsquo;,END)
+  schemeMtx = transpose(fromstring(tStr,&rsquo;d',-1,&lsquo; &rsquo;).reshape(3,-1))
+  tStr = txt_expRes.get(&lsquo;1.0&rsquo;,END)
+  calcResMtx = fromstring(tStr,&rsquo;d',-1,&lsquo; &rsquo;)
+  txt_optRes.delete(0, END)
+  txt_optRes.insert(0, Anova7(schemeMtx, calcResMtx)[0])
+  txt_optSch.delete(0, END)
+  txt_optSch.insert(0, Anova7(schemeMtx, calcResMtx)[1])</p>
+
+<p> def solve_2345():
+  selected_item = chkb1.get()+chkb2.get()+chkb3.get()+chkb4.get()+chkb5.get()
+  if selected_item == 5:
+   calcResFile = open(&lsquo;data/expRes5.txt&rsquo;,&lsquo;r&rsquo;)
+   calcResMtx = rwm.read(calcResFile)
+   calcResFile.close()
+   theRes = Anova5(calcResMtx)
+   tt = &lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][0]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][0]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],5)[0]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][1]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][1]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],5)[1]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][2]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][2]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][2]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][2]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],5)[2]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][3]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][3]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][3]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][3]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],5)[3]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][4]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][4]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][4]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][4]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],5)[4]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][5]+&lsquo;\t&rsquo;+theRes[&lsquo;Se&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofErr&rsquo;])+&lsquo;\t&rsquo; +theRes[&lsquo;errSms&rsquo;]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][6]+&lsquo;\t&rsquo;+theRes[&lsquo;ST&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofSum&rsquo;])
+   f3_res.delete(&lsquo;1.0&rsquo;, END)
+   f3_res.insert(&lsquo;1.0&rsquo;, tt)
+   txt_optLevel.delete(0, END)
+   txt_optLevel.insert(0, theRes[&lsquo;optLevel&rsquo;])
+  elif selected_item == 4:
+   calcResFile = open(&lsquo;data/expRes4.txt&rsquo;,&lsquo;r&rsquo;)
+   calcResMtx = rwm.read(calcResFile)
+   calcResFile.close()
+   theRes = Anova4(calcResMtx)
+   tt = &lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][0]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][0]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],4)[0]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][1]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][1]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],4)[1]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][2]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][2]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][2]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][2]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],4)[2]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][3]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][3]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][3]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][3]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],4)[3]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][4]+&lsquo;\t&rsquo;+theRes[&lsquo;Se&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofErr&rsquo;])+&lsquo;\t&rsquo; +theRes[&lsquo;errSms&rsquo;]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][5]+&lsquo;\t&rsquo;+theRes[&lsquo;ST&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofSum&rsquo;])
+   f3_res.delete(&lsquo;1.0&rsquo;, END)
+   f3_res.insert(&lsquo;1.0&rsquo;, tt)
+   txt_optLevel.delete(0, END)
+   txt_optLevel.insert(0, theRes[&lsquo;optLevel&rsquo;])
+  elif selected_item == 3:
+   calcResFile = open(&lsquo;data/expRes3.txt&rsquo;,&lsquo;r&rsquo;)
+   calcResMtx = rwm.read(calcResFile)
+   calcResFile.close()
+   theRes = Anova3(calcResMtx)
+   tt = &lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][0]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][0]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],3)[0]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][1]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][1]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],3)[1]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][2]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][2]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][2]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][2]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],3)[2]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][3]+&lsquo;\t&rsquo;+theRes[&lsquo;Se&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofErr&rsquo;])+&lsquo;\t&rsquo; +theRes[&lsquo;errSms&rsquo;]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][4]+&lsquo;\t&rsquo;+theRes[&lsquo;ST&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofSum&rsquo;])
+   f3_res.delete(&lsquo;1.0&rsquo;, END)
+   f3_res.insert(&lsquo;1.0&rsquo;, tt)
+   txt_optLevel.delete(0, END)
+   txt_optLevel.insert(0, theRes[&lsquo;optLevel&rsquo;])
+  elif selected_item == 2:
+   calcResFile = open(&lsquo;data/expRes2.txt&rsquo;,&lsquo;r&rsquo;)
+   calcResMtx = rwm.read(calcResFile)
+   calcResFile.close()
+   theRes = Anova2(calcResMtx)
+   tt = &lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][0]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][0]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][0]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],2)[0]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&rsquo;S'][1]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofLevel&rsquo;])+&lsquo;\t&rsquo; \
+    +theRes[&lsquo;sms&rsquo;][1]+&lsquo;\t&rsquo;+theRes[&lsquo;F0&rsquo;][1]+&lsquo;\t&rsquo;+F0_evaluate(theRes[&lsquo;F0&rsquo;],2)[1]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][2]+&lsquo;\t&rsquo;+theRes[&lsquo;Se&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofErr&rsquo;])+&lsquo;\t&rsquo; +theRes[&lsquo;errSms&rsquo;]+&lsquo;\n&rsquo; \
+    +&lsquo;\t&rsquo;+theRes[&lsquo;factors&rsquo;][3]+&lsquo;\t&rsquo;+theRes[&lsquo;ST&rsquo;]+&lsquo;\t&rsquo;+str(theRes[&lsquo;dofSum&rsquo;])
+   f3_res.delete(&lsquo;1.0&rsquo;, END)
+   f3_res.insert(&lsquo;1.0&rsquo;, tt)
+   txt_optLevel.delete(0, END)
+   txt_optLevel.insert(0, theRes[&lsquo;optLevel&rsquo;])
+  else:
+   showwarning(&lsquo;项目选择错误&rsquo;,&lsquo;请选择至少两项&rsquo;)</p>
+
+<p> #===================== 界面设计 ===========================
+ root = Tk()
+ top = Frame(root)
+ top.pack(side=&lsquo;top&rsquo;)
+ #========定义字体============
+ font_chs = (&lsquo;宋体&rsquo;, 12)
+ font_eng = (&lsquo;Times&rsquo;, 12)
+ #==========标题====================
+ lbl_Title = Label(top, text=&lsquo;柴油机结构系统优化软件&rsquo;, font=(&lsquo;宋体&rsquo;, 16)).pack(side=&lsquo;top&rsquo;, padx=15, pady=10, ipadx=10, fill=X)
+ #=============第1部分===============
+ f1 = LabelFrame(top, text=&lsquo;柴油机总体参数&rsquo;, font=font_chs)
+ f1_1 = Frame(f1, padx=10)
+ Label(f1_1, text=&lsquo;功率：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_power = Entry(f1_1, font=font_eng)
+ txt_power.pack(side=&lsquo;left&rsquo;)
+ f1_1.pack(side=&lsquo;left&rsquo;)</p>
+
+<p> f1_2 = Frame(f1, padx=10)
+ Label(f1_2, text=&lsquo;气缸数：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_cyNo = Entry(f1_2, font=font_eng)
+ txt_cyNo.pack(side=&lsquo;left&rsquo;)
+ f1_2.pack(side=&lsquo;left&rsquo;)</p>
+
+<p> f1_3 = Frame(f1, padx=10)
+ Label(f1_3, text=&lsquo;冲程数：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_strikeNo = Entry(f1_3, font=font_eng)
+ txt_strikeNo.pack(side=&lsquo;left&rsquo;)
+ f1_3.pack(side=&lsquo;left&rsquo;)</p>
+
+<p> f1.pack(side=&lsquo;top&rsquo;, padx=15, pady=10, ipadx=10, ipady=10, fill=X)</p>
+
+<p> #=============第2部分===============
+ f2 = LabelFrame(top, text=&lsquo;柴油机本体结构参数评价及优化&rsquo;, font=font_chs)
+ f2_1 = Frame(f2, pady = 10)
+ f2_1_1 = Frame(f2_1, padx=1)
+ Label(f2_1_1, text=&lsquo;方案：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_sch = Text(f2_1_1, font=font_eng, height=3, width=40)
+ txt_sch.pack(side=&lsquo;left&rsquo;)
+ f2_1_1 .pack(side=&lsquo;left&rsquo;)
+ f2_1_2 = Frame(f2_1, padx=10)
+ Label(f2_1_2, text=&lsquo;试验结果：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_expRes = Text(f2_1_2, font=font_eng, height=3, width=10)
+ txt_expRes.pack(side=&lsquo;left&rsquo;)
+ f2_1_2 .pack(side=&lsquo;left&rsquo;)
+ Button(f2_1, text=&lsquo;参数分析&rsquo;, font=font_chs, command=solve_7).pack(side=&lsquo;left&rsquo;,padx=40)
+ f2_1.pack(side=&lsquo;top&rsquo;)</p>
+
+<p> f2_2 = Frame(f2, padx=1)
+ f2_2_1 = Frame(f2_2, padx=10)
+ Label(f2_2_1, text=&lsquo;评价结果：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_optRes = Entry(f2_2_1, font=font_eng, bg=&lsquo;grey&rsquo;, width=32)
+ txt_optRes.pack(side=&lsquo;left&rsquo;,anchor=&lsquo;c&rsquo;)
+ f2_2_1.pack(side=&lsquo;left&rsquo;)</p>
+
+<p> f2_2_2 = Frame(f2_2)
+ Label(f2_2_2, text=&lsquo;优选方案：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_optSch = Entry(f2_2_2, font=font_eng, bg=&lsquo;grey&rsquo;, width=32)
+ txt_optSch.pack(side=&lsquo;left&rsquo;,anchor=&lsquo;c&rsquo;)
+ f2_2_2.pack(side=&lsquo;left&rsquo;)
+ f2_2.pack(side=&lsquo;top&rsquo;,anchor=&lsquo;w&rsquo;)
+ f2.pack(side=&lsquo;top&rsquo;, padx=15, pady=5, ipadx=1, ipady=10, fill=X)</p>
+
+<p> #=============第3部分===============
+ f3 = LabelFrame(top, text=&lsquo;柴油机系统布置优化&rsquo;, font=font_chs)
+ f3_top = Frame(f3)
+ f3_1 = Frame(f3_top, padx=10)
+ chkb1 = IntVar(); chkb2 = IntVar(); chkb3 = IntVar(); chkb4 = IntVar(); chkb5 = IntVar()
+ chb_inlet = Checkbutton(f3_1, text=&lsquo;进排气系&rsquo;, font=font_chs, variable=chkb1)
+ chb_inlet.pack(side=&lsquo;top&rsquo;, anchor=&lsquo;w&rsquo;)
+ chb_lub = Checkbutton(f3_1, text=&lsquo;润滑系&rsquo;, font=font_chs, variable=chkb2)
+ chb_lub.pack(side=&lsquo;top&rsquo;, anchor=&lsquo;w&rsquo;)
+ chb_cool = Checkbutton(f3_1, text=&lsquo;冷却系&rsquo;, font=font_chs, variable=chkb3)
+ chb_cool.pack(side=&lsquo;top&rsquo;, anchor=&lsquo;w&rsquo;)
+ chb_start = Checkbutton(f3_1, text=&lsquo;起动系&rsquo;, font=font_chs, variable=chkb4)
+ chb_start.pack(side=&lsquo;top&rsquo;, anchor=&lsquo;w&rsquo;)
+ chb_turbo = Checkbutton(f3_1, text=&lsquo;增压器中冷装置&rsquo;, font=font_chs, variable=chkb5)
+ chb_turbo.pack(side=&lsquo;top&rsquo;, anchor=&lsquo;w&rsquo;)
+ f3_1.pack(side=&lsquo;left&rsquo;)
+ f3_2 = Frame(f3_top, padx=10)
+ Button(f3_2, text=&lsquo;求解&rsquo;, font=font_chs, command=solve_2345).pack(side=&lsquo;left&rsquo;)
+ f3_2.pack(side=&lsquo;left&rsquo;)
+ f3_3 = Frame(f3_top, padx=10)
+ f3_3_1 = Frame(f3_3)
+ Label(f3_3_1, text=&lsquo;方差来源&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;, anchor=&lsquo;w&rsquo;)
+ Label(f3_3_1, text=&lsquo;偏差平方和&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;, padx=8)
+ Label(f3_3_1, text=&lsquo;自由度&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;, padx=8)
+ Label(f3_3_1, text=&lsquo;方差&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;, padx=25)
+ Label(f3_3_1, text=&lsquo;F0值&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;, padx=20)
+ Label(f3_3_1, text=&lsquo;显著性&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;, anchor=&lsquo;e&rsquo;, padx=4)
+ f3_3_1.pack(side=&lsquo;top&rsquo;, fill=X, expand=1)
+ f3_res = Text(f3_3, font=font_eng, bg=&lsquo;grey&rsquo;, height=7, width=65, tabs=(&lsquo;1c&rsquo;,CENTER,\
+  &lsquo;3c&rsquo;,NUMERIC,&lsquo;5.5c&rsquo;,NUMERIC,&lsquo;7c&rsquo;,NUMERIC,&lsquo;9.2c&rsquo;,NUMERIC,&lsquo;11.5c&rsquo;,CENTER))
+ f3_res.pack(side=&lsquo;top&rsquo;)
+ f3_3.pack(side=&lsquo;left&rsquo;)
+ f3_top.pack(side=&lsquo;top&rsquo;)</p>
+
+<p> f3_bottom = Frame(f3, pady =10)
+ Label(f3_bottom, text=&lsquo;优水平：&rsquo;, font=font_chs).pack(side=&lsquo;left&rsquo;)
+ txt_optLevel = Entry(f3_bottom, font=font_eng, bg=&lsquo;grey&rsquo;, width=32)
+ txt_optLevel.pack(side=&lsquo;left&rsquo;,anchor=&lsquo;c&rsquo;)
+ f3_bottom.pack(side=&lsquo;top&rsquo;, anchor=&lsquo;e&rsquo;, ipadx=90)</p>
+
+<p> f3.pack(side=&lsquo;top&rsquo;, padx=15, pady=10, ipadx=10, ipady=10, fill=X)</p>
+
+<p> root.title(&lsquo;柴油机结构系统优化软件&rsquo;)
+ root.mainloop()</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/04/14/113452/">由chm文件生成txt文件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-04-14T11:34:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li>将chm文件转为htm文件
+ChmDecoder（正式名称为CHM Encoder），文件位置：E:\Software\chmdecoder\chmdecoder.exe</li>
+<li>将htm文件转为txt文件
+TextForever，文件位置：E:\Software\TextForever168\TextForever.exe
+【Html->Text】标签页中点击【典型中文HTML】，不勾选【输出链接文字】</li>
+<li>合并txt文件
+TextForever【文件合并】标签页中，根据情况设置后【开始合并】。</li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/02/19/113320/">利用Python计算日期平移</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-02-19T11:33:20+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:33 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>数码相机的日期如果不准，推算出正确的日期比较麻烦，下面的python代码可以解决这个问题，例如某张标记日期为2009年9月11日的照片，实际拍摄时间是2010年2月17日，那么标记时间是2009年7月1日的照片的实际拍摄时间是：
+from datetime import date
+delta = date(2010,2,17) - date(2009,9,11)
+date(2009,7,1) + delta</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/01/10/095243/">Python脚本文件中使用中文</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-01-10T09:52:43+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>9:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Python做图形用户界面（GUI）开发时经常要在界面上显示中文，需要做如下处理（详见[1]和[2]2.3节）：</p>
+
+<ol>
+<li><p>在py文件的首行写上：# -<em>- coding:utf-8 -</em>-</p></li>
+<li><p>保存py文件时要存为utf-8格式文件。</p></li>
+</ol>
+
+
+<p>[1] Python2.6 Documentation: The Python Language Reference: 2.1.4 Encoding declarations</p>
+
+<p>[2] 孙广磊，征服Python—语言基础与典型应用，北京：人民邮电出版社，2007</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -514,195 +1101,6 @@ set expandtab " tab转换为空格，缩写为et
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2008/11/17/101355/">使用Elsevier的Latex模板投稿</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2008-11-17T10:13:55+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2008</span></span> <span class='time'>10:13 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Elsevier的Latex模板有专用的类定义文件：elsart.cls和elsart5p.cls，还有模板文件instructions-num.tex和写作指导文件template-num.tex，首先下载这些文件，在template-num.tex的基础上加入自己的内容就行了，排版效果比word强的多，且比Word模板更容易使用。要注意的是：
-1. 用英文投稿时，如果使用的包中有\usepackage[english,frence]{babel}，将frence之类的语言去掉，或者整个注释掉这一行，以防止”abastract,reference”之类的词变成法文或者其他什么文；
-2. 插图的处理：将图片做成eps文件，然后用\includegraphics调入，由于PDFLatex不能处理eps文件，因此首先用Latex生成dvi文件（可用YAP察看），如果需要生成pdf文件，可用dvi2pdf转成pdf文件（这些操作都在ChinaTex安装包->WinEdt的Accessories目录下）。例如：
-\begin{figure}
-\centering \scalebox{0.9}{\includegraphics{fig/fig2.eps}}
-\caption{the center cracked tension specimen and its one-quarter finite element model} \label{fig 2}
-\end{figure}
-其他参见上述说明文档，以及陈志杰：LATEX入门与提高（第二版），高等教育出版社，2006</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2008/10/12/091134/">Word中生成目录格式的VBA代码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2008-10-12T09:11:34+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2008</span></span> <span class='time'>9:11 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>要求在页面的最右边生成一个右对齐的制表符（以控制页码的位置），制表符的前导字符是“-”（标题与页码之间的符号），页码统一写为“A-5”，然后手工输入正确的页码。
-Sub makeMenu()
- Selection.MoveDown Unit:=wdParagraph, Count:=1
- Selection.EndKey
- Selection.ParagraphFormat.TabStops.Add Position:=CentimetersToPoints(15.24 _
-  ), Alignment:=wdAlignTabRight, Leader:=wdTabLeaderDashes
- Selection.TypeText Text:=vbTab
- Selection.TypeText Text:=&ldquo;A-5&rdquo;
-End Sub</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2008/09/15/173304/">Python常用语句</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2008-09-15T17:33:04+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2008</span></span> <span class='time'>5:33 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Python中的字符串可以用单引号或者双引号括起来； 查询一个对象a的类型：type(a) or a.<strong>class</strong>, or type(a).<strong>name</strong>(class name as string type) 查询矩阵的维数，用shape(a)，变形，用reshape或者resize； 查询一个函数的用法，用help(funcName)的方法； 文件路径的写法：’ e:\MyDoc\test.txt’ 查询当前系统有多少模块可用：help(&lsquo;modules&rsquo;)
-查询某一个模块的信息：help(moduleName)，有时模块名上可能需要加引号，如果报错，可以先help()，进入help环境后在输入模块名； 用dir函数查询模块、函数的信息：例如dir(moduleName)可以查询所有该模块包含的所有属性和方法； PYTHON的包使用很方便，在一个文本文件中写n个函数（名为f1、f2……），然后保存为moduleName.py，使用这些函数的方法是：
-from moduleName import *
-moduleName.f1(…) 采用输出字符串方法调试Python代码的语句是：print，要输入多个变量，用逗号隔开，即print a,b,c&hellip; 在任何使用字符串的地方都可以用格式化字符串形式，例如下面的语句是从ftp上下载指定的文件： ftp .retrbinary(  &lsquo;RETR %s&rsquo;  % src_file_name, dest_file.write)
-其中“retrbinary”函数的第一个参数是字符串，这里“'RETR %s' % src_file_name”与“'RETR &lsquo;+src_file_name”是完全等价的。关于格式字符串的详细信息可google“python 格式化字符串”。 获取命令行参数：使用sys模块的argv列表实现， sys.argv[0] 代表python文件本身， sys.argv[1] 代表第一个参数，依此类推，例如 getArgs.py内容如下：  import sys
-print sys.argv
-print 'number of args: &rsquo;, len(sys.argv)
-print sys.argv[1]
-print sys.argv[2]
-在命令行下输入“python getArgs.py 111 222”会得到： [&lsquo;getArgs.py&rsquo;, &lsquo;111&rsquo;, &lsquo;222&rsquo;]
-number of args: 3
-111
-222  如果脚本在某种情况下需要退出执行，用exit()</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2008/01/09/095634/">Word排版笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2008-01-09T09:56:34+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2008</span></span> <span class='time'>9:56 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li>排版的基本原则是将内容与版式相分离，也就是将TeX排版的精神运用到WORD中，具体包括：</li>
-<li>所有文本的格式采用【格式】来生成，不要手工生成；</li>
-<li>在中文文档中不使用空格，一切间距用【格式】来控制；</li>
-<li>不要手工输入编号，包括图和表格的序号，在引用图和表格时一定要用【交叉引用】；</li>
-<li>将长文档的每章单独作为一个文件保存，这个文件中没有任何格式，所有格式在主控文档中定义；</li>
-<li>“制表符”就是tab，可以通过点击标尺的下边来生成，可以水平拖动以改变位置，当向下拖动时就是删除该制表符，可以用选择多行文本，统一生成一个制表符的方法对齐多行文本；</li>
-<li>关于图、表序号：</li>
-<li>选中图后插入【题注】，需要引用该图时插入【交叉引用】，如果希望“图 1”的两个字中间没有空格，可手工删除；</li>
-<li>自动更新问题：Ctrl+A然后F9即可（【更新域】快捷键F9）。</li>
-<li>关于主控文档和子文档</li>
-<li>关于文档保护：【工具－保护文档】</li>
-<li>将文档设为只读（不能作任何修改），只有在密码正确的情况下才能修改内容：勾选【编辑限制】，限制类型选为【未作任何更改（只读）】，然后【启动强制保护】即可；要修改时【工具－取消文档保护】，输入密码即可；</li>
-<li>只允许不知道密码的人添加批注：与上面相同，只是限制类型选为【批注】即可；</li>
-<li>允许修改内容，但修改的地方必须由作者确认后才能生效：与上面相同，只是限制类型选为【修订】即可；要接受修订内容，首先要取消文档保护，然后在【审阅】工具栏上点【接受所选修订】即可；</li>
-<li>文件开启密码和修改密码（不知道的话无法打开文件和修改文件）：【工具－选项－安全性】中设置；这个设置容易造成文档变成只读，无法修改，慎用！感觉【保护文档】功能比较可靠；</li>
-<li>关于参考文献的编写，基本有四种方法：</li>
-<li>将参考文献作为普通的编号项放在文末，每条参考文献手工输入，文中使用【交叉引用】来引用这些编号项，这种方法可以适应各种格式，操作也相对简单，当参考文献数量不大时（手工输入量不大，也不存在文档搜索等问题）是最好的解决方案；</li>
-<li>将参考文献作为尾注放在文末，这种方法操作很繁琐（例如要该尾注格式，去掉分隔线等等），而且有一定的限制，比如同时引用多处文献可能会出问题；</li>
-<li>使用EndNote软件管理参考文献（WORD2007可以使用EndNote X），这种方法最专业，只需输入参考文献的各个信息项，EndNote负责所有其他工作，参考文献数据库可以作为单独的文件保存，可以搜索已有的文献等等许多管理功能，这种方法适用于有大量参考文献进行管理；</li>
-<li>使用WORD2007自带的参考文献功能，位置在【引用－引文和书目】，具备基本的文档管理功能，但参考文献的样式不能自己定制，而且自带的格式不符合现有的参考文献格式（自动序号格式，但自带“著者－年代”格式），因此中文论文无法使用这种方法；</li>
-<li>加入批注时的作者名称可以在【工具－选项－用户信息】中修改；</li>
-<li>自动生成目录功能：WORD默认将样式为【标题1】～【标题3】的文字生成目录，可以在【插入－引用－索引和目录－目录】中进行设置，例如如果将【标题4】也加入目录，可以将【显示级别】调高；每一级目录文字的字体、字号、大小等所有格式属性可以在【修改】按钮中进行更改；</li>
-<li>WORD的版本控制：【文件－版本】中可以为当前的文档保存一个版本，勾选【关闭时自动保存版本】可以在每次关闭文档后自动保存一个版本，该设置只对某一具体文件有效；</li>
-<li>如何比较不同版本的区别？</li>
-<li>如何利用一个已有的文档制作一个模版，例如论文模版、项目报告模版等？</li>
-<li>关于带序号公式的排版方法</li>
-<li>WORD2003中的排版方法</li>
-<li> 建立一个“公式”格式，特点是数学公式居中对齐，自动编号，并居右对齐：
-公式前、后各放置一个tab，后面是序号，也就是“tab 公式 tab 序号”的形式，然后选中这个段落（整行），【格式－样式与格式】，在“所选文字的格式”下拉框中点“新建样式”，在名称中输入“我的公式”，【确定】即可，后面再输入公式，仍然是“tab 公式 tab 序号”，然后将格式设置为“我的公式”即可；</li>
-<li> 公式序号的自动排序：将手写的公式序号删除，然后插入一个题注（不要先选中公式），标签名称设为【公式】，选中插入的这个题注，插入一个【书签】，【书签名】可以用中文，例如“Pn的值”，在需要引用这个公式的地方插入交叉引用，【引用类型】为“书签”，【引用内容】为“书签文字”即可。（用快捷键Ctrl+G可以方便地定位书签。）以后如果更改了公式的顺序，Ctrl+A然后F9即可（【更新域】快捷键F9）；</li>
-<li>WORD2007中的排版方法：安装MathType6.0后，会出现一个【MathType】选项卡，下面【Insert Equations】列中有一个【Right-numbered】专门用来插入带序号的公式，版式与上面word2003中的一样，但对需要引用的公式仍需手工添加书签，才能引用这些公式（交叉引用）；</li>
-<li>自动为章节编号：方法是修改内建样式【标题n】，使它们前面带上序号。
-分别给第一、二层标题加上序号，调整第二层标题的【多级符号】，将其【级别】设置为2，这样WORD就自动为下面层级的标题设置了相应的编号格式；
-具体操作是：第二层标题上右键－项目符号和编号－多级符号－自定义，将【级别】选为【2】即可；</li>
-<li>图文混排的原则：图片全部采用嵌入式，居中，下面图名的序号用题注，居中；</li>
-<li>更改已有的一个样式并在所有应用该样式的地方生效：首先修改应用了该样式的一个实例，然后在样式上右键－【更新以匹配选择】即可。（【格式－样式与格式】可以调出样式工具栏。）</li>
-<li>WORD2007自带的公式编辑功能比较弱，比如有如下问题：</li>
-<li>数学公式不是斜体，需要手工转换为斜体；</li>
-<li>单行的数学公式与制表符不能同行，否则会被强制转化为行内公式，导致公式出现错误的字体（例如在分式中分子分母的字体会自动减小）；</li>
-<li>自动生成编号或者项目符号的方法</li>
-<li>自动生成编号：输入“1”（或者“1）”、“（1）”，全、半角均可）后按tab；</li>
-<li>自动项目符号：输入“*”后按空格；</li>
-<li>二级编号变成一级编号：连续两次回车；</li>
-<li>结束编号或者项目符号：连续回车直到编号消失；</li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/111">&larr; Older</a>
@@ -720,23 +1118,23 @@ number of args: 3
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

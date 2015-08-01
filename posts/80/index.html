@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Upstream &amp; Downstream Upstream指网络层向应用层传播，Downstream相反，应用层向网络层传播，所以Upstream Events的代表是messageReceived，DownStream Events的代表是write方法； Netty &hellip;">
+  <meta name="description" content="这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。 import java.net.InetSocketAddress; import org.apache. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,486 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/31/113320/">Mina读写事件的发生顺序</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-31T11:33:20+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>11:33 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。</p>
+
+<p>import java.net.InetSocketAddress;</p>
+
+<p>import org.apache.mina.transport.socket.SocketAcceptor;</p>
+
+<p>import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
+
+<p>public class Main {</p>
+
+<p>public static void main(String[] args) throws Exception {</p>
+
+<p>SocketAcceptor acceptor = new NioSocketAcceptor();</p>
+
+<p>acceptor.getFilterChain().addLast(&ldquo;myfilter1&rdquo;, new MyFilter1());</p>
+
+<p>acceptor.getFilterChain().addLast(&ldquo;myfilter2&rdquo;, new MyFilter2());</p>
+
+<p>acceptor.setHandler(new EchoProtocolHandler());</p>
+
+<p>acceptor.bind(new InetSocketAddress(8293));</p>
+
+<p>System.out.println(&ldquo;Listening on port &rdquo; + PORT);</p>
+
+<p>}</p>
+
+<p>}</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilter;</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
+
+<p>import org.apache.mina.core.session.IdleStatus;</p>
+
+<p>import org.apache.mina.core.session.IoSession;</p>
+
+<p>import org.apache.mina.core.write.WriteRequest;</p>
+
+<p>import org.slf4j.Logger;</p>
+
+<p>import org.slf4j.LoggerFactory;</p>
+
+<p>public class MyFilter1 implements IoFilter {</p>
+
+<p>private static final Logger LOGGER = LoggerFactory</p>
+
+<p>.getLogger(MyFilter1.class);</p>
+
+<p>public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+
+<p>Object message) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;MessageReceived!&rdquo;);</p>
+
+<p>nextFilter.messageReceived(session, message);</p>
+
+<p>}</p>
+
+<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;messageSent!&rdquo;);</p>
+
+<p>nextFilter.messageSent(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;filterWrite!&rdquo;);</p>
+
+<p>nextFilter.filterWrite(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>  // some other methods must implemented.</p>
+
+<p>}</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilter;</p>
+
+<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
+
+<p>import org.apache.mina.core.session.IdleStatus;</p>
+
+<p>import org.apache.mina.core.session.IoSession;</p>
+
+<p>import org.apache.mina.core.write.WriteRequest;</p>
+
+<p>import org.slf4j.Logger;</p>
+
+<p>import org.slf4j.LoggerFactory;</p>
+
+<p>public class MyFilter2 implements IoFilter {</p>
+
+<p>private static final Logger LOGGER = LoggerFactory</p>
+
+<p>.getLogger(MyFilter2.class);</p>
+
+<p>  public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+
+<p>Object message) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;MessageReceived!&rdquo;);</p>
+
+<p>nextFilter.messageReceived(session, message);</p>
+
+<p>}</p>
+
+<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;messageSent!&rdquo;);</p>
+
+<p>nextFilter.messageSent(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
+
+<p>WriteRequest writeRequest) throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;filterWrite!&rdquo;);</p>
+
+<p>nextFilter.filterWrite(session, writeRequest);</p>
+
+<p>}</p>
+
+<p>   // some other methods must implemented.</p>
+
+<p>}</p>
+
+<p>import org.apache.mina.core.buffer.IoBuffer;</p>
+
+<p>import org.apache.mina.core.service.IoHandlerAdapter;</p>
+
+<p>import org.apache.mina.core.session.IoSession;</p>
+
+<p>import org.slf4j.Logger;</p>
+
+<p>import org.slf4j.LoggerFactory;</p>
+
+<p>public class EchoProtocolHandler extends IoHandlerAdapter {</p>
+
+<p>private static final Logger LOGGER = LoggerFactory</p>
+
+<p>.getLogger(EchoProtocolHandler.class);</p>
+
+<p>@Override</p>
+
+<p>public void exceptionCaught(IoSession session, Throwable cause) {</p>
+
+<p>session.close(true);</p>
+
+<p>}</p>
+
+<p>@Override</p>
+
+<p>public void messageReceived(IoSession session, Object message)</p>
+
+<p>throws Exception {</p>
+
+<p>LOGGER.info(&ldquo;Received : &rdquo; + message);</p>
+
+<p>session.write(((IoBuffer) message).duplicate());</p>
+
+<p>}</p>
+
+<p>@Override</p>
+
+<p>public void messageSent(IoSession session, Object message) {</p>
+
+<p>LOGGER.info(&ldquo;messageSent &rdquo; + message);</p>
+
+<p>}</p>
+
+<p>}</p>
+
+<p>用XShell运行telnet localhost 8293，发一个字符串"hi"，运行结果如下：</p>
+
+<p>Listening on port 8293</p>
+
+<p>[INFO] [2012-03-31 14:03:38,575] [com.leechau.mina.echoServer.MyFilter1] - [MessageReceived!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,576] [com.leechau.mina.echoServer.MyFilter2] - [MessageReceived!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,577] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter2] - [filterWrite!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter1] - [filterWrite!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter1] - [messageSent!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter2] - [messageSent!]</p>
+
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.EchoProtocolHandler] - [messageSent HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
+
+<p>可以看到messageReceived事件从Filter链顶端传播到handler；filterWrite事件发生在handler开始发送消息，但还未写入socket时，仅对Filter链有效，不作用于handler，从链尾向链首传播；messageSent事件发生在socket已被写入之后，从链顶端传播到handler；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/30/174213/">Mina的JMX支持</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-30T17:42:13+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:42 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以下是一个增加了JMX支持的Mina Echo Server.</p>
+
+<p> package org.apache.mina.echoServer;</p>
+
+<p> import java.lang.management.ManagementFactory;</p>
+
+<p> import java.net.InetSocketAddress;</p>
+
+<p> import javax.management.MBeanServer;</p>
+
+<p> import javax.management.ObjectName;</p>
+
+<p> import org.apache.mina.transport.socket.SocketAcceptor;</p>
+
+<p> import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
+
+<p> import org.apache.mina.integration.jmx.IoServiceMBean;</p>
+
+<p> public class Main {
+ public static void main(String[] args) throws Exception {
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  acceptor.setHandler(new EchoProtocolHandler());
+  acceptor.bind(new InetSocketAddress(PORT));
+  System.out.println(&ldquo;Listening on port &rdquo; + 8293);
+  MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+  IoServiceMBean acceptorMBean = new IoServiceMBean(acceptor);
+  ObjectName acceptorName = new ObjectName(acceptor.getClass().getPackage().getName()
+    + &ldquo;:type=acceptor,name=&rdquo; + acceptor.getClass().getSimpleName());
+  mBeanServer.registerMBean(acceptorMBean, acceptorName);
+ }
+}</p>
+
+<p> package org.apache.mina.echoServer;</p>
+
+<p> import org.apache.mina.core.buffer.IoBuffer;</p>
+
+<p> import org.apache.mina.core.service.IoHandlerAdapter;</p>
+
+<p> import org.apache.mina.core.session.IdleStatus;</p>
+
+<p> import org.apache.mina.core.session.IoSession;</p>
+
+<p> import org.apache.mina.filter.ssl.SslFilter;</p>
+
+<p> import org.slf4j.Logger;</p>
+
+<p> import org.slf4j.LoggerFactory;</p>
+
+<p> public class EchoProtocolHandler extends IoHandlerAdapter {
+ private static final Logger LOGGER = LoggerFactory.getLogger(EchoProtocolHandler.class);
+ @Override
+ public void exceptionCaught(IoSession session, Throwable cause) {
+  session.close(true);
+ }
+ @Override
+ public void messageReceived(IoSession session, Object message) throws Exception {
+  LOGGER.info(&ldquo;Received : &rdquo; + message);
+  session.write(((IoBuffer) message).duplicate());
+ }
+}</p>
+
+<p>ivy.xml:</p>
+
+<p> <dependency org="javassist" name="javassist" rev="3.12.1.GA" conf="compile->master"/>
+<dependency org="log4j" name="log4j" rev="1.2.15" conf="compile->master"/>
+<dependency org="ognl" name="ognl" rev="3.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-core" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-beans" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-jmx" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.apache.mina" name="mina-integration-ognl" rev="2.0.4" conf="compile->master"/>
+<dependency org="org.easymock" name="easymock" rev="2.5.1" conf="master->master"/>
+<dependency org="org.slf4j" name="slf4j-api" rev="1.5.0" conf="compile->master"/>
+<dependency org="org.slf4j" name="slf4j-log4j12" rev="1.5.0" conf="compile->master"/></p>
+
+<p>启动服务是需要加VM参数-Dcom.sun.management.jmxremote：</p>
+
+<p>命令行启动：java -Dcom.sun.management.jmxremote -classpath <CLASSPATH> org.apache.mina.echoServer.Main</p>
+
+<p>Eclipse中启动：Run->Debug configuration中，Name: Main , VM arguments: -Dcom.sun.management.jmxremote</p>
+
+<p>启动JConsole，连接org.apache.mina.echoServer.Main；</p>
+
+<p>进入Main的监控窗口后MBean->操作，可以手工运行acceptor的方法，例如点击Dispose，会关闭acceptor。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/30/155535/">Java的Buffer读取操作</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-30T15:55:35+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>3:55 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Buffer用于从channel中读（或者向channel写）数据，它有3个标记，分别是capacity, limit &amp; position，其中capacity是此buffer的容量（固定值），buffer初始化时（使用allocate方法）设定；limit是有效数据的边界，即0~limit之间是可读/写的数据，position是下一个应该被读/写的位置。</p>
+
+<p>Buffer有两种模式：写模式和读模式，写模式是向buffer中写数据（例如socketChannel.read(buffer)），读模式是从buffer中读出数据。</p>
+
+<p>写模式下limit总等于capacity，读模式下limit是最近一次写入的数据位置。</p>
+
+<p>使用buffer读写数据的基本过程是一个4步循环：</p>
+
+<ol>
+<li><p>向buffer写入数据；</p></li>
+<li><p>buffer.flip(); // 把buffer从写模式切换到读模式</p></li>
+<li><p>从buffer中读出数据；</p></li>
+<li><p>if (buffer.hasRemaining()) {buffer.compact();} else {buffer.clear();} // compact和clear方法将buffer切换回写模式，下面有解释</p></li>
+</ol>
+
+
+<p>以上解释来自于<a href="http://tutorials.jenkov.com/java-nio/buffers.html">Java NIO Buffer</a>。</p>
+
+<h1>compact和clear方法</h1>
+
+<p>compact方法将未读完的数据（position与limit之间的数据）平移到buffer头部，然后将position设到这段数据的尾部，这样后面的写操作将在这段数据后追加（见SocketChannel.read()方法的javadoc），而不会覆盖这段数据，然后将limit设为capacity；clear方法令position=0; limit=capacity;从而为读数据做好准备，详见二者的javadoc。</p>
+
+<h1>wrap方法</h1>
+
+<p> ByteBuffer buffer = ByteBuffer.allocate(10);
+ byte[] content = { 27, 91, 75, 116, 117 };
+ buffer = ByteBuffer.wrap(content);
+ assertEquals(0, buffer.position());
+ assertEquals(5, buffer.limit());
+ assertEquals(5, buffer.capacity());</p>
+
+<p>以上表明wrap方法会改变ByteBuffer对象的容量（capacity），并将其置为读模式；</p>
+
+<h1>实例演示</h1>
+
+<p>下面以ByteBuffer为例说明Java的buffer读写操作，以及对相关的几个参数的影响；</p>
+
+<p> import java.nio.ByteBuffer;
+ public class GetPutByteBuffer {
+  public static void main(String[] args) {
+   ByteBuffer byteBuffer = ByteBuffer.allocate(10);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit() + &ldquo; capacity=&rdquo; + byteBuffer.capacity());
+   // pos=0 limit=10 capacity=10
+   byteBuffer.put((byte) 20);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=10
+   byteBuffer.put((byte) 33);
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=2 limit=10
+   byteBuffer.put((byte) 55);
+   byteBuffer.flip();
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=0 limit=3
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   byteBuffer.rewind();
+   System.out.println(byteBuffer.get());
+   // 20
+   System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   // pos=1 limit=3
+   System.out.println(&ldquo;the remaining is: &rdquo; + byteBuffer.remaining());
+   // the remaining is: 2
+   while (byteBuffer.hasRemaining()) {
+    System.out.println(byteBuffer.get());
+    System.out.println(&ldquo;pos=&rdquo; + byteBuffer.position() + &ldquo; limit=&rdquo; + byteBuffer.limit());
+   }
+   /<em>
+   * 33
+   * pos=2 limit=3
+   * 55
+   * pos=3 limit=3
+   </em>/
+  }
+ }</p>
+
+<p>可以看到buffer的capacity是一个固定值，初始化时设定，pos初始为0，limit初始等于capacity，一次读（get）或写（put）都使pos加一，limit不变，flip使limit=pos，pos=0，接收完数据开始读取时这个动作是必须的，rewind使pos=0，相当于重新开始读数据。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/27/090454/">Mina与netty的区别</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-27T09:04:54+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:04 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li>从messageReceived的参数上可以看出： netty是在channel上传递event，mina是在iosession中传递message（默认是iobuffer类型）；</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -675,150 +1155,6 @@ tshark: /usr/sbin/tshark /usr/share/man/man1/tshark.1.gz</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/12/162305/">Red Hat Enterprise上安装Telnet服务</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-12T16:23:05+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:23 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Red Hat Enterprise默认只提供ssh和sftp服务，没有提供telnet和ftp服务，安装过程是：</p>
-
-<ol>
-<li><p>用sftp上传telnet server安装包：telnet-server-0.17-39.el5.x86_64.rpm；</p></li>
-<li><p>使用root用户运行： rpm -ivh telnet*.rpm （普通用户安装会出现"can’t create transaction lock on&hellip;&ldquo;错误）-ivh中，i=install, v=Print verbose information, h=print hash marks；</p></li>
-</ol>
-
-
-<p>2.1 安装前可以用 rpm -qpi telnet*.rpm 查看安装包的内容，参数含义：q=query, p=query an (uninstalled) package,i=display package information；</p>
-
-<ol>
-<li><p>修改/etc/xinetd.d/telnet，将"disable=yes"改为"disable=no"；</p></li>
-<li><p>重启xinetd： service xinetd restart （telnet服务进程由xinetd管理）。</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/12/111312/">Win7中开启Telnet Server</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-12T11:13:12+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:13 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>控制面板->程序->打开或关闭Windows功能，勾选【Telnet服务器】；运行【服务】（开始搜索框中输入services.msc）中将"Telnet"设为手工启动；</p></li>
-<li><p>（此步似乎可不做？）【登录】标签页中选【此账户】，然后键入 NT AUTHORITY\LocalService，密码置空；</p></li>
-<li><p>创建一个新的标准用户client（控制面板->用户账户和家庭安全->用户账户->管理账户->创建一个新账户），密码telnetclient；</p></li>
-<li>运行secpol.msc（本地安全策略）; 打开本地策略->安全选项，找到网络访问&ndash;本地账户的共享和安全模型，右击属性，选择【经典】；</li>
-<li>本地用户和组（运行lusrmgr.msc）管理界面中，【组 -> TelnetClients】（如果没有TelnetClients组则创建之），将client用户加入到此组中：
-验证：用XShell/SecureCRT运行： telnet localhost ，看是否能连上；
-以后需要使用Telnet服务时运行services.msc找到Telnet服务启动即可。</li>
-</ol>
-
-
-<p>参考： win7环境下telnet完整配置与测试</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/12/102907/">在表中插入字段的sql语句</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-12T10:29:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:29 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>参考 给表增加一个字段的SQL怎写？
-alter table <table_name> add &lt;字段名> &lt;数据类型> default <default_value> primary key</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/11/091522/">用autohotkey帮助触摸板实现鼠标中键单击</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-11T09:15:22+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:15 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>笔记本的触摸板没有中键，但在Chrome里用中键单击实现“新标签页里打开链接”是一个很常用的动作，偏偏我又不愿意每次用笔记本的时候接鼠标，只好请出无所不能的Autohotkey大仙了，下面的脚本运行后，先将鼠标移动到链接上，然后Alt+Space就实现了中键单击的效果。</p>
-
-<p> !Space:: SendInput, {MButton}</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/81">&larr; Older</a>
@@ -836,23 +1172,23 @@ alter table <table_name> add &lt;字段名> &lt;数据类型> default <default_v
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

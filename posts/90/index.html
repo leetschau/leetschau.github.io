@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="一次连接唯一的标识符是ip+port。当 首先，GAPI的日志中要有session，例如： logger.info(session + &ldquo; has login GODU&rdquo;); 对应的日志输出为： 2011-07-31 15:55:02,859 [pool-5-thread- &hellip;">
+  <meta name="description" content="下面的程序（改自IBM DevelopWorks的"Getting Started with NIO"中的TypesInByteBuffer.java）用一个ByteBuffer对象存储了一个int和一个long，比较清晰的演示了int和long在内存中是如何存储的。 package com. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,326 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/18/154015/">Java中数值类型的存储方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-18T15:40:15+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:40 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的程序（改自IBM DevelopWorks的"Getting Started with NIO"中的TypesInByteBuffer.java）用一个ByteBuffer对象存储了一个int和一个long，比较清晰的演示了int和long在内存中是如何存储的。
+ package com.ibm.nio;</p>
+
+<p> import java.nio.ByteBuffer;</p>
+
+<p> public class TypesInByteBuffer {</p>
+
+<p>  static public void main(String args[]) throws Exception {</p>
+
+<pre><code>ByteBuffer buffer = ByteBuffer.allocate(64); 
+
+buffer.putInt(30); 
+
+buffer.putLong(7000000000000L); 
+
+buffer.flip(); // set a breakpoint here 
+
+System.out.println(buffer.getInt()); 
+
+System.out.println(buffer.getLong()); 
+</code></pre>
+
+<p>   }</p>
+
+<p> }</p>
+
+<p> 在flip处设置一个断点，查看buffer的值如下：
+ [0, 0, 0, 30, 0, 0, 6, 93, -48, -125, 112, 0,&hellip;]
+ 前4个字节存储int，这里是30，后8个字节存储long，这里是 7000000000000L，由于一个字节是8个bit，因此要把一个8字节的内存中的long型数ABCDEFGH转换为10进制数，计算公式是：
+ A<em>256<sup>7</sup> + B</em>256<sup>6</sup> + C<em>256<sup>5</sup> + D</em>256<sup>4</sup> + E<em>256<sup>3</sup> + F</em>256<sup>2</sup> + G<em>256 + H
+ 如果某一位是负数，则用256减去它再进行计算。
+ 所以用Pyhton语法验证就是：6</em>256<strong>5+93*256</strong>4+(256-48)<em>256**3+(256-125)</em>256<em>*2+112</em>256，结果就是 7000000000000L。</p>
+
+<p> 对于浮点数（float和double型），转换为二进制相对复杂些，参见"IEEE Standard 754 Floating Point Numbers"，除了Java语言，C、C++、C#等也都使用相同的方法存储整数和浮点数。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/18/092023/">Java范型方法中T与?的比较</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-18T09:20:23+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:20 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java范型从范围上分，有范型类和范型方法两种，这里只讨论范型方法，从语义上来说，范型中的 T 和 ? 都有“任意一个类”（或者“任意一种类型”）的意思，那么二者的区别是什么呢？我认为是 T 可以放在Field或者Method名称前作为类型名，而 ? 不行，除此之外本质上完全一样，下面的代码是一个实例。</p>
+
+<p> package org.leechau.genericEx;</p>
+
+<p> import java.util.ArrayList;</p>
+
+<p> import org.junit.Before;</p>
+
+<p> import org.junit.Test;</p>
+
+<p> public class GenericTest {</p>
+
+<p>  private final ArrayList<String> p1 = new ArrayList<String>();</p>
+
+<p>  private final ArrayList<Integer> p2 = new ArrayList<Integer>();</p>
+
+<p>  public <T> String ma(ArrayList <T> pa) {</p>
+
+<p>   return pa.get(0).toString();</p>
+
+<p>  }</p>
+
+<p>  public String mb(ArrayList &lt;?> pa) {</p>
+
+<p>  return pa.get(0).toString();</p>
+
+<p>  }</p>
+
+<p>  @Before</p>
+
+<p>  public void setUp() throws Exception {</p>
+
+<p>   p1.add(&ldquo;1st strings&rdquo;);</p>
+
+<p>   p2.add(51);</p>
+
+<p>  }</p>
+
+<p>  @Test</p>
+
+<p>  public void testMa() {</p>
+
+<p>   System.out.println(ma(p1));</p>
+
+<p>   System.out.println(ma(p2));</p>
+
+<p>  }</p>
+
+<p>  @Test</p>
+
+<p>  public void testMb() {</p>
+
+<p>   System.out.println(mb(p1));</p>
+
+<p>   System.out.println(mb(p2));</p>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p> 下面的代码演示了如何分别用 T 和 ? 完成相同的实现。</p>
+
+<p> T版：</p>
+
+<p> package org.leechau.genericEx;</p>
+
+<p> import java.util.Collection;</p>
+
+<p> public abstract class Animal {</p>
+
+<p> public <T extends Animal> void playWith(Collection<T> playGroup) {}</p>
+
+<p> }</p>
+
+<p> package org.leechau.genericEx;</p>
+
+<p> import java.util.ArrayList;</p>
+
+<p> import java.util.Collection;</p>
+
+<p> public class Dog extends Animal {</p>
+
+<p> @Override</p>
+
+<p> public <T extends Animal> void playWith(Collection<T> playGroup) {</p>
+
+<p> System.out.println(this.toString() + &ldquo; play with &rdquo;</p>
+
+<ul>
+<li>playGroup.toString());</li>
+</ul>
+
+
+<p> }</p>
+
+<p> public static void main(String[] args) {</p>
+
+<p> Collection<Dog> dogs = new ArrayList<Dog>();</p>
+
+<p> Dog aDog = new Dog();</p>
+
+<p> aDog.playWith(dogs);</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p> ?版：</p>
+
+<p> package org.leechau.genericEx;</p>
+
+<p> import java.util.Collection;</p>
+
+<p> public class Animal2 {</p>
+
+<p> public void playWith(Collection &lt;? extends Animal2> playGroup) {}</p>
+
+<p> }</p>
+
+<p> package org.leechau.genericEx;</p>
+
+<p> import java.util.ArrayList;</p>
+
+<p> import java.util.Collection;</p>
+
+<p> public class Dog2 extends Animal2 {</p>
+
+<p> @Override</p>
+
+<p> public void playWith(Collection&lt;? extends Animal2> playGroup) {</p>
+
+<p> System.out.println(this.toString() + &ldquo; play with &rdquo;</p>
+
+<ul>
+<li>playGroup.toString());</li>
+</ul>
+
+
+<p> }</p>
+
+<p> public static void main(String[] args) {</p>
+
+<p> Collection<Dog2> dogs = new ArrayList<Dog2>();</p>
+
+<p> Dog2 aDog = new Dog2();</p>
+
+<p> aDog.playWith(dogs);</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p> Java的范型（尤其是实现机制）给我的感觉是不够优雅，当一堆&lt;>嵌套在一起的时候让人觉得像天书一样，背离了Java简洁易用的原则，但即便如此，毕竟现在Java还是产品开发（尤其是大规模产品）的主流工具，我们有必要理解它的一些细节。[1]的Part I,II 和[2]的第12章对范型的讲解比较透彻，[3]的4.3.7节则对Java范型进行了中肯的评价， [1]的Part III探讨了如何将没有范型的老代码改为有范型的新代码以保证类型安全 。</p>
+
+<p> [1] Venkat Subramaniam, Generics in Java</p>
+
+<p> [2] Cay S. Horstmann, Core Java. Volume I, Fundamentals, 8th ed, 2007.9</p>
+
+<p> [3] Bruce A. Tate, Beyond Java, 2005.9</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/15/143813/">确定当前使用的Shell的种类</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-15T14:38:13+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:38 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>如何知道当前使用的是什么Shell？</p>
+
+<ol>
+<li><p>echo $0  (sh, bash, ksh, csh, tcsh上验证有效）；</p></li>
+<li><p>ps|grep $$ ，看最后一项，或者： ps|grep $$|awk &lsquo;{print $4}&rsquo; (sh, bash, ksh, csh, tcsh上验证有效）；</p></li>
+<li><p>输入一个系统不认识的命令（如aaa）获得系统提示，在有些shell上无效，不推荐；</p></li>
+</ol>
+
+
+<p>另： echo $SHELL （用户默认的Shell，但不实时反映当前shell）；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/11/180420/">Check Port Usage in Windows</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-11T18:04:20+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>6:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>netstat -ano</p>
+
+<p>通过命令结果中的PID号对应到Windows进程上。</p>
+
+<p>参考：“利用Windows内置功能轻松查看端口使用情况”（ <a href="http://li-donghui123-163-com.iteye.com/blog/248028">http://li-donghui123-163-com.iteye.com/blog/248028</a> ）</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -396,633 +716,6 @@ log4j.appender.fx.layout.LocationInfo=true
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/07/26/091657/">GAPI的同步返回实现方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-07-26T09:16:57+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:16 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。</p>
-
-<p>测试用例：</p>
-
-<p> public class SimpleExpScriptTest {</p>
-
-<p>   private IConnection conn;</p>
-
-<p>  @Test</p>
-
-<p>  public void testPWD() throws Exception {</p>
-
-<p>   conn = ConnFactory.getInstance().getConnection(Constants.PORT_CONNECT_GODU_DATA);</p>
-
-<p>   conn.setSyncType(Constants.TYPE_DATA_CMD_SYNC);</p>
-
-<p>   if (conn.getConnection(&ldquo;<aa><7001><administrator><autocmd>&rdquo;, &ldquo;goduapp&rdquo;, &ldquo;10.0.2.47&rdquo;, 1234, 100)) {</p>
-
-<pre><code>System.out.println("Connect GODU OK!"); 
-</code></pre>
-
-<p>   }</p>
-
-<p>   conn.sendGoduCmd(&ldquo;settelnetcodec switch=y&rdquo;);</p>
-
-<p>   conn.set_script_timeout(500);</p>
-
-<p>   Map&lt;String, Object> params = new HashMap&lt;String, Object>();</p>
-
-<p>   params.put(&ldquo;user_name&rdquo;, &ldquo;test&rdquo;);</p>
-
-<p>   params.put(&ldquo;old_pwd&rdquo;, &ldquo;godu123&rdquo;);</p>
-
-<p>   params.put(&ldquo;new_pwd&rdquo;, &ldquo;testgodu&rdquo;);</p>
-
-<p>   IResult result = conn. execScript (&ldquo;-1200187081&rdquo;, &ldquo;script/PWD&rdquo;, &ldquo;&rdquo;, params);</p>
-
-<p>   System.out.println(&ldquo;***result is:\n&rdquo; + result.getString());</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> execScript 方法：</p>
-
-<p> package com.boco.godu.gapi.conn;</p>
-
-<p> import &hellip;</p>
-
-<p> public class GoduDataConnection extends AbstractConnection {</p>
-
-<p>  private static final GapiLogger logger = LogUtils.getLogger(this.getClass().getName());</p>
-
-<p>  private final Object lock = new Object(); //对象锁</p>
-
-<p>  public IResult execScript(String ne_id, String scriptPath, String name, Map&lt;String, Object> params) throws &hellip; {</p>
-
-<p>   // check if connected GODU successfully</p>
-
-<p>   &hellip;</p>
-
-<p>   // parse script file</p>
-
-<p>   GoduScript gs = new GoduScript(scriptPath, script_buffer_size, params);</p>
-
-<p>   // add execute_script filter</p>
-
-<p>   session.getFilterChain().addBefore(&hellip;);</p>
-
-<p>   // open NE</p>
-
-<p>   &hellip;</p>
-
-<p>   // 在执行完脚本或者超时之前阻止代码继续运行，在ExecScriptFilter.messageReceived方法中解锁</p>
-
-<p>   GapiIosessionUtils. lockSession (session, lock , script_timeout );</p>
-
-<p>   GoduReturnResult res = new GoduReturnResult();</p>
-
-<p>   String script_result = (String) session.getAttribute(</p>
-
-<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RESULT, ""); 
-</code></pre>
-
-<p>   res.setArrays(script_result.getBytes());</p>
-
-<p>   int return_status = (Integer) session.getAttribute(</p>
-
-<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RETURN_STATUS, 0); 
-</code></pre>
-
-<p>   res.setReturnStatus(return_status);</p>
-
-<p>   return res;</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> 这样代码运行到lockSession时暂停，直到超时时间到，或者被其他线程上持有同一个锁的“唤醒”方法唤醒，这实现了同步方式的前一半：下面是同步方式的后一半：filter执行脚本完毕后唤醒主线程继续运行：</p>
-
-<p> package com.boco.godu.gapi.mina.filter.data;</p>
-
-<p> import &hellip;</p>
-
-<p> public class ExecScriptFilter extends AGapiFilter {</p>
-
-<p>  @Override</p>
-
-<p>  public void messageReceived(NextFilter nextFilter, IoSession session,</p>
-
-<pre><code>     Object message) throws Exception { 
-</code></pre>
-
-<p>   &hellip;</p>
-
-<p>   if (&hellip;) { // 如果脚本执行完毕：</p>
-
-<pre><code>... 
-
-GapiIosessionUtils. unlockSession (session); 
-
-return; 
-</code></pre>
-
-<p>   }</p>
-
-<p>   &hellip;</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p>那么 lockSession 和 unlockSession 方法又是如何实现的呢，继续往下看：</p>
-
-<p> public class GapiIosessionUtils {</p>
-
-<p>  public static void lockSession(final IoSession session, final Object lock , final int timeout ) throws &hellip; {</p>
-
-<p>   try {</p>
-
-<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
-
- long beforeLockTime = System.currentTimeMillis(); 
-
- session.setAttribute(GoduFilterConstants. GODU_DATA_LOCK , lock ); 
-
- session.getConfig().setBothIdleTime(timeout); 
-
- ThreadUtil. waitIt ( lock , timeout * 1000 + 1000); 
-
- long afterLockTime = System.currentTimeMillis(); 
-
- logger.debug("lockTime=" + (afterLockTime - beforeLockTime) + "ms"); 
-
-} 
-</code></pre>
-
-<p>   } catch (Exception e) {</p>
-
-<pre><code>e.printStackTrace(); 
-
-logger.error("lockSession exception: ", e); 
-
-throw new GapiException(e); 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p>  public static void unlockSession(final IoSession session) throws &hellip; {</p>
-
-<p>   try {</p>
-
-<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
-
- Object status = session.getAttribute(GoduFilterConstants. GODU_DATA_LOCK ); 
-
- ThreadUtil.notifyIt(status); 
-
-} 
-</code></pre>
-
-<p>   } catch (Exception e) {</p>
-
-<pre><code>... 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> 可以看到加锁的时候将锁（lock对象）放在了session的一个attribute上，解锁的时候从这个attribute上取出这个锁，然后解锁。这里用到的 冻结线程的 waitIt 方法以及唤醒线程的 notifyIt 方法实现如下：</p>
-
-<p> package com.boco.godu.common.util;</p>
-
-<p> public class ThreadUtil {</p>
-
-<p>  public static void  waitIt  (final Object o, final long time) {</p>
-
-<p>   synchronized (o) {</p>
-
-<pre><code>try { 
-
- if (time == -1) { 
-
-  o.wait(); 
-
- } else { 
-
-  o.wait(time); 
-
- } 
-
-} catch (InterruptedException iex) { 
-
- iex.printStackTrace(); 
-
-} 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p>   public static void  notifyIt (final Object o) {</p>
-
-<p>   synchronized (o) {</p>
-
-<pre><code> o.notifyAll(); 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> 当代码到 o.wait(time); 时进入阻塞状态（停止运行，实际上是java.lang.Object.wait()方法），直到下列情况之一出现：</p>
-
-<ol>
-<li><p>超时时间time到；</p></li>
-<li><p>被唤醒，也就是调用同一个对象的notifyAll方法（即java.lang.Object.notifyAll()方法）。</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/07/23/103345/">Groovy正则表达式复杂逻辑判断实例</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-07-23T10:33:45+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>10:33 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的两个pattern（p1和p2）分别代表了(A or B) and (C or D)和(A and B) or (C and D)的跨行匹配结果，当然还可以用正则表达式构建更复杂的pattern，但这个实例证明了Groovy具备跨行匹配复杂逻辑表达式的能力。</p>
-
-<p> 值得注意的是，多行匹配文本时需要在匹配字符串前加“(?ms)”。</p>
-
-<p> 该实例同时演示了Groovy闭包的使用方法。
- 源代码</p>
-
-<p> msg1 = &lsquo;&rsquo;&lsquo;one two three four</p>
-
-<p> five six'&lsquo;&rsquo;</p>
-
-<p> msg2 = &lsquo;&rsquo;&lsquo;Jan Feb Mar</p>
-
-<p> Apr May Jun'&lsquo;&rsquo;</p>
-
-<p> msg3 = &lsquo;&rsquo;&lsquo;one two three</p>
-
-<p> Apr May Jun'&lsquo;&rsquo;</p>
-
-<p> msg4 = &lsquo;&rsquo;&lsquo;Jan Feb Mar</p>
-
-<p> four five six'&lsquo;&rsquo;</p>
-
-<p> p1 = / (?ms) (two|Feb).*(five|May)/</p>
-
-<p> p2 = / (?ms) (two.<em>five)|(Feb.</em>May)/</p>
-
-<p> msgs = [msg1, msg2, msg3, msg4]</p>
-
-<p> patterns = [p1, p2]</p>
-
-<p> patterns.each { pattern-></p>
-
-<p> println &lsquo;pattern is: &rsquo;+pattern</p>
-
-<p> msgs.each { msg-></p>
-
-<p> println &lsquo;msg is: &rsquo;+msg</p>
-
-<p> println &lsquo;match result is:&rsquo;</p>
-
-<p> matcher = msg =~ pattern</p>
-
-<p> if (matcher)</p>
-
-<p> println &ldquo;true&rdquo;</p>
-
-<p> else</p>
-
-<p> println &ldquo;false&rdquo;</p>
-
-<p> println &lsquo;&mdash;&rsquo;</p>
-
-<p> }</p>
-
-<p> println &lsquo;===&rsquo;</p>
-
-<p> }
- 运行结果
- pattern is: (?ms)(two|Feb).*(five|May)</p>
-
-<p> msg is: one two three four</p>
-
-<p> five six</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<p> msg is: Jan Feb Mar</p>
-
-<p> Apr May Jun</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<p> msg is: one two three</p>
-
-<p> Apr May Jun</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<p> msg is: Jan Feb Mar</p>
-
-<p> four five six</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<hr />
-
-<p> pattern is: (?ms)(two.<em>five)|(Feb.</em>May)</p>
-
-<p> msg is: one two three four</p>
-
-<p> five six</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<p> msg is: Jan Feb Mar</p>
-
-<p> Apr May Jun</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<p> msg is: one two three</p>
-
-<p> Apr May Jun</p>
-
-<p> match result is:</p>
-
-<p> false</p>
-
-<hr />
-
-<p> msg is: Jan Feb Mar</p>
-
-<p> four five six</p>
-
-<p> match result is:</p>
-
-<p> false</p>
-
-<hr />
-
-<hr />
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/07/21/154602/">基于Tcc的C语言编译器</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-07-21T15:46:02+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>3:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="http://bellard.org/tcc">TCC: Tiny C Compiler</a>是一款Windows平台上的迷你型C编译器，适合于学习算法时编译、演示一些简单的C语言程序，下面分别是基于vim和Notepad++的两种开发环境搭建方法。</p>
-
-<h1>安装TCC</h1>
-
-<p>TCC是绿色软件，下载软件包（tcc-0.9.25-win32-bin.zip）后解压即可运行，假设解压到"d:\apps\tcc"目录下。</p>
-
-<h1>vim</h1>
-
-<ol>
-<li>将以下程序保存到hello.c文件中。</li>
-</ol>
-
-
-<p> #include &lt;stdio.h>
- main()
- {
-  printf(&ldquo;hello, world!!!\n&rdquo;);
- }</p>
-
-<ol>
-<li>运行":!d:\Apps\tcc\tcc.exe -run %"</li>
-</ol>
-
-
-<h1>Notepad++</h1>
-
-<p>需要的软件：<a href="http://notepad-plus-plus.org/">Notepad++</a> v5.8.3 绿色版和它的NppExec插件；</p>
-
-<h2>编译器</h2>
-
-<p>下载tcc的windows压缩包后解压到一个目录下，例如”f:\Software\tcc“；</p>
-
-<h2>语法高亮</h2>
-
-<p>Notepad++内置了对C语言的语法高亮，如果在“语言”菜单下没有"C"语言项，在【设置->首选项->语言】下从”禁用项“列表中把C放到”启用项“列表中即可。</p>
-
-<h2>命令行输出</h2>
-
-<p>安装NppExec：下载NppExec后解压到npp安装目录的plugins文件夹下，例如我的npp绿色版路径是f:\Software\Notepad++583，则解压后目录结构为f:\Software\Notepad++583\plugins\NppExec.dll和f:\Software\Notepad++583\plugins\NppExec（下面是几个.h文件），压缩包doc目录下文件放在f:\Software\Notepad++583\plugins\doc下。启动Npp后可看到【插件->NppExec】菜单，【插件->NppExec->Show Console Dialog】打开命令输出窗口，可用【插件->NppExec->Change Console Font】修改输出窗口的字体和字号；</p>
-
-<h2>定义运行脚本</h2>
-
-<p> 【插件->NppExec->Execute】打开Execute窗口，输入</p>
-
-<p> NPP_SAVE
- &ldquo;f:\Software\tcc\tcc.exe&rdquo; &ldquo;$(FULL_CURRENT_PATH)&rdquo; -run</p>
-
-<p> 点Save保存此脚本为”Run C“；第一行脚本表示保存文件，第二行脚本使用了tcc.exe的-run参数，将编译、连接、运行一次性搞定；</p>
-
-<h2>定义菜单项</h2>
-
-<p> 【插件->NppExec->Advanced Options】中选择"Run C"，然后勾选"Place to the Macro submenu"；</p>
-
-<p> 绑定快捷键</p>
-
-<p> 【设置->管理快捷键】的"Macros"或者"Plugins commands"下面找到"Run C"，为其设置一个快捷键；</p>
-
-<h2>编译运行</h2>
-
-<p>Npp中打开前述hello.c文件，【宏->Run C】或者使用前面设置的快捷键启动Run C脚本，在Console窗口中可以看到程序的输出。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/07/19/164331/">日期格式转换的正则表达式实现</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-07-19T16:43:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>原始文本：</p>
-
-<blockquote><p>2011年7月18日：修改密码的核心功能开发完毕；
-2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
-
-<p>目标格式文本：</p>
-
-<blockquote><p>2011-7-18：修改密码的核心功能开发完毕；
-2011-7-19：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
-
-<h1>vim实现</h1>
-
-<pre><code>:%s/\(\d\{4}\).\(\d\{1,2}\).\(\d\{1,2}\)./\1-\2-\3/g 
-</code></pre>
-
-<p>说明： 采用 :%s/old/new/g 命令进行替换，其中%表示对所有行进行替换操作，最后的g参数表明对一行中所有的new均替换为old。\d代表任意数字，old pattern中每个括号（即(&hellip;)）中的内容构成一个group member，new pattern中对group member的引用用\1、\2、\3&hellip;代表，即"BRE", back references.</p>
-
-<h1>Groovy实现</h1>
-
-<pre><code>oriStr = '''2011年7月18日：修改密码的核心功能开发完毕； 
-2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；'''; 
-pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
-matcher = oriStr =~ pattern; 
-matcher.each { all,y,m,d-&gt; 
-    println 'Patten is: '+all; 
-    println 'Replaced by: '+y+'-'+m+'-'+d; 
-}; 
-println '*****'; 
-println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;}; 
-</code></pre>
-
-<p>运行结果：</p>
-
-<pre><code>Patten is: 2011年7月18日 
-Replaced by: 2011-7-18 
-Patten is: 2011年7月19日 
-Replaced by: 2011-7-19 
-***** 
-2011-7-18：修改密码的核心功能开发完毕； 
-2011-7-19：上午换座位，下午提交了著作权文档的电子流程； 
-</code></pre>
-
-<p>说明： 跨行字符串用三引号括起来；匹配模式用“ /&hellip;/” 括起来；用模式匹配字符串时，每一次成功匹配构成了matcher的一个元素（代码中用matcher.each得到），如果模式当中包含group（可以matcher.hasGroup()判断），则这个元素本身也是一个List，其中第一个元素是符合模式的substring（代码中的all），各个group member可以用下标引用，也可以分别起名字（代码中分别为y、m、d）。这部分内容可参见《Groovy in Action》（2007版）第3.5节“Working with regular expressions”。Groovy的String.replaceAll方法包括两个参数，第一个是要被代替的pattern，第二个是用来代替pattern的closure，该closure的返回结果是最后一行代码的值。</p>
-
-<p>例如：<code>println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;return 'Date'};</code> 的输出是：</p>
-
-<pre><code>Date：修改密码的核心功能开发完毕； 
-Date：上午换座位，下午提交了著作权文档的电子流程； 
-</code></pre>
-
-<h1>基于文件读写的Groovy实现</h1>
-
-<pre><code>pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
-convStr = ''; 
-new File('f:/Edit3.txt').eachLine{ 
-    convStr += (it.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d})+'\n' 
-} 
-new File('f:/conv.txt').write convStr; 
-</code></pre>
-
-<p>说明： 第4行的it表示此行文本（字符串）。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/91">&larr; Older</a>
@@ -1040,23 +733,23 @@ new File('f:/conv.txt').write convStr;
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

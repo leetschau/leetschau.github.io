@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="下面的代码基于NFA算法实现了在多段字符串中匹配正则表达式，对比NFA算法可以看到它将pc由局部变量提升为类成员，以保存中间匹配状态，另外在匹配成功后将pc恢复到null状态。实际使用中，此类还应该增加一个"reset"方法，将pc值置为null，以便用户可以显式要求重新开始匹配。 public &hellip;">
+  <meta name="description" content="Sublime Text作为一款文本编辑器，最强大的是快速响应能力和"Goto Anything"功能，用Ctrl+Shift+P执行编辑器功能，用Ctrl+P+@进行文件间与文件内部的跳转，目前的编辑器还没有类似的，Vintage将vi的强大编辑能力吸收了进来，更是如虎添翼。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,314 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/07/230132/">Sublime Text笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-07T23:01:32+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Sublime Text作为一款文本编辑器，最强大的是快速响应能力和"Goto Anything"功能，用Ctrl+Shift+P执行编辑器功能，用Ctrl+P+@进行文件间与文件内部的跳转，目前的编辑器还没有类似的，Vintage将vi的强大编辑能力吸收了进来，更是如虎添翼。</p>
+
+<p>它不适合作为静态语言（如Java）的正式开发IDE，与“标准的”IDE（如Eclipse）比较，它不具备针对静态语言的代码重构功能；在代码自动补全方面，无法提供类库的类名/方法补全（能够提供语言关键字和变量的补全）；它无法提供调试环境，需要单独的代码调试器（如JSwat）。所以Sublime Text适合作为展现语言（如HTML，Latex等）或者动态语言（Python, PHP等）的开发工具。</p>
+
+<p>但很多时候我们只是想浏览代码，或是写一些简单的试验程序，或是修改代码的一处细节，启动Eclipse太慢了，用Sublime text这样text editor处理正合适。</p>
+
+<h1>借助Ant打造Java IDE</h1>
+
+<p>项目目录结构：项目根目录（$PORJ_HOME）下存放源代码、编译后的class文件和需要引用的jar包（而不是分开放在src, bin, lib文件夹下，适合于技术验证式的小项目），以及sublime项目定义文件（ProjectName.sublime-project）和build.xml，通过Ant的javac和java指令编译和运行Java代码，源代码不论什么包名都放在$PORJ_HOME下（Ant的javac指令会根据源代码的包名创建class文件的目录结构）；</p>
+
+<h2>准备工作</h2>
+
+<ol>
+<li><p>指定用Ant做构建工具：修改[Preferences -> Browse Packages]打开packages文件夹，修改Java/JavaC.sublime-build文件，将原来"cmd"后面的"javac"改为"ant.bat"，如果ant所在目录没有加到系统的$Path里，这里需要写文件完整路径，例如"D:/Apps/apache-ant-1.8.1/bin/ant.bat"，然后将工作目录设置为项目根目录（默认的就是项目文件所在目录，因此这句不写也行）："working_dir": &ldquo;$project_path"；</p></li>
+<li><p>安装AdvancedNewFile插件：利用package control的install new package功能，装完后就可以用快捷键"Ctrl + Alt + N"在项目根目录下创建文件了；</p></li>
+</ol>
+
+
+<h2>创建Java项目</h2>
+
+<ol>
+<li><p>创建项目文件夹（TotalCMD），拷贝此文件夹的完整路径；</p></li>
+<li><p>Sublime Text -> Project -> Add Folder: 将上一步创建的文件夹加入到Project中；</p></li>
+<li><p>生成新的Sublime项目文件：Sublime Text -> Project -> Save Project As，这样项目文件就定义好了，如果希望隐藏不必要的文件和文件夹：[Project -> Save Project As]，用file_exclude_patterns和folder_exclude_patterns属性实现，例如：</p></li>
+</ol>
+
+
+<p> {
+  &ldquo;folders&rdquo;:
+  [
+   {
+    &ldquo;path&rdquo;: &ldquo;/e/workspace/PNProject&rdquo;,</p>
+
+<pre><code>"file_exclude_patterns": 
+[ 
+  "*.sublime*" 
+] 
+</code></pre>
+
+<p>   }</p>
+
+<p>  ]
+ }</p>
+
+<p>注：还可以用"folder_exclude_patterns":[&ldquo;build&rdquo;]这样的方式去掉文件夹。</p>
+
+<ol>
+<li>在项目根目录下新建一个build.xml文件，主要内容是编译和运行java代码（注意每个项目的启动类是不同的（java命令的classname参数），拷贝这个模板时需要修改）：</li>
+</ol>
+
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
+ <project name="ExProj" basedir="./" default="run">
+  <path id="lib.path">
+   <fileset dir="${basedir}">
+    <include name="**/*.jar"/>
+   </fileset>
+  </path>
+  <target name="compile">
+   <javac srcdir="${basedir}" destdir="${basedir}"
+    classpathref="lib.path" encoding="UTF-8" debug="true"/>
+  </target>
+  <target name="run" depends="compile">
+   <java classname="org.leechau.HelloWorld">
+    <classpath>
+     <pathelement path="${basedir}"/>
+    </classpath>
+   </java>
+  </target>
+ </project></p>
+
+<ol>
+<li>运行构建：[Tools -> Build]（快捷键Ctrl+B）；</li>
+</ol>
+
+
+<h1>打开Vintage模式</h1>
+
+<p>Vintage是vi风格的操作方式，当然要打开啦，方法是：</p>
+
+<ol>
+<li><p>在user preference里加上："ignored_packages": []</p></li>
+<li><p>如果希望打开文档时初始状态是命令模式而不是插入模式，再加上："vintage_start_in_command_mode": true</p></li>
+</ol>
+
+
+<h1>自定义代码模板</h1>
+
+<ol>
+<li><p>[Tools -> New Snippet&hellip;];</p></li>
+<li><p>填写模板内容（content），触发器（写完触发器按tab键展开为content中定义的代码）和有效范围（定义那些文件中此模板有效）；</p></li>
+<li><p>保存模板文件：文件名统一约定为“范围名-触发器 .sublime-snippet”；</p></li>
+</ol>
+
+
+<p>参考<a href="http://www.granneman.com/webdev/editors/sublime-text/top-features-of-sublime-text/quickly-insert-text-and-code-with-sublime-text-snippets/#test">http://www.granneman.com/webdev/editors/sublime-text/top-features-of-sublime-text/quickly-insert-text-and-code-with-sublime-text-snippets/#test</a></p>
+
+<p>实例：Java代码中终端打印语句的代码模板（spl + <Tab> -> System.out.println(${1});）：</p>
+
+<p> <snippet>
+  <content>&lt;![CDATA[
+ System.out.println(${1});
+ ]]></content>
+  <!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+  <tabTrigger>spl</tabTrigger>
+  <!-- Optional: Set a scope to limit where the snippet will trigger -->
+  <scope>source.java</scope>
+ </snippet></p>
+
+<p>如果设置后不生效，检查各个标签的大小写是否正确（snippet文件是大小写敏感的），例如CDATA要大写，tabTrigger中T大写。</p>
+
+<h1>Best Practice</h1>
+
+<ul>
+<li>所有的个性化配置都写在"Settings - User"，不要修改"Settings -> Default"；</li>
+</ul>
+
+
+<h1>Trouble Shooting</h1>
+
+<ul>
+<li><p>&ldquo;Decode error - output not utf-8&rdquo; when build java files: this is caused by adding &ldquo;"shell&rdquo;: true" in JavaC.sublime-build. cmd.exe use GBK(cp936) for console output encoding, which is different with sublime&rsquo;s default output encoding utf-8. So adding &ldquo;"encoding&rdquo;: &ldquo;cp936&rdquo;&ldquo; in JavaC.sublime-build will resolve this problem. Reference: <a href="http://www.sublimetext.com/forum/viewtopic.php?f=3&amp;t=1535&amp;start=0">http://www.sublimetext.com/forum/viewtopic.php?f=3&amp;t=1535&amp;start=0</a></p></li>
+<li><p>Run Java without Ant: reference <a href="http://stackoverflow.com/questions/12030865/sublime-text-2-wont-run-java.">http://stackoverflow.com/questions/12030865/sublime-text-2-wont-run-java.</a> But when your java codes have package names, it&rsquo;s really difficult to compile and run them because package names are hardly get by sublime. So always use Ant to build java codes in sublime.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/06/004608/">基于goagent的翻墙方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-06T00:46:08+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>本机上使用</h1>
+
+<p><a href="http://www.hiadmin.org/shares/goagent-switchyplus">为Chrome 安装GoAgent并配上SwitchyPlus畅游互联网</a></p>
+
+<p>Goagent的使用方式如下：</p>
+
+<p>1、 申请一个Google App engine并创建一个appid（在申请的时候需要发送验证码到手机上面、所以手机号码一定得是真实的）</p>
+
+<p>2、 申请到appid后下载GoAgent最新的程序</p>
+
+<p>3、 将程序解压到硬盘上面、然后双击Serveruploader.bat文件、在弹出的界面中按照提示输入appid和你的Gmail 账号和密码。然后上传到服务端（如果出错多试几次）</p>
+
+<p>4、 接着我们修改$GOAGENT_ROOT/local/proxy.ini文件、在[gae]配置项下面将appid=修改为你的appid，将[listen]下面的visible的值改为0，这样启动后最小化到托盘区；</p>
+
+<p>5、 配置完成后我们可以直接运行Goagent.exe程序启动代理。是一个黑框框运行着的不要关掉</p>
+
+<p>6、 打开谷歌浏览器、配置代理服务器IP:127.0.0.1 端口：8087</p>
+
+<h1>作为局域网代理服务器</h1>
+
+<p>将goagent部署在一台服务器上，其他机器上网时借助于这台服务器上的goagent，方法是：</p>
+
+<ol>
+<li><p>修改上面proxy.ini文件[listen]下的ip的值为0.0.0.0，port保持8087不变；</p></li>
+<li><p>其他机器要借助于此服务器上网，将proxy的ip设为服务器的IP地址，端口号设为8087即可；</p></li>
+<li><p>Ubuntu系统下可以定义系统级的代理服务器，这样使用apt-get这样的命令行下载也不受限制了，在 [System settings -> network -> network proxy]中设置；</p></li>
+</ol>
+
+
+<h1>修复403错误</h1>
+
+<p>如果用goagent连接时浏览器报403错误，将$GOAGENT_HOME/local/proxy.ini中[gae]下面的profile值从google_cn改为google_hk即可；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/06/000709/">自动将Evernote笔记发布到博客上</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-06T00:07:09+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:07 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Evernote笔记要自动分享到博客还真不那么容易，借鉴<a href="https://arjw.wordpress.com/2011/08/25/of-the-note/#">Using Evernote to Post to WordPress</a>，申请了一个Wordpress帐号，点击dashboard左边的“控制板” -> My Blogs -> Post by Email下面的"Enable"按钮，会出现一个email地址，向这个地址发送邮件就可以发布博客了，可以先将写好的笔记保存在一个文件里，然后通过python的email模块向这个地址发邮件的方法实现自动发布博客，然后用evernote的local api将这个文件变成一个新笔记保存在数据库中。</p>
+
+<p>对于现有的笔记，只能在菜单“笔记->分享->通过电子邮件发送”，填上Email地址的方法，刚才试验成功，但如果修改这个笔记重新发送一次，wordpress上不会覆盖原来的笔记，而是发一条新博文，还有一个问题是wordpress官网的<a href="http://wordpress.com">免费博客</a>虽然很好，但被GFW屏蔽了。</p>
+
+<p><a href="http://aaditya.info/blog/2012/08/clipboard-to-email-python-code/">Clipboard to Email – Python Code</a>演示了如果将剪贴板里的内容通过email发送出去，也是一种解决问题的方法。</p>
+
+<p>python 2.7.3 doc: <a href="http://docs.python.org/2/library/email-examples.html">18.1.11. email: Examples</a>有发送html文档的完整例子；</p>
+
+<p>126和163也支持邮件发博客，用自己的邮箱发送到blogmail@188.com，可以用python的smtplib，通过smtp.163.com发送；</p>
+
+<p>下面这个发送text邮件的实例在163博客上成功发布（sendmail方法如果返回一个空字典，说明发送成功）：</p>
+
+<p> import smtplib
+ # Import the email modules we&rsquo;ll need
+ from email.mime.text import MIMEText
+ # Create a text/plain message
+ msg = MIMEText(&lsquo;this is a test blog from email&rsquo;)
+ me = &lsquo;<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#x3a;&#x6c;&#101;&#x65;&#95;&#99;&#104;&#x61;&#x75;&#x40;&#49;&#54;&#x33;&#x2e;&#99;&#111;&#109;">&#x6c;&#101;&#x65;&#x5f;&#99;&#x68;&#x61;&#x75;&#64;&#49;&#x36;&#51;&#46;&#99;&#111;&#x6d;</a>&rsquo;
+ you = &lsquo;<a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#98;&#108;&#x6f;&#x67;&#109;&#x61;&#x69;&#108;&#x40;&#49;&#x38;&#56;&#46;&#x63;&#111;&#x6d;">&#x62;&#108;&#x6f;&#x67;&#109;&#x61;&#x69;&#x6c;&#x40;&#x31;&#56;&#x38;&#46;&#99;&#111;&#x6d;</a>&rsquo;
+ msg[&lsquo;Subject&rsquo;] = &lsquo;A Test Blog from Email&rsquo;
+ msg[&lsquo;From&rsquo;] = me
+ msg[&lsquo;To&rsquo;] = you
+ # Send the message via our own SMTP server, but don&rsquo;t include the
+ # envelope header.
+ s = smtplib.SMTP(&lsquo;smtp.163.com&rsquo;)
+ s.login(&lsquo;lee_chau&rsquo;, &lsquo;abaqus67&rsquo;)
+ s.sendmail(me, [you], msg.as_string())
+ s.quit()</p>
+
+<hr />
+
+<p>2013-04-13更新：</p>
+
+<p>参考<a href="http://fun.blog.ustc.edu.cn/?p=148">从Evernote自动发博客到WordPress</a>，可以用<a href="https://eatags.com/">eatags.com</a>将笔记发布到wordpress.com上，设置好共享之后，要发布的笔记只要加上标签“ eat.wordpress.post ”（参考<a href="https://eatags.com/features%EF%BC%89%E5%B0%B1%E4%BC%9A%E8%A2%AB%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E5%88%B0wordpress.com%E4%B8%8A%EF%BC%8C%E4%BB%8A%E5%A4%A9%E6%B5%8B%E8%AF%95%E7%9A%84%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BB%A5%E6%98%BE%E7%A4%BA%E5%9B%BE%E7%89%87%EF%BC%8C%E6%98%AF%E7%9B%AE%E5%89%8D%E6%89%80%E7%9F%A5%E6%9C%80%E5%A5%BD%E7%9A%84%E5%90%8C%E6%AD%A5%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%88%96%E8%80%85%E7%94%A8">https://eatags.com/features%EF%BC%89%E5%B0%B1%E4%BC%9A%E8%A2%AB%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E5%88%B0wordpress.com%E4%B8%8A%EF%BC%8C%E4%BB%8A%E5%A4%A9%E6%B5%8B%E8%AF%95%E7%9A%84%E7%BB%93%E6%9E%9C%E5%8F%AF%E4%BB%A5%E6%98%BE%E7%A4%BA%E5%9B%BE%E7%89%87%EF%BC%8C%E6%98%AF%E7%9B%AE%E5%89%8D%E6%89%80%E7%9F%A5%E6%9C%80%E5%A5%BD%E7%9A%84%E5%90%8C%E6%AD%A5%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%88%96%E8%80%85%E7%94%A8</a><a href="http://www.evreblog.us">everblog.us</a>也能将evernote笔记发布到everblog.us网站上，但不能显示图片，everblog选中一个笔记本后会将该笔记本下所有的笔记都发布到everblog网站上，适合批量发布；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/01/150952/">NoClassDefFoundError与ClassNotFoundException的区别</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-01T15:09:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>3:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>NoClassDefFoundError是一个Error，严重级别高，它导致JVM加载失败，通常是由于class loader在classpath中找不到被引用的class文件引起；</p>
+
+<p>ClassNotFoundException是一个异常，严重级别低（相比于Error），通常在利用反射机制加载类时找不到指定的类引起，由于是异常，是可以被catch语句扑捉然后在代码中进行处理的。</p>
+
+<p>参考：<a href="http://stackoverflow.com/questions/1457863/what-is-the-difference-between-noclassdeffounderror-and-classnotfoundexception">http://stackoverflow.com/questions/1457863/what-is-the-difference-between-noclassdeffounderror-and-classnotfoundexception</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -409,304 +717,6 @@ SERVICE_NAME: npf
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/21/231615/">Hsql笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-21T23:16:15+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>11:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="http://hsqldb.org/">hsql</a>是一款开源的基于Java的数据库。</p>
-
-<h1>数据库服务</h1>
-
-<h2>使用默认配置直接启动</h2>
-
-<p>运行$HSQL_HOME/bin/runServer.bat；</p>
-
-<h2>配置服务参数</h2>
-
-<p>如数据库文件名和服务监听端口等。</p>
-
-<ul>
-<li>通过命令行参数：（详见User guide -> Chapter 1 -> Server mode）通过runServer.bat文件可知它只是运行了"java -classpath ../lib/hsqldb.jar org.hsqldb.server.Server"，实际上可以加命令行参数指定服务特性。例如：</li>
-</ul>
-
-
-<p> java -cp ../lib/hsqldb.jar org.hsqldb.Server -database.0 file:mydb -dbname.0 xdb</p>
-
-<ul>
-<li>通过配置文件：（详见User guide -> Chapter 13: HyperSQL Network Listeners -> Server and Web Server Properties）在hsql服务启动目录（运行"java &hellip;Server"的目录）下创建一个server.properties文件，例如：</li>
-</ul>
-
-
-<p> server.database.0=godudb</p>
-
-<p> server.port=3001</p>
-
-<ul>
-<li>通过程序代码：（详见User guide -> Chapter 13: HyperSQL Network Listeners -> Starting a Server from your Application）例如：</li>
-</ul>
-
-
-<p> HsqlProperties p = new HsqlProperties();</p>
-
-<p> p.setProperty(&ldquo;server.database.0&rdquo;,&ldquo;file:/opt/db/accounts&rdquo;);</p>
-
-<p> p.setProperty(&ldquo;server.dbname.0&rdquo;,&ldquo;an_alias&rdquo;);</p>
-
-<p> // set up the rest of properties</p>
-
-<p> // alternative to the above is</p>
-
-<p> Server server = new Server();</p>
-
-<p> server.setProperties(p);</p>
-
-<p> server.setLogWriter(null); // can use custom writer</p>
-
-<p> server.setErrWriter(null); // can use custom writer</p>
-
-<p> server.start();</p>
-
-<h1>客户端</h1>
-
-<h2>图形界面操作</h2>
-
-<p>这里用<a href="http://squirrel-sql.sourceforge.net/">squirrel-sql</a>作为客户端，运行$SQUIRREL_HOME/squirrel-sql.bat启动程序；</p>
-
-<h3>安装hsql驱动</h3>
-
-<p>将$HSQL_HOME/lib/hsqldb.jar拷贝到$SQUIRREL_HOME/lib下；</p>
-
-<h3>配置数据库别名</h3>
-
-<p>jdbc url: jdbc:hsqldb:hsql://localhost；</p>
-
-<p>username: sa</p>
-
-<p>password: 留空</p>
-
-<p>然后连接就可以打开数据库了。</p>
-
-<h3>数据库操作</h3>
-
-<h4>建表</h4>
-
-<p>在SQL面板里输入：</p>
-
-<p> CREATE TABLE Person ( LastName varchar(10), FirstName varchar(10), Address varchar(10), Age int )</p>
-
-<p>运行后在database/PUBLIC/TABLE下会生成一个名为Person的表；</p>
-
-<h4>插入数据</h4>
-
-<p>insert into person values(&lsquo;chad&rsquo;,&lsquo;lee&rsquo;,&lsquo;guangzhou&rsquo;,33)</p>
-
-<h4>删除表</h4>
-
-<p>drop table person</p>
-
-<h3>持久化验证</h3>
-
-<p>重启数据库服务后再用客户端连接服务，可以看到原来的表以及表中的数据都在，这样就实现了数据的持久化。</p>
-
-<h2>程序代码操作</h2>
-
-<p>下面的代码演示了初始化数据驱动，连接数据库，读取数据及其关闭数据库服务的完整过程，与上面的代码启动服务配合，可以实现对数据库的自动化测试。</p>
-
-<p> try {
-  Class.forName(&ldquo;org.hsqldb.jdbcDriver&rdquo;);
- } catch (Exception e) {
-  System.err.println(&ldquo;ERROR: failed to load HSQLDB JDBC driver.&rdquo;);
-  e.printStackTrace();
-  return;
- }
- try {
-  Connection conn = DriverManager.getConnection(&ldquo;jdbc:hsqldb:hsql://localhost:3001&rdquo;, &ldquo;SA&rdquo;, &ldquo;&rdquo;);
-  String sql = &ldquo;select * from person&rdquo;;
-  PreparedStatement content = conn.prepareStatement(sql);
-  ResultSet res = content.executeQuery();
-  // int rowcount = -1;
-  // if (res.last()) { // ResultSet.last() is unsupported by hsql
-  // rowcount = res.getRow();
-  // }
-  while (res.next()) {
-   System.out.println(res.getString(1));
-   System.out.println(res.getString(2));
-   System.out.println(res.getString(3));
-  }
-  Statement st = conn.createStatement();
-  st.execute(&ldquo;SHUTDOWN&rdquo;);
-  conn.close();
- } catch (SQLException e) {
-  // TODO Auto-generated catch block
-  e.printStackTrace();
- }</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/21/143532/">用enchanter实现自动执行ssh任务</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-21T14:35:32+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:35 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="https://code.google.com/p/enchanter/">enchanter</a>可以自动执行ssh脚本：</p>
-
-<p> F:>java -jar enchanter-python-0.5.1.jar aaa.py</p>
-
-<p>其中task.py的内容如下：</p>
-
-<p> ssh.connect(&lsquo;192.168.1.127&rsquo;, 22, &lsquo;leechau&rsquo;,&lsquo;000&rsquo;);
- print &lsquo;recv: &rsquo;+ssh.getLine();
- ssh.waitFor(&lsquo;~$&rsquo;);
- ssh.sendLine(&lsquo;ls -l&rsquo;);
- print &lsquo;recv: &rsquo;+ssh.getLine();
- ssh.waitFor(&lsquo;~$&rsquo;);
- ssh.sendLine(&lsquo;exit&rsquo;);
- print &lsquo;recv: &rsquo;+ssh.getLine();
- ssh.disconnect();</p>
-
-<p>没找到执行telnet任务的方法，但expect4j的官网上说enchanter是可以运行telnet任务的。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/21/135036/">关于squirrel-sql Client</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-21T13:50:36+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>1:50 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="http://sourceforge.net/projects/squirrel-sql/">squirrel-sql client</a>官网上下载的fw.jar是它的一个核心组件，完整的portable版squirrel client是plainzip版，解压后运行squirrel-sql.bat，需要升级的话用前面提到的fw.jar替换$SQUIRREL_HOME/lib下的同名文件，使用中发现替换fw.jar后造成程序启动失败，所以最好使用原装的fw.jar。</p>
-
-<p>调整界面字体：Main Menu -> File -> Global Preferences -> Fonts (Consolas/Arial 14 recommended)</p>
-
-<p>调整SQL语句的字体：Main Menu -> Session -> Session Properties -> SQL -> SQL Entry Area: Font (Consolas 16 recommended)，这种方法每次退出后不能保存，要是全局设置中能修改SQL字体就好了。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/20/202912/">使用PMD检查代码质量</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-20T20:29:12+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:29 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Eclipse插件方式</h1>
-
-<h2>安装</h2>
-
-<p><a href="http://pmd.sourceforge.net/">PMD</a>的eclipse插件有两个，一个是官网上Plugins->Eclipse Plugins链接指向的页面，安装说明里只给出了在线安装的方法（update link是<a href="http://sourceforge.net/projects/pmd/files/pmd-eclipse/update-site/%EF%BC%89%EF%BC%8C%E6%B2%A1%E6%9C%89%E8%AF%B4%E6%98%8E%E7%A6%BB%E7%BA%BF%E5%AE%89%E8%A3%85%E6%80%8E%E4%B9%88%E5%81%9A%EF%BC%8C%E8%BF%99%E4%B8%A4%E5%A4%A9sourceforge.net%E8%A2%AB%E5%A2%99%E4%BA%86%EF%BC%8C%E5%8F%AA%E8%83%BD%E5%9C%A8eclipse%E9%87%8C%E7%94%A8%E4%BB%A3%E7%90%86%E5%AE%89%E8%A3%85%E8%BF%99%E4%B8%AA%E6%8F%92%E4%BB%B6%E3%80%82">http://sourceforge.net/projects/pmd/files/pmd-eclipse/update-site/%EF%BC%89%EF%BC%8C%E6%B2%A1%E6%9C%89%E8%AF%B4%E6%98%8E%E7%A6%BB%E7%BA%BF%E5%AE%89%E8%A3%85%E6%80%8E%E4%B9%88%E5%81%9A%EF%BC%8C%E8%BF%99%E4%B8%A4%E5%A4%A9sourceforge.net%E8%A2%AB%E5%A2%99%E4%BA%86%EF%BC%8C%E5%8F%AA%E8%83%BD%E5%9C%A8eclipse%E9%87%8C%E7%94%A8%E4%BB%A3%E7%90%86%E5%AE%89%E8%A3%85%E8%BF%99%E4%B8%AA%E6%8F%92%E4%BB%B6%E3%80%82</a></p>
-
-<p>另外还有一个开源项目叫<a href="http://sourceforge.net/projects/pmd-eclipse/">pmd-eclipse</a>，提供离线安装包，解压到dropins目录后能使用，但没有规则配置和文件过滤选项，也没有结果汇总视图，不要用这个插件。</p>
-
-<h2>使用</h2>
-
-<h3>配置</h3>
-
-<p>插件装好后在Preference->PMD下会有几个子项目，包括"Rule Configuration"中选择代码检查规则，"File Filters"里指定被检查文件的范围等。这里配置的是全局规则。</p>
-
-<p>配置规则时首先在group by中选择Rule set，这样查找起来比较方便，然后再选择具体哪项检查规则，如下图：</p>
-
-<p>项目属性->PMD下也可以选择规则，但没提供“全部选中/取消”按钮，300多项规则要一个一个选，太麻烦，别用了。</p>
-
-<h3>检查</h3>
-
-<p>右键->PMD->Check Code就开始检查了，检查完自动打开PMD Perspective，在"Violations Overview"里显示汇总结果，如果要修改检查规则重新检查，并且不想保留就结果，"右键被检查项目 -> PMD -> Clear Violations"清除之前的结果，否则新旧结果会被叠加在一起。</p>
-
-<h3>生成检查报告</h3>
-
-<p>首先在Preference->PMD->Reports下选择生成报告的格式（只有text格式可用，其他格式运行时都报空指针异常），然后"右键被检查项目 -> PMD -> Generate Reports"，在项目根目录下会生成一个reports文件夹，里面是检查报告。</p>
-
-<h1>命令行方式</h1>
-
-<p>E:\workspace\JDK6UTF8\Godu3NewBuffer>d:\Apps\pmd-bin-5.0.1\bin\pmd.bat -d src -f html -R rulesets/java/codesize.xml > out.html</p>
-
-<p>-d后面写被检查的目录（或者文件），-f后面写输出文件的格式，-R后面是规则名称，实际这些规则保存在$PMD_HOME/lib/pmd-5.0.1.jar/rulesets/java中；</p>
-
-<h1>总结</h1>
-
-<p>PMD和Checkstyle的eclipse插件都提供了比较好的实时代码质量监控能力，PMD提供的结果汇总面板使开发人员可以对项目代码整体质量有一个把握，生成报告功能也很实用，而CheckStyle为每一个项目定制configuration的方法在不同项目应用不同规则时特别方便，适合在开发过程中“实时监控”（见笔记“ 使用CheckStyle检查代码复杂度 ”）。</p>
-
-<p>本文使用markdown语法。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/61">&larr; Older</a>
@@ -724,23 +734,23 @@ SERVICE_NAME: npf
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

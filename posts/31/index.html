@@ -9,8 +9,12 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Download flex sdk from adobe(http://www.adobe.com/devnet/flex/flex-sdk-download.html); Ref:
-http://thomas.deuling.org/2011/05/install-flex-sdk-under &hellip;">
+  <meta name="description" content="$ cat Hello.java
+package test;
+public class Hello { public int myadd(int x, int y) { return 10 * x + y; }
+} $ cat myapp.groovy
+import test.Hello
+def &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +70,280 @@ http://thomas.deuling.org/2011/05/install-flex-sdk-under &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/19/154730/">Access Java API in Groovy Script</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-19T15:47:30+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>$ cat Hello.java
+package test;
+public class Hello {
+  public int myadd(int x, int y) {
+      return 10 * x + y;
+  }
+}</p>
+
+<p>$ cat myapp.groovy
+import test.Hello
+def hello = new Hello()
+println hello.myadd(13, 5)</p>
+
+<p>$ javac Hello.java
+$ mkdir test;mv Hello.class test
+$ tree
+.
+├── groovy-all-2.2.1.jar
+├── Hello.java
+├── myapp.groovy
+└── test
+    └── Hello.class</p>
+
+<p>$ java -cp .:groovy-all-2.2.1.jar groovy.ui.GroovyMain myapp.groovy
+135</p>
+
+<p>Note:</p>
+
+<ol>
+<li><p>You can&rsquo;t use groovy-2.2.1.jar here, or you will get a NoClassDefFoundError;</p></li>
+<li><p>If your groovy script don&rsquo;t access other Java class, you can simply run &ldquo;java -jar groovy-all-2.2.1.jar myapp.groovy&rdquo;.</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/18/165937/">Create Virtual Machines With Vagrant and Puppet</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-18T16:59:37+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Create the following puppet manifest and start VM with vagrant, you get a base production environment.</p>
+
+<pre><code>$ pwd
+/home/chad/docs/vagrant-prj/gcpserver
+
+$ cat Vagrantfile|grep -v '^\s*#'
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "precise64"
+  config.vm.network :public_network
+  config.vm.provision "puppet"
+end
+
+$ cat manifests/default.pp
+package { 'vsftpd':
+  ensure =&gt; installed,
+}
+service { 'vsftpd':
+  ensure =&gt; running,
+  require =&gt; Package['vsftpd'],
+}
+user { "gcp":
+  ensure     =&gt; "present",
+  password   =&gt; 'gcp',
+  managehome =&gt; true,
+}
+
+$ vagrant init
+$ vagrant up
+</code></pre>
+
+<p>But the password doesn&rsquo;t work, see <a href="http://www.puppetcookbook.com/posts/managing-user-password-fails.html">User Password Management Fails in Puppet</a> for reason.
+You have to modify password for user &lsquo;gcp&rsquo; manually.</p>
+
+<p>The type of network is written as &ldquo;bridged&rdquo; in api version 1 style.</p>
+
+<h1>Create multiple VMs</h1>
+
+<p>To specify hostname, memory size and some other parameters of each VM, modify Vagrantfile like this:</p>
+
+<pre><code>$ cat Vagrantfile|grep -v '^\s*#'
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "precise64"
+
+  config.vm.define "bvtserver" do |bvtserver|
+    bvtserver.vm.hostname = "bvt-server"
+    bvtserver.vm.network :public_network
+    bvtserver.vm.provision :shell, path: "bvtprov.sh"
+  end
+
+  config.vm.define "production" do |production|
+    production.vm.hostname = "gcp-server"
+    production.vm.network :public_network
+    production.vm.provision :puppet
+    production.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--name", "ProductEnv", "--memory", 1024]
+    end
+  end
+end
+</code></pre>
+
+<p>And add a shell script for provisioning of bvt server:</p>
+
+<pre><code>$ cat bvtprov.sh
+echo "You can do some provisioning here"
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/16740397/vagrant-network-type-bridged-is-invalid-please-use-a-valid-network-type">http://stackoverflow.com/questions/16740397/vagrant-network-type-bridged-is-invalid-please-use-a-valid-network-type</a>
+<a href="http://stackoverflow.com/questions/18700060/seting-up-vm-hostname-undefined-method-hostname">http://stackoverflow.com/questions/18700060/seting-up-vm-hostname-undefined-method-hostname</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/17/082031/">Unicode and File I/O in Python 2.X and 3.X</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-17T08:20:31+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:20 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In Python 2.x, the default string is byte string, which means every byte is convert to a character.
+If you write a Unicode string, you have to write it as u'&hellip;&lsquo;.
+On the contrary, in Python 3.x, the default string is Unicode string.
+If you want a byte string, you have to write it as b&rsquo;&hellip;&lsquo;.</p>
+
+<p>In Python 3.3:</p>
+
+<pre><code>chn = '将帖子翻译为中\n'
+with open('py3uni', 'w') as f:
+    f.write(chn)
+print(chn.encode('utf-8'))
+mygbk = chn.encode('gbk')
+with open('py3gbk', 'wb') as f:
+  f.write(mygbk)
+readgbk = open('py3gbk', encoding='gbk').read()
+print(readgbk)
+print(type(readgbk))  # &lt;class 'str'&gt;
+</code></pre>
+
+<p>In Python 2.7:</p>
+
+<pre><code># -*- encoding: utf-8 -*-
+import codecs
+inputStr = u'将帖子翻译为中文2015年3月\n'
+
+gbkFn = 'gbkFile'
+utf8Fn = 'utf8File'
+print('Print original Unicdoe string: ' + inputStr)
+print('Print in UTF-8 encoding: ' + inputStr.encode('utf-8'))
+with codecs.open(utf8Fn, 'w', 'utf-8') as f:
+    f.write(inputStr)
+fromUTF8 = codecs.open(utf8Fn, encoding='utf-8').read()
+with codecs.open(gbkFn, 'w', 'gbk') as f:
+    f.write(inputStr)
+fromGBK = codecs.open(gbkFn, encoding='gbk').read()
+print('Strings from different encodings are the same?')
+print(fromUTF8 == fromGBK)
+print("\nString type:")
+print(type(fromGBK))
+</code></pre>
+
+<p>You can convert gbkFile to utf8File in shell with:
+<code>iconv -f gbk -t utf8 gbkFile &gt; utf8File</code>.</p>
+
+<p>You can also write strings to file in this way:</p>
+
+<pre><code>gbkStr = inputStr.encode('gbk')
+with open('gbkFile', 'wb') as f:
+    f.write(gbkStr)
+</code></pre>
+
+<p>While it&rsquo;s not as concise as the previous method.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/13/163950/">Add Custom Fields on Issues of Project in Redmine</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-02-13T16:39:50+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:39 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Check items under &ldquo;Trackers&rdquo; to enable a custom field for a specific tracker.</p>
+
+<p>Add this custom field to &ldquo;Selected columns&rdquo;.</p>
+
+<p>That&rsquo;s it. When you create a new issue via [Project -> New Issue], this field will show in definition panel.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -416,298 +694,6 @@ Host OS: Linux Mint 14 Xfce</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/26/085127/">Lookup Service Provider by IP Address</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-26T08:51:27+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:51 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Now we have a ip address and a user account, we want to know its service provider. Let&rsquo;s find the truth step by step.</p>
-
-<ol>
-<li>It&rsquo;s a virtual machine or not?</li>
-</ol>
-
-
-<p>Login to this server using the user account and run:</p>
-
-<pre><code>$ cat /proc/cpuinfo
-</code></pre>
-
-<p>At the &ldquo;model name&rdquo; line, I found &ldquo;QEMU Virtual CPU version 1.0&rdquo;. So it&rsquo;s a virtual machine and probably a VPS (virtual private server). I need verify my guess.</p>
-
-<ol>
-<li>What is its service provider?</li>
-</ol>
-
-
-<p>On my laptop, run command:</p>
-
-<pre><code>$ dig -x &lt;ipaddress&gt;
-</code></pre>
-
-<p>In the &ldquo;AUTHORITY SECTION&rdquo;, I found &ldquo;nsl.digitalocean.com&rdquo;. Google &ldquo;digitalocean.com&rdquo; shows it&rsquo;s a VPS provider.</p>
-
-<ol>
-<li>Which solution this VPS uses?</li>
-</ol>
-
-
-<p>On <a href="https://www.digitalocean.com/">https://www.digitalocean.com/</a> I found a solution $5/month, with 512MB ram. To verify, on VPS run:</p>
-
-<pre><code>$ free -m
-</code></pre>
-
-<p>It shows the total memory is 490MB. That&rsquo;s it.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/24/095359/">Setup Lightweight Python FTP Server for Test</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-24T09:53:59+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:53 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Based on <a href="http://code.google.com/p/pyftpdlib/">Python FTP server library (pyftpdlib)</a></p>
-
-<h1>Install</h1>
-
-<ol>
-<li><p>Start a virtual environment;</p></li>
-<li><p>$ easy_install pyftpdlib (the version number is 1.3.0)</p></li>
-</ol>
-
-
-<p>or download pyftpdlib-1.3.0.tar.gz manually and &ldquo;python setup.py install&rdquo;.</p>
-
-<h1>Usage</h1>
-
-<p>Run the following script to startup server:</p>
-
-<pre><code>from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import FTPHandler
-from pyftpdlib.servers import FTPServer
-authorizer = DummyAuthorizer()
-authorizer.add_user("user", "12345", "/home/chad/tmp", perm="elradfmw")
-authorizer.add_anonymous("/home/chad/tmp2")
-# you have a named and an anonymous user to login
-handler = FTPHandler
-handler.authorizer = authorizer
-server = FTPServer(("0.0.0.0", 2121), handler)
-server.serve_forever()
-</code></pre>
-
-<p>If you set the port to &ldquo;21&rdquo;, a &ldquo;permission denied&rdquo; error raises. So I changed it to 2121.
-If you only accept local connection, modify server ip as &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.</p>
-
-<p>Use this server in command line:</p>
-
-<pre><code>ftp 10.21.2.7 2121
-// user name and password
-pwd
-ls
-get file1.txt
-put file2.txt
-</code></pre>
-
-<p>And a groovy ftp client:</p>
-
-<pre><code>import org.apache.commons.net.ftp.FTPClient
-println("About to connect....");
-new FTPClient().with {
-    connect "localhost", 2121
-    login "user", "123"
-    def names = listNames("/")
-    print names
-    logout()
-    disconnect()
-}
-println("Done.");
-</code></pre>
-
-<p>Run this client:</p>
-
-<pre><code>groovy -cp .../commons-net-3.1.jar ftpclient.groovy
-</code></pre>
-
-<p>On my machine this path is:
-~/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/23/094631/">Manage Sshd Service on CentOS</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-23T09:46:31+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>9:46 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Check the current sshd status:</p>
-
-<p>  # service sshd status</p></li>
-<li><p>Start sshd service:</p>
-
-<p>  # service sshd start</p></li>
-<li><p>Set sshd autostart on system startup</p>
-
-<p>  # chkconfig sshd on</p></li>
-<li><p>List the current autostart status</p>
-
-<p>  # chkconfig &ndash;list |grep sshd</p></li>
-</ul>
-
-
-<p>Or use a simple interface:</p>
-
-<pre><code># ntsysv
-</code></pre>
-
-<p>Verified on CentOS 6.4 x86_64.</p>
-
-<hr />
-
-<p>2014-7-16:
-On CentOS 6.5 32bit:</p>
-
-<pre><code># chkconfig NetworkManager off
-# chkconfig network on
-# chkconfig sshd on
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/22/094622/">Use Module and Function Instead of Class in Python</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-01-22T09:46:22+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>9:46 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following scripts run in ipython demonstrate the differences between instance method and static method.
-Generally OOP make things complicated for imperative style applications.
-So when developing this style application (such as command-line application) use functions inside modules, instead of &ldquo;module - class - method&rdquo;.
-The Python standard library is a good example that all utility functions are all common functions not wrapped in classes.</p>
-
-<pre><code>In [1]: cat utils.py
-class FileUtils:
-    def __init__(self):
-        print 'initialize', self
-
-    @staticmethod
-    def static_copy(src, dst):
-        print 'class copy from', src, 'to', dst
-
-    def instance_copy(self, src, dst):
-        print self, 'copy from', src, 'to', dst
-
-In [2]: import utils
-
-In [3]: myutil = utils.FileUtils()
-initialize &lt;utils.FileUtils instance at 0x8ab250c&gt;
-
-In [4]: myutil.instance_copy('aa', 'bb')
-&lt;utils.FileUtils instance at 0x8ab250c&gt; copy from aa to bb
-
-In [5]: utils.FileUtils().instance_copy('aa', 'bb')
-initialize &lt;utils.FileUtils instance at 0x8ab24ec&gt;
-&lt;utils.FileUtils instance at 0x8ab24ec&gt; copy from aa to bb
-
-In [6]: utils.FileUtils.static_copy('aa', 'bb')
-class copy from aa to bb
-
-In [7]: utils.FileUtils.instance_copy('aa', 'bb')
----------------------------------------------------------------------------
-TypeError                                 Traceback (most recent call last)
-&lt;ipython-input-7-cce9f79fc45b&gt; in &lt;module&gt;()
-----&gt; 1 utils.FileUtils.instance_copy('aa', 'bb')
-
-TypeError: unbound method instance_copy() must be called with FileUtils instance as first argument (got str instance instead)
-
-In [8]: myutil.static_copy('aa', 'bb')
-class copy from aa to bb
-</code></pre>
-
-<p>Notice the subtle difference between [5] and [6], parenthesis followed the class name is a &ldquo;instance&rdquo;, while only class name without the following parenthesis is a &ldquo;class&rdquo;.</p>
-
-<p>Ref: <a href="http://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods">The definitive guide on how to use static, class or abstract methods in Python</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/32">&larr; Older</a>
@@ -725,23 +711,23 @@ class copy from aa to bb
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>

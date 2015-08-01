@@ -9,9 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="例如服务器10.0.2.47上运行GODU，在1234端口上监听，netstat -an得到如下结果： [godu@goduserver ~]$ netstat -an|grep 1234
-tcp 0 0 :::1234 :::* LISTEN
-tcp 0 0 ::ffff:127.0.0.1: &hellip;">
+  <meta name="description" content="添加语法高亮和自动缩进
+以Scala语言为例。 在scala 2.9.1安装包的misc\scala-tool-support\vim下有4个文件夹：ftdetect, indent, plugin和syntax，将这4个文件夹合并到$vim/vimfiles（例如C:\Program Files &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +66,292 @@ tcp 0 0 ::ffff:127.0.0.1: &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/10/28/170614/">为VIM增加新的语法支持</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-10-28T17:06:14+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:06 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>添加语法高亮和自动缩进
+以Scala语言为例。</p>
+
+<p>在scala 2.9.1安装包的misc\scala-tool-support\vim下有4个文件夹：ftdetect, indent, plugin和syntax，将这4个文件夹合并到$vim/vimfiles（例如C:\Program Files\Vim\vimfiles）对应的文件夹中，这样打开扩展名为scala的文件时就会自动增加语法高亮和缩进了。</p>
+
+<p>如果没有语法高亮和自动缩进效果，在$vim/_vimrc中增加：</p>
+
+<p> filetype on &ldquo; Switch on filetype detection and loads</p>
+
+<p> filetype indent on &ldquo; indent file (indent.vim) for specific file types</p>
+
+<p> syntax on &ldquo; Turn on syntax highligthing</p>
+
+<p> set autoindent &ldquo; Copy indent from the row above</p>
+
+<p> set si &ldquo; Smart indent</p>
+
+<p> set showmatch &ldquo;Show matching bracets when text indicator is over them</p>
+
+<p>文件名匹配的原理见：:h new-filetype</p>
+
+<p>手工启动语法高亮的方法：</p>
+
+<p> copy scala.vim to $vim/vim72/syntax;</p>
+
+<p> open test.scala with vim</p>
+
+<p> :set syntax=scala</p>
+
+<p>详见:h mysyntaxfile
+ 添加代码导航（code insight）
+下载 Exuberant Ctags 5.8，解压；</p>
+
+<p>下载 Tag List vim plugin 4.5，解压到$vim/vimfiles下；</p>
+
+<p>到这里就可以显示ctags支持的语言（如C, JAVA, PYTHON等）了，但Scala不在支持之列，需要手工添加ctags和taglist对scala的支持：</p>
+
+<p>新建$HOME/.ctags文件（对于Windows是命令行程序cmd.exe的启动位置，win7下是c:\Users[user_name].ctags，例如c:\Users\chad.ctags），内容如下：</p>
+
+<p> &ndash;langdef=scala</p>
+
+<p> &ndash;langmap=scala:.scala</p>
+
+<p> &ndash;regex-scala=/^[ \t]*class[ \t]+([a-zA-Z0-9_]+)/\1/c,classes/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*trait[ \t]+([a-zA-Z0-9_]+)/\1/t,traits/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*type[ \t]+([a-zA-Z0-9_]+)/\1/T,types/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*def[ \t]+([a-zA-Z0-9_\?]+)/\1/m,methods/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*val[ \t]+([a-zA-Z0-9_]+)/\1/C,constants/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*var[ \t]+([a-zA-Z0-9_]+)/\1/l,local variables/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*package[ \t]+([a-zA-Z0-9_.]+)/\1/p,packages/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*case class[ \t]+([a-zA-Z0-9_]+)/\1/c,case classes/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*final case class[ \t]+([a-zA-Z0-9_]+)/\1/c,case classes/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*object[ \t]+([a-zA-Z0-9_]+)/\1/o,objects/</p>
+
+<p> &ndash;regex-scala=/^[ \t]*private def[ \t]+([a-zA-Z0-9_]+)/\1/pd,defs/</p>
+
+<p>这样每次ctags被调用时就会读取这个文件，语法格式详见“ Creating a user-defined language ”。</p>
+
+<p> 在$vim/_vimrc里增加：</p>
+
+<p> let Tlist_Ctags_Cmd=&ldquo;f:/Software/ctags58/ctags.exe&rdquo;</p>
+
+<p> let tlist_scala_settings=&lsquo;scala;c:Classes;t:Traits;o:Objects;m:Methods;p:Packages;C:Constants;l:Local variables;T:Types&rsquo;</p>
+
+<p>可以看到tlist_scala_settings的定义与.ctags里的定义是有对应关系的，以上参考了taglist文档第9节：“ Extending ”；还可以增加一个开/关taglist窗口的快捷键：</p>
+
+<p> nnoremap <silent> <F4> :TlistToggle<CR></p>
+
+<p> taglist常用操作： 在taglist窗口按F1； 添加自动补全
+下载插件 AutoComplPop 和 L9 ，解压到$vim/vim72目录下（plugin, doc, autoload都要解压，且不能解压到$vim/vimfiles下），重启VIM即可。验证环境是win7, vim v7.2, AutoComplPop v2.14.1, L9 v1.1。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/10/27/152904/">Add Tags to Files With Xplorer2</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-10-27T15:29:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:29 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Win7 nowadays supports adding tags to files, and sorting/displaying files according to tags. However, only documents created by Office or image files support adding tags, while my favorite tag-arranged files are pdfs and archives (zip, rar, iso, etc). So this nested functionality of win7 can not satisfy me. Meanwhile, TotalCommander can add comments to files, but this functionality is insignificant, because these comments are stored in a separated file, which means if the target file is copied/moved to another place, comments will be lost.</p>
+
+<p> Today I find this longing functionality in Xplorer2, which only works under NTFS format. Firstly you can add comments(here I use it as tags) to any kinds of files by selecting this file and [Action->Set comments]. Then you can search or select files with a particular tag as follow:</p>
+
+<p> Open the find files window: ctrl+f;</p>
+
+<p> Add a new rule in the “Additional Rules” frame;</p>
+
+<p> In “Rule definition” panel, select “Comment” from “Property &amp; description” drop-down list, and specify the tags in the textbox beneath “Text Settings”;</p>
+
+<p> Bingo!</p>
+
+<p> For more details see &ldquo;Attaching comments to selected items&rdquo; of Xplorer2&rsquo;s documents.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/10/26/144257/">Buffer-related Operations in Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-10-26T14:42:57+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:42 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Build-in Shortcuts</h1>
+
+<p>:enew   open a new buffer in the current window (old buffers still exist);</p>
+
+<p>:e <filename> open a existed file in the current window;</p>
+
+<p>:sp <filename> open a file in a horizontal split window;</p>
+
+<p>:vsp <filename> open a file in a vertical split window;</p>
+
+<p>:new    open a new buffer in a horizontal split window;</p>
+
+<p>:vnew   open a new buffer in a vertical split window;</p>
+
+<p>:ls    list all buffers available. Current buffer is marked as &ldquo;%a&rdquo; and last edited buffer marked as &ldquo;#&rdquo;;</p>
+
+<p>:b[N]   switch to [N]th buffers, [N] is buffer number from :ls command;</p>
+
+<p>:b#    switch to last edited buffer;</p>
+
+<p>:bn    switch to next buffer(based on buffer number);</p>
+
+<p>:bp    switch to previous buffer(based on buffer number);</p>
+
+<p>:bd    close current buffer(if this is the only one buffer, a new one will be created);</p>
+
+<p>:sbn/:sbp  open the next/previous buffer in a horizontal split window;</p>
+
+<p>:vert sbn  open the next buffer in a vertical split window;</p>
+
+<p>:bd[N]   close buffer number [N], [N] is buffer number from :ls command;</p>
+
+<p>:sb[N]   open buffer [N] in a horizontal split window;</p>
+
+<p>:vert sb[N]  open another buffer in a vertical split window;</p>
+
+<p>:vs / C-w v  split window vertically;</p>
+
+<p>:clo / C-w q  close window;</p>
+
+<p>:q    quit vim no matter how many buffers exist, or close window when more than one window exist;</p>
+
+<p>Read :h buffer for more.</p>
+
+<h1>Recommended user defined shortcuts</h1>
+
+<p>In .vimrc:</p>
+
+<p>noremap <silent> <left> <C-w>h
+noremap <silent> <right> <C-w>l
+noremap <silent> <up> <C-w>k
+noremap <silent> <down> <C-w>j
+nnoremap <leader>q <C-w>q</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/10/26/114224/">Netstat指令笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-10-26T11:42:24+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:42 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>指令参数</h1>
+
+<p>c: show continous output every second</p>
+
+<p>t: tcp protocol</p>
+
+<p>u: udp protocol</p>
+
+<p>p: show PID &amp; program name to which each socket belongs</p>
+
+<p>l: only show listening port</p>
+
+<p>n: show numeric port number instead of protocol name</p>
+
+<h1>各项输出含义</h1>
+
+<p> Local Address  Remote Address Swind Send-Q Rwind Recv-Q State</p>
+
+<hr />
+
+<p>10.168.68.191.41872 10.168.68.230.389 50320  0 50320  0 ESTABLISHED
+  <em>.</em>     <em>.</em>    0  0 49152  0 IDLE
+10.168.68.191.40297 10.168.68.230.389 50320  0 50320  0 ESTABLISHED
+10.168.68.191.23  10.173.0.165.39679 64128  0 49232  0 ESTABLISHED
+10.168.68.191.1234 10.173.0.132.4721 64987  0 5840  0 ESTABLISHED
+10.168.68.191.1234 10.173.0.132.4722 64987  0 5840  0 ESTABLISHED
+10.168.68.191.23  10.173.0.165.36957 64128  0 49232  0 ESTABLISHED</p>
+
+<p>Rwind/Swind: tcp window size</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -358,193 +643,6 @@ scala ide plugins for eclipse: ec</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/10/20/175210/">为Netbeans指定JDK路径</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-10-20T17:52:10+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:52 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>安装netbeans 6.9.1时必须jdk版本不得低于1.6，由于本机上默认的JDK是1.5，直接运行netbeans的安装程序提示jdk版本太低，退出安装，为解决这个问题，将如下内容保存为run.bat，放在netbeans安装文件（netbeans-6.9.1-ml-javase-windows.exe）相同目录下，然后运行这个bat，搞定！</p>
-
-<p> set JAVA_HOME=f:\Software\jdk1.6.0_18
-set PATH=%PATH%;%JAVA_HOME%\bin;
-netbeans-6.9.1-ml-javase-windows.exe</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/10/20/170541/">使用IntelliJ IDEA编译Scala程序</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-10-20T17:05:41+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:05 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Step1: File->New Project->Create project from scratch：</p>
-
-<p>Step2: Input project name, and select project type: Java Module</p>
-
-<p>Step 3: Create source directory: use default settings and next;</p>
-
-<p>Step 4: Select Scala as tech used by project, and set scala SDK directory:</p>
-
-<p>Step 5: Create a new Scala Class, which type is Object:</p>
-
-<p>Step 6: Complete the demo code:</p>
-
-<p>Step 7: Run this main method:</p>
-
-<p>And get the result:</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/10/20/095529/">Xplorer2使用笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-10-20T09:55:29+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Main Window Fonts: Tools->Options->Window->Main Font; External Text Editor: Tools->Options->General External Text Editor(I prefer F4); Auto Column Width in Detailed View: Tools->Options->Advanced->Automatically resize Name column in detailed view
- On Hotkeys
- Check up assigned hotkeys: Customize->Keyboard Use(Use Ctrl+f and F3 to search in text); Customize Hotkeys: Customize->Keyboard; Frequently userd hotkeys  Ctrl+e: 全部/平分目录面板；
-tab: 目录面板跳转；</p>
-
-<p>shift+tab: 到地址栏；</p>
-
-<p>ctrl+tab: 到目录树；</p>
-
-<p>ctrl+tab, ctrl+shift+tab: 跳转到mini scrap；</p>
-
-<p>ctrl+alt+左/右: tab间跳转；</p>
-
-<p>alt+左/右: 历史跳转；</p>
-
-<p>CTRL+SHIFT+<Drive letter>: 跳转到某盘根目录；</p>
-
-<p>Alt+F1: 显示驱动器列表；</p>
-
-<p>Alt+F2: 显示跳转历史；</p>
-
-<p>shift+bs: 跳转到根目录；</p>
-
-<p>ctrl+bs: 跳转到桌面；</p>
-
-<p>ctrl+shift+drag: 在对面窗体创建当前项的快捷方式；</p>
-
-<p>CTRL+SHIFT+F1: 设置临时书签；</p>
-
-<p>CTRL+F1: 跳转到临时书签；</p>
-
-<p>F7：新建文件；</p>
-
-<p>F8: 新建文件夹；</p>
-
-<p>Ctrl + Numpad+: 自动调整列宽度</p>
-
-<p>Alt+c: 拷贝完整路径+文件名；</p>
-
-<p>ctrl+ins: open selected item in a new tab in active pannel</p>
-
-<p>ctrl+alt+ins: open selected item in a new tab in inactive pannel</p>
-
-<p>ctrl+q: open preview pannel[View->quick viewer]</p>
-
-<p> Userful parts in user manual
-  Navigating in different windows of x2</p>
-
-<p> 缺点和不足
- 没有rar, 7z解压插件；</p>
-
-<p> 没有“在当前位置打开命令行窗口”；
- 优点（与TC相比）
- 具有给文件加comments的能力；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/10/19/180654/">Eclipse中监视对象变化</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-10-19T18:06:54+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>6:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>调试遗留代码时经常遇到的一个问题是由于对代码不了解，一个变量（Java里经常表现为对象的字段，尤其是全局(static)字段）经常在自己不知道的地方被改变，如果能够在这个对象被改变的时候停住，则非常有利于理解代码的运行流程非常有好处，在Eclipse中设置这样的断点很容易，就是在这个字段声明的行加断点，这样在Breakpoints View里就可以看到这个对象在何种情况下暂停了。如下图是对userPriMap字段添加监视断点。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/86">&larr; Older</a>
@@ -562,23 +660,23 @@ tab: 目录面板跳转；</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a>
       </li>
     
   </ul>
