@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Sublime Text作为一款文本编辑器，最强大的是快速响应能力和"Goto Anything"功能，用Ctrl+Shift+P执行编辑器功能，用Ctrl+P+@进行文件间与文件内部的跳转，目前的编辑器还没有类似的，Vintage将vi的强大编辑能力吸收了进来，更是如虎添翼。 &hellip;">
+  <meta name="description" content="测试代码 定时器类 package business.util; import java.util.concurrent.Executors; import java.util.concurrent.ScheduledExecutorService; import java.util. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,185 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/17/111523/">基于ScheduledExecutorService的并发定时任务处理能力测试</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-17T11:15:23+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:15 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>测试代码</h1>
+
+<h2>定时器类</h2>
+
+<p> package business.util;
+ import java.util.concurrent.Executors;
+ import java.util.concurrent.ScheduledExecutorService;
+ import java.util.concurrent.ScheduledFuture;
+ import java.util.concurrent.TimeUnit;
+ import transfer.IUserParser;
+ public class MyTimer {
+  private static ScheduledExecutorService ses = Executors
+    .newSingleThreadScheduledExecutor();</p>
+
+<p>   // .newScheduledThreadPool(10);
+  private MyTimer() {
+  }
+  /<strong>
+   * 设置某一parser正在执行脚本的超时时间
+   *
+   * @param parser
+   *   进行超时控制的解析器
+   * @param timeout
+   *   超时时间，单位：秒
+   * @return
+   */
+  public static ScheduledFuture&lt;?> set(IUserParser parser, int timeout) {
+   CloseRutine routine = new CloseRutine(parser);
+   ScheduledFuture&lt;?> job = ses.schedule(routine, timeout,
+     TimeUnit.SECONDS);
+   return job;
+  }
+  /</strong>
+   * 清除计时器
+   *
+   * @param unit
+   * @return
+   <em>/
+  public static boolean cancel(ScheduledFuture&lt;?> job) {
+   return job.cancel(true);
+  }
+  /**
+   * 关闭此计时器（进程）
+   </em>/
+  public static void shutdown() {
+   ses.shutdown();
+  }
+ }
+ class CloseRutine implements Runnable {
+  private final IUserParser parser;
+  CloseRutine(IUserParser parser) {
+   this.parser = parser;
+  }
+  @Override
+  public void run() {
+   parser.closePeer();
+  }
+ }</p>
+
+<h1>#</h1>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/16/120452/">Java语言子类调用父类构造函数的规则</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-16T12:04:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>子类初始化时，调用父类构造函数的规则是：如果父类没有任何构造函数，系统会</p>
+
+<ul>
+<li><p>父类如果没有任何构造函数，系统会自动为父类生成一个无参构造函数，如果父类有带参构造函数，系统不会为父类生成无参构造函数；</p></li>
+<li><p>如果父类和子类的构造函数都有参数且参数列表一样（包括参数的个数、类型、顺序），子类如果想调用父类的构造方法，必须在构造函数第一行用super(params)显式调用，否则子类的构造函数会去找父类的默认（无参）构造函数；</p></li>
+<li><p>如果父类有无参构造函数，子类的构造函数除非显式用super(params)调用父类的带参构造函数，否则一定会执行父类的无参构造函数（不需要写super()）；</p></li>
+</ul>
+
+
+<p>参考：google &ldquo;java constructor&rdquo;, <a href="http://www.leepoint.net/notes-java/oop/constructors/constructor.html">http://www.leepoint.net/notes-java/oop/constructors/constructor.html</a></p>
+
+<h1>父类有默认构造函数时</h1>
+
+<p> class SuperClass {
+  public SuperClass() {
+   System.out.println(&ldquo;I am the super class.&rdquo;);
+  }
+  public SuperClass (String name) {
+   System.out.println(&ldquo;I am the super class with a name: &rdquo; + name);
+  }</p>
+
+<p>  public SuperClass (int age) {
+   System.out.println(&ldquo;I am sub class with age: &rdquo; + age);
+  }</p>
+
+<p> }
+ public class TestedSubClass extends SuperClass {
+  public TestedSubClass(){
+   System.out.println(&ldquo;I am sub class&rdquo;);
+  }
+  public TestedSubClass(String name){
+   super(name);
+   System.out.println(&ldquo;I am sub class with a name: &rdquo; + name);
+  }
+  public TestedSubClass(int age) {
+   System.out.println(&ldquo;I am sub class with age: &rdquo; + age);
+  }</p>
+
+<p>  public static void main(String[] args) {
+   TestedSubClass tsc = new TestedSubClass();
+   TestedSubClass tsc2 = new TestedSubClass(&ldquo;chad&rdquo;);
+   TestedSubClass tsc3 = new TestedSubClass(33);
+  }
+ }</p>
+
+<p>运行结果：</p>
+
+<p> [java] I am the super class.
+ [java] I am sub class
+ [java] I am the super class with a name: chad
+ [java] I am sub class with a name: chad
+ [java] I am the super class.
+ [java] I am sub class with age: 33</p>
+
+<p>当父类有默认（无参数）构造函数情况下，子类初始化时，除非子类用super(param)显式调用其他构造函数，否则一定会执行父类的默认构造函数，不论子类初始化时有没有参数。</p>
+
+<h1>父类无默认构造函数</h1>
+
+<p>如果仅将父类的默认（无参）构造函数去掉重新运行，报找不到初始化方法错误，原因是当父类有带参构造函数时，系统不为父类生成构造函数，而第1次和第3次初始化子类对象时，会调用父类的无参构造方法，所以报错；</p>
+
+<p>如果去掉父类中所有的构造函数，子类中保留无参和int参数两个构造函数，运行正常；</p>
+
+<p>如果仅保留父类和子类的String参数构造方法，初始化运行正常；</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -317,8 +496,8 @@
  from email.mime.text import MIMEText
  # Create a text/plain message
  msg = MIMEText(&lsquo;this is a test blog from email&rsquo;)
- me = &lsquo;<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#x3a;&#x6c;&#101;&#x65;&#95;&#99;&#104;&#x61;&#x75;&#x40;&#49;&#54;&#x33;&#x2e;&#99;&#111;&#109;">&#x6c;&#101;&#x65;&#x5f;&#99;&#x68;&#x61;&#x75;&#64;&#49;&#x36;&#51;&#46;&#99;&#111;&#x6d;</a>&rsquo;
- you = &lsquo;<a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#98;&#108;&#x6f;&#x67;&#109;&#x61;&#x69;&#108;&#x40;&#49;&#x38;&#56;&#46;&#x63;&#111;&#x6d;">&#x62;&#108;&#x6f;&#x67;&#109;&#x61;&#x69;&#x6c;&#x40;&#x31;&#56;&#x38;&#46;&#99;&#111;&#x6d;</a>&rsquo;
+ me = &lsquo;<a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#x3a;&#x6c;&#101;&#x65;&#x5f;&#x63;&#104;&#97;&#x75;&#64;&#49;&#x36;&#51;&#46;&#99;&#111;&#109;">&#108;&#x65;&#101;&#95;&#99;&#x68;&#97;&#x75;&#64;&#49;&#x36;&#51;&#x2e;&#x63;&#111;&#109;</a>&rsquo;
+ you = &lsquo;<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#58;&#x62;&#108;&#111;&#103;&#109;&#97;&#105;&#108;&#64;&#x31;&#56;&#56;&#46;&#x63;&#111;&#x6d;">&#x62;&#x6c;&#x6f;&#103;&#109;&#97;&#105;&#108;&#64;&#x31;&#x38;&#x38;&#46;&#99;&#x6f;&#x6d;</a>&rsquo;
  msg[&lsquo;Subject&rsquo;] = &lsquo;A Test Blog from Email&rsquo;
  msg[&lsquo;From&rsquo;] = me
  msg[&lsquo;To&rsquo;] = you
@@ -620,103 +799,6 @@ SERVICE_NAME: npf
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/24/111834/">Notes About Robert Algorithms Chapter 4</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-24T11:18:34+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>p534: &ldquo;These two&rdquo; in the last paragraph refers to &ldquo;Connectivity&rdquo; &amp; &ldquo;Single-source paths&rdquo; in this page.</p></li>
-<li></li>
-</ul>
-
-
-<h1>Chapter Structure</h1>
-
-<p>4.1 Undirected Graph 518
- Glossary 519
- Undircted graph data type 522
-  Representation alternatives 524
-  Adjacency-lists data structure 525
-  Design pattern for graph processing 528
- Depth-first search 530
-  Searching in a maze 530
-  Warmup 531
-  One-way passages 532
-  Detailed trace of depth-first search 533
- Finding paths 535
-  Implementation 535
-  Detailed trace 537
- Breadth-first search 538
-  Implementation 538
- Connected components 543
-  Implementation 543
-  Union-find 546
- Symbol graphs 548
-  Implementation 551
-  Degree of seperation 553
- Summary 556</p>
-
-<p>4.2 Directed Graphs 566
- Digraph data type 568
- Reachability in digraphs 570
- Cycles and DAGs 574
- Strong connectivity in digraphs 584
- Summary 594</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/22/184919/">关于单例模式</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-22T18:49:19+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>6:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>参考：<a href="http://www.cnblogs.com/coffee/archive/2011/12/05/inside-java-singleton.html">【深入】java 单例模式</a></p>
-
-<p>其中的第三种方法比较好，简单、稳定，唯一的缺点是在初始化时加载，没有实现lazy load，但在资源不紧张的场景下，没必要lazy load。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/61">&larr; Older</a>
@@ -734,6 +816,14 @@ SERVICE_NAME: npf
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
       </li>
     
@@ -743,14 +833,6 @@ SERVICE_NAME: npf
     
       <li class="post">
         <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
   </ul>

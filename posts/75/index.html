@@ -9,22 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="下面的程序演示了一个对象被两个线程访问的方法，"monitor.gotMessage();&ldquo;这一句虽然是monitor对象的方法，但却是运行在"MyObject"的线程里，而不是"monitor"线程里。 1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16 &hellip;">
+  <meta name="description" content="多个线程中的一个如果调用了socket.close()方法，其他线程在进行读/写时会出现socket close异常，例如： java.net.SocketException: socket closed at java.net.SocketInputStream.socketRead0( &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +65,114 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/07/23/104342/">Socket Closed异常形成原因</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-07-23T10:43:42+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>10:43 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>多个线程中的一个如果调用了socket.close()方法，其他线程在进行读/写时会出现socket close异常，例如：</p>
+
+<p> java.net.SocketException: socket closed</p>
+
+<p> at java.net.SocketInputStream.socketRead0(Native Method)</p>
+
+<p> at java.net.SocketInputStream.read(SocketInputStream.java:129)</p>
+
+<p> at java.net.SocketInputStream.read(SocketInputStream.java:90)</p>
+
+<p> at server. UserListener .run(UserListener.java:36)</p>
+
+<p> at java.lang.Thread.run(Thread.java:662)</p>
+
+<p>下面是对应的代码，父线程在执行完任务后sock.close()关闭了socket，导致south线程中uin（sock的InputStream）运行read()方法时出现socket close异常：</p>
+
+<p>父线程：</p>
+
+<p>  uin = sock.getInputStream();
+ uout = sock.getOutputStream();
+ Runnable south = new UserListener (uin, nos);
+ new Thread(south, &ldquo;south&rdquo;).start();
+ &hellip;
+ sock.close();</p>
+
+<p>south线程：</p>
+
+<p>  public class UserListener implements Runnable {
+  @Override
+  public void run() {
+   &hellip;
+   recv = uin.read(buf); //异常抛出点
+   &hellip;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/07/22/083946/">Android手机安装软件方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-07-22T08:39:46+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>8:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>USB连接：</p>
+
+<ol>
+<li><p>手机连接USB；</p></li>
+<li><p>启动豌豆荚；</p></li>
+</ol>
+
+
+<p>WiFi连接方式：</p>
+
+<ol>
+<li>下载：下载安装包（apk文件）到电脑上，例如通过豌豆荚；</li>
+<li>传输：推荐使用USB传输文件，另外可以用蓝牙位置连接手机；</li>
+<li>发送：找到文件，右键->发送到->蓝牙；</li>
+<li>安装：手机收到apk文件后会询问是否安装；</li>
+</ol>
+
+
+<p>注：WiFi方式下用豌豆荚连接手机总连不上，原因不明；</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -532,112 +625,6 @@ new Thread(o, "thread2").start();
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/06/29/143111/">JDK日志模块使用方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-06-29T14:31:11+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今天尝试使用JDK自带的日志模块打印日志，过程如下：</p>
-
-<p>使用类：</p>
-
-<p> public class LoginTest {
- Logger logger = Logger.getLogger(this.getClass().getName());
- @Before
- public void setup() throws SecurityException, IOException {
-  logger.info(&ldquo;hello logger&rdquo;);
- }
- &hellip;
-}</p>
-
-<p>配置文件(logging.properties)：</p>
-
-<p> handlers= java.util.logging.FileHandler, java.util.logging.ConsoleHandler</p>
-
-<p> .level= INFO</p>
-
-<p> java.util.logging.FileHandler.pattern = ./log/myapp.%g.log</p>
-
-<p> java.util.logging.FileHandler.limit = 50000</p>
-
-<p> java.util.logging.FileHandler.count = 5</p>
-
-<p> java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter</p>
-
-<p> java.util.logging.ConsoleHandler.level = ALL</p>
-
-<p> java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter</p>
-
-<p>运行方法：</p>
-
-<p>$ java -Djava.util.logging.config.file=./conf/logging.properties LoginTest</p>
-
-<p>使用虚拟机参数指定配置文件的位置，这是与其他log框架（e.g. Log4j, logback）用法不同的地方；</p>
-
-<p>另外：上面将日志文件放在log文件夹里，经试验发现，log文件夹 必须预先创建好 ，否则日志文件将不能生成！</p>
-
-<p>也可以在Java代码中指定FileHandler的特性：</p>
-
-<p>FileHandler handler = new FileHandler(&ldquo;myapp.log&rdquo;, 1024, 5, true);
-handler.setFormatter(new SimpleFormatter());
-logger.addHandler(handler);
-logger.info(server.response());</p>
-
-<p>但一般情况下配置文件灵活性更好；</p>
-
-<p>FileHandler.pattern中的特殊符号（e.g. %h, %g, etc）含义可参看 JDK6文档 中FileHandler类的说明；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/06/29/105856/">Design Driven Test Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-06-29T10:58:56+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>设计驱动测试（DDT）与 ICONIX 过程紧密联系，Doug Rosenberg &amp; Matt Stephens: &ldquo;Use Case Driven Object Modeling with UML: Theory and Practice"对此过程进行了说明， 作者的网站 还列出了其他几本ICONIX相关书籍以及资料下载。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/76">&larr; Older</a>
@@ -655,6 +642,14 @@ logger.info(server.response());</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
       </li>
     
@@ -664,14 +659,6 @@ logger.info(server.response());</p>
     
       <li class="post">
         <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
   </ul>

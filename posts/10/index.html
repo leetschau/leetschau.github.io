@@ -9,7 +9,12 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="CSS selector rules: CSS Selectors CSS Combination rules: CSS Combinators Addition to the above rules, you can use &ldquo;element.class&rdquo; to &hellip;">
+  <meta name="description" content="Build a executable jar file using external jars: $ find .
+./Mod1.java
+./mf
+./lib
+./lib/commons-io-2.4.jar $ cat Mod1.java
+import org.apache.commons. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +70,274 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/23/180824/">Build Executable Jar in Command Line</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-23T18:08:24+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:08 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Build a executable jar file using external jars:</p>
+
+<pre><code>$ find .
+./Mod1.java
+./mf
+./lib
+./lib/commons-io-2.4.jar
+
+$ cat Mod1.java
+import org.apache.commons.io.FileUtils;
+import java.io.File;
+
+public class Mod1 {
+  public static void main (String[] args) {
+    String[] scriptExt = new String[] { "scala" };
+    System.out.println("List all scala files: " + FileUtils.listFiles(new File("/home/chad/docs/tmp"), scriptExt, false));
+  }
+}
+
+$ cat mf
+Class-Path: lib/commons-io-2.4.jar
+Main-Class: Mod1
+$ javac -cp lib/* Mod1.java
+$ jar cfm pkg.jar mf Mod1.class
+$ java -jar pkg.jar
+List all scala files: [/home/chad/docs/tmp/sf2.scala, /home/chad/docs/tmp/lookup.scala, /home/chad/docs/tmp/spark-filter.scala, /home/chad/docs/tmp/hw.scala, /home/chad/docs/tmp/newDel.scala, /home/chad/docs/tmp/scalaTime.scala, /home/chad/docs/tmp/sf3.scala]
+</code></pre>
+
+<p>Note that classpath wildcard can&rsquo;t be used in manifest file (here is mf), which means &ldquo;Class-Path: lib/*&rdquo; doesn&rsquo;t work.
+See <a href="http://www.ibm.com/developerworks/library/j-5things6/">5 things you didn&rsquo;t know about &hellip; JARs</a> for explanations.</p>
+
+<p>The &ldquo;-cp&rdquo; option or &ldquo;CLASSPATH=&hellip;&rdquo; is invalid in <code>java -jar xxx.jar</code>.
+So if you don&rsquo;t want to create manifest file by hand, run java program with <code>java -cp ... MainClass</code>:</p>
+
+<pre><code>$ tree
+.
+├── com
+│   └── boco
+│       └── example
+│           └── Example.java
+└── lib
+    └── commons-io-2.4.jar
+4 directories, 2 files
+
+$ cat com/boco/example/Example.java
+package com.boco.example;
+
+import org.apache.commons.io.FileUtils;
+import java.io.File;
+import java.util.Collection;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
+
+public class Example {
+  public static void main (String[] args) {
+    Collection&lt;File&gt; found = FileUtils.listFiles(new File("."), TrueFileFilter.INSTANCE, DirectoryFileFilter.DIRECTORY);
+    System.out.println("List files with apache-commons.FileUtils:");
+    for (File f : found) {
+      System.out.println(f);
+    }
+    System.out.println("--- OVER ---");
+  }
+}
+$ javac -cp lib/commons-io-2.4.jar com/boco/example/Example.java
+$ jar cf example.jar com
+$ mv example.jar lib
+$ tree
+.
+├── com
+│   └── boco
+│       └── example
+│           ├── Example.class
+│           └── Example.java
+└── lib
+    ├── commons-io-2.4.jar
+    └── example.jar
+4 directories, 4 files
+$ java -cp "lib/*" com.boco.example.Example
+List files with apache-commons.FileUtils:
+./com/boco/example/Example.java
+./com/boco/example/Example.class
+./lib/example.jar
+./lib/commons-io-2.4.jar
+--- OVER ---
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/23/084146/">Deploy Web Server on Linode</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-23T08:41:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>8:41 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Setup Virtual Host</h1>
+
+<p>Buy a Linode instance on <a href="https://www.linode.com/">linode</a>. Note its IP address on the home page in your user account.
+Install a Linux system and <a href="https://www.linode.com/docs/security/securing-your-server/">secure it</a>.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/getting-started">Getting Started</a> for instructions.</p>
+
+<p>To build a new VPS, in Linodes -> Rebuild,
+select OS (&ldquo;Ubuntu 14.04 LTS&rdquo; for now), set root password, and click &ldquo;rebuild&rdquo; button,
+it will create disks and configuration profile automatically.
+Then click &ldquo;boot&rdquo; button under configuration profile.
+After system startup (see progress in &ldquo;Dashboard -> Host Job Queue&rdquo;),
+Connect to the VPS with SSH according to commands in &ldquo;Remote Access&rdquo;.</p>
+
+<p>Or you can create disks, then configuration profile manually in &ldquo;Dashboard&rdquo;.
+Create new disks under &ldquo;Disks&rdquo;, usually a boot part (3GB), a home part and a swap (same capacity with memory).</p>
+
+<h1>Connect domain name and IP address</h1>
+
+<p>Here we link multiple Domain names to the same IP address.
+Then direct different domain requests to its corresponding port using nginx.</p>
+
+<p>First register (purchase) a domain name, if you haven’t already.
+Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
+
+<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 ->  解析设置 -> 设置网站解析 -> 把域名指向我的网站-添加IP地址&rdquo;,
+add your Linode instance IP address as &ldquo;A&rdquo; record,
+Then wait up to 24 hours for the changes to take effect.
+I waited about 30 minutes to take effect.</p>
+
+<p>Next set your domain name to use Linode’s name servers (&ldquo;ns1.linode.com&rdquo; to &ldquo;ns5.linode.com&rdquo;)
+in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DNS服务器 -> 修改域名DNS&rdquo;.</p>
+
+<p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
+Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
+Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#109;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#108;&#99;&#64;&#49;&#50;&#x36;&#x2e;&#99;&#x6f;&#x6d;">&#x6c;&#x63;&#64;&#x31;&#50;&#54;&#x2e;&#x63;&#111;&#109;</a>&rdquo;.
+Then click &ldquo;Add a Master Zone&rdquo;.</p>
+
+<h2>Setting Reverse DNS</h2>
+
+<p>On linode instance dashboard -> Remote access -> Reverse DNS, enter &ldquo;niufairs.com&rdquo;, and press &ldquo;Look up&rdquo;.</p>
+
+<p>Ref: <a href="https://www.linode.com/docs/websites/hosting-a-website">Hosting a website</a>.</p>
+
+<h1>Config Relationship betwwen domain and port</h1>
+
+<p>Fist install nginx (with aptitude on Ubuntu).</p>
+
+<p>Edit /etc/nginx/nginx.conf as follows:</p>
+
+<pre><code>events {
+  worker_connections  1024;
+}
+
+http {
+  server {
+    server_name niufairs.cn;
+
+    location / {
+      proxy_pass http://localhost:3000/;
+    }
+  }
+
+  server {
+    server_name niufairs.com;
+
+    location / {
+      proxy_pass http://localhost:4000/;
+    }
+  }
+
+  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+  '$status $body_bytes_sent "$http_referer" '
+  '"$http_user_agent" "$http_x_forwarded_for"';
+
+  access_log  /var/log/nginx/access.log  main;
+}
+</code></pre>
+
+<p>Test if this conf is right: <code>nginx -t</code>;</p>
+
+<p>If test ok, reload conf: <code>nginx -s reload</code>;</p>
+
+<p>Now start 2 meteor app on port 3000 and 4000, and you can use niufairs.cn and niufairs.com to visit them respectively.</p>
+
+<p>If you want server some static files, add a new &ldquo;server&rdquo; section in &ldquo;http&rdquo; of nginx.conf:</p>
+
+<pre><code>http {
+  server {
+    server_name newfairs.cn;
+    location / {
+      root /data/www;
+    }
+    location /images/ {
+      root /data;
+    }
+  }
+
+  server {
+    ...
+  }
+}
+</code></pre>
+
+<h1>Configure Email Server</h1>
+
+<p>I bought an <strong>business</strong> account on <a href="https://www.fastmail.com/">FastMail</a>, and
+configure 3 places to make the mail server functional:</p>
+
+<ol>
+<li><p>In FastMail <a href="&#109;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#x6d;&#x61;&#115;&#x74;&#x65;&#114;&#x75;&#x73;&#101;&#114;&#64;&#110;&#105;&#x75;&#102;&#x61;&#x69;&#x72;&#x73;&#46;&#x63;&#x6f;&#109;">&#x6d;&#x61;&#115;&#116;&#x65;&#114;&#x75;&#x73;&#x65;&#x72;&#x40;&#110;&#105;&#117;&#102;&#97;&#105;&#114;&#115;&#x2e;&#99;&#111;&#x6d;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
+<li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
+
+<p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
+<li><p>Add the following record on &ldquo;niufairs.com&rdquo; on Linode.com:</p>
+
+<p> MX Records ->  Mail Server: in1-smtp.messagingengine.com, Preference: 10, TTL: Default.</p></li>
+</ol>
+
+
+<p>Refs:</p>
+
+<ul>
+<li><p><a href="http://stackoverflow.com/questions/15678224/nginx-proxy-several-domains-to-different-ports">Nginx proxy several domains to different ports</a></p></li>
+<li><p><a href="http://nginx.org/en/docs/beginners_guide.html#static">Serving Static Content</a></p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -501,196 +774,6 @@ And click &ldquo;Connect&rdquo; button.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/08/114328/">Import Data From Files Into Mongodb</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-08T11:43:28+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:43 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>From CSV File</h1>
-
-<p>Here I use mongoDB&rsquo;s mongoimport tool to import csv file into Meteor app&rsquo;s Mongodb.</p>
-
-<p>First download mongodb package (mongodb-linux-x86_64-2.6.5.tgz) from <a href="http://www.mongodb.org/">mongoDB</a>, extract it into ~/apps folder.</p>
-
-<p>Next start the Meteor app. Open a new terminal window, in project root folder, run <code>meteor mongo</code>.
-You can see something like &ldquo;connecting to: 127.0.0.1:3001/meteor&rdquo;.
-This tells us database server is listening on port 3001, and database name is &ldquo;meteor&rdquo;.</p>
-
-<p>Save the following codes into app&rsquo;s $HOME/private folder as importdb.sh:</p>
-
-<pre><code>mongoimport -h localhost:3001 --db meteor --collection fairs --type csv --file fairs.csv --headerline
-</code></pre>
-
-<p>Here &ldquo;-d&rdquo; equals to &ldquo;&ndash;db&rdquo;, &ldquo;-c&rdquo; equals to &ldquo;&ndash;collection&rdquo;.
-And the source csv file is saved in file private/fairs.csv.</p>
-
-<p>It&rsquo;s headerline (first line of csv file) is also comma-seperated:</p>
-
-<pre><code>Name, Age, Job
-Bob, 35, Cooker
-Tom, 28, Coder
-...
-</code></pre>
-
-<p>Now in the Meteor app, add <code>Fairs = new Meteor.Collection("fairs");</code> into js file to use the data.</p>
-
-<h1>From JSON File</h1>
-
-<h2>Json Lint</h2>
-
-<p>Validate the json file with <a href="https://github.com/zaach/jsonlint">jsonlint</a>.</p>
-
-<p>You need install node.js, then install jsonlint with <code>npm install jsonlint -g</code>.
-Next check the json file with <code>jsonlint myfile.json</code>.</p>
-
-<h2>Import from Json File</h2>
-
-<p>Use the following commands to import json objects from a file:</p>
-
-<pre><code>mongoimport -h localhost:3001 -d meteor -c fairs --type json --jsonArray --file demo.json
-</code></pre>
-
-<p>Or if your mongod is running on localhost, use the following line to import
-(no need to create the target database and collection before import):</p>
-
-<pre><code>mongoimport -d meteor -c fairs --type json --file first31.json --jsonArray
-</code></pre>
-
-<p>This is a sample of the imported json file:</p>
-
-<pre><code>[
-  { name: "Widget 1",
-    desc: "This is Widget 1"
-  },
-  { name: "Widget 2",
-    desc: "This is Widget 2"
-  }
-]
-</code></pre>
-
-<p>If the &ldquo;&ndash;jsonArray&rdquo; option is omitted, the json file have to keep each object in one line, like this:</p>
-
-<pre><code>{ name: "Widget 1", desc: "This is Widget 1" }
-{ name: "Widget 2", desc: "This is Widget 2" }
-</code></pre>
-
-<p>See <code>mongoimport --help</code> for details.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/04/230146/">Text Box Autocomplete in Meteor</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-04T23:01:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Autocomplete function in text box provides instant response to user input text, which is very powerful and user-friendly.</p>
-
-<p>For meteor, this function is called typeahead.
-Run <code>meteor search typeahead</code>, you can find <a href="https://github.com/sergeyt/meteor-typeahead">sergeyt:typeahead</a>.
-Clone it to your computer with git, in the &ldquo;demo&rdquo; subfolder, run <code>meteor</code> and open <a href="http://localhost:3000/.">http://localhost:3000/.</a>
-When typing in the first text box (&ldquo;NBA teams&rdquo; in it), it will provide instant response.</p>
-
-<p>sergeyt:typeahead&rsquo;s Bootstrap counterpart is called typeahead, too. That of jQuery is called &ldquo;Autocomplete&rdquo;.</p>
-
-<p>The following is a minimal working demo of sergeyt:typeahead:</p>
-
-<pre><code>$ meteor create meteorapp
-$ cd meteorapp
-$ meteor add sergeyt:typeahead
-$ cat meteorapp.html
-&lt;head&gt;
-  &lt;title&gt;meteorapp&lt;/title&gt;
-&lt;/head&gt;
-
-&lt;body&gt;
-  &lt;h1&gt;input "p" in the following text box&lt;/h1&gt;
-
-&lt;/body&gt;
-
-&lt;template name="sti"&gt;
-  &lt;input class="form-control typeahead" name="team"
-      type="text" placeholder="NBA teams"
-      autocomplete="off" spellcheck="off"
-      data-source="nba"/&gt;
-&lt;/template&gt;
-
-$ cat meteorapp.js
-Nba = new Meteor.Collection("nba");
-
-if (Meteor.isClient) {
-  Template.sti.helpers({
-    nba: function(){
-        return Nba.find().fetch().map(
-                function(it){
-                  return it.name;
-                });
-    }
-  });
-
-  Meteor.startup(function(){
-      Meteor.typeahead.inject();
-  });
-}
-
-if (Meteor.isServer) {
-  Meteor.startup(function () {
-    Nba.insert({name:'Philadelphia 76ers'});
-    Nba.insert({name:'Detroit Pistons'});
-    Nba.insert({name:'Portland Trail Blazers'});
-  });
-}
-</code></pre>
-
-<p>Note:</p>
-
-<ol>
-<li><p>Every time start the server, the 3 items will be added into collection Nba. So if you don&rsquo;t clear data (with <code>meteor reset</code>), you will see many identical items in candidate list;</p></li>
-<li><p>No matter &ldquo;on&rdquo; or &ldquo;off&rdquo; of the value of the &ldquo;autocomplete&rdquo; attribute of the text box, the autocomplete function always works. So what is the function of this attribute?</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/11">&larr; Older</a>
@@ -708,6 +791,14 @@ if (Meteor.isServer) {
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
       </li>
     
@@ -717,14 +808,6 @@ if (Meteor.isServer) {
     
       <li class="post">
         <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
   </ul>

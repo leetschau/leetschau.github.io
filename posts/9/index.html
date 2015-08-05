@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="The foloowing codes demonstrate the creation &copy;, query &reg;, update (U) and delete (D) operations on mongodb collections. It also shows how to &hellip;">
+  <meta name="description" content="We have 2 log files. One contains logs created in 2014.11.22, the other all in 2014.11.23.
+Each have about 240 million logs in it, with file size &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,234 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/01/04/173843/">Compare Users in 2 Days With Spark</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-01-04T17:38:43+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:38 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We have 2 log files. One contains logs created in 2014.11.22, the other all in 2014.11.23.
+Each have about 240 million logs in it, with file size 30GB.</p>
+
+<p>The log in these files are like this:</p>
+
+<blockquote><p>&ldquo;460015482006002&rdquo;,&ldquo;深圳市&rdquo;,&ldquo;广东省&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;42705&rdquo;,&ldquo;16111&rdquo;,&ldquo;460014270516111&rdquo;,&ldquo;MAP&rdquo;</p></blockquote>
+
+<p>The number in the first column &ldquo;460015482006002&rdquo; represents a unique user, which is called &ldquo;IMSI&rdquo;.
+We need to find all IMSI number <strong>only</strong> exists in 2014.11.22.</p>
+
+<p>Given the huge size of log files, we compute with Apache Spark.</p>
+
+<p>Create only22.scala:</p>
+
+<pre><code>import java.util.Date
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
+
+val SIG_DATA1 = "datamine/drawdata_20141122_cs.utf8.csv"
+val SIG_DATA2 = "datamine/drawdata_20141123_cs.utf8.csv"
+val USER_ID_POS = 1
+
+def get_users(data: String): Set[String] = {
+  val raw_data = sc.textFile(data).map(_.split("\"").toList)
+  val raw_sig_map = raw_data.filter(x =&gt; x.size &gt; 17)
+  val users = raw_sig_map.map(_(USER_ID_POS)).distinct
+  return users.toArray.toSet
+}
+
+val u1 = get_users(SIG_DATA1)
+val u2 = get_users(SIG_DATA2)
+val only22 = u1 -- u2
+scala.tools.nsc.io.File("only22.txt").writeAll(only22.toString)
+</code></pre>
+
+<p>Run it: <code>spark-shell --master spark://cloud142:7077 --driver-memory 6g --driver-cores 5 --total-executor-cores 28 --executor-memory 20g -i only22.scala</code></p>
+
+<p>In file only22.txt, all elements in the set are written in one line.
+So we have to replace all &ldquo;,&rdquo; with newline character: <code>sed -i 's/,/\n/g' only22.txt</code>;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-31T10:10:55+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:10 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如"深圳东莞"的"圳"和"莞"两个字，原因不明。
+需要在vi中用"/\&lt;[A-Z]>搜索这种情况。</p>
+
+<p>实现过程是：首先尝试用unicode, utf8和gbk解码字符串，然后用GBK编码字符串，利用GBK汉字是按拼音顺序编码的原理查出其首字母。</p>
+
+<pre><code>#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+def get_word_initial(inp):
+    if isinstance(inp, unicode):
+        unicode_str = inp
+    else:
+        try:
+            unicode_str = inp.decode('utf8')
+        except:
+            try:
+                unicode_str = inp.decode('gbk')
+            except:
+                print 'unknown coding'
+                return
+
+    init_list = [get_char_initial(i) for i in unicode_str]
+    return "".join(init_list)
+
+def get_char_initial(unicode1):
+    gbkStr = unicode1.encode('gbk')
+    try:
+        ord(gbkStr)
+        return gbkStr
+    except:
+        asc = ord(gbkStr[0]) * 256 + ord(gbkStr[1]) - 65536
+        if asc &gt;= -20319 and asc &lt;= -20284:
+            return 'A'
+        if asc &gt;= -20283 and asc &lt;= -19776:
+            return 'B'
+        if asc &gt;= -19775 and asc &lt;= -19219:
+            return 'C'
+        if asc &gt;= -19218 and asc &lt;= -18711:
+            return 'D'
+        if asc &gt;= -18710 and asc &lt;= -18527:
+            return 'E'
+        if asc &gt;= -18526 and asc &lt;= -18240:
+            return 'F'
+        if asc &gt;= -18239 and asc &lt;= -17923:
+            return 'G'
+        if asc &gt;= -17922 and asc &lt;= -17418:
+            return 'H'
+        if asc &gt;= -17417 and asc &lt;= -16475:
+            return 'J'
+        if asc &gt;= -16474 and asc &lt;= -16213:
+            return 'K'
+        if asc &gt;= -16212 and asc &lt;= -15641:
+            return 'L'
+        if asc &gt;= -15640 and asc &lt;= -15166:
+            return 'M'
+        if asc &gt;= -15165 and asc &lt;= -14923:
+            return 'N'
+        if asc &gt;= -14922 and asc &lt;= -14915:
+            return 'O'
+        if asc &gt;= -14914 and asc &lt;= -14631:
+            return 'P'
+        if asc &gt;= -14630 and asc &lt;= -14150:
+            return 'Q'
+        if asc &gt;= -14149 and asc &lt;= -14091:
+            return 'R'
+        if asc &gt;= -14090 and asc &lt;= -13119:
+            return 'S'
+        if asc &gt;= -13118 and asc &lt;= -12839:
+            return 'T'
+        if asc &gt;= -12838 and asc &lt;= -12557:
+            return 'W'
+        if asc &gt;= -12556 and asc &lt;= -11848:
+            return 'X'
+        if asc &gt;= -11847 and asc &lt;= -11056:
+            return 'Y'
+        if asc &gt;= -11055 and asc &lt;= -10247:
+            return 'Z'
+        return ''
+
+if __name__ == "__main__":
+    str_input='广州火车站A2c'
+    print(get_word_initial(str_input))
+</code></pre>
+
+<p>下面是一个完整的使用场景，利用上面的代码为小区的地理位置表添加ID字段。
+首先将上面的代码保存在chnInit.py中，然后相同目录下创建一个addID.py文件：</p>
+
+<pre><code>import chnInit
+import sys
+
+target = sys.argv[1]
+inclID = sys.argv[2]
+with open(target, 'r') as src:
+    with open(inclID, 'w') as dst:
+        for content in src:
+            line = content.strip()
+            cgi = line.split(' ,')[0]
+            node = line.split(' ,')[1].split(' ')[0]
+            city = line.split(' ,')[1].split(' ')[1]
+            nodeID = chnInit.get_word_initial(node)
+            cityID = chnInit.get_word_initial(city)
+            dst.write(cgi + ' ,' + city + ' ' + cityID + ' ' + node + ' ' + nodeID + '\n')
+</code></pre>
+
+<p>相同目录下保存输入文件input.csv，然后运行脚本：</p>
+
+<pre><code>$ head input.csv
+460010973309433 ,白云国际机场 广州
+...
+
+$ python addID.py input.csv loc_map.csv
+$ head loc_map.csv
+460010973309433 ,广州 GZ 白云国际机场 BYGJJC
+...
+</code></pre>
+
+<p>根据Python文档7.2.1节："Methods of File Objects"中的描述：</p>
+
+<blockquote><p>For reading lines from a file, you can loop over the file object.
+This is memory efficient, fast, and leads to simple code:</p></blockquote>
+
+<pre><code>with open(target, 'r') as f:
+    for line in f:
+        ...
+</code></pre>
+
+<p>这种方式比较节省内存，适于处理大文件。
+当处理小文件时，可以用下面的方法将完整内容保存在一个变量中：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    read_data = f.read()
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -638,274 +867,6 @@ padding是内容(content)到边界之间的透明区域；</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/23/180824/">Build Executable Jar in Command Line</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-23T18:08:24+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:08 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Build a executable jar file using external jars:</p>
-
-<pre><code>$ find .
-./Mod1.java
-./mf
-./lib
-./lib/commons-io-2.4.jar
-
-$ cat Mod1.java
-import org.apache.commons.io.FileUtils;
-import java.io.File;
-
-public class Mod1 {
-  public static void main (String[] args) {
-    String[] scriptExt = new String[] { "scala" };
-    System.out.println("List all scala files: " + FileUtils.listFiles(new File("/home/chad/docs/tmp"), scriptExt, false));
-  }
-}
-
-$ cat mf
-Class-Path: lib/commons-io-2.4.jar
-Main-Class: Mod1
-$ javac -cp lib/* Mod1.java
-$ jar cfm pkg.jar mf Mod1.class
-$ java -jar pkg.jar
-List all scala files: [/home/chad/docs/tmp/sf2.scala, /home/chad/docs/tmp/lookup.scala, /home/chad/docs/tmp/spark-filter.scala, /home/chad/docs/tmp/hw.scala, /home/chad/docs/tmp/newDel.scala, /home/chad/docs/tmp/scalaTime.scala, /home/chad/docs/tmp/sf3.scala]
-</code></pre>
-
-<p>Note that classpath wildcard can&rsquo;t be used in manifest file (here is mf), which means &ldquo;Class-Path: lib/*&rdquo; doesn&rsquo;t work.
-See <a href="http://www.ibm.com/developerworks/library/j-5things6/">5 things you didn&rsquo;t know about &hellip; JARs</a> for explanations.</p>
-
-<p>The &ldquo;-cp&rdquo; option or &ldquo;CLASSPATH=&hellip;&rdquo; is invalid in <code>java -jar xxx.jar</code>.
-So if you don&rsquo;t want to create manifest file by hand, run java program with <code>java -cp ... MainClass</code>:</p>
-
-<pre><code>$ tree
-.
-├── com
-│   └── boco
-│       └── example
-│           └── Example.java
-└── lib
-    └── commons-io-2.4.jar
-4 directories, 2 files
-
-$ cat com/boco/example/Example.java
-package com.boco.example;
-
-import org.apache.commons.io.FileUtils;
-import java.io.File;
-import java.util.Collection;
-import org.apache.commons.io.filefilter.DirectoryFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
-
-public class Example {
-  public static void main (String[] args) {
-    Collection&lt;File&gt; found = FileUtils.listFiles(new File("."), TrueFileFilter.INSTANCE, DirectoryFileFilter.DIRECTORY);
-    System.out.println("List files with apache-commons.FileUtils:");
-    for (File f : found) {
-      System.out.println(f);
-    }
-    System.out.println("--- OVER ---");
-  }
-}
-$ javac -cp lib/commons-io-2.4.jar com/boco/example/Example.java
-$ jar cf example.jar com
-$ mv example.jar lib
-$ tree
-.
-├── com
-│   └── boco
-│       └── example
-│           ├── Example.class
-│           └── Example.java
-└── lib
-    ├── commons-io-2.4.jar
-    └── example.jar
-4 directories, 4 files
-$ java -cp "lib/*" com.boco.example.Example
-List files with apache-commons.FileUtils:
-./com/boco/example/Example.java
-./com/boco/example/Example.class
-./lib/example.jar
-./lib/commons-io-2.4.jar
---- OVER ---
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/23/084146/">Deploy Web Server on Linode</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-23T08:41:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>8:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Setup Virtual Host</h1>
-
-<p>Buy a Linode instance on <a href="https://www.linode.com/">linode</a>. Note its IP address on the home page in your user account.
-Install a Linux system and <a href="https://www.linode.com/docs/security/securing-your-server/">secure it</a>.</p>
-
-<p>Ref: <a href="https://www.linode.com/docs/getting-started">Getting Started</a> for instructions.</p>
-
-<p>To build a new VPS, in Linodes -> Rebuild,
-select OS (&ldquo;Ubuntu 14.04 LTS&rdquo; for now), set root password, and click &ldquo;rebuild&rdquo; button,
-it will create disks and configuration profile automatically.
-Then click &ldquo;boot&rdquo; button under configuration profile.
-After system startup (see progress in &ldquo;Dashboard -> Host Job Queue&rdquo;),
-Connect to the VPS with SSH according to commands in &ldquo;Remote Access&rdquo;.</p>
-
-<p>Or you can create disks, then configuration profile manually in &ldquo;Dashboard&rdquo;.
-Create new disks under &ldquo;Disks&rdquo;, usually a boot part (3GB), a home part and a swap (same capacity with memory).</p>
-
-<h1>Connect domain name and IP address</h1>
-
-<p>Here we link multiple Domain names to the same IP address.
-Then direct different domain requests to its corresponding port using nginx.</p>
-
-<p>First register (purchase) a domain name, if you haven’t already.
-Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
-
-<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 ->  解析设置 -> 设置网站解析 -> 把域名指向我的网站-添加IP地址&rdquo;,
-add your Linode instance IP address as &ldquo;A&rdquo; record,
-Then wait up to 24 hours for the changes to take effect.
-I waited about 30 minutes to take effect.</p>
-
-<p>Next set your domain name to use Linode’s name servers (&ldquo;ns1.linode.com&rdquo; to &ldquo;ns5.linode.com&rdquo;)
-in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DNS服务器 -> 修改域名DNS&rdquo;.</p>
-
-<p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
-Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
-Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#109;&#x61;&#105;&#x6c;&#x74;&#x6f;&#x3a;&#108;&#x63;&#64;&#49;&#x32;&#54;&#46;&#x63;&#111;&#x6d;">&#x6c;&#99;&#64;&#49;&#x32;&#x36;&#x2e;&#99;&#111;&#x6d;</a>&rdquo;.
-Then click &ldquo;Add a Master Zone&rdquo;.</p>
-
-<h2>Setting Reverse DNS</h2>
-
-<p>On linode instance dashboard -> Remote access -> Reverse DNS, enter &ldquo;niufairs.com&rdquo;, and press &ldquo;Look up&rdquo;.</p>
-
-<p>Ref: <a href="https://www.linode.com/docs/websites/hosting-a-website">Hosting a website</a>.</p>
-
-<h1>Config Relationship betwwen domain and port</h1>
-
-<p>Fist install nginx (with aptitude on Ubuntu).</p>
-
-<p>Edit /etc/nginx/nginx.conf as follows:</p>
-
-<pre><code>events {
-  worker_connections  1024;
-}
-
-http {
-  server {
-    server_name niufairs.cn;
-
-    location / {
-      proxy_pass http://localhost:3000/;
-    }
-  }
-
-  server {
-    server_name niufairs.com;
-
-    location / {
-      proxy_pass http://localhost:4000/;
-    }
-  }
-
-  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-  '$status $body_bytes_sent "$http_referer" '
-  '"$http_user_agent" "$http_x_forwarded_for"';
-
-  access_log  /var/log/nginx/access.log  main;
-}
-</code></pre>
-
-<p>Test if this conf is right: <code>nginx -t</code>;</p>
-
-<p>If test ok, reload conf: <code>nginx -s reload</code>;</p>
-
-<p>Now start 2 meteor app on port 3000 and 4000, and you can use niufairs.cn and niufairs.com to visit them respectively.</p>
-
-<p>If you want server some static files, add a new &ldquo;server&rdquo; section in &ldquo;http&rdquo; of nginx.conf:</p>
-
-<pre><code>http {
-  server {
-    server_name newfairs.cn;
-    location / {
-      root /data/www;
-    }
-    location /images/ {
-      root /data;
-    }
-  }
-
-  server {
-    ...
-  }
-}
-</code></pre>
-
-<h1>Configure Email Server</h1>
-
-<p>I bought an <strong>business</strong> account on <a href="https://www.fastmail.com/">FastMail</a>, and
-configure 3 places to make the mail server functional:</p>
-
-<ol>
-<li><p>In FastMail <a href="&#x6d;&#97;&#105;&#x6c;&#x74;&#x6f;&#58;&#109;&#x61;&#x73;&#x74;&#x65;&#114;&#x75;&#x73;&#x65;&#114;&#x40;&#x6e;&#105;&#117;&#102;&#x61;&#105;&#x72;&#115;&#46;&#99;&#111;&#109;">&#109;&#97;&#x73;&#116;&#x65;&#114;&#x75;&#x73;&#101;&#114;&#64;&#110;&#x69;&#117;&#x66;&#97;&#105;&#x72;&#x73;&#x2e;&#99;&#111;&#x6d;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
-<li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
-
-<p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
-<li><p>Add the following record on &ldquo;niufairs.com&rdquo; on Linode.com:</p>
-
-<p> MX Records ->  Mail Server: in1-smtp.messagingengine.com, Preference: 10, TTL: Default.</p></li>
-</ol>
-
-
-<p>Refs:</p>
-
-<ul>
-<li><p><a href="http://stackoverflow.com/questions/15678224/nginx-proxy-several-domains-to-different-ports">Nginx proxy several domains to different ports</a></p></li>
-<li><p><a href="http://nginx.org/en/docs/beginners_guide.html#static">Serving Static Content</a></p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/10">&larr; Older</a>
@@ -923,6 +884,14 @@ configure 3 places to make the mail server functional:</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
       </li>
     
@@ -932,14 +901,6 @@ configure 3 places to make the mail server functional:</p>
     
       <li class="post">
         <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
   </ul>

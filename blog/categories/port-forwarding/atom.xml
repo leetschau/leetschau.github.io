@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Port Forwarding | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/port-forwarding/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2015-08-05T17:36:08+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Meteor Development Collaboration]]></title>
+    <link href="http://leetschau.github.io/blog/2015/08/02/113417/"/>
+    <updated>2015-08-02T11:34:17+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/08/02/113417</id>
+    <content type="html"><![CDATA[<p>Meteor developer Tom and Bob are in different location.
+Tom is the main coder and Bob is the mentor.
+Their remote collaboration mode is:</p>
+
+<ul>
+<li><p>Voice talk through Moxtra/QQ/Skype;</p></li>
+<li><p>Code and browser sharing through a VPS on Internet;</p></li>
+</ul>
+
+
+<h1>VPS Configuration</h1>
+
+<p>The IP address of the VPS is 100.101.102.103.
+Add a user &ldquo;nf&rdquo; as the SSH forwarding user:</p>
+
+<pre><code>useradd -m nf
+passwd nf
+</code></pre>
+
+<p>To allow remote port forwarding to bind to non-loopback addresses,
+add <code>GatewayPorts yes</code> into /etc/ssh/sshd_config, and <code>service ssh reload</code>.
+Without this, the listening port on VPS is bind to &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.
+You can find out it with <code>netstat -lnput|grep 3000</code>, when the forwarding port is 3000.</p>
+
+<h1>Code editor sharing</h1>
+
+<p>Tom install tmux on his Linux OS.
+And start up a tmux session as the develop environment:</p>
+
+<pre><code>tmux new -s myWebsite
+</code></pre>
+
+<p>To make Bob ssh to his laptop, Tom need run the following command on his laptop:</p>
+
+<pre><code>ssh -g -R 10022:localhost:22 nf@100.101.102.103
+</code></pre>
+
+<p>where -g means &ldquo;Allows remote hosts to connect to local forwarded ports&rdquo;,
+-R means a &ldquo;Remote&rdquo; port forwarding is created with this ssh connection
+(which means when this ssh connection closed, the port forwarding will be dropped, too).
+In &ldquo;10022:localhost:22&rdquo;, the first part is the port number on remote host,
+the second and third is the hostname and port number of local machine.</p>
+
+<p>So the whole command means:
+Tom ssh to server 100.101.102.103 as user nf,
+while creating a port forwarding.
+So all connect to 10022 on remote host, will be forwarded to Tom&rsquo;s laptop on port 22.</p>
+
+<p>After login, the forwarding tunnel is created.
+On VPS, verify port 3000 is bind to public interface instead of loopback:</p>
+
+<pre><code>netstat -lnput|grep 3000
+</code></pre>
+
+<p>Bob need run the following command to join Tom:</p>
+
+<pre><code>ssh -p 10022 tom@100.101.102.103
+tmux attch -t myWebsite
+</code></pre>
+
+<p>Notice that the user name is &ldquo;tom&rdquo; instead of &ldquo;nf&rdquo; in above command.
+And the password is tom&rsquo;s on his laptop, instead of nf&rsquo;s on the VPS.</p>
+
+<h1>Web serer sharing</h1>
+
+<p>Tom run this command to create the tunnel:</p>
+
+<pre><code>ssh -g -R 3000:localhost:3000 nf@100.101.102.103
+</code></pre>
+
+<p>Bob can visit the web server with url &ldquo;100.101.102.103:3000&rdquo;.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding">http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding</a></p>
+
+<p><a href="https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/">https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/</a></p>
+]]></content>
+  </entry>
+  
+</feed>

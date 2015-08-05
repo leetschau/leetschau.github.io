@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Some frequently used action about post on cnblogs: import xmlrpclib serviceUrl, appKey = 'http://www.cnblogs.com/yourusername/services/metaweblog. &hellip;">
+  <meta name="description" content="You have 2 options: imap and abbr. Use &ldquo;pt&rdquo; for abbreviation of &ldquo;Puppet&rdquo; for example, first open your vim or gVim: imap: & &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,125 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/19/171117/">Text Expansion in Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-19T17:11:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>You have 2 options: imap and abbr. Use &ldquo;pt&rdquo; for abbreviation of &ldquo;Puppet&rdquo; for example, first open your vim or gVim:</p>
+
+<ul>
+<li><p>imap: &ldquo;:imap pt Puppet&rdquo;;</p></li>
+<li><p>abbr: &ldquo;:ab pt Puppet&rdquo;;</p></li>
+</ul>
+
+
+<p>The difference is, imap will expand text right after you press &ldquo;t&rdquo;,
+while for abbr, you have to type a space or tab or enter after the &ldquo;t&rdquo; to perform text expansion.
+So when writing English, use &ldquo;abbr&rdquo; for it&rsquo;s the &ldquo;normal&rdquo; way.
+If you write Chinese with English, imap is the better way,
+because there is probably no space after the expanded words.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/18/162706/">Build Puppet Clusters With Vagrant</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-18T16:27:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>$ cd ~/docs/propuppetex/chapter3
+$ cat Vagrantfile
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|</p>
+
+<p>  config.vm.box = &ldquo;centos64&rdquo;</p>
+
+<p>  config.vm.define &ldquo;ppt&rdquo; do |ppt|
+    ppt.vm.hostname = &ldquo;puppet.boco.com.cn&rdquo;
+    ppt.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.3&rdquo;,
+        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
+    ppt.vm.provider :virtualbox do |vbox|
+      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
+    end
+    ppt.vm.provision :shell, path: &ldquo;master.sh&rdquo;
+  end</p>
+
+<p>  config.vm.define &ldquo;web&rdquo; do |web|
+    web.vm.hostname = &ldquo;web.boco.com.cn&rdquo;
+    web.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.4&rdquo;,
+        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
+    web.vm.provider :virtualbox do |vbox|
+      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
+    end
+    web.vm.provision :shell, path: &ldquo;web.sh&rdquo;
+  end
+end</p>
+
+<p>$ cat master.sh
+echo &lsquo;<em>&rsquo; > /etc/puppet/autosign.conf
+sed -i &lsquo;/[.</em>]/ a \    autosign = true&rsquo; /etc/puppet/puppet.conf # add &ldquo;autosign = true&rdquo; in [main] and [agent]
+echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
+echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
+mkdir /etc/puppet/manifests
+cat > /etc/puppet/manifests/site.pp &lt;<-EOF
+node 'web' {
+  file { '/home/vagrant/aaa.conf':
+    content => &lsquo;this is made by puppet master!&rsquo;,
+  }
+}
+EOF
+service iptables stop</p>
+
+<p>$ cat web.sh
+sed -i &lsquo;1 a \    master = puppet&rsquo; /etc/puppet/puppet.conf # add &ldquo;master = puppet&rdquo; after the line [main]
+echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
+echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
+echo &ldquo;proxy=<a href="http://10.21.3.31:8888">http://10.21.3.31:8888</a>&rdquo; >> /etc/yum.conf
+service iptables stop</p>
+
+<p>Now run &ldquo;puppet master &ndash;no-daemonize &ndash;verbose&rdquo; on ppt, run &ldquo;puppet agent &ndash;test&rdquo; on web, you can file the file &ldquo;aaa.conf&rdquo; at /home/vagrant.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -632,106 +751,6 @@ sys 0.00</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/05/121707/">Notes About Some Linux Distros</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-05T12:17:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:17 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Mageia: boot failed.</p></li>
-<li><p>OpenSUSE KDE:</p></li>
-</ul>
-
-
-<p>pros: incremental search in konsole;
-      good navigation in application menu than Scientific Linux;
-      multiple desktop, but only KDE and iceWM available;</p>
-
-<p>cons: no chinese input method;
-      no dark color theme;</p>
-
-<ul>
-<li>openSUSE Gnome 3.10:</li>
-</ul>
-
-
-<p>pros: no task bar, cool;
-      use &ldquo;super&rdquo;(Windows) key to select window and app;
-      Global Dark Theme(open it in Tweak tools) is very cool;
-      easy to setup shortcut;</p>
-
-<p>cons: Chinese input method is very weak, only support character by character, word input not support;
-      bug in modify font size (there is a entry to modify font size in Tweak tools, but not work);
-      OS crash after running a while;</p>
-
-<ul>
-<li>CentOS:</li>
-</ul>
-
-
-<p>pros: both KDE and Gnome desktop, good Chinese support, build-in Chinese input method(ibus-pinyin).
-cons: Gnome 2.x looks old-fashioned.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/03/145805/">Start a Service and Wait Until It's Up</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-03T14:58:05+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>2:58 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In this case the GcpServer is a background service. If the port 5556 is listening, that means the service start successfully.</p>
-
-<pre><code>chmod 755 GcpServerCore/cmd/*.sh
-cd GcpServerCore/cmd;./start.sh;cd -
-while ! nc -zv localhost 5556; do sleep 5; done
-</code></pre>
-
-<p>This solution based on the netcat utility.</p>
-
-<p>Ref: <a href="http://snipplr.com/view/43113/">bash: how to start a service and wait until it&rsquo;s up</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/30">&larr; Older</a>
@@ -749,6 +768,14 @@ while ! nc -zv localhost 5556; do sleep 5; done
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
       </li>
     
@@ -758,14 +785,6 @@ while ! nc -zv localhost 5556; do sleep 5; done
     
       <li class="post">
         <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
   </ul>

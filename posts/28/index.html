@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="The 3 numbers after the distro name is: used memory, free memory and used percent(= used/(used + free)). Scientific Linux Gnome 64bit: 286 1560 15.49 &hellip;">
+  <meta name="description" content="Generate ssh keys on source host with ssh-keygen;
+Disable known_hosts prompt(optional): add &ldquo;StrictHostKeyChecking no&rdquo; into ~/.ssh/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,191 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/31/115253/">Distribute SSH Pubkey to Multiple Hosts With Fabric</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-31T11:52:53+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Generate ssh keys on source host with <code>ssh-keygen</code>;</p></li>
+<li><p>Disable known_hosts prompt(optional): add &ldquo;StrictHostKeyChecking no&rdquo; into ~/.ssh/config;</p></li>
+<li><p>Run fabric script to distribute pubkey, you have to input password manually: <code>fab distkey</code>;</p></li>
+</ol>
+
+
+<p>$ cat fabfile.py
+from fabric.api import local, task
+env.hosts = [&lsquo;10.0.2.48&rsquo;, &lsquo;10.0.2.49&rsquo;, &lsquo;10.0.7.141&rsquo;, &lsquo;10.0.7.142&rsquo;, &lsquo;10.0.7.143&rsquo;]
+@task
+def distkey():
+    env.user = &lsquo;gcp&rsquo;
+    local(&lsquo;ssh-copy-id %(user)s@%(host)s&rsquo; % env)</p>
+
+<p>You have to input password for every host. So try to use uniform password for all hosts. It will save you lots of times.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/28/182817/">Task Management in Fabric</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T18:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. So there are 2 strategies:</p>
+
+<ul>
+<li><p>Define global hosts, when detections over, modify the hosts to none, so report and send email will only run once;</p></li>
+<li><p>Use &ldquo;report&rdquo; as entrance, invoke detection within &ldquo;report&rdquo; task.</p></li>
+</ul>
+
+
+<h1>Global hosts style</h1>
+
+<p>fabfile.py:</p>
+
+<pre><code>from fabric.api import run, env, hosts
+import re
+
+env.hosts = ['Chad@10.0.2.47', 'chad@10.0.2.49']
+env.password = 'abaqus67'
+env['report'] = {}
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    env['report'][env.host] = host_report
+    env.hosts = []    # make following tasks run once
+
+def report():
+    print('Test Report:')
+    print(env.report)
+
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab --hide=everything detect report sendmail
+Test Report:
+{'10.0.2.49': {'os': 'Linux', 'jdk': True}, '10.0.2.47': {'os': 'Linux', 'jdk': False}}
+send mail...
+</code></pre>
+
+<h1>&ldquo;execute&rdquo; style</h1>
+
+<p>fab2.py:</p>
+
+<pre><code>from fabric.api import run, env, task, execute
+import re
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    env.password = env.loginfo[env.host_string]
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    return host_report
+
+@task
+def report():
+    env.hosts= ['gcp@10.0.2.48', 'gcp@10.0.2.49', 'gcp@10.0.7.141', 'gcp@10.0.7.142', 'gcp@10.0.7.143:22']
+    pwds = ['gcp', 'gcp', 'gcp@123', 'gcp@123', 'gcp@123']
+    env.loginfo = dict(zip(env.hosts, pwds))
+    res = execute(detect, hosts=host_list)
+    print('Test Report:')
+    print(res)
+
+@task
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab -f fab2.py --hide=everything report sendmail
+Test Report:
+{'gcp@10.0.2.47': {'os': 'Linux', 'jdk': False}, 'gcp@10.0.2.49': {'os': 'Linux', 'jdk': True}, ... }
+send mail...
+</code></pre>
+
+<p>You can see there is no definition and modification of global hosts, no need to maintain global variable env[&lsquo;report&rsquo;] manually in &ldquo;report&rdquo; style, and the &ldquo;detect&rdquo; function is hide from &ldquo;fab&rdquo; command line with the help of &ldquo;@task&rdquo; decorator. If you run &ldquo;fab detect&rdquo;, it will complain &ldquo;Command(s) not found&rdquo;, which provides more accurate visibility control. So I think it&rsquo;s better than the &ldquo;global hosts&rdquo; style.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li><p>Yuo can add attributes to &ldquo;env&rdquo; directly like &ldquo;env.loginfo = &hellip;&rdquo; above. And use this attribute with &ldquo;env.loginfo[&hellip;]&rdquo;;</p></li>
+<li><p>The format of host string is &ldquo;user@ip:port&rdquo;, or &ldquo;user@ip&rdquo; if port is 22;</p></li>
+<li><p>The function &ldquo;execute&rdquo; returns a dict, the key is the host_string, the value is the return value of the function executed (&ldquo;detect&rdquo; in this case). The return value of &ldquo;detect&rdquo; is a dict, so the &ldquo;execute&rdquo; function returns a nested dict.</p></li>
+<li><p>the return value of &ldquo;run&rdquo; is the stdout and stderr of the remote command.</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -507,125 +693,6 @@ TY-HD-01-010-fa_cg_nb_d_001563</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/19/171117/">Text Expansion in Vim</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-19T17:11:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>You have 2 options: imap and abbr. Use &ldquo;pt&rdquo; for abbreviation of &ldquo;Puppet&rdquo; for example, first open your vim or gVim:</p>
-
-<ul>
-<li><p>imap: &ldquo;:imap pt Puppet&rdquo;;</p></li>
-<li><p>abbr: &ldquo;:ab pt Puppet&rdquo;;</p></li>
-</ul>
-
-
-<p>The difference is, imap will expand text right after you press &ldquo;t&rdquo;,
-while for abbr, you have to type a space or tab or enter after the &ldquo;t&rdquo; to perform text expansion.
-So when writing English, use &ldquo;abbr&rdquo; for it&rsquo;s the &ldquo;normal&rdquo; way.
-If you write Chinese with English, imap is the better way,
-because there is probably no space after the expanded words.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/18/162706/">Build Puppet Clusters With Vagrant</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-18T16:27:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ cd ~/docs/propuppetex/chapter3
-$ cat Vagrantfile
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|</p>
-
-<p>  config.vm.box = &ldquo;centos64&rdquo;</p>
-
-<p>  config.vm.define &ldquo;ppt&rdquo; do |ppt|
-    ppt.vm.hostname = &ldquo;puppet.boco.com.cn&rdquo;
-    ppt.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.3&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    ppt.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    ppt.vm.provision :shell, path: &ldquo;master.sh&rdquo;
-  end</p>
-
-<p>  config.vm.define &ldquo;web&rdquo; do |web|
-    web.vm.hostname = &ldquo;web.boco.com.cn&rdquo;
-    web.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.4&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    web.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    web.vm.provision :shell, path: &ldquo;web.sh&rdquo;
-  end
-end</p>
-
-<p>$ cat master.sh
-echo &lsquo;<em>&rsquo; > /etc/puppet/autosign.conf
-sed -i &lsquo;/[.</em>]/ a \    autosign = true&rsquo; /etc/puppet/puppet.conf # add &ldquo;autosign = true&rdquo; in [main] and [agent]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-mkdir /etc/puppet/manifests
-cat > /etc/puppet/manifests/site.pp &lt;<-EOF
-node 'web' {
-  file { '/home/vagrant/aaa.conf':
-    content => &lsquo;this is made by puppet master!&rsquo;,
-  }
-}
-EOF
-service iptables stop</p>
-
-<p>$ cat web.sh
-sed -i &lsquo;1 a \    master = puppet&rsquo; /etc/puppet/puppet.conf # add &ldquo;master = puppet&rdquo; after the line [main]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-echo &ldquo;proxy=<a href="http://10.21.3.31:8888">http://10.21.3.31:8888</a>&rdquo; >> /etc/yum.conf
-service iptables stop</p>
-
-<p>Now run &ldquo;puppet master &ndash;no-daemonize &ndash;verbose&rdquo; on ppt, run &ldquo;puppet agent &ndash;test&rdquo; on web, you can file the file &ldquo;aaa.conf&rdquo; at /home/vagrant.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/29">&larr; Older</a>
@@ -643,6 +710,14 @@ service iptables stop</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
       </li>
     
@@ -652,14 +727,6 @@ service iptables stop</p>
     
       <li class="post">
         <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a>
       </li>
     
   </ul>
