@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="如下这段代码是启动GODU的脚本，其中的JAVA_OPTS中的各个参数是什么意思呢？ JAVA_OPTS=&ldquo; -Xms512m -Xmx1024m -XX:PermSize=128m -XX:MaxPermSize=128m -Dfile.encoding=GBK&rdquo; &hellip;">
+  <meta name="description" content="This is a demo of how to use VIM as a lightweight IDE to run Scala scripts. We will create a script named &ldquo;HelloWorld.scala&rdquo; and run it &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,135 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/10/24/101855/">Use VIM as Lightweight Scala IDE</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-10-24T10:18:55+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:18 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This is a demo of how to use VIM as a lightweight IDE to run Scala scripts. We will create a script named &ldquo;HelloWorld.scala&rdquo; and run it under /home/godu/test for linux or e:\mydoc\scalafiles for windows.</p>
+
+<h1>Prerequisite</h1>
+
+<p>We can compile and run Scala scripts in console. This means we&rsquo;ve already installed JRE and scala run-time files, and defined necessary enviroment variables such as JAVA_HOME and SCALA_HOME, and add $SCALA_HOME/bin to $PATH.</p>
+
+<h1>Create &amp; Run Source Files</h1>
+
+<p>In Linux:</p>
+
+<pre><code>cd /home/godu/test 
+vi HelloWorld.scala 
+&lt;INSERT&gt;println("hello, world!")&lt;ESC&gt; 
+:w HelloWorld.scala 
+:!scala % 
+</code></pre>
+
+<p>In Windows:</p>
+
+<pre><code>&lt;Open gvim&gt; 
+:lcd e:\mydoc\scalafiles 
+&lt;INSERT&gt;println("hello, world!")&lt;ESC&gt; 
+:w HelloWorld.scala 
+:!scala % 
+</code></pre>
+
+<h1>Add IDE functionality support</h1>
+
+<p>syntax hightlight, auto-indent, auto-complete, code insight, etc, see note &ldquo;为VIM增加新的语法支持&rdquo;;</p>
+
+<p>_vimrc settings for scala IDE</p>
+
+<pre><code>let Tlist_Ctags_Cmd="f:/Software/ctags58/ctags.exe" 
+let tlist_scala_settings='scala;c:Classes;t:Traits;o:Objects;m:Methods;p:Packages;C:Constants;l:Local variables;T:Types' 
+nnoremap &lt;silent&gt; &lt;F4&gt; :TlistToggle&lt;CR&gt;  
+nnoremap &lt;silent&gt; &lt;F9&gt; :!scala %&lt;CR&gt; 
+colo evening 
+imap jj &lt;ESC&gt; 
+cmap jj &lt;ESC&gt; 
+set directory=C:\Windows\Temp 
+set backupdir=C:\Windows\Temp 
+set clipboard+=unnamed 
+set guifont=Consolas:h13 
+set guioptions= 
+set ts=2 
+cd e:/mydoc/scalafiles 
+</code></pre>
+
+<p>For more information about the usage of filename-relative shortenings, use the following command for detail.</p>
+
+<pre><code>:h filename-modifiers 
+</code></pre>
+
+<p>Frequently Used:</p>
+
+<p> :!echo %  // show file name and extension</p>
+
+<p> :!echo %&lt;  // show only file name</p>
+
+<p> :!echo %:t:r // show only file name</p>
+
+<p> :!echo %:p // show full path</p>
+
+<p> :!echo %:e // show only file extension</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/10/21/171026/">JVM的内存管理机制</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-10-21T17:10:26+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>5:10 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>JVM使用的内存分为两部分：堆（Heap）和栈（Stack），简单理解，堆可以看做是数据区，栈可以看做是指令区；下面详细说明二者的区别。</p>
+
+<p>堆中存放的是对象实例（但不包括对象的方法，因为方法是指令，放在栈里），new出来的对象都放在堆里，对象不再被使用（不可达）时由GC（垃圾回收）机制回收，而无需代码显式释放，堆由于是在运行时动态分配的，因此存取速度比较慢；</p>
+
+<p>栈中存放基本数据类型（primitive types: byte, int, float, long, char, boolean, etc）、常量、指令（例如对象的方法）和对象的引用地址（对象实例在堆中分配以后，需要在栈中保存一个4字节的堆内存地址，也就是所谓的对象句柄，用来确定该对象实例在堆中的位置）。栈中数据存取的速度比堆快，仅次于寄存器，但它必须在编译期间指定，且由于它采用FIFO(first in, first out)方式分配内存，因此不存在内存回收问题，因此GC是仅工作在堆上的。</p>
+
+<p>堆又可以分为3个部分：年轻代（Young Generation,YG）、老代（Old Generation,OG）和永久代（Permanent Generation,PG），新创建的对象都放在YG里，经过几次GC后仍然生存的就被放到了OG里，PG里放的是类信息以及相关元数据（详见[1]）；YG的GC最频繁，PG的GC最少，这样可以极大地提高JVM的性能；</p>
+
+<p>[1] 维基百科对JVM的堆的说明：<a href="http://en.wikipedia.org/wiki/Java_Virtual_Machine#Heap">http://en.wikipedia.org/wiki/Java_Virtual_Machine#Heap</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -413,74 +542,6 @@ tab: 目录面板跳转；</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/10/14/153811/">一台服务器上部署多个Terracotta的方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-10-14T15:38:11+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:38 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在window server 2003 下，利用apache2.2.11+tomcat6+terracotta 群集不能复制session（<a href="http://forums.terracotta.org/forums/posts/list/2342.page%EF%BC%89">http://forums.terracotta.org/forums/posts/list/2342.page%EF%BC%89</a>
-其中提到更新服务器配置的方法：
-bin/tim-get.sh upgrade tc-config.xml
-实际upgrade应为update；
-但doc指出tim是Terracotta integration module，应该与启动服务器配置无关。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/10/13/095912/">修改Linux系统端口LAST_ACK状态的持续时间</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-10-13T09:59:12+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:59 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>如果一台Linux服务器上某端口出现LAST_ACK状态，说明是客户端主动与它断开连接，服务器在等待客户端发送ACK+1，如果客户端没有发送，过一段时间服务器会自动断连接，这里“一段时间”的长度可以用sysctl命令设置（下面是设置为10s）：</p>
-
-<p> sysctl -w net.inet.ip.rtexpire=10</p>
-
-<p> sysctl -w net.inet.ip.rtminexpire=10</p>
-
-<p>sysctl命令可以对Linux系统进行多方面的配置，列出所有可配置项的命令是sysctl -a，详细使用方法可以man sysctl查看。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/87">&larr; Older</a>
@@ -498,6 +559,14 @@ bin/tim-get.sh upgrade tc-config.xml
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
       </li>
     
@@ -507,14 +576,6 @@ bin/tim-get.sh upgrade tc-config.xml
     
       <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Mongodb | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/mongodb/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-08-05T17:36:08+08:00</updated>
+  <updated>2015-08-11T14:12:54+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,154 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Share One Users Collection Between Multiple Meteor Apps]]></title>
+    <link href="http://leetschau.github.io/blog/2015/08/11/123934/"/>
+    <updated>2015-08-11T12:39:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/08/11/123934</id>
+    <content type="html"><![CDATA[<p>We are running a website and a backend data management system,
+both are meteor web servers.</p>
+
+<p>The backend needs fetch data from the website.
+So they have to share one database, and the same &ldquo;users&rdquo; collection for both.
+That means one can register on the website and login to the backend,
+which is obviously unacceptable.</p>
+
+<p>To distinguish users of the website and the backend,
+I choose package <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
+
+<p>All the backend users will have roles <code>['backend', 'admin']</code>,
+while website users haven&rsquo;t.</p>
+
+<p>In &ldquo;safe&rdquo; environment, backend has its own user registration entry.
+Users registered there will be given above roles automatically.</p>
+
+<p>Put the following codes into server side JavaScript files to achieve above goal
+(based on examples/rolesWithAccountsUI on meteor-roles):</p>
+
+<pre><code>var ROLE_NAME = 'editor';
+var GROUP_NAME = 'backend';
+
+Meteor.publish('mallData', function(){
+  if (Roles.userIsInRole(this.userId, ROLE_NAME, GROUP_NAME)) {
+    console.log('pass check');
+    return Mall.find();
+  } else {
+    console.log('not pass check');
+    this.stop();
+    return;
+  }
+});
+
+Meteor.startup(function () {
+  Accounts.onCreateUser(function (options, user) {
+    Roles.setRolesOnUserObj(user, ROLE_NAME, GROUP_NAME);
+    if (options.profile) {
+      user.profile = options.profile
+    }
+    return user;
+  });
+});
+
+Roles.setRolesOnUserObj = function (users, roles, group) {
+  if (!users) throw new Error ("Missing 'users' param")
+  if (!roles) throw new Error ("Missing 'roles' param")
+  if (group) {
+    if ('string' !== typeof group)
+      throw new Error ("Roles error: Invalid parameter 'group'. Expected 'string' type")
+    if ('$' === group[0])
+      throw new Error ("Roles error: groups can not start with '$'")
+
+    // convert any periods to underscores
+    group = group.replace(/\./g, '_')
+  }
+
+  // ensure arrays to simplify code
+  if (!_.isArray(users)) users = [users]
+  if (!_.isArray(roles)) roles = [roles]
+
+
+  // remove invalid roles
+  roles = _.reduce(roles, function (memo, role) {
+    if (role
+        &amp;&amp; 'string' === typeof role
+        &amp;&amp; role.trim().length &gt; 0) {
+      memo.push(role.trim())
+    }
+    return memo
+  }, [])
+
+  // if roles is empty, quit
+  if (roles.length === 0) return
+
+  // ensure all roles exist in 'roles' collection
+  existingRoles = _.reduce(Meteor.roles.find({}).fetch(), function (memo, role) {
+    memo[role.name] = true
+    return memo
+  }, {})
+  _.each(roles, function (role) {
+    if (!existingRoles[role]) {
+      Roles.createRole(role)
+    }
+  })
+
+  // ensure users is an array of objects
+  _.each(users, function (user) {
+    if ('object' !== typeof user) {
+      throw new Error("Expected 'users' argument to be an object or array of objects")
+    }
+  })
+
+
+  // Set the roles on the actual user object
+
+  if (group) {
+
+    // roles is a key/value dict object
+
+    _.each(users, function (user) {
+      user.roles = {}
+      user.roles[group] = roles
+    })
+
+  } else {
+
+    // roles is an array of strings
+
+    _.each(users, function (user) {
+      user.roles = roles
+    })
+
+  }
+
+}
+</code></pre>
+
+<p>Now any user outside &lsquo;backend&rsquo; group, or without &lsquo;editor&rsquo; role, can&rsquo;t get any data from server.</p>
+
+<p>Unfortunately Internet is unsafe at all.
+So the registration entry has to be removed from the accounts-ui:</p>
+
+<pre><code>Meteor.startup(function () {
+  Accounts.config({
+    forbidClientAccountCreation : true
+  });
+});
+</code></pre>
+
+<p>Now if you want give a website personnel rights to edit data through backend,
+first he should register on the website,
+then you define his role manually in mongo console:</p>
+
+<pre><code>&gt; db.users.find({ "emails.0.address":"user@123.com" }, { "emails":1 })
+&gt; db.users.update({_id: "PM36t6eRmuC9oELdu"}, { $set: { roles: {"backend": [ "editor" ]} } })
+</code></pre>
+
+<p>First find the id of the user (here is &ldquo;<a href="&#109;&#97;&#105;&#108;&#116;&#x6f;&#58;&#x75;&#115;&#x65;&#x72;&#64;&#49;&#x32;&#51;&#x2e;&#99;&#111;&#x6d;">&#117;&#115;&#x65;&#x72;&#x40;&#x31;&#50;&#51;&#x2e;&#x63;&#x6f;&#x6d;</a>&rdquo;) by his email address.
+Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRmuC9oELdu&rdquo;).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[MongoDB数据管理平台产品定义和选型]]></title>
@@ -90,7 +238,7 @@ fs.readFile(image_origial, 'binary', function(err, original_data){
 <p>Display Base64 string in html:</p>
 
 <pre><code>&lt;template name="myform"&gt;
-  &lt;img id="fromBase64" src="data:image/png;base64,{{getPic}}"&gt;
+  &lt;img id="fromBase64" src="data:image/png;base64,"&gt;
 &lt;/template&gt;
 </code></pre>
 
@@ -176,51 +324,6 @@ and you must add double quotes surrounding $exp.</p>
 <p><a href="http://stackoverflow.com/questions/8971151/file-write-operations-in-mongo-script">http://stackoverflow.com/questions/8971151/file-write-operations-in-mongo-script</a></p>
 
 <p><a href="http://stackoverflow.com/questions/14478304/redirect-output-of-mongo-query-to-a-csv-file">http://stackoverflow.com/questions/14478304/redirect-output-of-mongo-query-to-a-csv-file</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Find Verified User in MongoDB]]></title>
-    <link href="http://leetschau.github.io/blog/2015/05/07/151147/"/>
-    <updated>2015-05-07T15:11:47+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/05/07/151147</id>
-    <content type="html"><![CDATA[<p>Find a user whose email is verified.
-The &ldquo;emails&rdquo; field is an array.
-The function of &ldquo;$elemMatch&rdquo; operator is:</p>
-
-<p>Find a element in an array (here is emails),
-whose feature obey the value after &ldquo;$elemMatch&rdquo; (here its &ldquo;verified&rdquo; key is &ldquo;true&rdquo;).</p>
-
-<p>The code:</p>
-
-<pre><code>&gt; db.users.findOne({'emails': {$elemMatch: {verified: true}}})
-{
-  "_id" : "rKawn5jCiuGcsPHdP",
-  "createdAt" : ISODate("2015-05-07T01:04:23.375Z"),
-  "services" : {
-    "password" : {
-      "bcrypt" : "$2a$10$T07N74DUrVrRtVGPT9dzleZlpRTlULfb9OrlWveW4NbcNpi.HkiAK"
-    },
-    "resume" : {
-      "loginTokens" : [
-        {
-          "when" : ISODate("2015-05-07T01:04:23.902Z"),
-          "hashedToken" : "Xbt2ASQF61artSmrYX1Gn6DLUNvbIrz9DW0sE4tbJh4="
-        }
-      ]
-    },
-    "email" : {
-      "verificationTokens" : [ ]
-    }
-  },
-  "emails" : [
-    {
-      "address" : "leechau@126.com",
-      "verified" : true
-    }
-  ]
-}
-</code></pre>
 ]]></content>
   </entry>
   

@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="相比于集中式版本控制系统SVN，Git的优点是分布式的版本控制，比SVN更先进（在网上搜svn git，有很多比较二者的文章），Windows平台上的Git客户端 Tortoisegit很易用，文档也很完善。 安装Git时，首先要安装msysgit，这个是Git的完整编译环境， &hellip;">
+  <meta name="description" content="功能很简单，首先运行Server，当启动Client并向Server发送‘hi’时，Server回答一句问候语，当Client发送其他信息时，Server回答'bye'并关闭连接、退出。 Server端： import sys, socket serv = socket.socket(socket &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,298 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/16/145839/">最简单的Socket通信之Python版</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-16T14:58:39+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:58 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>功能很简单，首先运行Server，当启动Client并向Server发送‘hi’时，Server回答一句问候语，当Client发送其他信息时，Server回答'bye'并关闭连接、退出。</p>
+
+<p>Server端：</p>
+
+<pre><code>import sys, socket 
+serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+serv.bind(('localhost',7788)) 
+serv.listen(2) 
+while True: 
+    connection,address = serv.accept() 
+    try: 
+        connection.settimeout(35) 
+        buf = connection.recv(1024) 
+        if buf=='hi': 
+            connection.send('welcome to server!') 
+        else: 
+            connection.send('bye!') 
+            connection.close() 
+            sys.exit(0) 
+    except socket.timeout: 
+        print 'time out!' 
+</code></pre>
+
+<p>Client端：</p>
+
+<pre><code>import socket 
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+sock.connect(('localhost', 7788)) 
+import time 
+time.sleep(2) 
+sock.send('hi') 
+print sock.recv(1024) 
+sock.close() 
+</code></pre>
+
+<p>注意Server和Client都在本机运行时，要在不同的软件上运行，例如Server用WingIDE跑，Client用PyScripter跑。</p>
+
+<p>Server端通信的基本过程是：建立socke对象->bind->listen->connection周期->close，其中connection周期是：首先用socket server的accept方法生成一个新的socket对象（习惯上成为connection）然后用connection的send/rec方法发送/接收数据，最后调用connection的close方法关闭连接。由于服务器经常要以“服务”的形式不断处理客户连接，因此connection周期通常要放在一个循环体里。</p>
+
+<p>Client端通信的基本过程是：建立socke对象->connect->send/recv->close。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/03/09/111841/">基于ivy的源代码调试方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-03-09T11:18:41+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:18 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>项目PORJ_TEST是项目PROJ的测试项目。在它的ivy中引用了PROJ的jar包。由于PROJ正处于开发阶段，源代码更改频繁， 在运行PROJ_TEST中的测试时，需要进入PROJ的jar包内部设置断点、调试源代码。传统的方法是在PROJ_TEST的Build Path中添加PROJ项目，但这样显然与ivy中定义的引用发生了冲突，且容易在打包时出现问题，怎样让ivy引用的jar包也能提高源代码？方法如下：
+PROJ项目的ivy.xml文件（ivy配置文件）：</p>
+
+<p> <ivy-module version="2.0" ></p>
+
+<p> <info organisation="..." module="proj" revision="alpha" status="integration"/></p>
+
+<p> <configurations></p>
+
+<p> <conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/></p>
+
+<p> <conf name="test" visibility="public" description="used for the test project of gapi" extends="compile"/></p>
+
+<p> <conf name="compile" visibility="private" description="used for compile the artifact only"/></p>
+
+<p> <conf name="sources" visibility="public" description="contains the source artifact of this module"/></p>
+
+<p> </configurations></p>
+
+<p> <publications></p>
+
+<p> <artifact name="gapi" type="jar" ext="jar" conf="master"/></p>
+
+<p> <artifact name="gapi" type="source" ext="jar" conf="sources"/></p>
+
+<p> </publications></p>
+
+<p> <dependencies></p>
+
+<p> <dependency .../></p>
+
+<p> <dependency .../></p>
+
+<p> </dependencies></p>
+
+<p> </ivy-module></p>
+
+<p> PROJ项目的build.xml文件（Ant构建脚本）：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> <project name="PROJ" basedir="./" default="publish_jar" xmlns:ivy="antlib:org.apache.ivy.ant"></p>
+
+<p> <property name="src.dir" value="${basedir}/src" /></p>
+
+<p> <property name="build.dir" value="${basedir}/build" /></p>
+
+<p> <property name="build.class.dir" value="${build.dir}/class" /></p>
+
+<p> <property name="build.dist.dir" value="${build.dir}/dist" /></p>
+
+<p> <property name="build.javadoc.dir" value="${build.dir}/javadocs" /></p>
+
+<p> <property name="build.lib.dir" value="${build.dir}/lib" /></p>
+
+<p> <property name="vendor.name" value="LC_COM" /></p>
+
+<p> <property name="product.name" value="proj" /></p>
+
+<p> <property name="publish.resolver" value="test-repo" /></p>
+
+<p> <tstamp></p>
+
+<p> <format property="build.date" pattern="yyyyMMdd" /></p>
+
+<p> <format property="build.time" pattern="HH:mm:ss" /></p>
+
+<p> </tstamp></p>
+
+<p> <path id="lib.path"></p>
+
+<p> <fileset dir="${build.lib.dir}"></p>
+
+<p> <include name="**/*.jar"/></p>
+
+<p> </fileset></p>
+
+<p> </path></p>
+
+<p> <target name="clean"></p>
+
+<p> <delete dir="${build.dir}"/></p>
+
+<p> </target></p>
+
+<p> <target name="init" depends="clean"></p>
+
+<p> <mkdir dir="${build.dir}"/></p>
+
+<p> <mkdir dir="${build.class.dir}"/></p>
+
+<p> <mkdir dir="${build.dist.dir}"/></p>
+
+<p> <mkdir dir="${build.lib.dir}"/></p>
+
+<p> &lt;ivy:settings file=&ldquo;../ivysettings.xml&rdquo;/></p>
+
+<p> &lt;ivy:resolve/></p>
+
+<p> &lt;ivy:retrieve pattern=&ldquo;${build.lib.dir}/[artifact]-[revision].[ext]&rdquo;/></p>
+
+<p> </target></p>
+
+<p> <target name="compile" depends="init"></p>
+
+<p> &lt;javac srcdir=&ldquo;${src.dir}&rdquo; destdir=&ldquo;${build.class.dir}&rdquo;</p>
+
+<p> classpathref=&ldquo;lib.path&rdquo; encoding=&ldquo;GBK&rdquo; debug=&ldquo;true&rdquo;/></p>
+
+<p> </target></p>
+
+<p> <target name="create_jar" depends="compile"></p>
+
+<p> <jar destfile="${build.dist.dir}/${product.name}-${ivy.revision}-jar.jar" basedir="${build.class.dir}"></p>
+
+<p> <manifest></p>
+
+<p> <attribute name="Vendor" value="${vendor.name}" /></p>
+
+<p> <attribute name="Product-Name" value="${product.name}" /></p>
+
+<p> <attribute name="Version" value="${ivy.revision}" /></p>
+
+<p> <attribute name="Build-Date" value="${build.date}" /></p>
+
+<p> <attribute name="Build-Time" value="${build.time}" /></p>
+
+<p> </manifest></p>
+
+<p> </jar></p>
+
+<p> <jar destfile="${build.dist.dir}/${product.name}-${ivy.revision}-source.jar" basedir="${src.dir}"></p>
+
+<p> <manifest></p>
+
+<p> <attribute name="Vendor" value="${vendor.name}" /></p>
+
+<p> <attribute name="Product-Name" value="${product.name}" /></p>
+
+<p> <attribute name="Version" value="${ivy.revision}" /></p>
+
+<p> <attribute name="Build-Date" value="${build.date}" /></p>
+
+<p> <attribute name="Build-Time" value="${build.time}" /></p>
+
+<p> </manifest></p>
+
+<p> </jar></p>
+
+<p> </target></p>
+
+<p> <target name="publish_jar" depends="create_jar"></p>
+
+<p> &lt;ivy:publish artifactspattern=&ldquo;${build.dist.dir}/[artifact]-[revision]-[type].[ext]&rdquo;</p>
+
+<p> resolver=&ldquo;${publish.resolver}&rdquo; status=&ldquo;integration&rdquo; overwrite=&ldquo;true&rdquo;/></p>
+
+<p> <echo message="publish complete."/></p>
+
+<p> </target></p>
+
+<p> </project></p>
+
+<p>PROJ_TEST项目的ivy.xml文件：</p>
+
+<p> <ivy-module version="2.0" ></p>
+
+<p> <info organisation="..." module="proj_test" revision="alpha" status="integration" publication="20101121175043"/></p>
+
+<p> <configurations></p>
+
+<p> <conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/></p>
+
+<p> <conf name="compile" visibility="private" description="used for compile the artifact only"/></p>
+
+<p> <conf name="test" visibility="public" description="used for the test project of gapi" extends="compile"/></p>
+
+<p> </configurations></p>
+
+<p> <publications></p>
+
+<p> <artifact name="gapi_test" type="jar" ext="jar" conf="master"/></p>
+
+<p> </publications></p>
+
+<p> <dependencies></p>
+
+<p> <dependency org="..." name="proj" rev="alpha" conf="compile->master,test" changing=&ldquo;true&rdquo;/></p>
+
+<p> <dependency .../></p>
+
+<p> <dependency .../></p>
+
+<p> </dependencies></p>
+
+<p> </ivy-module></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -230,7 +522,7 @@ AHK源码：</p>
 
 
 <p> $ git config &ndash;global user.name &ldquo;Scott Chacon&rdquo;
- $ git config &ndash;global user.email &ldquo;<a href="&#109;&#x61;&#105;&#x6c;&#x74;&#111;&#x3a;&#115;&#99;&#x68;&#x61;&#99;&#111;&#x6e;&#64;&#103;&#x6d;&#x61;&#105;&#x6c;&#x2e;&#x63;&#x6f;&#109;">&#115;&#99;&#x68;&#97;&#x63;&#x6f;&#x6e;&#64;&#103;&#109;&#x61;&#x69;&#108;&#46;&#x63;&#111;&#x6d;</a>&rdquo;</p>
+ $ git config &ndash;global user.email &ldquo;<a href="&#x6d;&#x61;&#105;&#108;&#x74;&#x6f;&#x3a;&#115;&#x63;&#104;&#x61;&#99;&#x6f;&#110;&#64;&#x67;&#x6d;&#x61;&#105;&#108;&#46;&#99;&#x6f;&#x6d;">&#115;&#99;&#104;&#97;&#99;&#x6f;&#x6e;&#x40;&#103;&#x6d;&#x61;&#105;&#108;&#46;&#99;&#x6f;&#109;</a>&rdquo;</p>
 
 <ol>
 <li>新建仓库，并加入源代码：</li>
@@ -622,118 +914,6 @@ AHK源码：</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/18/151635/">Virtualenv使用笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-02-18T15:16:35+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以在沙箱中安装googlemaps(<a href="http://pypi.python.org/pypi/googlemaps/1.0.2">http://pypi.python.org/pypi/googlemaps/1.0.2</a>)为例说明如何用virtualenv隔离安装python第3方库
-// 离线安装virtualenv(<a href="http://pypi.python.org/pypi/virtualenv">http://pypi.python.org/pypi/virtualenv</a>)：首先下载安装包(gz文件)，解压后运行：
-F:\ghost\tempFiles\virtualenv-1.7.1.2>setup install
-（无法找到setup？参考笔记：***）
-// 生成沙箱
-E:\Docs\PythonSandbox>virtualenv gmapenv
-&hellip;
-// 进入沙箱
-E:\Docs\PythonSandbox>cd gmapenv\Script
-（linux下是cd gmapenv/bin）
-// 测试googlemaps是否已安装
-E:\Docs\PythonSandbox\gmapenv\Script>python -c &ldquo;import googlemaps&rdquo;
-（在Windows平台上用单引号会报错）
-// 激活沙盒
-E:\Docs\PythonSandbox\gmapenv\Script>activate
-（实际上是在$PATH前面加上了当前路径，以保证安装的库放在当前路径下）
-// 在线安装第3方库
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>pip install googlemaps
-// 验证测试googlemaps已安装
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>python -c &ldquo;import googlemaps&rdquo;
-// 卸载googlemaps
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>pip uninstall googlemaps
-// 退出沙盒：
-(gmapenv) E:\Docs\PythonSandbox\gmapenv\Script>deactivate
-注：当不能在线安装时：首先进入隔离环境activate，当安装包是zip格式文件（exe,gz,egg），用easy_install installer_file_name.ext（如aa.exe, bb.gz, cc.egg）的方法安装（参考<a href="http://stackoverflow.com/questions/3271590/can-i-install-python-windows-packages-into-virtualenvs%EF%BC%89%EF%BC%9B%E5%AF%B9%E4%BA%8Emsi%E6%A0%BC%E5%BC%8F%E7%9A%84%E5%AE%89%E8%A3%85%E6%96%87%E4%BB%B6%E8%BF%98%E6%B2%A1%E6%9C%89%E6%89%BE%E5%88%B0%E5%AE%89%E8%A3%85%E5%9C%A8%E9%9A%94%E7%A6%BB%E7%8E%AF%E5%A2%83%E4%B8%AD%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%88%E6%89%80%E4%BB%A5%E6%9C%80%E5%A5%BD%E8%BF%98%E6%98%AF%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%EF%BC%89%EF%BC%9B">http://stackoverflow.com/questions/3271590/can-i-install-python-windows-packages-into-virtualenvs%EF%BC%89%EF%BC%9B%E5%AF%B9%E4%BA%8Emsi%E6%A0%BC%E5%BC%8F%E7%9A%84%E5%AE%89%E8%A3%85%E6%96%87%E4%BB%B6%E8%BF%98%E6%B2%A1%E6%9C%89%E6%89%BE%E5%88%B0%E5%AE%89%E8%A3%85%E5%9C%A8%E9%9A%94%E7%A6%BB%E7%8E%AF%E5%A2%83%E4%B8%AD%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%88%E6%89%80%E4%BB%A5%E6%9C%80%E5%A5%BD%E8%BF%98%E6%98%AF%E5%9C%A8%E7%BA%BF%E5%AE%89%E8%A3%85%EF%BC%89%EF%BC%9B</a></p>
-
-<p>注2：activate只是将隔离环境的python.exe放在了$PATH的最前面，这样安装库时会安装在隔离环境的site-packages里；</p>
-
-<p>注3：需要卸载一个隔离环境时只要删除文件夹就OK了；</p>
-
-<p>主要参考 <a href="http://wiki.pylonshq.com/display/pylonscookbook/Using+a+Virtualenv+Sandbox">http://wiki.pylonshq.com/display/pylonscookbook/Using+a+Virtualenv+Sandbox</a> 中的windows部分。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/02/14/085951/">使用Cobertura做代码覆盖率测试</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-02-14T08:59:51+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:59 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>经验总结：首先要把cobertura.jar包含ant的classpath路径中，其次要求它包含在测试用例的classpath中；</p>
-
-<p>使用cobertura做代码覆盖率测试中出现的问题：覆盖率始终为0，不论是否有可用的测试用例都如此；</p>
-
-<p>解决问题的历程：</p>
-
-<p>第一步：在被测工程中增加了一个很简单的方法，在测试工程中增加了一个对前述方法的测试，发现覆盖度仍为0，由此确定是使用cobertura的方法有问题，而不是测试用例覆盖度确实为0；</p>
-
-<p>第二步：分离了cobertura中进行junit测试报告（以下简称为cob-junit）与cobertura测试报告（之前是放在一个文件夹里，难以区分哪些是junit的报告，哪些是cobertura的报告，后来放在了两个不同的文件夹中）；</p>
-
-<p>第三步：分离后发现：cob-junit的测试报告与纯junit测试报告显示的测试数不同，纯junit的测试用例数正确，cob-junit测试用例数总为1，且运行错误（error），说明测试用例未能启动；检查错误原因：提示“java.lang.NoClassDefFoundError: net/sourceforge/cobertura/coveragedata/HasBeenInstrumented”；</p>
-
-<p>第四步：尝试解决上述错误。google后发现引起这个错误的原因是没有把cobertura.jar包含在测试用例的classpath中，也就是测试工程的ivy.xml文件的依赖条目里没有cobertura的jar包，将它加入到ivy.xml的依赖条目中后，解决了覆盖度始终为0的问题；</p>
-
-<p>经验总结：</p>
-
-<ol>
-<li><p>对于自己不熟悉的技术，不要走捷径，如把cob-junit与cobertura测试报告放在一个文件夹里；</p></li>
-<li><p>出错后要仔细阅读错误报告，寻找能够代表这个错误的关键词句，如“java.lang.NoClassDefFoundError: net/sourceforge/cobertura/coveragedata/HasBeenInstrumented”；</p></li>
-<li><p>如果通过错误报告自己不能解决，使用搜索引擎查找前一步中的关键词句，寻找解决问题的可能经验；</p></li>
-<li><p>如果暂时找不到能解决问题的经验，则按照软件（这里是cobertura）的Tutorial（一般来自官网）构建一个最简单的原型，并使其正常工作，然后不断向自己的问题靠拢，在不断修改原型的过程中对可能出错的方面进行筛选，最终锁定出错的位置；</p></li>
-</ol>
-
-
-<p>实践中面对一些古怪的错误，往往要重复、交叉进行很多次第3步和第4步，才能最终解决问题。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/97">&larr; Older</a>
@@ -751,6 +931,14 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
       </li>
     
@@ -760,14 +948,6 @@ E:\Docs\PythonSandbox\gmapenv\Script>activate
     
       <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Meteor | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/meteor/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-08-05T17:36:08+08:00</updated>
+  <updated>2015-08-11T14:12:54+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,198 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Share One Users Collection Between Multiple Meteor Apps]]></title>
+    <link href="http://leetschau.github.io/blog/2015/08/11/123934/"/>
+    <updated>2015-08-11T12:39:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/08/11/123934</id>
+    <content type="html"><![CDATA[<p>We are running a website and a backend data management system,
+both are meteor web servers.</p>
+
+<p>The backend needs fetch data from the website.
+So they have to share one database, and the same &ldquo;users&rdquo; collection for both.
+That means one can register on the website and login to the backend,
+which is obviously unacceptable.</p>
+
+<p>To distinguish users of the website and the backend,
+I choose package <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
+
+<p>All the backend users will have roles <code>['backend', 'admin']</code>,
+while website users haven&rsquo;t.</p>
+
+<p>In &ldquo;safe&rdquo; environment, backend has its own user registration entry.
+Users registered there will be given above roles automatically.</p>
+
+<p>Put the following codes into server side JavaScript files to achieve above goal
+(based on examples/rolesWithAccountsUI on meteor-roles):</p>
+
+<pre><code>var ROLE_NAME = 'editor';
+var GROUP_NAME = 'backend';
+
+Meteor.publish('mallData', function(){
+  if (Roles.userIsInRole(this.userId, ROLE_NAME, GROUP_NAME)) {
+    console.log('pass check');
+    return Mall.find();
+  } else {
+    console.log('not pass check');
+    this.stop();
+    return;
+  }
+});
+
+Meteor.startup(function () {
+  Accounts.onCreateUser(function (options, user) {
+    Roles.setRolesOnUserObj(user, ROLE_NAME, GROUP_NAME);
+    if (options.profile) {
+      user.profile = options.profile
+    }
+    return user;
+  });
+});
+
+Roles.setRolesOnUserObj = function (users, roles, group) {
+  if (!users) throw new Error ("Missing 'users' param")
+  if (!roles) throw new Error ("Missing 'roles' param")
+  if (group) {
+    if ('string' !== typeof group)
+      throw new Error ("Roles error: Invalid parameter 'group'. Expected 'string' type")
+    if ('$' === group[0])
+      throw new Error ("Roles error: groups can not start with '$'")
+
+    // convert any periods to underscores
+    group = group.replace(/\./g, '_')
+  }
+
+  // ensure arrays to simplify code
+  if (!_.isArray(users)) users = [users]
+  if (!_.isArray(roles)) roles = [roles]
+
+
+  // remove invalid roles
+  roles = _.reduce(roles, function (memo, role) {
+    if (role
+        &amp;&amp; 'string' === typeof role
+        &amp;&amp; role.trim().length &gt; 0) {
+      memo.push(role.trim())
+    }
+    return memo
+  }, [])
+
+  // if roles is empty, quit
+  if (roles.length === 0) return
+
+  // ensure all roles exist in 'roles' collection
+  existingRoles = _.reduce(Meteor.roles.find({}).fetch(), function (memo, role) {
+    memo[role.name] = true
+    return memo
+  }, {})
+  _.each(roles, function (role) {
+    if (!existingRoles[role]) {
+      Roles.createRole(role)
+    }
+  })
+
+  // ensure users is an array of objects
+  _.each(users, function (user) {
+    if ('object' !== typeof user) {
+      throw new Error("Expected 'users' argument to be an object or array of objects")
+    }
+  })
+
+
+  // Set the roles on the actual user object
+
+  if (group) {
+
+    // roles is a key/value dict object
+
+    _.each(users, function (user) {
+      user.roles = {}
+      user.roles[group] = roles
+    })
+
+  } else {
+
+    // roles is an array of strings
+
+    _.each(users, function (user) {
+      user.roles = roles
+    })
+
+  }
+
+}
+</code></pre>
+
+<p>Now any user outside &lsquo;backend&rsquo; group, or without &lsquo;editor&rsquo; role, can&rsquo;t get any data from server.</p>
+
+<p>Unfortunately Internet is unsafe at all.
+So the registration entry has to be removed from the accounts-ui:</p>
+
+<pre><code>Meteor.startup(function () {
+  Accounts.config({
+    forbidClientAccountCreation : true
+  });
+});
+</code></pre>
+
+<p>Now if you want give a website personnel rights to edit data through backend,
+first he should register on the website,
+then you define his role manually in mongo console:</p>
+
+<pre><code>&gt; db.users.find({ "emails.0.address":"user@123.com" }, { "emails":1 })
+&gt; db.users.update({_id: "PM36t6eRmuC9oELdu"}, { $set: { roles: {"backend": [ "editor" ]} } })
+</code></pre>
+
+<p>First find the id of the user (here is &ldquo;<a href="&#x6d;&#97;&#105;&#108;&#116;&#x6f;&#x3a;&#117;&#x73;&#x65;&#x72;&#x40;&#x31;&#50;&#x33;&#46;&#x63;&#x6f;&#x6d;">&#117;&#115;&#x65;&#114;&#x40;&#x31;&#50;&#51;&#46;&#99;&#x6f;&#109;</a>&rdquo;) by his email address.
+Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRmuC9oELdu&rdquo;).</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Autopubsh and Insecure Package in Meteor]]></title>
+    <link href="http://leetschau.github.io/blog/2015/08/07/155721/"/>
+    <updated>2015-08-07T15:57:21+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/08/07/155721</id>
+    <content type="html"><![CDATA[<h1>Collection definitions in root directory</h1>
+
+<ol>
+<li><p>autopublish package exists: data can be seen and updated;</p></li>
+<li><p>Remove autopublish package: data can&rsquo;t be seen;</p></li>
+<li><p>Add publish method in server js file, and subscribe methods in client js file:
+data can be seen and updated;</p>
+
+<pre><code> # in server:
+ Meteor.publish('mallData', function(){
+   return Mall.find();
+ });
+
+ # in client:
+ Meteor.subscribe('mallData');
+</code></pre></li>
+<li><p>Remove insecure package: data can be seen, but can&rsquo;t be updated;</p></li>
+<li><p>Add an allow rule in js file in root directory: only &ldquo;status&rdquo; field can be updated.</p>
+
+<pre><code> Mall.allow({
+   update: function(userId, doc, fieldNames, modifier){
+     if ((fieldNames.length === 1) &amp;&amp;
+         (fieldNames[0] === 'status')){
+       return true;
+     }
+   }
+ });
+</code></pre>
+
+<p> Meanwhile inserting and remvoing operations will be denied by the server.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://joshowens.me/meteor-security-101/">METEOR SECURITY 101</a> by Josh Owens.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Meteor实施案例]]></title>
@@ -131,79 +323,22 @@ So do NOT install node with <code>aptitude install nodejs</code>.</p>
 
 <p>下面的代码不会出现覆盖问题：</p>
 
-<pre><code>{{#contentFor "headerButtonLeft"}}
-  {{&gt; ionNavBackButton}}
-{{/contentFor}}
+<pre><code>
+  
 
-{{#contentFor "headerTitle"}}
+
+
   &lt;div class="col text-right"&gt;
     &lt;button class="button button-clear button-stable"&gt;登录&lt;/button&gt;
     &lt;button class="button button-clear button-stable"&gt;注册&lt;/button&gt;
   &lt;/div&gt;
-{{/contentFor}}
+
 </code></pre>
 
 <p>如果在<code>&lt;div class="col text-right"&gt;</code>外面加上一层<code>&lt;div class="bar bar-header bar-positive"&gt;</code>，
 则会覆盖"headerButtonLeft"中定义的返回按钮。</p>
 
-<p>另：<code>{{&gt; ionNavBackButton}}</code> 中可以添加path（返回指定route）和text（按钮说明文字）属性。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Transport JavaScript Objects Between Meteor Pages via URI]]></title>
-    <link href="http://leetschau.github.io/blog/2015/07/07/103347/"/>
-    <updated>2015-07-07T10:33:47+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/07/07/103347</id>
-    <content type="html"><![CDATA[<h1>Tips</h1>
-
-<ul>
-<li><p>object -> String -> object:
-JSON.stringify -> encodeURI -> | another page | -> decodeURI -> JSON.parse</p></li>
-<li><p>Use &ldquo;&amp;&rdquo; to connect multiple query items in uri;</p></li>
-</ul>
-
-
-<h1>Code Demo</h1>
-
-<p>On page 1:</p>
-
-<pre><code>var filterObj = { year: '2016', pos: '中国' };
-var filterStr = JSON.stringify(filterObj);
-var enc = encodeURI(filterStr);
-console.log(enc);
-var myRoute = "/results/2015/pages/1?type=basic&amp;filter=" + enc
-Router.go(myRoute);
-</code></pre>
-
-<p>On page 2:</p>
-
-<pre><code>var queryType = this.params.query.type;
-var filterStr = this.params.query.filter;
-var dec = decodeURI(filterStr);
-var filterObj = JSON.parse(dec);
-console.log(filterObj);
-</code></pre>
-
-<h1>Ref</h1>
-
-<ul>
-<li><p>matejkramny&rsquo;s answer in <a href="http://stackoverflow.com/questions/1086404/string-to-object-in-js">String to object in JS</a>;</p></li>
-<li><p><a href="http://www.w3schools.com/jsref/jsref_decodeuri.asp">JavaScript decodeURI() Function</a>;</p></li>
-<li><p>vartec&rsquo;s answer in <a href="http://stackoverflow.com/questions/724526/how-to-pass-multiple-parameters-in-a-querystring">How to pass multiple parameters in a querystring</a>;</p></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Meteoric Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2015/06/25/102358/"/>
-    <updated>2015-06-25T10:23:58+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/06/25/102358</id>
-    <content type="html"><![CDATA[<p>meteor create ionicEx
-cd ionicEx
-meteor add iron:router fourseven:<a href="&#x6d;&#x61;&#x69;&#108;&#x74;&#x6f;&#x3a;&#x73;&#99;&#x73;&#x73;&#x40;&#x32;&#x2e;&#48;&#x2e;&#48;">&#115;&#x63;&#x73;&#x73;&#x40;&#50;&#46;&#48;&#46;&#48;</a> meteoric:ionic-sass meteoric:ionicons-sass meteoric:ionic</p>
+<p>另：<code></code> 中可以添加path（返回指定route）和text（按钮说明文字）属性。</p>
 ]]></content>
   </entry>
   

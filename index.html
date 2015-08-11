@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="国外 blonk: 找工作，移动APP，iOS, Android, 双方在感兴趣的对方上点Yes，如果匹配成功开始聊天； respond.ly: 基于Twitter的客户服务和协作平台； Flowkey: 教育类，钢琴在线教学，web, iOS, Android，音频对比，反馈建议，用户量：50, &hellip;">
+  <meta name="description" content="We are running a website and a backend data management system,
+both are meteor web servers. The backend needs fetch data from the website.
+So they &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +67,238 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-11T12:39:34+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:39 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We are running a website and a backend data management system,
+both are meteor web servers.</p>
+
+<p>The backend needs fetch data from the website.
+So they have to share one database, and the same &ldquo;users&rdquo; collection for both.
+That means one can register on the website and login to the backend,
+which is obviously unacceptable.</p>
+
+<p>To distinguish users of the website and the backend,
+I choose package <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
+
+<p>All the backend users will have roles <code>['backend', 'admin']</code>,
+while website users haven&rsquo;t.</p>
+
+<p>In &ldquo;safe&rdquo; environment, backend has its own user registration entry.
+Users registered there will be given above roles automatically.</p>
+
+<p>Put the following codes into server side JavaScript files to achieve above goal
+(based on examples/rolesWithAccountsUI on meteor-roles):</p>
+
+<pre><code>var ROLE_NAME = 'editor';
+var GROUP_NAME = 'backend';
+
+Meteor.publish('mallData', function(){
+  if (Roles.userIsInRole(this.userId, ROLE_NAME, GROUP_NAME)) {
+    console.log('pass check');
+    return Mall.find();
+  } else {
+    console.log('not pass check');
+    this.stop();
+    return;
+  }
+});
+
+Meteor.startup(function () {
+  Accounts.onCreateUser(function (options, user) {
+    Roles.setRolesOnUserObj(user, ROLE_NAME, GROUP_NAME);
+    if (options.profile) {
+      user.profile = options.profile
+    }
+    return user;
+  });
+});
+
+Roles.setRolesOnUserObj = function (users, roles, group) {
+  if (!users) throw new Error ("Missing 'users' param")
+  if (!roles) throw new Error ("Missing 'roles' param")
+  if (group) {
+    if ('string' !== typeof group)
+      throw new Error ("Roles error: Invalid parameter 'group'. Expected 'string' type")
+    if ('$' === group[0])
+      throw new Error ("Roles error: groups can not start with '$'")
+
+    // convert any periods to underscores
+    group = group.replace(/\./g, '_')
+  }
+
+  // ensure arrays to simplify code
+  if (!_.isArray(users)) users = [users]
+  if (!_.isArray(roles)) roles = [roles]
+
+
+  // remove invalid roles
+  roles = _.reduce(roles, function (memo, role) {
+    if (role
+        &amp;&amp; 'string' === typeof role
+        &amp;&amp; role.trim().length &gt; 0) {
+      memo.push(role.trim())
+    }
+    return memo
+  }, [])
+
+  // if roles is empty, quit
+  if (roles.length === 0) return
+
+  // ensure all roles exist in 'roles' collection
+  existingRoles = _.reduce(Meteor.roles.find({}).fetch(), function (memo, role) {
+    memo[role.name] = true
+    return memo
+  }, {})
+  _.each(roles, function (role) {
+    if (!existingRoles[role]) {
+      Roles.createRole(role)
+    }
+  })
+
+  // ensure users is an array of objects
+  _.each(users, function (user) {
+    if ('object' !== typeof user) {
+      throw new Error("Expected 'users' argument to be an object or array of objects")
+    }
+  })
+
+
+  // Set the roles on the actual user object
+
+  if (group) {
+
+    // roles is a key/value dict object
+
+    _.each(users, function (user) {
+      user.roles = {}
+      user.roles[group] = roles
+    })
+
+  } else {
+
+    // roles is an array of strings
+
+    _.each(users, function (user) {
+      user.roles = roles
+    })
+
+  }
+
+}
+</code></pre>
+
+<p>Now any user outside &lsquo;backend&rsquo; group, or without &lsquo;editor&rsquo; role, can&rsquo;t get any data from server.</p>
+
+<p>Unfortunately Internet is unsafe at all.
+So the registration entry has to be removed from the accounts-ui:</p>
+
+<pre><code>Meteor.startup(function () {
+  Accounts.config({
+    forbidClientAccountCreation : true
+  });
+});
+</code></pre>
+
+<p>Now if you want give a website personnel rights to edit data through backend,
+first he should register on the website,
+then you define his role manually in mongo console:</p>
+
+<pre><code>&gt; db.users.find({ "emails.0.address":"user@123.com" }, { "emails":1 })
+&gt; db.users.update({_id: "PM36t6eRmuC9oELdu"}, { $set: { roles: {"backend": [ "editor" ]} } })
+</code></pre>
+
+<p>First find the id of the user (here is &ldquo;<a href="&#x6d;&#97;&#x69;&#108;&#x74;&#x6f;&#58;&#x75;&#115;&#101;&#x72;&#x40;&#x31;&#50;&#51;&#x2e;&#x63;&#111;&#109;">&#x75;&#x73;&#101;&#x72;&#64;&#x31;&#x32;&#51;&#x2e;&#99;&#x6f;&#109;</a>&rdquo;) by his email address.
+Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRmuC9oELdu&rdquo;).</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-07T15:57:21+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:57 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Collection definitions in root directory</h1>
+
+<ol>
+<li><p>autopublish package exists: data can be seen and updated;</p></li>
+<li><p>Remove autopublish package: data can&rsquo;t be seen;</p></li>
+<li><p>Add publish method in server js file, and subscribe methods in client js file:
+data can be seen and updated;</p>
+
+<pre><code> # in server:
+ Meteor.publish('mallData', function(){
+   return Mall.find();
+ });
+
+ # in client:
+ Meteor.subscribe('mallData');
+</code></pre></li>
+<li><p>Remove insecure package: data can be seen, but can&rsquo;t be updated;</p></li>
+<li><p>Add an allow rule in js file in root directory: only &ldquo;status&rdquo; field can be updated.</p>
+
+<pre><code> Mall.allow({
+   update: function(userId, doc, fieldNames, modifier){
+     if ((fieldNames.length === 1) &amp;&amp;
+         (fieldNames[0] === 'status')){
+       return true;
+     }
+   }
+ });
+</code></pre>
+
+<p> Meanwhile inserting and remvoing operations will be denied by the server.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://joshowens.me/meteor-security-101/">METEOR SECURITY 101</a> by Josh Owens.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -578,131 +812,6 @@ console.log(filterObj);
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-07-04T19:00:36+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p><a href="http://www.cs.toronto.edu/~hehner/aPToP/">A practical theory of programming</a>;</p></li>
-<li><p><a href="https://en.wikipedia.org/wiki/Programming_language_theory">Programming language theory on Wikipedia</a>;</p></li>
-<li><p><a href="http://book.douban.com/subject/3743526/">Programming Language Pragmatics by Michael L. Scott</a>;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-30T10:12:43+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The website need hide some menu items under developing,
-by comment out the html codes (at line 19~24 in file &ldquo;client/comTemp.html&rdquo;).
-But last night we found they reappeared in the newest version.
-Apparently someone used the older version (in which they were not commented out)
-overwrite the latest version by error (without intention).</p>
-
-<p>How to find out who, at which commit make this mistake?</p>
-
-<p><strong>Step 1</strong>: get the error version.</p>
-
-<pre><code>$ git blame -L 19,24 client/comTemp.html
-dc7d385a (Tom     2015-06-26 17:39:28 +0800 19)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="/mall"&gt;Mall&lt;/a&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="/services"&gt;Services&lt;/a&gt;
-dc7d385a (Tom     2015-06-26 17:39:28 +0800 24)    &lt;/li&gt;
-</code></pre>
-
-<p>Here the line 19 should be <code>&lt;!--&lt;li&gt;</code> and line 24 should be <code>&lt;/li&gt;--&gt;</code>,
-to hide &ldquo;Mall&rdquo; and &ldquo;Services&rdquo;, which are under developing.</p>
-
-<p><strong>Step 2</strong>: get the newest right version.</p>
-
-<p>The wrong commit is &ldquo;dc7d385a&rdquo;, so we have to find the nearest change <strong>before</strong> it:</p>
-
-<pre><code>$ git blame -L 19,24 'dc7d385a^' -- client/comTemp.html
-96269db1 (Bob     2015-06-10 15:36:31 +0800 19)    &lt;!--&lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="/mall"&gt;Mall&lt;/a&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="/services"&gt;Services&lt;/a&gt;
-96269db1 (Bob     2015-06-10 15:36:31 +0800 24)    &lt;/li&gt;--&gt;
-</code></pre>
-
-<p>So we know Mall and Services were commented out at commit 96269db1, 2015-06-10,
-and uncommented by error at commit dc7d385a, 2015-06-26, by Tom.</p>
-
-<p><strong>Step 3</strong>: show code changes.</p>
-
-<pre><code>$ git show dc7d385a -- client/comTemp.htm
-...
--    &lt;!--&lt;li&gt;
-+    &lt;li&gt;
-       &lt;a href="/mall"&gt;Mall&lt;/a&gt;
-     &lt;/li&gt;
-     &lt;li&gt;
-       &lt;a href="/services"&gt;Services&lt;/a&gt;
--    &lt;/li&gt;--&gt;
-+    &lt;/li&gt;
-...
-</code></pre>
-
-<p>It shows in commit dc7d385a,
-two lines were deleted: &ldquo;<!--<li>&rdquo; and &ldquo;</li>&ndash;>&rdquo;,
-while two lines were added: &ldquo;<li>&rdquo; and &ldquo;</li>&rdquo;.</p>
-
-<p><strong>Step 4 (optional)</strong>: revert the commit</p>
-
-<pre><code>git revert dc7d385a
-</code></pre>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket">http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -718,6 +827,14 @@ while two lines were added: &ldquo;<li>&rdquo; and &ldquo;</li>&rdquo;.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
       </li>
     
@@ -727,14 +844,6 @@ while two lines were added: &ldquo;<li>&rdquo; and &ldquo;</li>&rdquo;.</p>
     
       <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
       </li>
     
   </ul>

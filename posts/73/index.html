@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="输出结果的含义： Linux下查看CPU使用率!系统资源使用情况 指令参数说明： Can You Top This? 15 Practical Linux Top Command Examples top界面上输入1（数字一）可以列出CPU每个核的情况，输入shift+h可以列出thread情况（ &hellip;">
+  <meta name="description" content="读取配置文件需要指定配置文件的路径和文件名，可以在Java代码里硬编码配置文件名，然后将配置文件所在目录加入classpath；也可以把路径和文件名都硬编码在Java代码里，只要启动脚本和配置文件的相对位置不变，就不必修改代码。第一种方法更灵活（指定配置文件路径的工作放在了启动脚本里， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,162 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/19/173502/">读取配置文件的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-19T17:35:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:35 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>读取配置文件需要指定配置文件的路径和文件名，可以在Java代码里硬编码配置文件名，然后将配置文件所在目录加入classpath；也可以把路径和文件名都硬编码在Java代码里，只要启动脚本和配置文件的相对位置不变，就不必修改代码。第一种方法更灵活（指定配置文件路径的工作放在了启动脚本里，而不是Java代码中），推荐使用。</p>
+
+<h1>硬编码配置文件名</h1>
+
+<p>用Class的getResourceAsStream(String name)方法加载配置文件，代码如下：</p>
+
+<p> InputStream in = this.getClass().getResourceAsStream(&ldquo;/db.properties&rdquo;);</p>
+
+<p> Properties p = new Properties();</p>
+
+<p> p.load(in);
+ System.out.println(&ldquo;value is: &rdquo; + p.getProperty(&ldquo;db&rdquo;));</p>
+
+<p>其中GetResources是运行这段代码所在类的类名，部署目录结构是：</p>
+
+<p>root</p>
+
+<p> |-bin</p>
+
+<p>  |-start.bat</p>
+
+<p> |-conf</p>
+
+<p>  |-db.properties</p>
+
+<p> |-lib</p>
+
+<p>  |-res.jar</p>
+
+<p>启动脚本start.bat内容是：</p>
+
+<p> java -cp f:\VMFiles\tmpFiles\goduEx2\lib\res.jar;f:\VMFiles\tmpFiles\goduEx2\conf getResources.GetResources</p>
+
+<p>其中res.jar的结构是：getResources/GetResources.class（假设代码所在文件的包名是getResources）。</p>
+
+<p>这里最重要的是getResourceAsStream方法的参数前面要加上"/&ldquo;。</p>
+
+<p>在static方法里无法使用"this"关键字，可以硬编码类名，在Eclipse中重构可以同时修改类名：</p>
+
+<p> InputStream in = GetResources.class.getResourceAsStream(&ldquo;/db.properties&rdquo;);</p>
+
+<h1>指定配置文件相对路径</h1>
+
+<p>将上面代码的第一句改为：</p>
+
+<p>InputStream in = new FileInputStream(&ldquo;../conf/db.prop&rdquo;);</p>
+
+<p>相应地start.bat也不需要把conf加到classpath里：</p>
+
+<p> java -cp f:\VMFiles\tmpFiles\goduEx2\lib\res.jar getResources.GetResources</p>
+
+<p>不推荐ResourceBundle.getBundle()方法，因为这个方法不是用来加载文件的。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/09/19/105207/">用jstack监控远程主机上的java进程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-09-19T10:52:07+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>前面提到用visualvm监控远程主机上的java进程，这种方法的好处是可以“实时”监控，缺点是需要启动jstatd，且只能看到线程总数，无法显示每个线程的详细情况，jstack可以生成某一进程的dump，包含在特定时刻（命令执行时）Java进程内部各个线程的详细情况。</p>
+
+<p>首先用"jps -l"找到目标进程的PID，然后用"jstack [PID]&ldquo;获得dump，对于大型程序这个dump一般也比较大，所以用"jstack [PID] > dump_file_name"的方法将结果保存在文件dump_file_name里。</p>
+
+<p>下面是dump文件中的一段：</p>
+
+<p>&ldquo; HSQLDB Timer @5a1b5e32 &rdquo; daemon prio=3 tid=0x0000000101116800 nid=0x420a in Object.wait() [0xfffffffb5c2ff000]
+ java.lang.Thread.State : TIMED_WAITING (on object monitor)
+  at java.lang.Object.wait(Native Method)
+  - waiting on <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer$TaskQueue.park(HsqlTimer.java:883)
+  - locked <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer.nextTask(HsqlTimer.java:531)
+  - locked <0xfffffffb721e7700> (a org.hsqldb.lib.HsqlTimer$TaskQueue)
+  at org.hsqldb.lib.HsqlTimer$TaskRunner.run(HsqlTimer.java:611)
+  at java.lang.Thread.run(Thread.java:662)</p>
+
+<p>以上文本包含的信息包括：</p>
+
+<p>线程名：HSQLDB Timer @5a1b5e32</p>
+
+<p>锁住的资源：<0xfffffffb721e7700></p>
+
+<p>线程堆栈</p>
+
+<p>线程类型：daemon;</p>
+
+<p>线程优先级（prio）：3</p>
+
+<p>线程ID（tid）：0x0000000101116800</p>
+
+<p>线程状态："Object.wait()&ldquo;和"TIMED_WAITING&rdquo;</p>
+
+<p>下面的一段供对照：</p>
+
+<p>&ldquo; T-14319652 &rdquo; prio=3 tid=0x000000010294d000 nid=0x4208 runnable [0xfffffffb5d5f8000]
+ java.lang.Thread.State: RUNNABLE
+  at org.hsqldb.ExpressionColumn.getValue(ExpressionColumn.java:627)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1172)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)
+  at org.hsqldb.ExpressionLogical.getValue(ExpressionLogical.java:1120)</p>
+
+<p>参考：</p>
+
+<p><a href="http://zheng12tian.iteye.com/blog/1420508">Java自带的性能监测工具用法简介——jstack、jconsole、jinfo、jmap、jdb、jsta、jvisualvm</a></p>
+
+<p><a href="http://www.blogjava.net/jzone/articles/303979.html">JAVA线程dump的分析 &mdash; jstack pid</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -498,90 +654,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/07/162210/">Java字符串的格式化输出</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-07T16:22:10+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:22 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>左对齐
-String LS_HEADER = String.format(&ldquo;%-10s%-10s%-10s%-10s%-10s%-10s%n&rdquo;,</p>
-
-<p>   &ldquo;ID&rdquo;, &ldquo;Protocol&rdquo;, &ldquo;IP&rdquo;, &ldquo;Port&rdquo;, &ldquo;Username&rdquo;, &ldquo;Password&rdquo;);</p>
-
-<p>效果：</p>
-
-<p>ID  Protocol IP  Port  Username Password
-10025022 ssh  10.0.2.50 22  godu  godu<br/>
-10024723 telnet 10.0.2.47 23  godu  goduty
- 右对齐
- String LS_HEADER = String.format(&ldquo;%10s%10s%10s%10s%10s%10s%n&rdquo;,</p>
-
-<p>   &ldquo;ID&rdquo;, &ldquo;Protocol&rdquo;, &ldquo;IP&rdquo;, &ldquo;Port&rdquo;, &ldquo;Username&rdquo;, &ldquo;Password&rdquo;);</p>
-
-<p>效果：</p>
-
-<p>  ID Protocol  IP  Port Username Password
- 10025022  ssh 10.0.2.50  22  godu  godu
- 10024723 telnet 10.0.2.47  23  godu goduty</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/09/07/085845/">Tomcat笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-09-07T08:58:45+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>[Windows 7]</p>
-
-<p>启动/停止服务：$TOMCAT_HOME/bin/startup.bat, shutdown.bat;</p>
-
-<p>修改http监听端口：$TOMCAT_HOME/conf/server.xml, connector的port属性值；</p>
-
-<p>默认加载目录：$TOMCAT_HOME/webapps/ROOT
-自己应用的目录：在$TOMCAT_HOME/webapps下新建一个目录，将html,jsp文件放入其中即可；</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/74">&larr; Older</a>
@@ -599,6 +671,14 @@ String LS_HEADER = String.format(&ldquo;%-10s%-10s%-10s%-10s%-10s%-10s%n&rdquo;,
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
       </li>
     
@@ -608,14 +688,6 @@ String LS_HEADER = String.format(&ldquo;%-10s%-10s%-10s%-10s%-10s%-10s%n&rdquo;,
     
       <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
       </li>
     
   </ul>

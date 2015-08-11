@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="测试代码 定时器类 package business.util; import java.util.concurrent.Executors; import java.util.concurrent.ScheduledExecutorService; import java.util. &hellip;">
+  <meta name="description" content="$ hg init hgBranchTest // 新建一个名为hgBranchTest的repo，hg自动创建目录 $ cd hgBranchTest $ vi readme.txt $ cat readme.txt
+this is the first version $ hg add &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,202 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/22/131818/">Hg单用户操作的分支合并</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-22T13:18:18+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>1:18 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>$ hg init hgBranchTest // 新建一个名为hgBranchTest的repo，hg自动创建目录</p>
+
+<p>$ cd hgBranchTest</p>
+
+<p>$ vi readme.txt</p>
+
+<p>$ cat readme.txt
+this is the first version</p>
+
+<p>$ hg add readme.txt
+$ hg ci -m &ldquo;first time commit&rdquo; // or use &ldquo;hg ci -A -m &hellip;&rdquo; for add and commit
+$ vi readme.txt
+$ cat readme.txt
+this is the first version
+add a line
+$ hg st
+M readme.txt
+$ hg log
+修改集:  0:ffecf69346a5
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit
+$ hg diff
+diff -r ffecf69346a5 readme.txt
+&mdash; a/readme.txt  Mon Apr 22 05:49:29 2013 +0100
++++ b/readme.txt  Mon Apr 22 05:51:03 2013 +0100
+@@ -1,1 +1,2 @@
+this is the first version
++add a line
+$ hg ci -m &ldquo;第二次提交&rdquo;
+$ hg log
+修改集:  1:770a5cda1659
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+修改集:  0:ffecf69346a5
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit
+$ hg branch
+default
+$ hg branches
+default      1:770a5cda1659
+$ hg branch red
+marked working directory as branch red
+(branches are permanent and global, did you want a bookmark?)
+$ vi readme.txt
+$ cat readme.txt
+this is the first version
+add a line
+add the 3rd line
+$ hg branches   // 没有提交（commit）之前分支不出现在branches列表中
+default      1:770a5cda1659
+$ hg branch   // 当前仍在red分支下
+red
+$ hg ci -m &ldquo;commit on branch red&rdquo;
+$ hg branches
+red       2:86e30b1564a9
+default      1:770a5cda1659 (inactive)
+$ hg log
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+修改集:  1:770a5cda1659
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+修改集:  0:ffecf69346a5
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit
+$ hg log -b red // 只显示red分支上的changeset
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+$ hg tip  // tip是最近版本的意思
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+$ hg heads  // head表示各分支最近版本
+修改集:  2:86e30b1564a9
+分支:  red
+标签:  tip
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+修改集:  1:770a5cda1659
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+$ hg up default   // 切换当前分支为default
+1 files updated, 0 files merged, 0 files removed, 0 files unresolved
+$ cat readme.txt  // 分支合并前文件内容
+this is the first version
+add a line
+$ hg merge red
+1 files updated, 0 files merged, 0 files removed, 0 files unresolved
+(branch merge, don&rsquo;t forget to commit)
+$ cat readme.txt  // 合并后文件内容改变
+this is the first version
+add a line
+add the 3rd line
+$ hg st
+M readme.txt
+$ hg ci -m &ldquo;after merge with branch red&rdquo;
+$ hg log
+修改集:  3:9a5f0a2b7b9c
+标签:  tip
+父亲:  1:770a5cda1659 // 合并后提交的版本的特点是有两个parent
+父亲:  2:86e30b1564a9
+用户:  Li Chao
+日期:  Mon Apr 22 06:00:31 2013 +0100
+摘要:  after merge with branch red
+修改集:  2:86e30b1564a9
+分支:  red
+用户:  Li Chao
+日期:  Mon Apr 22 05:57:07 2013 +0100
+摘要:  commit on branch red
+修改集:  1:770a5cda1659
+用户:  Li Chao
+日期:  Mon Apr 22 05:51:42 2013 +0100
+摘要:  第二次提交
+修改集:  0:ffecf69346a5
+用户:  Li Chao
+日期:  Mon Apr 22 05:49:29 2013 +0100
+摘要:  first time commit</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/20/105251/">局域网聊天和文件传输工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-04-20T10:52:51+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以前用飞秋在局域网内聊天、传文件，经常找不到目标，很难用，在网上找了一个开源、跨平台（Win, Linux &amp; Mac）的局域网聊天软件<a href="http://lanmsngr.sourceforge.net/">LAN Messenger</a>，以及<a href="http://portableapps.com/apps/internet/lan-messenger-portable">Portable版</a>，下载的文件是便携版LANMessengerPortable_1.2.35.paf.exe，聊天、传文件、群聊的功能都有，很方便。</p>
+
+<p>LANMessenger在Mint上安装后无法正常运行，发现Linux上的iptux（apt-get install iptux）实际山就是Windows上的FeiQ（下载压缩包FeiQ.rar后解压运行），目前工作良好。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -496,8 +693,8 @@
  from email.mime.text import MIMEText
  # Create a text/plain message
  msg = MIMEText(&lsquo;this is a test blog from email&rsquo;)
- me = &lsquo;<a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#x3a;&#x6c;&#101;&#x65;&#x5f;&#x63;&#104;&#97;&#x75;&#64;&#49;&#x36;&#51;&#46;&#99;&#111;&#109;">&#108;&#x65;&#101;&#95;&#99;&#x68;&#97;&#x75;&#64;&#49;&#x36;&#51;&#x2e;&#x63;&#111;&#109;</a>&rsquo;
- you = &lsquo;<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#58;&#x62;&#108;&#111;&#103;&#109;&#97;&#105;&#108;&#64;&#x31;&#56;&#56;&#46;&#x63;&#111;&#x6d;">&#x62;&#x6c;&#x6f;&#103;&#109;&#97;&#105;&#108;&#64;&#x31;&#x38;&#x38;&#46;&#99;&#x6f;&#x6d;</a>&rsquo;
+ me = &lsquo;<a href="&#109;&#x61;&#x69;&#108;&#116;&#111;&#58;&#x6c;&#x65;&#x65;&#95;&#x63;&#x68;&#97;&#x75;&#x40;&#49;&#x36;&#x33;&#46;&#x63;&#x6f;&#x6d;">&#108;&#x65;&#101;&#x5f;&#x63;&#x68;&#97;&#117;&#x40;&#x31;&#x36;&#51;&#46;&#x63;&#111;&#x6d;</a>&rsquo;
+ you = &lsquo;<a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#x3a;&#98;&#x6c;&#111;&#103;&#x6d;&#x61;&#x69;&#108;&#64;&#49;&#x38;&#x38;&#46;&#99;&#x6f;&#109;">&#x62;&#x6c;&#111;&#x67;&#x6d;&#x61;&#x69;&#108;&#64;&#x31;&#x38;&#x38;&#46;&#x63;&#111;&#109;</a>&rsquo;
  msg[&lsquo;Subject&rsquo;] = &lsquo;A Test Blog from Email&rsquo;
  msg[&lsquo;From&rsquo;] = me
  msg[&lsquo;To&rsquo;] = you
@@ -702,103 +899,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/31/141131/">Wine笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-31T14:11:31+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>2:11 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在虚拟机（virtualbox）的Ubuntu 11.10上安装wine，使用图形界面的Softwre Center安装失败，提示网络连接异常，但在命令行下用apt-get install wine安装成功，版本是1.4。</p>
-
-<p>安装wine后exe文件双击就可以执行了。</p>
-
-<p>Windows绿色文件可以运行，但速度非常慢（虚拟机配置比较低造成的还是wine本身就很慢？），基本不可用，只能验证这个程序在Wine上能不能运行。</p>
-
-<hr />
-
-<p>2014.6.3更新：</p>
-
-<p>可以先用<code>apt-cache search wine</code>搜索可用的wine安装包的具体名称；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/03/29/111823/">Windows 7 启动Wireshark找不到网卡的解决办法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-03-29T11:18:23+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今天启动Wireshark时报“npf isn&rsquo;t running”，找不到网卡，google一番后发现是一个叫npf的系统服务没有启动所致，首先以管理员身份开启命令行，然后进入如下操作：</p>
-
-<p>C:\Windows\system32>sc qc npf
-[SC] QueryServiceConfig 成功
-SERVICE_NAME: npf
-  TYPE    : 1 KERNEL_DRIVER
-  START_TYPE   : 3 DEMAND_START
-  ERROR_CONTROL  : 1 NORMAL
-  BINARY_PATH_NAME : system32\drivers\npf.sys
-  LOAD_ORDER_GROUP :
-  TAG    : 0
-  DISPLAY_NAME  : NetGroup Packet Filter Driver
-  DEPENDENCIES  :
-  SERVICE_START_NAME :
-C:\Windows\system32>sc start npf
-SERVICE_NAME: npf
-  TYPE    : 1 KERNEL_DRIVER
-  STATE    : 4 RUNNING
-        (STOPPABLE, NOT_PAUSABLE, IGNORES_SHUTDOWN)
-  WIN32_EXIT_CODE : 0 (0x0)
-  SERVICE_EXIT_CODE : 0 (0x0)
-  CHECKPOINT   : 0x0
-  WAIT_HINT   : 0x0
-  PID    : 0
-  FLAGS    :</p>
-
-<p>C:\Windows\system32>sc config npf start= auto
-[SC] ChangeServiceConfig 成功</p>
-
-<p>注意第一个条指令是查询npf服务的状态，可以看到是DEMAND_START，不是自动启动，所以第二条指令手工启动了服务，第3条指令将npf启动方式改为自动启动，注意它的格式比较特别，等号后面要加一个空格（等号前面不能写空格）。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/61">&larr; Older</a>
@@ -816,6 +916,14 @@ SERVICE_NAME: npf
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
       </li>
     
@@ -825,14 +933,6 @@ SERVICE_NAME: npf
     
       <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
       </li>
     
   </ul>

@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Power Designer -> File -> Reverse Engineer -> Object Language Object Language: Java Reverse engineer: Java directories Add &hellip;
-">
+  <meta name="description" content="Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,187 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/11/103433/">Log4j使用笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-11T10:34:33+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。layout是appender的属性，决定appender所代表的输出中，一条具体的记录由哪些信息组成，排列顺序等。</p>
+
+<p>每一个logger都有一个名字，名字是logger初始化时由getLogger的参数决定的，例如下面的logger的名字是com.foo：</p>
+
+<pre><code>Logger logger = Logger.getLogger("com.foo"); 
+</code></pre>
+
+<p>名字是logger的唯一标识符，例如下面的x和y两个logger实际上是同一个对象：</p>
+
+<pre><code>Logger x = Logger.getLogger("wombat"); 
+Logger y = Logger.getLogger("wombat"); 
+</code></pre>
+
+<p>名字还具有继承性，例如名为com.foo.bar的logger是com.foo这个logger的子logger，com.foo又是com的子logger，子logger会继承所有上级logger的appender。这种继承类似于java包的父目录和子目录的关系，详见[1]的"Named Hierarchy"部分。</p>
+
+<p>类似于根目录的概念，rootLogger是logger hierarchy的顶端，简单的log4j应用中，只定义rootLogger的appender，所有类中的logger就继承了rootLogger的特性。</p>
+
+<p>为一个logger指定appender是在log4j配置文件中定义的，格式是：</p>
+
+<pre><code>log4j.rootLogger=level_name, appender_name1, appender_name2, ... 
+</code></pre>
+
+<p>或： log4j.logger.logger_name=level_name, appender_name1, appender_name2, &hellip;</p>
+
+<p>前者为rootLogger指定appender，后者为某一个具体的logger指定appender。定义appender属性的方法是：</p>
+
+<pre><code>log4j.appender.appender_name=... 
+log4j.appender.appender_name.layout=... 
+</code></pre>
+
+<p>例如下面的代码为rootLogger指定了appender A1，并设置A1为界面输出，然后指定了输出的格式，最后一行指定了com.foo的输出级别为WARN，com.foo及其子logger低于WARN的日志将不记录，由于com.foo没有指定appender，所以继承rootLogger的A1作为其输出：</p>
+
+<pre><code>log4j.rootLogger=DEBUG, A1 
+log4j.appender.A1=org.apache.log4j.ConsoleAppender 
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout 
+log4j.appender.A1.layout.ConversionPattern=%d [%t] %-5p %c - %m%n 
+log4j.logger.com.foo=WARN 
+</code></pre>
+
+<p>logger的级别常用的有debug, info, warn, error四种，详见“ log4j日志的输出级别设置 ”；appender常用的有 ConsoleAppender（控制台输出）、 DailyRollingFileAppender（按照一定的频率滚动输出日志，例如每月、每周、每天、每小时等）和 RollingFileAppender（到一定文件大小时滚动输出） 三种；layout常用的有SimpleLayout, PatternLayout, HTMLLayout, XMLLayout四种，后两种用来输出html和xml文本。不论哪种layout，都输出的是纯文本，因此各种appender与各种layout可以随意组合。</p>
+
+<p>如果对项目中一些类的日志进行特殊处理（例如更改输出级别、指定新的输出文件等），见笔记“ 在包一级定制log4j日志输出 ”。</p>
+
+<p>下面是一个完整的日志演示，首先是测试用例，只打一条日志：</p>
+
+<pre><code>package com.boco.godu.gapi.logger; 
+import org.apache.log4j.Logger; 
+import org.junit.Test; 
+public class Log4jDemo { 
+    private final Logger logger = Logger.getLogger(this.getClass()); 
+    @Test 
+    public void testGapiLogger() { 
+        logger.info(" Apache Logger "); 
+    } 
+} 
+</code></pre>
+
+<p>log4j.properties文件：</p>
+
+<pre><code>log4j.rootLogger=debug, console, ft, fh, fx 
+log4j.appender.console=org.apache.log4j.ConsoleAppender 
+log4j.appender.console.layout=org.apache.log4j.SimpleLayout 
+log4j.appender.ft=org.apache.log4j.RollingFileAppender 
+log4j.appender.ft.File=./log/debug.log 
+log4j.appender.ft.Append=false 
+log4j.appender.ft.MaxFileSize=2MB 
+log4j.appender.ft.MaxBackupIndex=10 
+log4j.appender.ft.layout=org.apache.log4j.PatternLayout 
+log4j.appender.ft.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n 
+log4j.appender.fh=org.apache.log4j.RollingFileAppender 
+log4j.appender.fh.File=./log/debug.html 
+log4j.appender.fh.Append=false 
+log4j.appender.fh.MaxFileSize=2MB 
+log4j.appender.fh.MaxBackupIndex=10 
+log4j.appender.fh.layout=org.apache.log4j.HTMLLayout 
+log4j.appender.fh.layout.LocationInfo=true 
+log4j.appender.fh.layout.Title=Test Log4j Layout 
+log4j.appender.fx=org.apache.log4j.RollingFileAppender 
+log4j.appender.fx.File=./log/debug.xml 
+log4j.appender.fx.Append=false 
+log4j.appender.fx.MaxFileSize=2MB 
+log4j.appender.fx.MaxBackupIndex=10 
+log4j.appender.fx.layout=org.apache.log4j.xml.XMLLayout 
+log4j.appender.fx.layout.LocationInfo=true 
+</code></pre>
+
+<p>rootLogger一共挂了4个appender，分别是一个控制台输出，一个纯文本格式日志，一个html格式日志，一个xml格式日志。</p>
+
+<p>运行测试用例后的效果如下（黑体字和红圈是源代码打出的日志）：</p>
+
+<p>控制台输出：</p>
+
+<pre><code>INFO - Apache Logger 
+</code></pre>
+
+<p>纯文本文件：</p>
+
+<p>08-11 16:04:03,343 main com.boco.godu.gapi.logger.Log4jDemo,11 INFO - Apache Logger</p>
+
+<p>html文件：</p>
+
+<p>xml文件：</p>
+
+<pre><code>&lt;log4j:event logger="com.boco.godu.gapi.logger.Log4jDemo" timestamp="1313049843343" level="INFO" thread="main"&gt; 
+    &lt;log4j:message&gt;&lt;![CDATA[ Apache Logger ]]&gt;&lt;/log4j:message&gt; 
+    &lt;log4j:locationInfo class="com.boco.godu.gapi.logger.Log4jDemo" method="testGapiLogger" file="Log4jDemo.java" line="11"/&gt; 
+&lt;/log4j:event&gt;
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/08/10/201926/">Mantis安装过程笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-08-10T20:19:26+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:19 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>安装平台：Windows Server 2003 R2 Enterprise x64 Edition</p>
+
+<p>软件：</p>
+
+<p>EasyPHP-5.3.6.1</p>
+
+<p> mantisbt-1.2.6</p>
+
+<p>安装过程：</p>
+
+<p>首先安装EasyPHP，一路next即可，安装到默认位置即可，路径中可以有空格；</p>
+
+<p>将 mantisbt-1.2.6解压到 EasyPHP的www目录下，具体过程可参考 EasyPHP 3 + Mantis 1.2 快速搭建安装免费开源的中文缺陷管理平台 ；</p>
+
+<p>配置：</p>
+
+<p>C:\Program Files (x86)\EasyPHP-5.3.6.1\conf_files中将“Listen 127.0.0.1:80”和“ServerName 127.0.0.1:80”改为本机的IP地址，否则只能在本机登录mantis，局域网的其他机器不能访问。这部分的配置可参考 一步到位安装 Mantis Bug 跟踪系统 ，但其中有些东西已经过时了，例如对EasyPHP版本的限制、路径不能有空格等。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -858,280 +1038,6 @@ new File('f:/conv.txt').write convStr;
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/07/07/112831/">IoConnector和IoSession的关系以及上挂Filter的区别</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-07-07T11:28:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:28 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下：</p>
-
-<p>  IoConnector connector = new NioSocketConnector(50);</p>
-
-<p>  ConnectFuture connFuture = connector.connect(new InetSocketAddress(ip, port));</p>
-
-<p>  boolean b = connFuture.awaitUninterruptibly(10000);</p>
-
-<p>  if (b) {</p>
-
-<p>   IoSession session = connFuture.getSession();</p>
-
-<p>   &hellip;</p>
-
-<p>  }</p>
-
-<p>也就是用IoConnector的connect方法得到一个ConnectFuture，再用此ConnectFuture的getSession方法得到IoSession。</p>
-
-<p>本质上Filter是与连接（也就是IoSession）相关联的，但由于下面的两个原因，导致需要在Connector上定义filter链。</p>
-
-<p>首先是filter链需要在连接建立前就要定义好，这样才能实现“一建立连接就做某事”这种功能，在已经存在的Session（也就是连接）上挂filter显然无法达到这种效果；</p>
-
-<p>其次是Connector每与服务端建立一个连接就会生成一个Session，且这些Session的行为具有很大的相似性，也就是上面的filter一般也是一样的，这样为多个session定义相同的一组filter显然是一种dirty work；</p>
-
-<p>简而言之，就是Connector上挂filter链属于“配置”定义，而session上挂filter链属于“运行时”定义，当连接关闭（断开）后，这个filter链也就不存在了。</p>
-
-<p>下面是二者挂filter链的具体方法。</p>
-
-<p>对于Connector：</p>
-
-<p>  DefaultIoFilterChainBuilder chain = IoConnector.getFilterChain();</p>
-
-<p>  chain. addLast (String name, IoFilter filter);</p>
-
-<p>对于session：</p>
-
-<p>  IoFilterChain chain = session.getFilterChain();</p>
-
-<p>  chain. addLast (String name, IoFilter filter);</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/28/145204/">更新ivy资源库的自动化脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-28T14:52:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:52 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>为产品库添加一个新jar包需要下面几个步骤：</p>
-
-<ol>
-<li><p>根据jar包名字，从maven库里得到依赖定义字符串；</p></li>
-<li><p>将该字符串加上配置说明和下载脚本（参见笔记“依赖管理常用vim脚本”）；</p></li>
-<li><p>将已下载条目备份文件（installed.txt）另存为old.bpk；</p></li>
-<li><p>将build.xml中的下载条目插入到installed.txt中（按字母顺序排列）；</p></li>
-<li><p>用新的下载脚本替换build.xml中原有的下载脚本；</p></li>
-<li><p>运行ant命令将jar包下载到产品库中；</p></li>
-<li><p>在ivy.xml中加入依赖条目，解析之；</p></li>
-</ol>
-
-
-<p>以下是上面1~5步的自动化脚本。</p>
-
-<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
-
-<p> # Purpose:  download jars to public repo</p>
-
-<p> # Author:  Li Chao</p>
-
-<p> # Created:  28-06-2011</p>
-
-<p> #</p>
-
-<p> # Demonstration:</p>
-
-<p> # install Apache Log4j 1.2</p>
-
-<p> #  1. from mvnrepository.com we got the dep string:</p>
-
-<p> #   <dependency org="log4j" name="log4j" rev="1.2.16"/></p>
-
-<p> #  2. modify dep_str in this file with above dep string:</p>
-
-<p> #  3. run this file, copy modified dep string:</p>
-
-<p> #   <dependency org="log4j" name="log4j" rev="1.2.16" conf="compile->master"/></p>
-
-<p> #  4. open a shell and run ant cmd to download jars of log4j</p>
-
-<p> #  5. paste modified dep string to ivy.xml and resolve it</p>
-
-<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
-
-<p> #!/usr/bin/env python</p>
-
-<p> import os, re</p>
-
-<p> dep_str = &lsquo;<dependency org="log4j" name="log4j" rev="1.2.16"/>&rsquo;</p>
-
-<p> cmd_pattern = &lsquo;&lt;ivy:install.+from=&ldquo;\${from.resolver}&rdquo; to=&ldquo;\${to.resolver}&rdquo;/>&rsquo;</p>
-
-<p> script = &lsquo;build.xml&rsquo;</p>
-
-<p> def conv_str():</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>   covert dep_str to custom_ivy_dep string and ivy_install string;</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>  custom_ivy_dep = dep_str.replace(&lsquo;/>&rsquo;,&lsquo; conf=&ldquo;compile->master&rdquo;/>&rsquo;)</p>
-
-<p>  print &lsquo;Copy the following String:\n%s&rsquo; %custom_ivy_dep</p>
-
-<p>  keys = re.findall(r'&ldquo;\S+&rdquo;&lsquo;, dep_str)</p>
-
-<p>  if len(keys)!=3:</p>
-
-<p>   raise Exception(&lsquo;Format wrong of input string!&rsquo;)</p>
-
-<p>  global ivy_install</p>
-
-<p>  ivy_install = &lsquo;&lt;ivy:install organisation=%s module=%s revision=%s &rsquo;\</p>
-
-<pre><code>  'from="${from.resolver}" to="${to.resolver}"/&gt;' %tuple(keys) 
-</code></pre>
-
-<p> def do_bpk():</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>   create backup file(filename: installed.txt/old.bpk):</p>
-
-<pre><code>1 extract old install string from build.xml; 
-
-2 delete old.bpk if it exists; 
-
-3 rename installed.txt to old.bpk; 
-
-4 read old.bpk file, insert old install string and create installed.txt file; 
-</code></pre>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>  installed = &lsquo;installed.txt&rsquo;</p>
-
-<p>  old_bpk =&lsquo;old.bpk&rsquo;</p>
-
-<p>  xml_file = open(script)</p>
-
-<p>  global xml_str</p>
-
-<p>  xml_str = xml_file.read()</p>
-
-<p>  xml_file.close()</p>
-
-<p>  old_install = re.findall(cmd_pattern, xml_str, re.M)[0]</p>
-
-<p>  print &lsquo;old install string is:\n%s&rsquo; %old_install</p>
-
-<p>  if os.path.exists(old_bpk): os.remove(old_bpk)</p>
-
-<p>  if os.path.exists(installed):</p>
-
-<p>   os.rename(installed, old_bpk)</p>
-
-<p>  else:</p>
-
-<p>   raise Exception(&lsquo;%s does not exist!&rsquo;%installed)</p>
-
-<p>  installed_file = open(old_bpk)</p>
-
-<p>  installed_items = installed_file.read()</p>
-
-<p>  installed_file.close()</p>
-
-<p>  all_items = installed_items.split(&lsquo;\n&rsquo;)</p>
-
-<p>  all_items.append(old_install)</p>
-
-<p>  all_items.sort()</p>
-
-<p>  bpk_file = open(installed,&lsquo;w&rsquo;)</p>
-
-<p>  bpk_file.write( &lsquo;\n&rsquo;.join(all_items) )</p>
-
-<p>  bpk_file.close()</p>
-
-<p> def build_script():</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>   modify install script(build.xml): replace old install string with new one</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>  xml_file = open(script,&lsquo;w&rsquo;)</p>
-
-<p>  new_xml = re.sub(cmd_pattern, ivy_install, xml_str)</p>
-
-<p>  xml_file.write(new_xml)</p>
-
-<p>  xml_file.close()</p>
-
-<p> def main():</p>
-
-<p>  conv_str()</p>
-
-<p>  do_bpk()</p>
-
-<p>  build_script()</p>
-
-<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
-
-<p>  main()</p>
-
-<p>代码中的技术点包括：</p>
-
-<ol>
-<li><p>格式化字符串的生成方法：%后面必须接一个tuple；</p></li>
-<li><p>如何使用正则表达式进行文本的搜索（findall）和替换(sub)；</p></li>
-<li><p>字符串的join方法进行list的组合，也可以用reduce方法： total_str = reduce(lambda x,y:x+y, str_list)</p></li>
-</ol>
-
-
-<p>  但用join方法更简洁。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/92">&larr; Older</a>
@@ -1149,6 +1055,14 @@ new File('f:/conv.txt').write convStr;
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
       </li>
     
@@ -1158,14 +1072,6 @@ new File('f:/conv.txt').write convStr;
     
       <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
       </li>
     
   </ul>

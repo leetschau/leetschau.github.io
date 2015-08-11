@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="拍摄的大量数码照片需要根据拍摄的时间分别放到不同的文件夹里，例如2011年6月27日拍摄的照片要放在名为“2011-6-27”的文件夹里。拍摄时间是根据文件的“最后修改时间”属性确定的，因为“创建时间”属性是会随着文件的拷贝而变化的，不能作为拍摄时间的根据。 &hellip;">
+  <meta name="description" content="IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下： IoConnector connector = new NioSocketConnector(50); ConnectFuture connFuture = &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,280 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/07/07/112831/">IoConnector和IoSession的关系以及上挂Filter的区别</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-07-07T11:28:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下：</p>
+
+<p>  IoConnector connector = new NioSocketConnector(50);</p>
+
+<p>  ConnectFuture connFuture = connector.connect(new InetSocketAddress(ip, port));</p>
+
+<p>  boolean b = connFuture.awaitUninterruptibly(10000);</p>
+
+<p>  if (b) {</p>
+
+<p>   IoSession session = connFuture.getSession();</p>
+
+<p>   &hellip;</p>
+
+<p>  }</p>
+
+<p>也就是用IoConnector的connect方法得到一个ConnectFuture，再用此ConnectFuture的getSession方法得到IoSession。</p>
+
+<p>本质上Filter是与连接（也就是IoSession）相关联的，但由于下面的两个原因，导致需要在Connector上定义filter链。</p>
+
+<p>首先是filter链需要在连接建立前就要定义好，这样才能实现“一建立连接就做某事”这种功能，在已经存在的Session（也就是连接）上挂filter显然无法达到这种效果；</p>
+
+<p>其次是Connector每与服务端建立一个连接就会生成一个Session，且这些Session的行为具有很大的相似性，也就是上面的filter一般也是一样的，这样为多个session定义相同的一组filter显然是一种dirty work；</p>
+
+<p>简而言之，就是Connector上挂filter链属于“配置”定义，而session上挂filter链属于“运行时”定义，当连接关闭（断开）后，这个filter链也就不存在了。</p>
+
+<p>下面是二者挂filter链的具体方法。</p>
+
+<p>对于Connector：</p>
+
+<p>  DefaultIoFilterChainBuilder chain = IoConnector.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
+
+<p>对于session：</p>
+
+<p>  IoFilterChain chain = session.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/28/145204/">更新ivy资源库的自动化脚本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-28T14:52:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>为产品库添加一个新jar包需要下面几个步骤：</p>
+
+<ol>
+<li><p>根据jar包名字，从maven库里得到依赖定义字符串；</p></li>
+<li><p>将该字符串加上配置说明和下载脚本（参见笔记“依赖管理常用vim脚本”）；</p></li>
+<li><p>将已下载条目备份文件（installed.txt）另存为old.bpk；</p></li>
+<li><p>将build.xml中的下载条目插入到installed.txt中（按字母顺序排列）；</p></li>
+<li><p>用新的下载脚本替换build.xml中原有的下载脚本；</p></li>
+<li><p>运行ant命令将jar包下载到产品库中；</p></li>
+<li><p>在ivy.xml中加入依赖条目，解析之；</p></li>
+</ol>
+
+
+<p>以下是上面1~5步的自动化脚本。</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> # Purpose:  download jars to public repo</p>
+
+<p> # Author:  Li Chao</p>
+
+<p> # Created:  28-06-2011</p>
+
+<p> #</p>
+
+<p> # Demonstration:</p>
+
+<p> # install Apache Log4j 1.2</p>
+
+<p> #  1. from mvnrepository.com we got the dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16"/></p>
+
+<p> #  2. modify dep_str in this file with above dep string:</p>
+
+<p> #  3. run this file, copy modified dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16" conf="compile->master"/></p>
+
+<p> #  4. open a shell and run ant cmd to download jars of log4j</p>
+
+<p> #  5. paste modified dep string to ivy.xml and resolve it</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> import os, re</p>
+
+<p> dep_str = &lsquo;<dependency org="log4j" name="log4j" rev="1.2.16"/>&rsquo;</p>
+
+<p> cmd_pattern = &lsquo;&lt;ivy:install.+from=&ldquo;\${from.resolver}&rdquo; to=&ldquo;\${to.resolver}&rdquo;/>&rsquo;</p>
+
+<p> script = &lsquo;build.xml&rsquo;</p>
+
+<p> def conv_str():</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>   covert dep_str to custom_ivy_dep string and ivy_install string;</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>  custom_ivy_dep = dep_str.replace(&lsquo;/>&rsquo;,&lsquo; conf=&ldquo;compile->master&rdquo;/>&rsquo;)</p>
+
+<p>  print &lsquo;Copy the following String:\n%s&rsquo; %custom_ivy_dep</p>
+
+<p>  keys = re.findall(r'&ldquo;\S+&rdquo;&lsquo;, dep_str)</p>
+
+<p>  if len(keys)!=3:</p>
+
+<p>   raise Exception(&lsquo;Format wrong of input string!&rsquo;)</p>
+
+<p>  global ivy_install</p>
+
+<p>  ivy_install = &lsquo;&lt;ivy:install organisation=%s module=%s revision=%s &rsquo;\</p>
+
+<pre><code>  'from="${from.resolver}" to="${to.resolver}"/&gt;' %tuple(keys) 
+</code></pre>
+
+<p> def do_bpk():</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>   create backup file(filename: installed.txt/old.bpk):</p>
+
+<pre><code>1 extract old install string from build.xml; 
+
+2 delete old.bpk if it exists; 
+
+3 rename installed.txt to old.bpk; 
+
+4 read old.bpk file, insert old install string and create installed.txt file; 
+</code></pre>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>  installed = &lsquo;installed.txt&rsquo;</p>
+
+<p>  old_bpk =&lsquo;old.bpk&rsquo;</p>
+
+<p>  xml_file = open(script)</p>
+
+<p>  global xml_str</p>
+
+<p>  xml_str = xml_file.read()</p>
+
+<p>  xml_file.close()</p>
+
+<p>  old_install = re.findall(cmd_pattern, xml_str, re.M)[0]</p>
+
+<p>  print &lsquo;old install string is:\n%s&rsquo; %old_install</p>
+
+<p>  if os.path.exists(old_bpk): os.remove(old_bpk)</p>
+
+<p>  if os.path.exists(installed):</p>
+
+<p>   os.rename(installed, old_bpk)</p>
+
+<p>  else:</p>
+
+<p>   raise Exception(&lsquo;%s does not exist!&rsquo;%installed)</p>
+
+<p>  installed_file = open(old_bpk)</p>
+
+<p>  installed_items = installed_file.read()</p>
+
+<p>  installed_file.close()</p>
+
+<p>  all_items = installed_items.split(&lsquo;\n&rsquo;)</p>
+
+<p>  all_items.append(old_install)</p>
+
+<p>  all_items.sort()</p>
+
+<p>  bpk_file = open(installed,&lsquo;w&rsquo;)</p>
+
+<p>  bpk_file.write( &lsquo;\n&rsquo;.join(all_items) )</p>
+
+<p>  bpk_file.close()</p>
+
+<p> def build_script():</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>   modify install script(build.xml): replace old install string with new one</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>  xml_file = open(script,&lsquo;w&rsquo;)</p>
+
+<p>  new_xml = re.sub(cmd_pattern, ivy_install, xml_str)</p>
+
+<p>  xml_file.write(new_xml)</p>
+
+<p>  xml_file.close()</p>
+
+<p> def main():</p>
+
+<p>  conv_str()</p>
+
+<p>  do_bpk()</p>
+
+<p>  build_script()</p>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  main()</p>
+
+<p>代码中的技术点包括：</p>
+
+<ol>
+<li><p>格式化字符串的生成方法：%后面必须接一个tuple；</p></li>
+<li><p>如何使用正则表达式进行文本的搜索（findall）和替换(sub)；</p></li>
+<li><p>字符串的join方法进行list的组合，也可以用reduce方法： total_str = reduce(lambda x,y:x+y, str_list)</p></li>
+</ol>
+
+
+<p>  但用join方法更简洁。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -644,105 +918,6 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/13/111815/">Javadoc动作中排除某些类</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-13T11:18:15+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>设计产品的类结构时，有些类的作用是与产品的其他部分交互，因此必须是public类型的，但又不希望暴露给用户，因此打产品包的javadoc时，这些类是不生成javadoc的。假设某个包里共有10个接口，其中有一个是不生成javadoc的，写出另外9个接口名显然是很dirty的方法，比较好的方法是定义一个exclude，例如：</p>
-
-<p><target name="javadoc" depends="compile"></p>
-
-<pre><code>&lt;javadoc sourcepath="${src.dir}" destdir="${build.javadoc.dir}"
-
-    encoding = "GBK" docencoding = "GBK"
-
-    packagenames ="com.boco.godu.gapi.exception" &gt;
-
-    &lt; sourcefiles &gt;
-
-       &lt; fileset dir="${src.dir}/com/boco/godu/gapi"&gt;
-
-           &lt;include name="*.java"/&gt;
-
-           &lt; exclude name="IConnPool.java"/&gt;
-
-       &lt;/fileset&gt;
-
-    &lt;/ sourcefiles &gt;
-
-&lt;/javadoc&gt;
-</code></pre>
-
-<p></target></p>
-
-<p>上面的例子表明，对于整个包（package）统一生成javadoc的，采用的内嵌的packagenames定义（可以用逗号隔开多个包名），对于需要exclude的包，用<sourcefiels>+<fileset>定义，可以非常方便的使用exclude功能。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/10/164558/">Job Control of Unix</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-10T16:45:58+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:45 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>主要参考书籍：Unix For Dummies: Chapter 13: Job Control.</p>
-
-<p>一个Job有前台（foreground）和后台（background）两种运行方式；</p>
-
-<p>前后程序的转换：</p>
-
-<p> 直接（启动时）作为后台程序运行：当一个命令后面加上" &amp;&ldquo;时（&amp;前有一个空格），就进入了后台运行模式；</p>
-
-<p> 中途前台=>后台：一个正在前台运行的命令用快捷键 Ctrl+Z 将其挂起（不消耗CPU时间），然后用 bg 命令使其进入后台运行状态；</p>
-
-<p> 后台=>前台：所有后台运行的job可以用 jobs 命令列出，其中带+号的是当前job，其余是非当前job。用 fg %n 的方法将一个后台job转换到前台，其中n是jobs命令中给出的序号；</p>
-
-<p>如果需要终止某个job，先用 jobs 列出，然后用 kill %n 的方法停止；</p>
-
-<p>后台程序需要用户输入时，将进入停止状态；当用户使用 stty tostop 命令打开免输出打扰时，后台程序的要输出时将进入停止状态；</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/93">&larr; Older</a>
@@ -760,6 +935,14 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
       </li>
     
@@ -769,14 +952,6 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
     
       <li class="post">
         <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a>
       </li>
     
   </ul>
