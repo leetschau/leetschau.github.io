@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="设计产品的类结构时，有些类的作用是与产品的其他部分交互，因此必须是public类型的，但又不希望暴露给用户，因此打产品包的javadoc时，这些类是不生成javadoc的。假设某个包里共有10个接口，其中有一个是不生成javadoc的，写出另外9个接口名显然是很dirty的方法， &hellip;">
+  <meta name="description" content="IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下： IoConnector connector = new NioSocketConnector(50); ConnectFuture connFuture = &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/06/13/111815/">Javadoc动作中排除某些类</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/07/07/112831/">IoConnector和IoSession的关系以及上挂Filter的区别</a></h1>
     
     
       <p class="meta">
@@ -80,140 +80,52 @@
 
 
 
-<time class='entry-date' datetime='2011-06-13T11:18:15+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:18 am</span></time>
+<time class='entry-date' datetime='2011-07-07T11:28:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:28 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>设计产品的类结构时，有些类的作用是与产品的其他部分交互，因此必须是public类型的，但又不希望暴露给用户，因此打产品包的javadoc时，这些类是不生成javadoc的。假设某个包里共有10个接口，其中有一个是不生成javadoc的，写出另外9个接口名显然是很dirty的方法，比较好的方法是定义一个exclude，例如：</p>
+  <div class="entry-content"><p>IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下：</p>
 
-<p><target name="javadoc" depends="compile"></p>
+<p>  IoConnector connector = new NioSocketConnector(50);</p>
 
-<pre><code>&lt;javadoc sourcepath="${src.dir}" destdir="${build.javadoc.dir}"
+<p>  ConnectFuture connFuture = connector.connect(new InetSocketAddress(ip, port));</p>
 
-    encoding = "GBK" docencoding = "GBK"
+<p>  boolean b = connFuture.awaitUninterruptibly(10000);</p>
 
-    packagenames ="com.boco.godu.gapi.exception" &gt;
+<p>  if (b) {</p>
 
-    &lt; sourcefiles &gt;
+<p>   IoSession session = connFuture.getSession();</p>
 
-       &lt; fileset dir="${src.dir}/com/boco/godu/gapi"&gt;
-
-           &lt;include name="*.java"/&gt;
-
-           &lt; exclude name="IConnPool.java"/&gt;
-
-       &lt;/fileset&gt;
-
-    &lt;/ sourcefiles &gt;
-
-&lt;/javadoc&gt;
-</code></pre>
-
-<p></target></p>
-
-<p>上面的例子表明，对于整个包（package）统一生成javadoc的，采用的内嵌的packagenames定义（可以用逗号隔开多个包名），对于需要exclude的包，用<sourcefiels>+<fileset>定义，可以非常方便的使用exclude功能。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/10/164558/">Job Control of Unix</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-10T16:45:58+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:45 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>主要参考书籍：Unix For Dummies: Chapter 13: Job Control.</p>
-
-<p>一个Job有前台（foreground）和后台（background）两种运行方式；</p>
-
-<p>前后程序的转换：</p>
-
-<p> 直接（启动时）作为后台程序运行：当一个命令后面加上" &amp;&ldquo;时（&amp;前有一个空格），就进入了后台运行模式；</p>
-
-<p> 中途前台=>后台：一个正在前台运行的命令用快捷键 Ctrl+Z 将其挂起（不消耗CPU时间），然后用 bg 命令使其进入后台运行状态；</p>
-
-<p> 后台=>前台：所有后台运行的job可以用 jobs 命令列出，其中带+号的是当前job，其余是非当前job。用 fg %n 的方法将一个后台job转换到前台，其中n是jobs命令中给出的序号；</p>
-
-<p>如果需要终止某个job，先用 jobs 列出，然后用 kill %n 的方法停止；</p>
-
-<p>后台程序需要用户输入时，将进入停止状态；当用户使用 stty tostop 命令打开免输出打扰时，后台程序的要输出时将进入停止状态；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/02/173819/">如何获得Java文件的当前目录</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-02T17:38:19+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>5:38 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>测试用例所在工程目录为： D:/workspace/EasyMockDemo，若想获得当前类所在路径：
- package org.leechau.groovyEmbedded;</p>
-
-<p> import org.junit.Test;</p>
-
-<p> public class HelloWorld {</p>
-
-<p>  @Test</p>
-
-<p>  public void HelloTest() throws Exception {</p>
-
-<p>   String path = this.getClass(). getResource(&ldquo;&rdquo;) .getPath();</p>
-
-<p>   System.out.println(path);</p>
+<p>   &hellip;</p>
 
 <p>  }</p>
 
-<p> }</p>
+<p>也就是用IoConnector的connect方法得到一个ConnectFuture，再用此ConnectFuture的getSession方法得到IoSession。</p>
 
-<p>输出：
- /D:/workspace/EasyMockDemo/bin/org/leechau/groovyEmbedded/
- 如果将 getResource(&ldquo;&rdquo;)改为getResource(&ldquo;/&rdquo;)，则输出为：
-  /D:/workspace/EasyMockDemo/bin/</p>
+<p>本质上Filter是与连接（也就是IoSession）相关联的，但由于下面的两个原因，导致需要在Connector上定义filter链。</p>
 
-<p> 如果希望获得项目目录，则用：
- System.out.println(System.getProperty(&ldquo;user.dir&rdquo;));
- 输出为：
- D:\workspace\EasyMockDemo</p>
+<p>首先是filter链需要在连接建立前就要定义好，这样才能实现“一建立连接就做某事”这种功能，在已经存在的Session（也就是连接）上挂filter显然无法达到这种效果；</p>
+
+<p>其次是Connector每与服务端建立一个连接就会生成一个Session，且这些Session的行为具有很大的相似性，也就是上面的filter一般也是一样的，这样为多个session定义相同的一组filter显然是一种dirty work；</p>
+
+<p>简而言之，就是Connector上挂filter链属于“配置”定义，而session上挂filter链属于“运行时”定义，当连接关闭（断开）后，这个filter链也就不存在了。</p>
+
+<p>下面是二者挂filter链的具体方法。</p>
+
+<p>对于Connector：</p>
+
+<p>  DefaultIoFilterChainBuilder chain = IoConnector.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
+
+<p>对于session：</p>
+
+<p>  IoFilterChain chain = session.getFilterChain();</p>
+
+<p>  chain. addLast (String name, IoFilter filter);</p>
 </div>
   
   
@@ -226,7 +138,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/31/172859/">Groovy文件与类的关系</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/28/145204/">更新ivy资源库的自动化脚本</a></h1>
     
     
       <p class="meta">
@@ -235,25 +147,192 @@
 
 
 
-<time class='entry-date' datetime='2011-05-31T17:28:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>5:28 pm</span></time>
+<time class='entry-date' datetime='2011-06-28T14:52:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:52 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Python中，文件是一个模块，可以包含多个类、函数或者普通语句，但Groovy采用了与Java一样的机制，即一个文件对应一个类，</p>
-
-<p>具体的实现机制如下：（主要参考了 Groovy in Action : page:190）</p>
-
-<p>在Groovy中类和文件的对应关系并不像Java中那么固定(Java中一个文件只能有一个声明为public的类和其他一些非公共的类和内嵌类) 。在同一个groovy文件中可以包含多个public的类定义。具体规则如下：</p>
+  <div class="entry-content"><p>为产品库添加一个新jar包需要下面几个步骤：</p>
 
 <ol>
-<li><p>纯脚本：如果在一个groovy文件中没有任何类定义，它将被当做script来处理，也就意味着这个文件将被透明的转换为一个Script类型的类，这个类的类名是脚本的文件名（不含扩展名和包名，在default包中）。groovy文件的内容被打包进run方法，另外在新产生的类中被加入一个main方法使外部代码可以执行该脚本；</p></li>
-<li><p>纯类（类名是文件名）：如果在groovy文件正好有一个类的定义，并且该类的名字与文件名称相同，那么这就和java中的类与文件的一一对应关系相同。在一个groovy文件中可以包含多个不同可见性的类定义，并且没有强制性的要求其中有一个类的类名与文件名相同。groovyc编译器会很乐于把该文件中定义的所有的类都编译成*.class文件。如果你希望能够直接调用这个groovy script，比如说在使用groovy命令行或者在某个IDE中执行，那么你应该在该文件中的第一个类中定义一个main方法；</p></li>
-<li><p>脚本/类混合：在一个groovy文件中可以混合类的定义和脚本定义。在这种情况下，那些脚本代码将会放入默认存在的主类（文件名类）的run方法，所以在这种情况下你不应该再定义一个和文件同名的类，否则会出现“类重复定义”错误。反过来说，如果显式地定义了主类，则主类之外，除了定义其他类，不能有任何其他脚本代码（包括语句和函数）；</p></li>
+<li><p>根据jar包名字，从maven库里得到依赖定义字符串；</p></li>
+<li><p>将该字符串加上配置说明和下载脚本（参见笔记“依赖管理常用vim脚本”）；</p></li>
+<li><p>将已下载条目备份文件（installed.txt）另存为old.bpk；</p></li>
+<li><p>将build.xml中的下载条目插入到installed.txt中（按字母顺序排列）；</p></li>
+<li><p>用新的下载脚本替换build.xml中原有的下载脚本；</p></li>
+<li><p>运行ant命令将jar包下载到产品库中；</p></li>
+<li><p>在ivy.xml中加入依赖条目，解析之；</p></li>
 </ol>
 
+
+<p>以下是上面1~5步的自动化脚本。</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> # Purpose:  download jars to public repo</p>
+
+<p> # Author:  Li Chao</p>
+
+<p> # Created:  28-06-2011</p>
+
+<p> #</p>
+
+<p> # Demonstration:</p>
+
+<p> # install Apache Log4j 1.2</p>
+
+<p> #  1. from mvnrepository.com we got the dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16"/></p>
+
+<p> #  2. modify dep_str in this file with above dep string:</p>
+
+<p> #  3. run this file, copy modified dep string:</p>
+
+<p> #   <dependency org="log4j" name="log4j" rev="1.2.16" conf="compile->master"/></p>
+
+<p> #  4. open a shell and run ant cmd to download jars of log4j</p>
+
+<p> #  5. paste modified dep string to ivy.xml and resolve it</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> import os, re</p>
+
+<p> dep_str = &lsquo;<dependency org="log4j" name="log4j" rev="1.2.16"/>&rsquo;</p>
+
+<p> cmd_pattern = &lsquo;&lt;ivy:install.+from=&ldquo;\${from.resolver}&rdquo; to=&ldquo;\${to.resolver}&rdquo;/>&rsquo;</p>
+
+<p> script = &lsquo;build.xml&rsquo;</p>
+
+<p> def conv_str():</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>   covert dep_str to custom_ivy_dep string and ivy_install string;</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>  custom_ivy_dep = dep_str.replace(&lsquo;/>&rsquo;,&lsquo; conf=&ldquo;compile->master&rdquo;/>&rsquo;)</p>
+
+<p>  print &lsquo;Copy the following String:\n%s&rsquo; %custom_ivy_dep</p>
+
+<p>  keys = re.findall(r'&ldquo;\S+&rdquo;&lsquo;, dep_str)</p>
+
+<p>  if len(keys)!=3:</p>
+
+<p>   raise Exception(&lsquo;Format wrong of input string!&rsquo;)</p>
+
+<p>  global ivy_install</p>
+
+<p>  ivy_install = &lsquo;&lt;ivy:install organisation=%s module=%s revision=%s &rsquo;\</p>
+
+<pre><code>  'from="${from.resolver}" to="${to.resolver}"/&gt;' %tuple(keys) 
+</code></pre>
+
+<p> def do_bpk():</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>   create backup file(filename: installed.txt/old.bpk):</p>
+
+<pre><code>1 extract old install string from build.xml; 
+
+2 delete old.bpk if it exists; 
+
+3 rename installed.txt to old.bpk; 
+
+4 read old.bpk file, insert old install string and create installed.txt file; 
+</code></pre>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>  installed = &lsquo;installed.txt&rsquo;</p>
+
+<p>  old_bpk =&lsquo;old.bpk&rsquo;</p>
+
+<p>  xml_file = open(script)</p>
+
+<p>  global xml_str</p>
+
+<p>  xml_str = xml_file.read()</p>
+
+<p>  xml_file.close()</p>
+
+<p>  old_install = re.findall(cmd_pattern, xml_str, re.M)[0]</p>
+
+<p>  print &lsquo;old install string is:\n%s&rsquo; %old_install</p>
+
+<p>  if os.path.exists(old_bpk): os.remove(old_bpk)</p>
+
+<p>  if os.path.exists(installed):</p>
+
+<p>   os.rename(installed, old_bpk)</p>
+
+<p>  else:</p>
+
+<p>   raise Exception(&lsquo;%s does not exist!&rsquo;%installed)</p>
+
+<p>  installed_file = open(old_bpk)</p>
+
+<p>  installed_items = installed_file.read()</p>
+
+<p>  installed_file.close()</p>
+
+<p>  all_items = installed_items.split(&lsquo;\n&rsquo;)</p>
+
+<p>  all_items.append(old_install)</p>
+
+<p>  all_items.sort()</p>
+
+<p>  bpk_file = open(installed,&lsquo;w&rsquo;)</p>
+
+<p>  bpk_file.write( &lsquo;\n&rsquo;.join(all_items) )</p>
+
+<p>  bpk_file.close()</p>
+
+<p> def build_script():</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>   modify install script(build.xml): replace old install string with new one</p>
+
+<p>  &ldquo;&rdquo;"</p>
+
+<p>  xml_file = open(script,&lsquo;w&rsquo;)</p>
+
+<p>  new_xml = re.sub(cmd_pattern, ivy_install, xml_str)</p>
+
+<p>  xml_file.write(new_xml)</p>
+
+<p>  xml_file.close()</p>
+
+<p> def main():</p>
+
+<p>  conv_str()</p>
+
+<p>  do_bpk()</p>
+
+<p>  build_script()</p>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  main()</p>
+
+<p>代码中的技术点包括：</p>
+
+<ol>
+<li><p>格式化字符串的生成方法：%后面必须接一个tuple；</p></li>
+<li><p>如何使用正则表达式进行文本的搜索（findall）和替换(sub)；</p></li>
+<li><p>字符串的join方法进行list的组合，也可以用reduce方法： total_str = reduce(lambda x,y:x+y, str_list)</p></li>
+</ol>
+
+
+<p>  但用join方法更简洁。</p>
 </div>
   
   
@@ -266,7 +345,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/31/172555/">如何进行Groovy的单元测试</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/27/154047/">数码照片按拍摄时间分文件夹保存</a></h1>
     
     
       <p class="meta">
@@ -275,96 +354,484 @@
 
 
 
-<time class='entry-date' datetime='2011-05-31T17:25:55+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>5:25 pm</span></time>
+<time class='entry-date' datetime='2011-06-27T15:40:47+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:40 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Groovy的单元测试可以通过两种方法进行，一是用JUnit框架，二是用Groovy自己的TestSuite测试。JUnit测试代码是Java代码，GroovyTestSuite的测试代码是groovy代码，且只能一次运行测试类中所有的TestCase，灵活性较JUnit方法稍差。下面是一个实例：</p>
+  <div class="entry-content"><h2>拍摄的大量数码照片需要根据拍摄的时间分别放到不同的文件夹里，例如2011年6月27日拍摄的照片要放在名为“2011-6-27”的文件夹里。拍摄时间是根据文件的“最后修改时间”属性确定的，因为“创建时间”属性是会随着文件的拷贝而变化的，不能作为拍摄时间的根据。当然如果用画图或者photoshop修改了照片，那么 “最后修改时间”属性也不是拍摄时间了，但文件的【属性->摘要->照片拍照时间】项仍能显示出真实的拍照时间，但如何取这个属性尚不清楚，故本文不涉及。下面是源代码： </h2>
 
-<p>被测试类（Song.groovy文件内容）：
- package  org.leechau.ut;</p>
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
 
-<p> class  Song {
-    def  name
-    def  artist
-    def  genre
-  String toString(){
-     &ldquo;${ name }, ${  artist }, ${ genre  }&rdquo;
-  }
-    def  getGenre(){
-     genre ?. toUpperCase ()
-  }
- }</p>
+<p> # Author:  Li Chao</p>
 
-<p> class  Song2 {
-    def  name2
-    def  ex(){
-     println  name2
-  }</p>
+<p> # Created:  27-06-2011</p>
 
-<h2> } </h2>
+<p> #</p>
 
-<p> JUnit测试文件（SongTest.java）：
-  package  org.leechau.ut;</p>
+<p> # Purpose: 将相机SD卡上的照片按照拍摄日期放入硬盘上当前目录下的不同的文件夹中。</p>
 
-<p> import  org.junit.Assert;
- import  org.junit.Test;</p>
+<p> #</p>
 
-<p> public  class  SongTest {</p>
+<p> # Usage:</p>
 
-<p>   @Test
-    public  void  testToString() {
-    Song sng =  new  Song();
-    sng.setArtist(  &ldquo;Lee&rdquo; );
-    Assert. assertEquals ( &ldquo;Lee&rdquo; , sng.getArtist());
-  }
- }</p>
+<p> # step 1: 将本文件拷贝到目标文件夹中；</p>
+
+<p> # step 2: 在这个文件夹下新建一个run.bat，内容如下：</p>
+
+<p> #   python arrangePhotos.py [photo_path] [last_backup_date]</p>
+
+<p> #   第1个参数是SD卡里照片所在文件夹路径，第二个参数是已备份的最后日期；</p>
+
+<p> # step 3: 运行run.bat</p>
+
+<p> #</p>
+
+<p> # Example: python arrangePhotos.py h:/transfer/pics 2011-06-10</p>
+
+<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
+
+<p> #!/usr/bin/env python</p>
+
+<p> import sys, os, time, shutil</p>
+
+<p> from datetime import date</p>
+
+<p> def main():</p>
+
+<p>  photos_path = sys.argv[1]</p>
+
+<p>  last_bp = time.strptime(sys.argv[2], &ldquo;%Y.%m.%d&rdquo;)</p>
+
+<p>  last_bp_epoch = time. mktime (last_bp)</p>
+
+<p>  for item in os.listdir(photos_path):</p>
+
+<p>   modif_time = os.path. getmtime (os.path.join(photos_path,item))</p>
+
+<p>   if modif_time - last_bp_epoch &lt;= 3600*24 :</p>
+
+<pre><code>continue 
+</code></pre>
+
+<p>   cre_date_obj = date.fromtimestamp(modif_time)</p>
+
+<p>   cre_date = cre_date_obj.strftime(&ldquo;%Y.%m.%d&rdquo;)</p>
+
+<p>   if not os.path.exists(cre_date):</p>
+
+<pre><code>os.mkdir(cre_date) 
+
+print '\n%s' %cre_date 
+</code></pre>
+
+<p>   shutil.copy2(os.path.join(photos_path,item), cre_date)</p>
+
+<pre><code>print '.', 
+</code></pre>
+
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
+
+<p>  main()</p>
 
 <hr />
 
-<p> Groovy测试文件（TestSong2.groovy）：
-  package  org.leechau.ut2;</p>
+<p> 对源代码的解释：</p>
 
-<p> import  groovy.util.GroovyTestCase</p>
+<ol>
+<li>时区问题：</li>
+</ol>
 
-<p> import  org.leechau.ut.Song
- import  org.leechau.ut.Song2</p>
 
-<p> class  SongTest2  extends  GroovyTestCase{</p>
+<p>  由于time.mktime()方法和os.path.getmtime()都是以1970-1-1 08:00:00为起点，因此将这些时间数转换为日期、时间时，一定要用time.localtime()方法，如果用time.gmtime()，则会得到错误的值，下面这段代码演示了两种方法的区别：</p>
 
-<pre><code>void  testGetGenre() { 
- def  sng =  new  Song() 
-sng.setGenre  "Pop" 
- assertEquals (sng.getGenre(),  "POP" ) 
-</code></pre>
+<p> import time</p>
 
-<p>  }</p>
+<p> gm_sec = time.gmtime(0)</p>
 
-<pre><code>void  testSong2(){ 
- def  sng2 =  new  Song2() 
-sng2.setName2  "Song2" 
- assertEquals (sng2.getName2(),  "Song2" ) 
+<p> print gm_sec</p>
+
+<p> gm = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, gm_sec)</p>
+
+<p> print &lsquo;UTC start point is %s&rsquo; %gm</p>
+
+<p> lc_sec = time.localtime(0)</p>
+
+<p> print lc_sec</p>
+
+<p> lc = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, lc_sec)</p>
+
+<p> print &lsquo;local time start point is %s&rsquo; %lc</p>
+
+<p> second_day = time.mktime(time.strptime(&lsquo;1970-1-2&rsquo;, &ldquo;%Y-%m-%d&rdquo;))</p>
+
+<p> print &lsquo;second day is %s hours after first day&rsquo; %(second_day/3600)</p>
+
+<p>输出为：</p>
+
+<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
+
+<p> UTC start point is 1970-01-01, 00:00:00</p>
+
+<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=8, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
+
+<p> local time start point is 1970-01-01, 08:00:00</p>
+
+<p> second day is 16.0 hours after first day</p>
+
+<p>加粗的部分表明东8区的时间起点是1970-1-1 08:00:00。</p>
+
+<ol>
+<li>为什么修改时间要比最后一次备份时间多一天（即24小时，3600*24秒）？</li>
+</ol>
+
+
+<p> 例如最后一次备份时间是2011年6月27日，last_bp_epoch的值对应于27日0点0分，当处理一张2011年6月27日晚11点拍摄的照片时，modif_time - last_bp_epoch = 23 hour，这张照片已经备份过了，不应该再次备份，因此modif_time - last_bp_epoch > 24hour时才需要备份；</p>
+
+<ol>
+<li>怎样让print语句的输出不换行？</li>
+</ol>
+
+
+<p> 在字符串后面加逗号即可。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/27/102352/">语音朗读软件使用小记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-27T10:23:52+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:23 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最先下的是“方正畅听2008”，但装上之后发现根本不能正常朗读，发出来的声音伴有巨大的杂音，完全听不清。</p>
+
+<p>后来使用了小众软件推荐的“随读”，语音引擎选用了Neospeech的中文-Liang，输出设为“16kHz 16Bit Stereo”。没有导出为MP3功能（通过插件可以导出MP3），只能朗读txt文件。</p>
+
+<p>再后来又试用了免费的eSpeak，以及NextUp出品的TextAloud，综合比较TextAloud是最优秀的，其中的批量转换MP3功能尤其值得称道。</p>
+
+<p>语音引擎方面，通过使用发现，中文的Lily（女声）和Liang（男声）效果最好，Wang（男声）和Hui（女声）效果一般，英文的Bridget和Julie似乎都不错。
+另：[NeoSpeech.TTS][女声].NeoSpeech.Chinese.Lily.zip安装后的破解方法如下（不破解的话会在每次朗读前加一小段说明）：
+打开安装目录C:\Program Files\VW\VT\Lily\M16-SAPI5\data-common\verify下新建一个文本文件：verification.txt，写入：
+License:effacee1e9a0c118ca2dd64bdf6a66c3cc3d82fbee5a11f7002cb600ec1900e8de006e8f00152800adc100f14a0115d5:*:VoiceText:0:1:Nextup:WindowsNT2KXP::;
+&mdash; Label Print &mdash;
+CODE: VoiceText-02FF-278E-8AE6
+Site name: Nextup
+Host ID: *
+Expiration Date: unlimited
+Maximum Channel: 1
+Operating System: WindowsNT2KXP
+保存后重新启动朗读软件即可，无需重启系统。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/23/114908/">Notepad++手工配色</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-23T11:49:08+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>11:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Notepad++的手工配色相对比较智能，对于其内置的语言，在【设置->语言格式设置】中进行，【选择主题】中可以选择不同的配色主题，确定主题后，在【语言】中选择要修改的语言，在【格式名称】中选择修改那种元素，然后修改颜色和字体；对于非内置语言，则需要使用其内置的"User Defined Languages"对话框；对于一种新语言，首先从网上下载其语法高亮模板，然后再根据自己的要求使用这个对话框修改，直到满意为止。具体来说：</p>
+
+<ol>
+<li><p>下载语法高亮文件（xml文件），如果notepad++当前文件夹下没有 userDefineLang.xml 这个文件，将下载的文件放在此文件夹（与notepad++.exe同目录）下，并命名为userDefineLang.xml，如果已经有这个文件，则把下载内容追加到 userDefineLang.xml 末尾；</p></li>
+<li><p>启动Notepad++，【视图->自定义语言对话框】打开"User Defined Languages"对话框，在【自定义语言】下应该有刚才添加的语言；</p></li>
+<li><p>如果没有，用【Import】按钮导入下载的XML文件；</p></li>
+<li><p>对不满意的配色和内容进行修改，然后用【Export】导出，以备将来再次导入；</p></li>
+</ol>
+
+
+<p>修改的方法参见帮助文档的"User Defined Languages"一节，简单地说，能够定制的特性有：普通文本的前/背景色，关键字集合的内容和前/背景色，代码折叠的开始、结束标志，注释的样式和颜色，数字的颜色，运算符的内容和颜色，以上所有内容的字体、字号，转义符号的定义（避免"aa\&ldquo;bb"被解析成一对半字符串）等；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/22/094253/">关于段落格式重排</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-22T09:42:53+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>9:42 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>段落重排是指：指定左边界（left margin）和右边界（right margin），所有文本都从左边界开始，到右边界结束（换行），超出的插入换行符（折行），不足的删除换行符补足，在此基础上，还可以指定对齐方式（左对齐、右对齐、居中、填充），以及悬挂缩进（hanging indent）值，也就是从第二行开始的左边界，从而实现更为精细的段落格式控制。</p>
+
+<p>在Ultraedit中，要做段落重排，首先要在【格式->段落格式化->段落设置/格式化】对话框中设定前述参数，然后选中要重排的文本，用【格式->段落格式重排】就可以实现重排。下面是实例演示（使用等宽字体才能保证右对齐的效果）：</p>
+
+<p>原始文本：</p>
+
+<p> The idea of supersymmetry was the key to the</p>
+
+<p> creation of</p>
+
+<p> supergravity, but the concept had actually originated years earlier with theorists</p>
+
+<p>重排后：</p>
+
+<p> 左边界0，右边界40：</p>
+
+<p> The idea of supersymmetry was the key to</p>
+
+<p> the creation of supergravity, but the</p>
+
+<p> concept had actually originated years</p>
+
+<p> earlier with theorists</p>
+
+<p>左边界4，右边界45：</p>
+
+<p>  The idea of supersymmetry was the key to</p>
+
+<p>  the creation of supergravity, but the</p>
+
+<p>  concept had actually originated years</p>
+
+<p>  earlier with theorists</p>
+
+<p> 左边界4，右边界45，悬挂缩进2：</p>
+
+<p>  The idea of supersymmetry was the key to</p>
+
+<p>  the creation of supergravity, but the</p>
+
+<p>  concept had actually originated years</p>
+
+<p>  earlier with theorists</p>
+
+<p> 左边界0，右边界45，右对齐：</p>
+
+<p> The idea of supersymmetry was the key to the</p>
+
+<p> creation of supergravity, but the concept had</p>
+
+<p>   actually originated years earlier with</p>
+
+<p> theorists</p>
+
+<p> Notepad++的 TextFX插件也有重排功能（TestFX->TextFX Edit->ReWrap），但只能指定右边界，重排功能与UE相比偏弱。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/21/095608/">删除源代码文件里的注释和空行</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-21T09:56:08+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>9:56 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>有时需要对大量的源代码文件做删除空行和注释的操作，手工处理效率会很低，可以用cloc工具（ <a href="http://cloc.sourceforge.net">http://cloc.sourceforge.net</a> ）来完成。</p>
+
+<p>例如要处理d:\godu21\GODU_Server\GODU_V2.1\src\下所有的源代码文件，将去掉空行和注释的新文件放在f:\Software\cloc-1.53下：</p>
+
+<p>第一步：将cloc.exe文件拷贝到f:\Software\cloc-1.53下；</p>
+
+<p>第二步：在f:\Software\cloc-1.53下启动命令行，并运行：cloc &ndash;strip-comments=nj d:\godu21\GODU_Server\GODU_V2.1\src</p>
+
+<p>命令格式为：cloc [options] src_path，cloc将处理后的文件放在当前目录下。命令中“&ndash;strip-comments=”后面是新文件的扩展名，例如原文件是ConnectKeyFilter.java，则处理后的对应文件为f:\Software\cloc-1.53\ConnectKeyFilter.java.nj。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/06/15/155932/">Java和Groovy脚本互相调用实例</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-06-15T15:59:32+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>本实例是GODU动态脚本的一个技术简化版，演示了java调groovy，groovy又调java的运行过程。 测试用例：  package  com.boco.godu.integration;</p>
+
+<p> import  java.util.HashMap;
+ import  java.util.Map;
+ import  org.apache.log4j.Logger;
+ import  org.junit.After;
+ import  org.junit.AfterClass;
+ import  org.junit.Before;
+ import  org.junit.BeforeClass;
+ import  org.junit.Test;
+ import  com.boco.godu.gapi.ConnManager;
+ import  com.boco.godu.gapi.Constants;
+ import  com.boco.godu.gapi.IConnection;
+ import  com.boco.godu.gapi.IResult;</p>
+
+<p> public  class  SimpleExpScriptTest {
+    private  static  final  Logger  logger  = Logger
+     . getLogger (SimpleExpScriptTest.  class  );
+    private  IConnection  conn ;</p>
+
+<p>   @Before
+    public  void  setUp()  throws  Exception {
+     conn  = ConnManager. getDataConn ( &ldquo;10.0.2.47&rdquo; , 1234,
+       &ldquo;&lt; aa ><7001><administrator><autocmd>&rdquo; ,  &ldquo;goduapp&rdquo; ,
+      Constants.  TYPE_DATA_CMD_SYNC  , 5);
+  }</p>
+
+<p>   @After
+    public  void  tearDown()  throws  Exception {
+     conn .close();
+  }</p>
+
+<p>   @Test
+    public  void  testImport()  throws  Exception {
+    Map&lt;String, String> params =  new  HashMap&lt;String, String>();
+    params.put(  &ldquo;cmd1&rdquo; ,  &ldquo;ls&rdquo; );
+    params.put(  &ldquo;id&rdquo; , 3);</p>
+
+<pre><code>IResult result =  conn .execScript( "ImportEx" , params); 
 </code></pre>
 
 <p>  }
  }</p>
 
-<hr />
+<p> Java代码：
+IConnection.java
+ package  com.boco.godu.gapi;
+  public  interface  IConnection {
+   &hellip;&hellip;// other method definition
+     public  IResult execScript (String name, Map&lt;String, Object> params)<br/>
+       throws  Exception;
+  }</p>
 
-<p> 且需要进行运行设置：
- 1. 在Java Application中新建一个run configuration；</p>
+<p>GoduDataConnection.java
+  package  com.boco.godu.gapi.conn;
+  public  class  GoduDataConnection  extends  AbstractConnection {
+  &hellip;&hellip;// Other IConnection Methods
+     public  IResult execScript(String name, Map&lt;String, Object> params)<br/>
+       throws  Exception {
+    String[] roots =  new  String[] {  &ldquo;e:/MyDoc/Project/GoduScript&rdquo;  };
+    GroovyScriptEngine gse =  new  GroovyScriptEngine(roots);
+    Binding binding =  new  Binding();
+     for  (Entry&lt;String, Object> item : params.entrySet()) {
+     binding.setVariable(item.getKey(), item.getValue());
+    }
+    GapiIosessionUtils giu =  new  GapiIosessionUtils();
+    binding.setVariable(  &ldquo;giu&rdquo; , giu );
+    gse.run(name, binding);
+    System.  out  .println(binding.getVariable(  &ldquo;result&rdquo; )); // 运行结果是这里输出“11”，即3*2+5。
+     return  null  ;
+   }</p>
 
-<ol>
-<li><p>Main标签下的Main Class写：groovy.util.GroovyTestSuite，且勾选“Include System Libraries when searching for a main class”；</p></li>
-<li><p>Arguments标签下program arguments下写上测试脚本的相对路径，如：src\org\leechau\ut2\SongTest2.groovy；</p></li>
-<li><p>运行该配置；</p></li>
-</ol>
+<p>  }</p>
 
+<p>GapiIosessionUtils.java</p>
 
-<p> 结果如下：</p>
+<p> package  com.boco.godu.gapi.util;
+  public  class  GapiIosessionUtils {
+  &hellip;&hellip;// other method
+    public  int  testM(  int  x,  int  y) {
+     return  x * 2 + y;
+   }
+ }</p>
+
+<p> groovy代码：</p>
+
+<p>e:\MyDoc\Project\GoduScript\ImportEx</p>
+
+<p> def send(cmd){</p>
+
+<p> def result = giu.testM(cmd,5);</p>
+
+<p> return result;</p>
+
+<p> }</p>
+
+<p> result = send(id)</p>
+
+<p> 运行过程
+测试用例 ->GoduDataConnection.java -> groovy代码 -> GapiIosessionUtils.java；</p>
+
+<p> 总结
+binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiIosessionUtils对象，id是int型数据）在groovy脚本里直接使用，可以出现在脚本的任何地方，且无需声明类型，无需使用import导入定义该变量的类（例如对于giu来说，如果在java代码中，需要import com.boco.godu.gapi.util.GapiIosessionUtils）。</p>
 </div>
   
   
@@ -377,7 +844,7 @@ sng2.setName2  "Song2"
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/26/092619/">在48服务器上安装并使用PyScripter编辑的方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/15/083504/">Srt文件的时间轴平移处理</a></h1>
     
     
       <p class="meta">
@@ -386,36 +853,18 @@ sng2.setName2  "Song2"
 
 
 
-<time class='entry-date' datetime='2011-05-26T09:26:19+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:26 am</span></time>
+<time class='entry-date' datetime='2011-06-15T08:35:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:35 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>类似于BVT这样的脚本一般都运行在服务器上，在本机调试好再移动到服务器上比较麻烦，理想方法是在服务器上直接调试python源代码，这就需要有IDE支持，下面说明了在48服务器上使用绿色版PyScripter的完整过程。</p>
+  <div class="entry-content"><p>有时srt字幕文件与视频文件的时间不完全吻合，有一个时间差，这就需要对srt文件的时间轴进行平移，具备这个功能的软件很多，比如：Subtitle Tool, subresync, sabbu, Sub Station Alpha等；但最方便的还是在线处理，下面这两个网站都是专门做字幕文件的时间轴处理的：</p>
 
-<ol>
-<li><p>以用户名 ser2 登录48服务器（地址：10.0.2.48）；</p></li>
-<li><p>将PyScripter_confs_on48.zip解压到C:\Documents and Settings\ serv2 \Application Data下，即PyScripter.ini的绝对路径为：</p></li>
-</ol>
+<p><a href="http://subshifter.bitsnbites.eu/">http://subshifter.bitsnbites.eu/</a></p>
 
-
-<p> C:\Documents and Settings\serv2\Application Data\PyScripter\PyScripter.ini</p>
-
-<ol>
-<li><p>解压PyScripter-v2.4.1.zip到任意位置，运行其中的PyScripter.exe启动PyScripter；</p></li>
-<li><p>从SVN上下载源代码；</p></li>
-</ol>
-
-
-<hr />
-
-<p>注1：第2步的目的是将PyScripter常用的设置（如字号大小，背景颜色，快捷键等）一次性设置好，这些设置都保存在前述的</p>
-
-<p>&ldquo; C:\Documents and Settings\serv2\Application Data\PyScripter\PyScripter.ini "文件中。</p>
-
-<p>注2：第1步中的登录用户名要与第2步中的路径名一致（这里都是serv2），否则当前用户没有其他用户目录的写权限，不可能解压文件；</p>
+<p><a href="http://subtitle.ss-birthdayreminder.com/">http://subtitle.ss-birthdayreminder.com/</a></p>
 </div>
   
   
@@ -428,7 +877,7 @@ sng2.setName2  "Song2"
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/05/25/123121/">Ivy可以在ant中直接使用的变量</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/06/14/175307/">Terracotta启动命令说明</a></h1>
     
     
       <p class="meta">
@@ -437,255 +886,31 @@ sng2.setName2  "Song2"
 
 
 
-<time class='entry-date' datetime='2011-05-25T12:31:21+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>12:31 pm</span></time>
+<time class='entry-date' datetime='2011-06-14T17:53:07+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:53 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在 ant 文件中使用&lt;ivy:resolve/>进行解析后，可以使用如下变量：</p>
+  <div class="entry-content"><p>terracotta的启动命令是：
+ nohup  $TC_INSTALL_DIR/bin/start-  tc  -server.sh 1>/  dev  /null 2>/  dev  /null &amp;</p>
 
-<p>ivy.organisation</p>
+<p>nohup是后台运行程序（即使终端退出也继续运行程序）；</p>
 
-<p>ivy.module</p>
+<p>$TC_INSTALL_DIR/bin/start-tc-server.sh 是要运行的程序；</p>
 
-<p>ivy.revision</p>
+<p>Unix的标准输入（STDIN）、标准输出（STDOUT）、标准错误（STDERR）分别用数字0、1和2表示，">&ldquo;是重定向符，&rdquo;/dev/null"类似于windows的回收站，只不过进去的信息就出不来了（被称为字节黑洞），所以连起来就是：</p>
 
-<p>ivy.resolved.configurations</p>
+<p>在后台运行terracotta程序，屏蔽标准输出和标准错误，即使用户退出也继续运行。</p>
 
-<p>例如如下代码：
-   <target  name= "UT_junit"  depends=  "cleanForZip" >
-   <mkdir dir="${junit.test.result}"/>
-     <javac  srcdir= "${test.src.dir}"  destdir= "${test.class.dir}"  encoding= "GBK" >
-      <classpath>
-       <pathelement  location= "${build.dist.dir}/${ ivy.module }-${ ivy.revision }.jar" />
-       <path  refid= "lib.path" />
-       <path  refid= "test.lib.path" />
-      </classpath>
-     </javac>
- 需要注意的是由于这些变量仅在 &lt;ivy:resolve/>后才生成，因此不要用<property name="..." value="${ivy.module}" />将它们的赋给一个变量，因为所有的变量赋值都是在任务（target）之前进行的（不论赋值的位置是否在包含&lt;ivy:resolve/>的target之后），因此变量肯定是得不到上述变量的值的。</p>
-</div>
-  
-  
+<p>参考：</p>
 
+<p> nohup的含义</p>
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/19/094133/">射手网字幕编码修改笔记</a></h1>
-    
-    
-      <p class="meta">
-        
+<p> What does “> /dev/null 2>&amp;1″ mean?</p>
 
-
-
-
-<time class='entry-date' datetime='2011-05-19T09:41:33+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>用射手播放器自动下载的视频用文本编辑器打开后经常是乱码，实验后发现主要是由于这些文件使用Big5编码格式，用Notepad2就可以进行编码转换，但Notepad2没有中文繁简体转换的功能，用Word进行转换是一种比较完整的解决方案，下面是详细操作过程：</p>
-
-<p>用Word打开这个srt文件，Word会自动侦测其编码格式；</p>
-
-<p>打开文件后，选中所有文本后用【审阅->繁转简】转为简体并保存：在【是否保存为这种格式】对话框里选“否”，然后在保存对话框中将【保存类型】选为【纯文本(*.txt)】，文件名框中将扩展名改为srt，在随后出现的编码对话框里【文本编码】选【其他编码】，在编码列表里选【Unicode (UTF-8)】，确定即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/16/162950/">CD管理和检索软件比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-05-16T16:29:50+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:29 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>之前一直用EverCD+，考虑到鸡蛋不能放在一个篮子里，又找了几款功能类似的进行了比较，主要考察一下几个功能：</p>
-
-<p> 多个镜像：一个数据文件可以包含多个目录的镜像，便于数据管理和搜索； 目录更新：目录内容发生变化后，更新其在管理软件中的镜像（对于一次性写光盘不存在更新问题）； 多种搜索类型：除了按名称搜索，还能按大小、日期等搜索； 导出、导入为通用数据文件：如csv、xml文件等；</p>
-
-<p> 备选软件
- WhereIsIt：商业软件，暂未找到破解版； VVV (Virtual Volumes View)：开源软件（C++写成），无需安装，支持多个镜像，支持更新和搜索，不能导入，能够导出为CSV文件；有源代码下载，体积小巧（Windows压缩包4MB，源代码2MB）； Visual CD：免费软件，需安装， 间接支持多个镜像（ 一个vcc文件只能对应一个目录镜像，但可以在多个vcc文件内搜索 ）， 支持更新和搜索，不能导入csv和xml，导出功能强（能够导出为html、txt、rtf和txt格式）； Offline CD Browser：免费软件，数据文件放在了默认的安装文件内，安全性差，界面老土，支持更新和搜索，多种搜索类型，无导入和导出功能； Blue Mirror DVD/CD Indexer：安装过程需要联网，间接支持多个镜像（一个数据文件只包含一个镜像，但可以用“Merge with File”合并多个数据文件），似乎没有更新功能和搜索功能，可以导出为CSV文件； EverCD+：支持导出为xml文件； GCstar：安装文件很大，似乎是一个个人文档管理软件，严格来说不属于光盘管理软件； 总结</p>
-
-<p>VVV无需安装，体积小，功能完善，开源，是EverCD+比较好的替代品；</p>
-
-<p>这类软件都没有从csv、xml文件导入的功能，所以目前的EverCD+数据文件可能无法导入到其他软件中。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/05/13/163122/">Haskell Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-05-13T16:31:22+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:31 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<pre><code>sudo apt-get install aptitude
-sudo aptitude install haskell-platform
-</code></pre>
-
-<p>verified on Linux Mint 14 Xfce.</p>
-
-<p>Install hoogle (offline documentation of Haskell):</p>
-
-<pre><code>cabal update
-cabal install alex happy &amp;&amp; cabal install hoogle
-</code></pre>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/11753979/cabal-install-hoogle-error">http://stackoverflow.com/questions/11753979/cabal-install-hoogle-error</a></p>
-
-<p>Very slow, you can use <a href="http://www.haskell.org/hoogle/">the online version</a>;</p>
-
-<p>modify ~/.cabal/conifg:</p>
-
-<pre><code>remote-repo: old.hackage.haskell.org:http://old.hackage.haskell.org
-</code></pre>
-
-<p>Ref:</p>
-
-<p><a href="http://hackage.haskell.org/">http://hackage.haskell.org/</a></p>
-
-<p><a href="http://www.haskell.org/haskellwiki/Hoogle">http://www.haskell.org/haskellwiki/Hoogle</a></p>
-
-<pre><code>$ cabal update
-$ cabal install hoogle
-$ ~/.cabal/bin/hoogle data # create database
-$ ~/.cabal/bin/hoogle map # search "map"
-</code></pre>
-
-<p>Save the following lines to ~/.ghci to enable you use &ldquo;:hoogle&rdquo; or &ldquo;:doc&rdquo; to get doc info in ghci:</p>
-
-<pre><code>:def hoogle \x -&gt; return $ ":!hoogle \"" ++ x ++ "\""       
-:def doc \x -&gt; return $ ":!hoogle --info \"" ++ x ++ "\""
-</code></pre>
-
-<h1>Sample Project</h1>
-
-<p>Based on <a href="http://www.haskell.org/haskellwiki/How_to_write_a_Haskell_program;">http://www.haskell.org/haskellwiki/How_to_write_a_Haskell_program;</a></p>
-
-<ol>
-<li><p>create home folder: <code>take haq</code>;</p></li>
-<li><p>create source file &ldquo;Haq.hs&rdquo;;</p></li>
-<li><p>stick it in version control:</p>
-
-<pre><code> git init
- git add Haq.hs
- git commit -m "add first source"
-</code></pre></li>
-<li><p>add a build system: <code>cabal init</code>;</p></li>
-<li><p>modify .cabal file: add &ldquo;Haq.hs&rdquo; after &ldquo;&ndash; main-is:&rdquo; and uncomment this line(delete &ldquo;&ndash;&rdquo;); If you donot specify the license type, comment out the line &ldquo;license-file&rdquo;;</p></li>
-<li><p>cabal update</p></li>
-<li><p>cabal install &ndash;prefix=<dst_folder> &ndash;user</p></li>
-<li><p>run app: <code>bin/haq me</code> under <dst_folder>, or run app in-place (under current directory): dist/build/haq/haq me</p></li>
-</ol>
-
-
-<p>verified on Haskell Platform 7.4.2, Linux Mint 14:</p>
-
-<p>$ ghc &ndash;version</p>
-
-<p>The Glorious Glasgow Haskell Compilation System, version 7.4.2</p>
-
-<h1>Miscellaneous</h1>
-
-<ul>
-<li><p>ghc: compiler</p></li>
-<li><p>ghci: interactive shell;</p></li>
-<li><p>runghc: run haskell script without compile</p></li>
-<li><p>Compile haskell source file to executable:</p>
-
-<pre><code>  $ ghc --make &lt;FileName&gt;.hs -o &lt;ExeFileName&gt;
-</code></pre></li>
-</ul>
-
-
-<p>for example:</p>
-
-<pre><code>$ ghc --make Test.hs -o test
-</code></pre>
-
-<h1>GHCi usage</h1>
-
-<ul>
-<li><p>get current working directory: :!pwd (you can use :!<shell_cmd> to run any shell command);</p></li>
-<li><p>turn on/off type declaration: :set +t, :unset +t</p></li>
-<li><p>get type information of a object: :t</p></li>
-<li><p>define local variable and show bindings:</p>
-
-<pre><code>  let x = 3, 
-  :show bindings
-</code></pre></li>
-<li><p>load module: :m +Data.Ratio</p></li>
-<li><p>change cwd: :cd <path_name></p></li>
-<li><p>load file: :l <file_name></p></li>
-<li><p>quit ghci shell: :q</p></li>
-<li><p>get function doc: :i <func_name></p></li>
-</ul>
-
-
-<h1>Syntax</h1>
-
-<ul>
-<li><p>comments: &ndash;</p></li>
-<li><p>comparison: /=, >, &lt;</p></li>
-<li><p>boolean operation: not, || , &amp;&amp;</p></li>
-<li><p>Haskell requires type names to start with an uppercase letter, and variable names must start with a lowercase letter.</p></li>
-<li><p>To construct a rational number: 11 % 29 (after &ldquo;:m +Data.Ratio&rdquo;)</p></li>
-<li><p>values in &ldquo;where&rdquo;, &ldquo;case&rdquo; and &ldquo;let&rdquo; clause must keep the SAME indentions;</p></li>
-</ul>
-
-
-<h1>Shell Interaction Library</h1>
-
-<p>shqq, shelly</p>
-
-<p>Ref: <a href="http://www.yesodweb.com/blog/2012/03/shelly-for-shell-scripts">Shelly: Write your shell scripts in Haskell</a></p>
+<p> 1>/dev/null 2>/dev/null 跟在命令行后面，什么目的？</p>
 </div>
   
   
@@ -710,23 +935,23 @@ $ ~/.cabal/bin/hoogle map # search "map"
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
       </li>
     
   </ul>

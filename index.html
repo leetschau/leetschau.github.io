@@ -9,9 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="We are running a website and a backend data management system,
-both are meteor web servers. The backend needs fetch data from the website.
-So they &hellip;">
+  <meta name="description" content="The following codes can display a random date within a month after the specified fair date. $ meteor create randomDate
+$ cd randomDate
+$ meteor add &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -73,7 +73,7 @@ So they &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a></h1>
     
     
       <p class="meta">
@@ -82,153 +82,58 @@ So they &hellip;">
 
 
 
-<time class='entry-date' datetime='2015-08-11T12:39:34+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:39 pm</span></time>
+<time class='entry-date' datetime='2015-09-20T21:21:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:21 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>We are running a website and a backend data management system,
-both are meteor web servers.</p>
+  <div class="entry-content"><p>The following codes can display a random date within a month after the specified fair date.</p>
 
-<p>The backend needs fetch data from the website.
-So they have to share one database, and the same &ldquo;users&rdquo; collection for both.
-That means one can register on the website and login to the backend,
-which is obviously unacceptable.</p>
+<pre><code>$ meteor create randomDate
+$ cd randomDate
+$ meteor add momentjs:moment
+$ cat randomDate.html
+&lt;head&gt;
+  &lt;title&gt;Random Date&lt;/title&gt;
+&lt;/head&gt;
 
-<p>To distinguish users of the website and the backend,
-I choose package <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
+&lt;body&gt;
+  在 展会日期 输入框中输入日期，例如：2015-05-25，然后点击 评论 按钮。
+  &lt;hr&gt;
 
-<p>All the backend users will have roles <code>['backend', 'admin']</code>,
-while website users haven&rsquo;t.</p>
+&lt;/body&gt;
 
-<p>In &ldquo;safe&rdquo; environment, backend has its own user registration entry.
-Users registered there will be given above roles automatically.</p>
+&lt;template name="DatePanel"&gt;
+  &lt;label&gt;展会日期：&lt;/label&gt;
+  &lt;input type="text" id="fairDate"&gt;
+  &lt;button&gt;评论&lt;/button&gt;
+  &lt;p&gt;评论添加日期：&lt;/p&gt;
+&lt;/template&gt;
 
-<p>Put the following codes into server side JavaScript files to achieve above goal
-(based on examples/rolesWithAccountsUI on meteor-roles):</p>
-
-<pre><code>var ROLE_NAME = 'editor';
-var GROUP_NAME = 'backend';
-
-Meteor.publish('mallData', function(){
-  if (Roles.userIsInRole(this.userId, ROLE_NAME, GROUP_NAME)) {
-    console.log('pass check');
-    return Mall.find();
-  } else {
-    console.log('not pass check');
-    this.stop();
-    return;
-  }
-});
-
-Meteor.startup(function () {
-  Accounts.onCreateUser(function (options, user) {
-    Roles.setRolesOnUserObj(user, ROLE_NAME, GROUP_NAME);
-    if (options.profile) {
-      user.profile = options.profile
+$ cat randomDate.js
+if (Meteor.isClient) {
+  Template.DatePanel.helpers({
+    commentDate: function () {
+      return Session.get('commentDate');
     }
-    return user;
   });
-});
 
-Roles.setRolesOnUserObj = function (users, roles, group) {
-  if (!users) throw new Error ("Missing 'users' param")
-  if (!roles) throw new Error ("Missing 'roles' param")
-  if (group) {
-    if ('string' !== typeof group)
-      throw new Error ("Roles error: Invalid parameter 'group'. Expected 'string' type")
-    if ('$' === group[0])
-      throw new Error ("Roles error: groups can not start with '$'")
-
-    // convert any periods to underscores
-    group = group.replace(/\./g, '_')
-  }
-
-  // ensure arrays to simplify code
-  if (!_.isArray(users)) users = [users]
-  if (!_.isArray(roles)) roles = [roles]
-
-
-  // remove invalid roles
-  roles = _.reduce(roles, function (memo, role) {
-    if (role
-        &amp;&amp; 'string' === typeof role
-        &amp;&amp; role.trim().length &gt; 0) {
-      memo.push(role.trim())
+  Template.DatePanel.events({
+    'click button': function (e, t) {
+      var dateStr = t.find("#fairDate").value;
+      var fairDate = moment(dateStr);
+      var randomDays = Math.floor((Math.random() * 30) + 1);
+      var commentDate = fairDate.add(randomDays, 'days');
+      var commStr = commentDate.format("YYYY-MM-DD");
+      Session.set('commentDate', commStr);
     }
-    return memo
-  }, [])
-
-  // if roles is empty, quit
-  if (roles.length === 0) return
-
-  // ensure all roles exist in 'roles' collection
-  existingRoles = _.reduce(Meteor.roles.find({}).fetch(), function (memo, role) {
-    memo[role.name] = true
-    return memo
-  }, {})
-  _.each(roles, function (role) {
-    if (!existingRoles[role]) {
-      Roles.createRole(role)
-    }
-  })
-
-  // ensure users is an array of objects
-  _.each(users, function (user) {
-    if ('object' !== typeof user) {
-      throw new Error("Expected 'users' argument to be an object or array of objects")
-    }
-  })
-
-
-  // Set the roles on the actual user object
-
-  if (group) {
-
-    // roles is a key/value dict object
-
-    _.each(users, function (user) {
-      user.roles = {}
-      user.roles[group] = roles
-    })
-
-  } else {
-
-    // roles is an array of strings
-
-    _.each(users, function (user) {
-      user.roles = roles
-    })
-
-  }
-
+  });
 }
+
+$ meteor
 </code></pre>
-
-<p>Now any user outside &lsquo;backend&rsquo; group, or without &lsquo;editor&rsquo; role, can&rsquo;t get any data from server.</p>
-
-<p>Unfortunately Internet is unsafe at all.
-So the registration entry has to be removed from the accounts-ui:</p>
-
-<pre><code>Meteor.startup(function () {
-  Accounts.config({
-    forbidClientAccountCreation : true
-  });
-});
-</code></pre>
-
-<p>Now if you want give a website personnel rights to edit data through backend,
-first he should register on the website,
-then you define his role manually in mongo console:</p>
-
-<pre><code>&gt; db.users.find({ "emails.0.address":"user@123.com" }, { "emails":1 })
-&gt; db.users.update({_id: "PM36t6eRmuC9oELdu"}, { $set: { roles: {"backend": [ "editor" ]} } })
-</code></pre>
-
-<p>First find the id of the user (here is &ldquo;<a href="&#x6d;&#97;&#x69;&#108;&#x74;&#x6f;&#58;&#x75;&#115;&#101;&#x72;&#x40;&#x31;&#50;&#51;&#x2e;&#x63;&#111;&#109;">&#x75;&#x73;&#101;&#x72;&#64;&#x31;&#x32;&#51;&#x2e;&#99;&#x6f;&#109;</a>&rdquo;) by his email address.
-Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRmuC9oELdu&rdquo;).</p>
 </div>
   
   
@@ -241,7 +146,7 @@ Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRm
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a></h1>
     
     
       <p class="meta">
@@ -250,49 +155,191 @@ Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRm
 
 
 
-<time class='entry-date' datetime='2015-08-07T15:57:21+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:57 pm</span></time>
+<time class='entry-date' datetime='2015-09-16T10:15:29+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:15 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Collection definitions in root directory</h1>
+  <div class="entry-content"><p>下面的代码演示了JavaScript中的闭包：</p>
 
-<ol>
-<li><p>autopublish package exists: data can be seen and updated;</p></li>
-<li><p>Remove autopublish package: data can&rsquo;t be seen;</p></li>
-<li><p>Add publish method in server js file, and subscribe methods in client js file:
-data can be seen and updated;</p>
+<pre><code>$ cat test.js
+x = 100;
+inc = function(){
+  var x = 0;
+  return function(){
+    console.log(x++);
+  };
+};
+inc1 = inc();
+inc2 = inc();
 
-<pre><code> # in server:
- Meteor.publish('mallData', function(){
-   return Mall.find();
- });
-
- # in client:
- Meteor.subscribe('mallData');
-</code></pre></li>
-<li><p>Remove insecure package: data can be seen, but can&rsquo;t be updated;</p></li>
-<li><p>Add an allow rule in js file in root directory: only &ldquo;status&rdquo; field can be updated.</p>
-
-<pre><code> Mall.allow({
-   update: function(userId, doc, fieldNames, modifier){
-     if ((fieldNames.length === 1) &amp;&amp;
-         (fieldNames[0] === 'status')){
-       return true;
-     }
-   }
- });
+$ node
+&gt; require('./test.js')
+{}
+&gt; x
+100
+&gt; inc
+[Function]
+&gt; inc1
+[Function]
+&gt; inc2
+[Function]
+&gt; inc1()
+0
+undefined
+&gt; inc1()
+1
+undefined
+&gt; inc1()
+2
+undefined
+&gt; inc2()
+0
+&gt; inc2()
+1
+undefined
+&gt; inc2()
+2
+undefined
+&gt; inc2()
+3
+undefined
+&gt; inc2()
+4
+undefined
+&gt; inc1()
+3
+undefined
+&gt; inc()
+[Function]
+&gt; inc()()
+0
+undefined
+&gt; inc()()
+0
+undefined
 </code></pre>
 
-<p> Meanwhile inserting and remvoing operations will be denied by the server.</p></li>
+<p>可以看到inc2()最后一次执行时内部x值为4，
+inc1不受影响，执行时依然从上次的2开始增加变成3，
+所以，不同的闭包（这里是inc1和inc2）保存了自己单独的内部变量x，
+其中一个变化不会影响另一个的值。</p>
+
+<p>由于每次执行inc()返回一个新的function，所以每次执行<code>inc()()</code>都打印0。</p>
+
+<p>参考：</p>
+
+<p><a href="http://www.zhihu.com/question/35060711/answer/62641357?group_id=627257263421976576#comment-94699289">javascript的闭包的概念和ruby的闭包的概念有何异同？</a>.</p>
+
+<p>&ldquo;Load and execute external js file in node.js with access to local variables?&rdquo; on StackOverflow.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/15/122519/">JSDoc Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-15T12:25:19+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:25 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>JSDoc is a documentation generator similar to JavaDoc or PHPDoc.</p>
+
+<h1>JSDoc</h1>
+
+<p>Install <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> with <code>npm install -g jsdoc</code>.
+Generate docs with <code>jsdoc **/*.js</code>.</p>
+
+<h1>YUIDoc</h1>
+
+<p><a href="http://yui.github.io/yuidoc/">YUIDoc</a> is suitable for generate documentation for <a href="http://yuilibrary.com/">YUI</a>,
+a JavaScript library, and no longer actively maintained.</p>
+
+<p>It can only list modules and classes on the homepage,
+which is not very suitable for general purpose jsdoc.</p>
+
+<p>Install it with <code>npm install -g yuidocjs</code>.
+Run it with <code>yuidoc .</code>.
+It creates a folder named &ldquo;out&rdquo; by default in the current directory.
+Open the index.html in &ldquo;out&rdquo; folder to see the doc.</p>
+
+<h1>Editor</h1>
+
+<p>vim with <a href="https://github.com/scrooloose/nerdcommenter">scrooloose/nerdcommenter</a>.
+Use <code>&lt;leader&gt;cs</code> to add block comment.
+But note that the block generated by this plugin is started by <code>/*</code>, which is invalid for jsdoc and yuidoc.
+You have to add an asterisk behind it as <code>/**</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-12T23:36:09+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I want push to github repository without input username and password.</p>
+
+<ol>
+<li><p>Add pub key to github account [profile -> settings -> SSH keys];</p></li>
+<li><p>Set up git default user name and email address with <code>git config --global user.name</code>
+and <code>git config --global user.email</code>;</p></li>
+<li><p>Test ssh connection: <code>ssh -T git@github.com</code>;</p></li>
+<li><p>Modify remote repo address: from <code>https://github.com/USERNAME/OTHERREPOSITORY.git</code> to
+<code>git@github.com:USERNAME/OTHERREPOSITORY.git</code>, where first replace <code>https://</code> with <code>git@</code>,
+then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
 </ol>
 
 
+<p>Now you can push to github repo (<code>git push origin master</code>) without input username and password.</p>
+
 <p>Ref:</p>
 
-<p><a href="http://joshowens.me/meteor-security-101/">METEOR SECURITY 101</a> by Josh Owens.</p>
+<p><a href="http://stackoverflow.com/questions/6565357/git-push-requires-username-and-password">Git push requires username and password</a></p>
+
+<p><a href="https://help.github.com/articles/set-up-git/#next-steps-authenticating-to-github-from-git">Set Up Git</a></p>
+
+<p><a href="https://help.github.com/articles/generating-ssh-keys/">Generating SSH keys</a></p>
+
+<p><a href="https://help.github.com/articles/changing-a-remote-s-url/">Changing a remote&rsquo;s URL</a></p>
 </div>
   
   
@@ -305,7 +352,7 @@ data can be seen and updated;</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/08/05/125922/">Meteor实施案例</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a></h1>
     
     
       <p class="meta">
@@ -314,161 +361,21 @@ data can be seen and updated;</p>
 
 
 
-<time class='entry-date' datetime='2015-08-05T12:59:22+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:59 pm</span></time>
+<time class='entry-date' datetime='2015-09-12T09:37:54+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:37 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>国外</h1>
-
-<p><a href="http://blonk.co/">blonk</a>: 找工作，移动APP，iOS, Android, 双方在感兴趣的对方上点Yes，如果匹配成功开始聊天；</p>
-
-<p><a href="https://respond.ly/">respond.ly</a>: 基于Twitter的客户服务和协作平台；</p>
-
-<p><a href="http://www.flowkey.com/en">Flowkey</a>: 教育类，钢琴在线教学，web, iOS, Android，音频对比，反馈建议，用户量：50,000+</p>
-
-<p><a href="http://versoapp.com/">verso</a>: 教育类，移动APP，iOS, Android，教师添加视频，学生写反馈，100多个国家的几千所学校；</p>
-
-<p><a href="https://beta.workpop.com/">Workpop</a>: 找/应聘小时工，Web App;</p>
-
-<p><a href="http://www.classcraft.com/">Classcraft</a>: 教学类应用，平台：Web, iOS，学习变为角色扮演，老师定义学生角色，获取经验值；</p>
-
-<p><a href="https://lookback.io/">Lookback</a>: 移动应用用户体验反馈软件，原理：屏幕录制（记录手指位置和拖动），然后发送；平台：Web, iOS, Mac, Android；</p>
-
-<p><a href="http://www.tuniliv.com/">Tuniliv</a>: 突尼斯货运与物流系统；</p>
-
-<p><a href="http://www.telescopeapp.org/">Telescope</a>: 软件平台，论坛模板；</p>
-
-<h1>国内</h1>
-
-<p><a href="http://newfairs.com">牛展网</a>: 会展服务；</p>
-
-<p><a href="http://maodou.io/">毛豆网</a>: 在线教育/外包；</p>
-
-<h1>生态系统</h1>
-
-<p>[node.js]</p>
-
-<p>[mongodb]</p>
-
-<p>[bootstrap]</p>
-
-<p>[meteoric]</p>
-
-<h1>参考资料</h1>
-
-<p><a href="http://www.quora.com/What-are-the-larger-examples-of-Meteor">What are the larger examples of Meteor?</a></p>
-
-<p><a href="http://www.jianshu.com/p/ps8C8N">关于Meteor的5个误解</a></p>
-
-<p><a href="https://www.meteor.com/case-studies/build-apps-with-meteor">https://www.meteor.com/case-studies/build-apps-with-meteor</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-02T11:34:17+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>11:34 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Meteor developer Tom and Bob are in different location.
-Tom is the main coder and Bob is the mentor.
-Their remote collaboration mode is:</p>
+  <div class="entry-content"><p>Modify /etc/ssh/sshd_config:</p>
 
 <ul>
-<li><p>Voice talk through Moxtra/QQ/Skype;</p></li>
-<li><p>Code and browser sharing through a VPS on Internet;</p></li>
+<li><p>Port 22 -> 222</p></li>
+<li><p>PermitRootLogin yes -> no</p></li>
+<li><p>PasswordAuthentication yes -> no</p></li>
 </ul>
 
-
-<h1>VPS Configuration</h1>
-
-<p>The IP address of the VPS is 100.101.102.103.
-Add a user &ldquo;nf&rdquo; as the SSH forwarding user:</p>
-
-<pre><code>useradd -m nf
-passwd nf
-</code></pre>
-
-<p>To allow remote port forwarding to bind to non-loopback addresses,
-add <code>GatewayPorts yes</code> into /etc/ssh/sshd_config, and <code>service ssh reload</code>.
-Without this, the listening port on VPS is bind to &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.
-You can find out it with <code>netstat -lnput|grep 3000</code>, when the forwarding port is 3000.</p>
-
-<h1>Code editor sharing</h1>
-
-<p>Tom install tmux on his Linux OS.
-And start up a tmux session as the develop environment:</p>
-
-<pre><code>tmux new -s myWebsite
-</code></pre>
-
-<p>To make Bob ssh to his laptop, Tom need run the following command on his laptop:</p>
-
-<pre><code>ssh -g -R 10022:localhost:22 nf@100.101.102.103
-</code></pre>
-
-<p>where -g means &ldquo;Allows remote hosts to connect to local forwarded ports&rdquo;,
--R means a &ldquo;Remote&rdquo; port forwarding is created with this ssh connection
-(which means when this ssh connection closed, the port forwarding will be dropped, too).
-In &ldquo;10022:localhost:22&rdquo;, the first part is the port number on remote host,
-the second and third is the hostname and port number of local machine.</p>
-
-<p>So the whole command means:
-Tom ssh to server 100.101.102.103 as user nf,
-while creating a port forwarding.
-So all connect to 10022 on remote host, will be forwarded to Tom&rsquo;s laptop on port 22.</p>
-
-<p>After login, the forwarding tunnel is created.
-On VPS, verify port 3000 is bind to public interface instead of loopback:</p>
-
-<pre><code>netstat -lnput|grep 3000
-</code></pre>
-
-<p>Bob need run the following command to join Tom:</p>
-
-<pre><code>ssh -p 10022 tom@100.101.102.103
-tmux attch -t myWebsite
-</code></pre>
-
-<p>Notice that the user name is &ldquo;tom&rdquo; instead of &ldquo;nf&rdquo; in above command.
-And the password is tom&rsquo;s on his laptop, instead of nf&rsquo;s on the VPS.</p>
-
-<h1>Web serer sharing</h1>
-
-<p>Tom run this command to create the tunnel:</p>
-
-<pre><code>ssh -g -R 3000:localhost:3000 nf@100.101.102.103
-</code></pre>
-
-<p>Bob can visit the web server with url &ldquo;100.101.102.103:3000&rdquo;.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding">http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding</a></p>
-
-<p><a href="https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/">https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/</a></p>
 </div>
   
   
@@ -481,7 +388,7 @@ And the password is tom&rsquo;s on his laptop, instead of nf&rsquo;s on the VPS.
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/09/12/085417/">Auto Translate English Words With dict.cn in Firefox</a></h1>
     
     
       <p class="meta">
@@ -490,84 +397,248 @@ And the password is tom&rsquo;s on his laptop, instead of nf&rsquo;s on the VPS.
 
 
 
-<time class='entry-date' datetime='2015-07-31T16:06:27+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>4:06 pm</span></time>
+<time class='entry-date' datetime='2015-09-12T08:54:17+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:54 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>On Ubuntu 14.04, <code>cat</code> can display Chinese characters correctly.
-But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t display correctly.</p>
+  <div class="entry-content"><p>Everytime I want to get the meaning of a english word,
+I have to copy the word, open dict.cn,
+paste the word into the box and get the meaning, which is boring.</p>
 
-<p>Solution:</p>
+<p>While there&rsquo;re some google translate extensions of firefox,
+but they are slow and not very complete.
+For example: the word meaning of &ldquo;spoiler&rdquo; in &ldquo;This synopsis may contain spoilers.&rdquo; on
+page <a href="http://www.imdb.com/title/tt0209144/synopsis">Synopsis for Memento</a>.
+So I have to build my own translate extension based on dict.cn.</p>
 
-<p>Run <code>export LC_ALL=en_US.UTF-8</code> before <code>git log</code>.</p>
-
-<p>If it works, add this line into /etc/environment.</p>
-
-<p>If it doesn&rsquo;t work, run <code>export LANG=en_US.UTF-8</code>.</p>
-
-<p>If it doesn&rsquo;t work, run <code>apt-get install language-pack-en-base</code>.</p>
-
-<p>In vim, run <code>set enc=utf-8</code>.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue">http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue</a></p>
-
-<p><a href="http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim">http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-07-23T12:16:22+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>12:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Say your partner is Tom.</p>
+<h1>Steps</h1>
 
 <ol>
-<li><p>Fork Tom&rsquo;s repository;</p></li>
-<li><p>Clone your forked repository to your laptop;</p></li>
-<li><p>Commit modificatioins to your laptop repository;</p></li>
-<li><p>Push modifications to your forked repository;</p></li>
-<li><p>Send a pull request in your forked repository on github website;</p></li>
-<li><p>Tom accept your request and merges into his repository;</p></li>
-<li><p>In your laptop repository, add upstream repository as a remote source;</p></li>
-<li><p>Sync with the upstream repository with <code>git fetch</code> and <code>git merge</code>;</p></li>
+<li><p>Install Greasemonkey extension in Firefox.</p></li>
+<li><p>Build a new script with the following codes.</p></li>
+<li><p>Select some text and press &ldquo;\&rdquo; key.</p>
+
+<p> // ==UserScript==
+ // @name        TranslateIt
+ // @namespace   LeoScript
+ // @include     *
+ // @version     1
+ // @grant       none
+ // ==/UserScript==</p>
+
+<p> // document.addEventListener(&lsquo;mouseup&rsquo;, getSel, false);
+ document.addEventListener(&lsquo;keypress&rsquo;, transIt, false);</p>
+
+<p> function transIt(e) {
+   // console.log(e.key);
+   if (e.key !== &lsquo;\&rsquo;){ return; }
+   var sel = document.getSelection().toString();
+   if (sel) { window.open(&lsquo;<a href="http://dict.cn/">http://dict.cn/</a>&rsquo; + sel); }
+ }</p></li>
 </ol>
 
 
-<p>This is a whole cycle. Repeat above steps to collaborate with Tom.</p>
+<p>Sometimes the popuped windows will be blocked by the browser.
+Add the website into the whitelist of the blocked sites.</p>
+
+<p>To debug the script, modify and save the script, reload the web page, and test the script.</p>
+
+<h1>References:</h1>
+
+<p><a href="http://hayageek.com/greasemonkey-tutorial/#install-greasemonkey">Greasemonkey Tutorial for Beginners</a></p>
+
+<p>Get selected text:</p>
+
+<p><a href="http://stackoverflow.com/questions/3260926/greasemonkey-addeventlistener-questions">greasemonkey: addEventListener questions</a></p>
+
+<p><a href="http://www.w3schools.com/jsref/met_document_addeventlistener.asp">HTML DOM addEventListener() Method</a></p>
+
+<p>Test if ctrl or alt key is pressed on clicking:</p>
+
+<p><a href="http://stackoverflow.com/questions/6806271/javascript-check-if-ctrl-button-was-pressed">JavaScript: Check if CTRL button was pressed</a></p>
+
+<p>search &lsquo;altKey&rsquo; in <a href="http://www.w3schools.com/jsref/dom_obj_event.asp">HTML DOM Events</a></p>
+
+<p><a href="http://stackoverflow.com/questions/4907843/open-a-url-in-a-new-tab-using-javascript">Open a URL in a new tab using JavaScript</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/28/112117/">Detect Website Information</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-28T11:21:17+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:21 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Based on <a href="http://stackoverflow.com/questions/396739/how-do-you-determine-what-technology-a-website-is-built-on">How do you determine what technology a website is built on?</a>.</p>
+
+<p>Website:</p>
+
+<p><a href="http://builtwith.com/">BuiltWith</a>.</p>
+
+<p><a href="http://w3techs.com/sites/">W3Techs</a>.</p>
+
+<p>Browser plugins:</p>
+
+<p><a href="https://wappalyzer.com/">Wappalyzer</a> for firefox and chrome.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/19/100625/">Underscore Highlights Problem in Vim Markdown Documents</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-19T10:06:25+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:06 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install GFM plugin for vim</h1>
+
+<p>To fix the highlight problem,
+use <code>Plugin 'jtratner/vim-flavored-markdown'</code> instead of
+<code>Plugin 'plasticboy/vim-markdown'</code> in .vimrc,
+and run <code>vim +PluginClean +PluginInstall +qall</code>.</p>
+
+<h1>Use Atom as Editor</h1>
+
+<p>Install <a href="https://atom.io/">Atom</a> and modify the value of &ldquo;EDITOR&rdquo; in $DSNOTE_HOME/notes.sh to &ldquo;atom -f&rdquo;.</p>
+
+<h2>Run in foreground</h2>
+
+<p>dsnot works in sync manner, while the default Atom working flow is async.
+So use &ldquo;atom -f&rdquo; instead of &ldquo;vim&rdquo; for the value of variable &ldquo;EDITOR&rdquo;.</p>
+
+<h2>Chinese character support</h2>
+
+<p>Verified on Ubuntu 14.04 LTS.</p>
+
+<p>First install font &ldquo;文泉驿正黑&rdquo;:</p>
+
+<pre><code>sudo aptitude install ttf-wqy-microhei
+sudo aptitude install ttf-wqy-zenhei
+</code></pre>
+
+<p>Then press &ldquo;Ctrl+,&rdquo; to open settings panel:</p>
+
+<p>Set [Settings -> Editor Settings -> Font Family] as:</p>
+
+<pre><code>DejaVu Sans Mono, 文泉驿正黑
+</code></pre>
+
+<p>But Chinese characters can&rsquo;t be displayed in preview window.</p>
+
+<h2>Toggle Tree View</h2>
+
+<p>Use <code>ctrl-\</code> to toggle tree view.
+<code>alt-\</code> or <code>ctrl-0</code> to focus it.</p>
+
+<h2>Markdown editing and preview</h2>
+
+<p>Use <code>Ctrl-Shift-M</code> to toggle preview panel.
+Install some advanced packages:</p>
+
+<pre><code>apm search vim
+apm install vim-mode
+apm install markdown-scroll-sync
+apm install markdown-writer
+apm install markdown-preview-plus
+apm install markdown-format
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/19/002231/">PHPStorm Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-19T00:22:31+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:22 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>On Linux (Ubuntu 14.04 LTS), openjdk-7-jdk must be installed before running PhpStorm 9.0.</p>
+
+<p>To startup PHPStorm, Alt-F2, input <code>pstorm</code>.</p>
+
+<h1>Important Shortcuts</h1>
+
+<p>Double Shift: search everything;</p>
+
+<p>Shift - Ctrl - N: open file in project (fuzzy find);</p>
+
+<p>Alt - F12: switch focus between editor and terminal (you can use fzf and autojump in terminal);</p>
+
+<p>Shift - ESC: hide navigation bar;</p>
+
+<p>Alt-1: Toggle and focus navigation bar;</p>
+
+<p>ESC: focus editor;</p>
+
+<h1>Editor</h1>
+
+<h2>IdeaVim</h2>
+
+<p><code>:q</code>: close file;</p>
+
+<p><code>:vs</code>: split vertical;</p>
 
 <p>Ref:</p>
 
-<p><a href="http://stackoverflow.com/questions/7244321/how-to-update-github-forked-repository">How to update GitHub forked repository?</a></p>
-
-<p><a href="https://help.github.com/articles/pushing-to-a-remote/#pushing-a-branch">Pushing to a remote</a></p>
-
-<p><a href="https://help.github.com/articles/syncing-a-fork/">Syncing a fork</a></p>
+<p><a href="https://www.jetbrains.com/phpstorm/help/keyboard-shortcuts-you-cannot-miss.html">Keyboard Shortcuts You Cannot Miss</a>;</p>
 </div>
   
   
@@ -580,7 +651,7 @@ But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t disp
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/08/14/160315/">eCommerce Framework</a></h1>
     
     
       <p class="meta">
@@ -589,222 +660,20 @@ But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t disp
 
 
 
-<time class='entry-date' datetime='2015-07-22T08:20:40+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:20 am</span></time>
+<time class='entry-date' datetime='2015-08-14T16:03:15+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:03 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Setup Environment with MUP</h1>
+  <div class="entry-content"><p><a href="https://github.com/magento">Magento</a>: PHP, Zend Framework, bitnami</p>
 
-<p>On your laptop, install mup with <code>npm install -g mup</code>.
-In a new directory, create a mup project with <code>mup init</code>.
-Set &ldquo;setupMongo&rdquo;, &ldquo;setupNode&rdquo; and &ldquo;setupPhantom&rdquo; to &ldquo;true&rdquo; in mup.json,
-and run <code>mup setup</code>.</p>
+<p>Node extension with Magento:</p>
 
-<h1>Run Apps</h1>
+<p><a href="https://github.com/spree/spree">spree</a>: Ruby on Rails</p>
 
-<p>To install the <strong>first</strong> Meteor app, <code>mup deploy</code>.</p>
-
-<p>To install the second (there has been a Meteor app is running) or more,
-set &ldquo;setupMongo&rdquo;, &ldquo;setupNode&rdquo; and &ldquo;setupPhantom&rdquo; to &ldquo;false&rdquo; in mup.json,
-change &ldquo;appname&rdquo;, &ldquo;app&rdquo; and values in &ldquo;env&rdquo; accordingly.
-Finally run <code>mup deploy</code>.</p>
-
-<p>For Node app, first get the source code with git,
-then run it with forever, which is installed by mup:</p>
-
-<pre><code>aptitude install git
-git clone ... projHome
-cd projHome
-npm install
-# confirm port number in config.js
-forever start app.js  # when the main script is "app.js"
-</code></pre>
-
-<p>Get the app status with <code>forever list</code>.
-If the app can&rsquo;t start, print logs with <code>forever logs 1</code>
-(if the target app&rsquo;s index in <code>forever list</code> is 1).</p>
-
-<h1>Setup Routes</h1>
-
-<p>Note: MUP requires Node v0.10.36 or later.
-So do NOT install node with <code>aptitude install nodejs</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-07-18T00:56:22+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:56 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="https://github.com/meteoric/meteor-ionic/blob/master/GUIDE.md">meteor-ionic Guide</a>是整体框架的说明。</p>
-
-<p>文档中心：
-<a href="http://ionicframework.com/docs/">Ionic Documentation</a>，
-常用的包括界面组件<a href="http://ionicframework.com/docs/components/">CSS Components</a>和
-图标库<a href="http://ionicons.com/">ionicons</a>（可以输入名称搜索对应图标，如"telephone", &ldquo;home"等）。</p>
-
-<h1>Header, Footer字体太小问题</h1>
-
-<p>在<head>&hellip;</head>里增加下面两行代码：</p>
-
-<pre><code>&lt;meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"&gt;
-&lt;link href='http://fonts.googleapis.com/css?family=Roboto:400,300,500' rel='stylesheet' type='text/css'&gt;
-</code></pre>
-
-<h1>Header上登录注册按钮覆盖退回按钮问题</h1>
-
-<p>下面的代码不会出现覆盖问题：</p>
-
-<pre><code>  &lt;div class="col text-right"&gt;
-    &lt;button class="button button-clear button-stable"&gt;登录&lt;/button&gt;
-    &lt;button class="button button-clear button-stable"&gt;注册&lt;/button&gt;
-  &lt;/div&gt;
-</code></pre>
-
-<p>如果在<code>&lt;div class="col text-right"&gt;</code>外面加上一层<code>&lt;div class="bar bar-header bar-positive"&gt;</code>，
-则会覆盖"headerButtonLeft"中定义的返回按钮。</p>
-
-<p>另：`` 中可以添加path（返回指定route）和text（按钮说明文字）属性。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-07-10T06:55:40+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="https://github.com/foreverjs/forever">forever</a> is</p>
-
-<blockquote><p>A simple CLI tool for ensuring that a given script runs continuously.</p></blockquote>
-
-<p>For now it only supports nodejs scripts.</p>
-
-<p>It provides functions like <code>nohup</code> in shell, but much more.</p>
-
-<p>To start your script, run <code>forever start -w app.js</code> instead of <code>node app.js</code>.
-The &ldquo;-w&rdquo; option will watch the file changes.</p>
-
-<p>So update website is simply run <code>git pull ...</code> on your production host,
-forever will find the changes in your sources and restart server
-(like Meteor app in develop mode).</p>
-
-<p>List all running forever managed scripts with <code>forever list</code>.</p>
-
-<p>Find out their logs location with <code>forever logs</code>.
-Then you can use <code>tail -f</code> to watch the log of a script in real time.</p>
-
-<p>Print the log of a script with <code>forever logs &lt;script-index&gt;</code>,
-for example:<code>forever logs 0</code>.
-You get the index from the output of <code>forever logs</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-07-07T10:33:47+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:33 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Tips</h1>
-
-<ul>
-<li><p>object -> String -> object:
-JSON.stringify -> encodeURI -> | another page | -> decodeURI -> JSON.parse</p></li>
-<li><p>Use &ldquo;&amp;&rdquo; to connect multiple query items in uri;</p></li>
-</ul>
-
-
-<h1>Code Demo</h1>
-
-<p>On page 1:</p>
-
-<pre><code>var filterObj = { year: '2016', pos: '中国' };
-var filterStr = JSON.stringify(filterObj);
-var enc = encodeURI(filterStr);
-console.log(enc);
-var myRoute = "/results/2015/pages/1?type=basic&amp;filter=" + enc
-Router.go(myRoute);
-</code></pre>
-
-<p>On page 2:</p>
-
-<pre><code>var queryType = this.params.query.type;
-var filterStr = this.params.query.filter;
-var dec = decodeURI(filterStr);
-var filterObj = JSON.parse(dec);
-console.log(filterObj);
-</code></pre>
-
-<h1>Ref</h1>
-
-<ul>
-<li><p>matejkramny&rsquo;s answer in <a href="http://stackoverflow.com/questions/1086404/string-to-object-in-js">String to object in JS</a>;</p></li>
-<li><p><a href="http://www.w3schools.com/jsref/jsref_decodeuri.asp">JavaScript decodeURI() Function</a>;</p></li>
-<li><p>vartec&rsquo;s answer in <a href="http://stackoverflow.com/questions/724526/how-to-pass-multiple-parameters-in-a-querystring">How to pass multiple parameters in a querystring</a>;</p></li>
-</ul>
-
+<h1>Magento</h1>
 </div>
   
   
@@ -827,23 +696,23 @@ console.log(filterObj);
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a>
+        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a>
+        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/08/05/125922/">Meteor实施案例</a>
+        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a>
+        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a>
+        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
       </li>
     
   </ul>
