@@ -9,8 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="I wrote a Spark script. Now I need adding a web interface for it. Thus users can input parameters of the script in web browser, run the script,
-and &hellip;">
+  <meta name="description" content="当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin： runJobs: #!/bin/bash BMIN_CNT_WEI_LIST='0.5 0.3'
+MIN_SUP_LIST='0.004 0.0002' rm -rf {result,script} &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +66,407 @@ and &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-03T17:11:08+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin：</p>
+
+<p>runJobs:</p>
+
+<pre><code>#!/bin/bash
+
+BMIN_CNT_WEI_LIST='0.5 0.3'
+MIN_SUP_LIST='0.004 0.0002'
+
+rm -rf {result,script}
+mkdir {result,script}
+origin_job=wfp-origin
+for bmin_cnt_wei in $BMIN_CNT_WEI_LIST; do
+    for min_sup in $MIN_SUP_LIST; do
+        echo MIN_SUP is: $min_sup , Bmin count weight is: $bmin_cnt_wei
+        new_script_name=wfp-bmin-${bmin_cnt_wei}-sup-${min_sup}
+        sed "4s/xxx/$min_sup/" $origin_job &gt; script/tmp
+        sed "11s/xxx/$bmin_cnt_wei/" script/tmp &gt; script/$new_script_name
+        rm script/tmp
+        echo Run shell script/$new_script_name
+        spark-shell -i script/$new_script_name
+        echo ------Calc is over------
+    done
+done
+</code></pre>
+
+<p>wfp-origin:</p>
+
+<pre><code>import Math.ceil
+import scala.io
+
+val MIN_SUP = xxx
+val MIN_CONF = 0.1
+val MAX_RELATION_ORDER = 3
+val DATA_FILE = "input"
+val SEP = "\001"
+val WEI_IDX = 5
+val MIN_INT_ID_LEN = 5
+val BMIN_CNT_WEI = xxx
+
+val RES_FILE = "result/wfp-result-bmin-" + BMIN_CNT_WEI.toString + "-sup-" + MIN_SUP.toString
+
+val rawData = sc.textFile(DATA_FILE).distinct
+val data = rawData.filter(x =&gt; x.split(SEP)(1).split("_")(0).size &gt; MIN_INT_ID_LEN)   
+val item_count = data.map(_.split(SEP)(1)).map(w =&gt; (w,1)).reduceByKey(_+_)
+val wids = data.map(_.split(SEP)(0))
+val MAX_ITEM = wids.map(w =&gt; (w,1)).reduceByKey(_+_).map(_._2).max
+val T = wids.distinct.count
+
+val weight = data.map(x =&gt; (x.split(SEP)(1), x.split(SEP)(WEI_IDX).toFloat)).distinct
+val rule_sets = weight.top(2000)
+scala.tools.nsc.io.File(RES_FILE).writeAll(rule_sets.map(_.toString).reduce(_ + "\n" + _))
+exit
+</code></pre>
+
+<p>这里的wfp-orgin只是一个示例，根据自己的脚本调整具体内容，但最后一行"exit"必须有，否则不能退出spark shell执行后面的任务。</p>
+
+<p>需要修改的参数用空格分开定义在一个字符串里，例如上面的BMIN_CNT_WEI_LIST和MIN_SUP_LIST，
+脚本创建script目录，保存新生成的脚本，以及result目录，保存计算结果。</p>
+
+<p>配合tmux，可以在tmux上运行runJobs.sh，下班时从tmux上detach出来，第二天上班时在attach上去看结果。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/03/134818/">SparkR in Action</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-03T13:48:18+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:48 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Getting online manual: > help(map)</p>
+
+<blockquote><p>sc &lt;- sparkR.init(&ldquo;local&rdquo;)
+lines &lt;- textFile(sc, &ldquo;/home/boco/datamine/alarm_bd_05.txt&rdquo;)
+count(lines)
+14/11/03 09:45:43 INFO FileInputFormat: Total input paths to process : 1
+[1] 7963078</p></blockquote>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-31T09:23:40+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>9:23 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I think the default LinuxMint login screen is not cool, need a new backgroud picture.
+How to change this backgroud picture? In LinuxMint 17 this is done by creating a new login &ldquo;Theme&rdquo; and use it.
+According to <a href="http://www.windows-to-linux.com/2014/07/custom-login-screen-background-linux-mint-17/">Custom Login Screen Background On Linux Mint 17</a>
+there is 3 steps to achieve this:</p>
+
+<ol>
+<li><p>Create a new theme based on the default theme;</p></li>
+<li><p>Pack this theme;</p></li>
+<li><p>Set it as the login theme.</p></li>
+</ol>
+
+
+<p>Firstly I choose a picture from Variety&rsquo;s Favorites folder as the new backgroud.
+Then run following commands:</p>
+
+<pre><code>sudo cp -r /usr/share/mdm/html-themes/Mint-X ~/StarWorld
+cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/bg.jpg
+cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/screenshot.jpg
+# modify name &amp; description in ~/StarWorld/theme.info
+tar czf star-world.tar.gz ~/StarWorld
+</code></pre>
+
+<p>Next login to Xfce desktop, startup &ldquo;Login Manager&rdquo;, add a new theme, choose star-world.tar.gz.</p>
+
+<p>Now logout and see the effect.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-29T09:44:00+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This morning I tried to install Debian 7.6 64bit on the DELL PC, but it failed due to some hardware problems.
+Then I installed LinuxMint 17 Xfce 64bit on this machine, and partition disk following <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a>:</p>
+
+<blockquote><p>chad@chadpc ~ $ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       276M   45M  218M  17% /boot
+/dev/sda2        15G  4.1G  9.8G  30% /
+&hellip;</p></blockquote>
+
+<p>where /dev/sda1 is formated as ext2, and /dev/sda2 is formated as ext3, and leave /dev/sda4 unused.</p>
+
+<p>After reboot and login LinuxMint,
+modify apt mirror list according to <a href="https://launchpad.net/ubuntu/+archivemirrors">Official Archive Mirrors for Ubuntu</a>,
+adding the following lines into /etc/apt/sources.list:</p>
+
+<pre><code>deb http://mirrors.zju.edu.cn/ubuntu/ trusty main
+deb-src http://mirrors.zju.edu.cn/ubuntu/ trusty main
+deb http://ubuntu.cnssuestc.org/ubuntu/ trusty main
+deb-src http://ubuntu.cnssuestc.org/ubuntu/ trusty main
+</code></pre>
+
+<p>Then run commands as root:</p>
+
+<pre><code>apt-get update
+apt-get install openssh-server
+apt-get install lvm2
+pvcreate /dev/sda4
+vgcreate vg0 /dev/sda4
+apt-get install bridge-utils
+
+brctl addbr xenbr0
+brctl addif xenbr0 eth0
+dhclient xenbr0
+
+aptitude -P install xen-system  # not xen-linux-system
+dpkg-divert --divert /etc/grub.d/08_linux_xen --rename /etc/grub.d/20_linux_xen
+update-grub
+reboot
+# you can find now "Ubuntu GNU/Linux, with Xen hypervisor" is the default startup item in grub boot menu
+</code></pre>
+
+<h1>Build DomU</h1>
+
+<pre><code>apt-get install xen-tools
+</code></pre>
+
+<h2>Using xen-create-image</h2>
+
+<pre><code>xen-create-image --hostname=ch1 --memory=1024gb --vcpus=2 --lvm=vg0 --dhcp --pygrub --dist=wheezy
+</code></pre>
+
+<h2>Using xl</h2>
+
+<p>Follow <a href="http://wiki.xen.org/wiki/Debian_Guest_Installation_Using_Debian_Installer">Debian Guest Installation Using Debian Installer</a>.</p>
+
+<p>Here we download 2 net-install disk (which is very small) and install the guest system via Internet.
+So the host machine need to connected with Internet, or can connect to another machine which can access Internet,
+and defining a proxy when installing.</p>
+
+<p>Select a mirror <a href="http://ftp.cn.debian.org/debian/">ftp.cn.debian.org/debian/</a> in <a href="http://www.debian.org/mirror/list">Debian worldwide mirror sites</a>.
+And download vmlinuz and initrd.gz (from <a href="http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/">http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/</a>)
+to local folder /home/chad/warez/xen-images-debian.</p>
+
+<p>Create a config file /root/deb.cfg:</p>
+
+<pre><code>name = "debian-installer"
+memory = 1024
+disk = ['phy:/dev/vg0/debian-installer,xvda,w']
+vif = [' ']
+
+kernel = "/home/chad/warez/xen-images-debian/vmlinuz"
+ramdisk = "/home/chad/warez/xen-images-debian/initrd.gz"
+extra = "debian-installer/exit/always_halt=true -- console=hvc0"
+</code></pre>
+
+<p>Then run following commands as root:</p>
+
+<pre><code>lvcreate -L 4G -n debian-installer /dev/vg0
+xl create -c /root/deb.cfg
+</code></pre>
+
+<p>Once installation has completed the guest will shutdown and exit.
+Remove the kernel, initrd and extra lines from the guest configuration, here remove the last 3 lines in deb.conf
+and replace them with simply:</p>
+
+<pre><code>bootloader = "pygrub"
+</code></pre>
+
+<p>Now the deb.conf became:</p>
+
+<pre><code>name = "debian-installer"
+memory = 1024
+disk = ['phy:/dev/vg0/debian-installer,xvda,w']
+vif = [' ']
+bootloader = "pygrub"
+</code></pre>
+
+<p>Startup the guest system with <code>xl create -c deb.cfg</code>.
+List all running vms with <code>xl list</code> in dom0.
+Connect this vm with <code>xl console debian-installer</code>.
+List all available subcommands of xl with <code>xl help</code>.
+Shutdown this vm with <code>xl shutdown debian-installer</code></p>
+
+<h1>Post installation</h1>
+
+<p>The &ldquo;brctl&rdquo; and &ldquo;dhclient&rdquo; commands above only build the network interface during system session.
+After system reboot, the bridge interface disappears, thus startup vm will failed.
+So we need define the bridge in /etc/network/interfaces, add the following lines into this file:</p>
+
+<pre><code>auto eth0
+iface eth0 inet dhcp
+
+auto xenbr0
+iface xenbr0 inet dhcp
+    bridge_ports eth0
+</code></pre>
+
+<p>If after reboot, the eth0 can&rsquo;t get IP address, use <code>ifdown eth0</code> and <code>ifup eth0</code> to refresh eth0.</p>
+
+<p>Update 2014.10.31: these settings cause network connection failed. After removing &ldquo;auto xenbr0&hellip;&rdquo; section, everything goes fine.
+So use <code>brctl</code> and <code>dhclient</code> to setup bridge after system startup.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li><p>Use <code>lsblk -f</code> to see the volume group and logical volumes.</p></li>
+<li><p>pvcreate means &ldquo;create physical volume&rdquo;, vgcreate means &ldquo;create volume group&rdquo;, lvcreate means &ldquo;create logical volume&rdquo;.</p></li>
+<li><p>Use <code>lvremove /dev/vg0/debian-installer</code> to remove the logical volume created before.</p></li>
+<li><p>Use <code>dpkg-divert --list</code> to list all diversions, and <code>dpkg-divert --remove /etc/grub.d/20_linux_xen</code> to remove a diversion.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a></p>
+
+<p><a href="https://wiki.debian.org/Xen">Xen on Debian Wiki</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/28/182614/">DMShell Up and Running</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-28T18:26:14+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:26 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The dmshell is a web server accepting a shell command string, and run it on web server host.</p>
+
+<h1>Setup DataBase</h1>
+
+<h2>Fix Derby Server Startup Failed</h2>
+
+<p>When start Derby server with <code>/home/chad/apps/jdk1.6.0_45/db/bin/startNetworkServer</code>, the following error raised:</p>
+
+<blockquote><p>access denied (&ldquo;java.net.SocketPermission&rdquo; &ldquo;localhost:1527&rdquo; &ldquo;listen,resolve&rdquo;)</p></blockquote>
+
+<p>Solution:</p>
+
+<p>Find out system&rsquo;s JRE. On my laptop, it&rsquo;s /usr/lib/jvm/java-7-openjdk-amd64/jre
+Add the following codes into file lib/security/java.policy in this folder:</p>
+
+<pre><code>grant {
+    permission java.net.SocketPermission "localhost:1527", "listen";
+};
+</code></pre>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4">http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4</a></p>
+
+<h2>Create Database and Table</h2>
+
+<p>Run ~/apps/jdk1.6.0_45/db/bin/ij and run following commands:</p>
+
+<pre><code>connect 'jdbc:derby://localhost:1527/dmdb;create=true';
+create table shellstatus (id int not null generated by default as identity (start with 1, increment by 1), shellname varchar(40), starttime timestamp, endtime timestamp,status int);
+</code></pre>
+
+<p>Then you can use <code>select * from shellstatus;</code> to list all data in this table.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -260,8 +661,8 @@ run the following command in console:</p>
 <blockquote><p>:: Proceed with installation? [Y/n]
 (211/211) checking keys in keyring                                      [########################################] 100%
 downloading required keys&hellip;
-:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#105;&#108;&#116;&#x6f;&#58;&#x6d;&#117;&#x66;&#x6c;&#x6f;&#110;&#101;&#64;&#118;&#x62;&#115;&#x69;&#109;&#x70;&#108;&#101;&#46;&#110;&#101;&#x74;">&#109;&#117;&#x66;&#x6c;&#x6f;&#x6e;&#x65;&#x40;&#x76;&#98;&#x73;&#105;&#x6d;&#x70;&#x6c;&#101;&#x2e;&#x6e;&#101;&#x74;</a>&rdquo;, created: 2009-07-04? [Y/n]
-error: key &ldquo;Fabio Castelli <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#x3a;&#109;&#x75;&#x66;&#108;&#x6f;&#x6e;&#x65;&#64;&#x76;&#98;&#115;&#105;&#x6d;&#112;&#108;&#x65;&#x2e;&#x6e;&#101;&#x74;">&#109;&#117;&#102;&#x6c;&#111;&#110;&#x65;&#x40;&#118;&#x62;&#115;&#x69;&#109;&#x70;&#x6c;&#x65;&#x2e;&#110;&#101;&#116;</a>&rdquo; could not be imported
+:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#109;&#x61;&#105;&#x6c;&#x74;&#x6f;&#x3a;&#x6d;&#117;&#102;&#x6c;&#x6f;&#x6e;&#101;&#64;&#x76;&#98;&#115;&#105;&#x6d;&#112;&#x6c;&#101;&#x2e;&#x6e;&#101;&#x74;">&#109;&#x75;&#102;&#108;&#x6f;&#x6e;&#x65;&#64;&#118;&#98;&#x73;&#x69;&#109;&#112;&#108;&#101;&#x2e;&#110;&#101;&#116;</a>&rdquo;, created: 2009-07-04? [Y/n]
+error: key &ldquo;Fabio Castelli <a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#111;&#x3a;&#109;&#x75;&#102;&#x6c;&#x6f;&#x6e;&#x65;&#64;&#118;&#98;&#x73;&#105;&#109;&#x70;&#x6c;&#x65;&#46;&#x6e;&#x65;&#116;">&#109;&#117;&#102;&#x6c;&#111;&#x6e;&#101;&#64;&#118;&#98;&#x73;&#105;&#109;&#x70;&#x6c;&#x65;&#46;&#110;&#x65;&#116;</a>&rdquo; could not be imported
 error: required key missing from keyring
 error: failed to commit transaction (unexpected error)
 Errors occurred, no packages were upgraded.</p></blockquote>
@@ -322,260 +723,6 @@ cat results/1/*/2/*/stdout | jq -c '.response.docs[] | {date: .pub_date, type: .
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/20/171325/">MEAN Devlopment on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-20T17:13:25+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:13 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>ArchLinux</h1>
-
-<pre><code>sudo pacman -S nodejs mongodb
-sudo systemctl enable mongodb.service
-sudo systemctl start mongodb.service
-// verify with command "mongo"
-sudo npm install -g meanio
-sudo npm install -g bower
-sudo npm install -g grunt-cli
-mean init myApp
-cd myApp &amp;&amp; npm install
-grunt
-</code></pre>
-
-<p>Now browse <a href="http://localhost:3000.">http://localhost:3000.</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/20/094427/">Virtualization With Vagrant on ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-20T09:44:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Firstly install Virtualbox and Vagrant:</p>
-
-<pre><code>sudo pacman -S virtualbox vagrant
-</code></pre>
-
-<p>If you met the following warning, and vagrant can&rsquo;t start:</p>
-
-<blockquote><p>The vboxdrv kernel module is not loaded.
-Either there is no module available for the current kernel (3.16.4-1-ARCH) or it failed to load.</p></blockquote>
-
-<p>run following commands to compile kernel module vboxdrv and load it:</p>
-
-<pre><code>sudo pacman -S linux-headers virtualbox-host-dkms
-sudo dkms install vboxhost/4.3.18
-sudo modprobe vboxdrv
-</code></pre>
-
-<p>Verify the module is loaded successfully with <code>lsmod |grep vboxdrv</code>.</p>
-
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/VirtualBox">VirtualBox on ArchWiki</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/18/222508/">ArchLinux Sound Control on Thinkpad T440p</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-18T22:25:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ sudo pacman -S alsa-utils
-$ alsamixer
-The &ldquo;Card&rdquo; value on the left-upper corner is &ldquo;HDA Intel HDMI&rdquo;. This is not right.
-Press F6, a list appear:
--   (default)
-0   HDA Intel HDMI
-1   HDA Intel PCH
-29  ThinkPad Console Audio Control</p>
-
-<p>This means there are totally 3 playback devices. And currently &ldquo;0 HDA Intel HDMI&rdquo; is the default one.
-However this is a wrong one. The right audio output device should have &ldquo;dB gain&hellip;&rdquo; in its &ldquo;Item&rdquo; value.
-If we choose &ldquo;1 HDA Intel PCH&rdquo;, on the upper-left corner there will be a line: &ldquo;Item: Master [dB gain: 0.00]&rdquo;.
-So this is the right one, and its id is &ldquo;1&rdquo;.</p>
-
-<p>In window of this device, tab to &ldquo;Master&rdquo;, use &ldquo;m&rdquo; key to toogle its status from &ldquo;MM&rdquo; (means mute) to &ldquo;OO&rdquo; (means open this device).
-Then use up arrow key to increase its volume, until the &ldquo;dB gain&rdquo; is zero.</p>
-
-<p>Quit it with &ldquo;ESC&rdquo; key. Create a new file ~/.asoundrc:</p>
-
-<pre><code>defaults.ctl.card 1
-defaults.pcm.card 1
-</code></pre>
-
-<p>Now test it with <code>speaker-test -c 2</code>.</p>
-
-<p>Ref: &ldquo;No sound when S/PDIF video card is installed&rdquo; section in <a href="https://wiki.archlinux.org/index.php/ALSA#Troubleshooting">Advanced Linux Sound Architecture</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/174733/">Install WPS on 64bit ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T17:47:33+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Now WPS is a 32bit application. It&rsquo;s can&rsquo;t run on 64bit ArchLinux.
-So firstly we should open the multilib repository of the system. Then install WPS with yaourt.</p>
-
-<ol>
-<li><p>Uncomment the following lines in /etc/pacman.conf:</p>
-
-<pre><code> [multilib]
- Include = /etc/pacman.d/mirrorlist
-</code></pre></li>
-<li><p>Install WPS: <code>yaourt -S wpsoffice</code>;</p></li>
-<li><p>Install printer drivers: <code>pacman -S libcups</code>;</p></li>
-<li><p>Install fonts: download wps-office_8.1.0.3724~b1p2_x86.tar.xz from WPS website, unpack it, run <code>./install_fonts</code>;</p></li>
-<li><p>Chinese input: <code>yaourt -S fcitx-wps</code>. Modify &ldquo;kingsoft-office&rdquo; with &ldquo;wpsoffice&rdquo; in pkgbuild file of fcitx-wps, because kingsoft-office doesn&rsquo;t exits now.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/multilib">Multilib on Arch Wiki</a></p>
-
-<p><a href="https://wiki.archlinux.org/index.php/WPS_Office">WPS Office on Arch Wiki</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/154329/">Define Key Binding With Xbindkeys on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T15:43:29+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>On ArchLinux:</p>
-
-<ol>
-<li><p>Install xbindkeys: <code>pacman -S xbindkeys</code> or <code>apt-get install xbindkeys</code>;</p></li>
-<li><p>Start xbindkeys when X startup: add &ldquo;xbindkeys&rdquo; <strong>before</strong> &ldquo;exec i3&rdquo; in ~/.xinitrc;</p></li>
-<li><p>Get a template: <code>xbindkeys -d &gt; ~/.xbindkeysrc</code>;</p></li>
-<li><p>Detect key definition: <code>xbindkeys -k</code>;</p></li>
-<li><p>Add output from last command to ~/.xbindkeysrc;</p></li>
-<li><p>Reload new configs: <code>pkill xbindkeys; xbindkeys</code>;</p></li>
-<li><p>Verify the setup.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<ul>
-<li><p><a href="https://wiki.archlinux.org/index.php/Xbindkeys">Xbindkeys</a></p></li>
-<li><p><a href="http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/">http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/</a></p></li>
-</ul>
-
-
-<p>In i3 on Ubuntu, install them with <code>sudo aptitude install xbindkeys xbacklight</code>. Others are the same.</p>
-
-<p>As an example,
-add the following lines into ~/.xbindkeysrc, to increase and decrease LCD brightness of Thinkpad T440p:</p>
-
-<pre><code>"xbacklight -dec 10"
-    XF86MonBrightnessDown
-
-"xbacklight -inc 10"
-    XF86MonBrightnessUp
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/15">&larr; Older</a>
@@ -593,23 +740,23 @@ add the following lines into ~/.xbindkeysrc, to increase and decrease LCD bright
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
+        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
+        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
+        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
+        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
+        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
       </li>
     
   </ul>

@@ -9,11 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Spark Shell Shutdown info log in spark-shell: 1
-2
-3
-cd $SPARK_HOME/conf // here it's ~/apps/spark-1.0.2-bin-hadoop2/conf
-cp log4j.properties.template &hellip;">
+  <meta name="description" content="I need build a java project to compare performance of apache log4j and Logback. The following codes are the building procedures based on [Gradle]http &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +65,633 @@ cp log4j.properties.template &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/12/103608/">Two Java Building Tools</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-12T10:36:08+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:36 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I need build a java project to compare performance of <a href="http://logging.apache.org/log4j/2.x/">apache log4j</a> and <a href="http://logback.qos.ch/">Logback</a>. The following codes are the building procedures based on [Gradle]<a href="http://www.gradle.org/">http://www.gradle.org/</a>) and <a href="http://www.scala-sbt.org/">sbt</a>.</p>
+
+<h1>sbt</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>mkdir myproject
+</span><span class='line'>cd myproject
+</span><span class='line'>cat &lt;&lt;EOF &gt; build.sbt
+</span><span class='line'>name := "MyProject"
+</span><span class='line'>
+</span><span class='line'>version := "0.1"
+</span><span class='line'>EOF
+</span><span class='line'>mkdir project
+</span><span class='line'>echo 'addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")' &gt; project/plugins.sbt
+</span><span class='line'>sbt eclipse</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that the blank line between &ldquo;name&rdquo; &amp; &ldquo;version&rdquo; in build.sbt is mandatory for Scala syntax.
+Now start eclipse, import this proect, create new packages (com.boco.logb) and Java files (LoggerOneThread.java) in &ldquo;src/main/java&rdquo; folder, and config files (log4j.properties and logback.xml) in src/resources folder.
+slf4j looks for log implementations based on jars in classpath instead of conifg files, so we add both 2 config files into resource folder.</p>
+
+<p>The LoggerOneThread.java file:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>package com.boco.logb;
+</span><span class='line'>
+</span><span class='line'>import java.util.concurrent.TimeUnit;
+</span><span class='line'>
+</span><span class='line'>import org.slf4j.Logger;
+</span><span class='line'>import org.slf4j.LoggerFactory;
+</span><span class='line'>
+</span><span class='line'>public class LoggerOneThread {
+</span><span class='line'>    public static final long TOTAL_TIMES = 4000 * 1000;
+</span><span class='line'>    private static final Logger logger = LoggerFactory
+</span><span class='line'>            .getLogger(LoggerOneThread.class);
+</span><span class='line'>
+</span><span class='line'>    public static void main(String[] args) {
+</span><span class='line'>        long start = System.nanoTime();
+</span><span class='line'>        for (int i = 1; i &lt; TOTAL_TIMES; i++) {
+</span><span class='line'>            logger.debug("This is a test message. This is another test message.");
+</span><span class='line'>        }
+</span><span class='line'>        long estimatedTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime()
+</span><span class='line'>                - start);
+</span><span class='line'>        System.out.println("Write " + TOTAL_TIMES + " logs takes time "
+</span><span class='line'>                + estimatedTime + " s.");
+</span><span class='line'>    }
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Log4j config file log4j.properties:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>log4j.rootLogger = DEBUG, FILE
+</span><span class='line'>
+</span><span class='line'>log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+</span><span class='line'>log4j.appender.FILE.File=log4j.log
+</span><span class='line'>log4j.appender.FILE.Append=true
+</span><span class='line'>log4j.appender.FILE.MaxFileSize=50MB
+</span><span class='line'>log4j.appender.FILE.MaxBackupIndex=10
+</span><span class='line'>log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+</span><span class='line'>log4j.appender.FILE.layout.ConversionPattern=%d{MM-dd HH:mm:ss.SSS} [%t] %p %c - %m%n</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Logback config file logback.xml:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+</span><span class='line'>&lt;configuration&gt;
+</span><span class='line'>
+</span><span class='line'>    &lt;appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
+</span><span class='line'>        &lt;file&gt;logback.log&lt;/file&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy"&gt;
+</span><span class='line'>            &lt;fileNamePattern&gt;logback.log.%i&lt;/fileNamePattern&gt;
+</span><span class='line'>            &lt;minIndex&gt;1&lt;/minIndex&gt;
+</span><span class='line'>            &lt;maxIndex&gt;11&lt;/maxIndex&gt;
+</span><span class='line'>        &lt;/rollingPolicy&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy"&gt;
+</span><span class='line'>            &lt;maxFileSize&gt;50MB&lt;/maxFileSize&gt;
+</span><span class='line'>        &lt;/triggeringPolicy&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;encoder&gt;
+</span><span class='line'>            &lt;pattern&gt;%date{MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n&lt;/pattern&gt;
+</span><span class='line'>        &lt;/encoder&gt;
+</span><span class='line'>    &lt;/appender&gt;
+</span><span class='line'>
+</span><span class='line'>    &lt;root level="DEBUG"&gt;
+</span><span class='line'>        &lt;appender-ref ref="FILE" /&gt;
+</span><span class='line'>    &lt;/root&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Add following dependencies into build.sbt.log4j:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
+</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
+</span><span class='line'>  "org.slf4j" % "slf4j-log4j12" % "1.7.7",
+</span><span class='line'>  "log4j" % "log4j" % "1.2.17"
+</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And the following into build.sbt.logback:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
+</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
+</span><span class='line'>  "ch.qos.logback" % "logback-classic" % "1.1.2",
+</span><span class='line'>  "ch.qos.logback" % "logback-core" % "1.1.2"
+</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now delete .classpath file under project home folder, run <code>sbt eclipse</code> again to refresh classpath.</p>
+
+<p>When coding completed, copy build.sbt.log4j (or build.sbt.logback) as build.sbt, run <code>sbt run</code> to run this project. Run <code>sbt package</code> to create jar file under target folder.</p>
+
+<p>Some other settings in build.sbt:</p>
+
+<pre><code>organization := "org.leechau"
+</code></pre>
+
+<h1>Gradle</h1>
+
+<ol>
+<li><p>Install gradle plugin for Eclipse, and create a Gradle Project &ldquo;MyProject&rdquo; in Eclipse, choose &ldquo;Java Quickstart&rdquo; as Sample project;</p></li>
+<li><p>Add following lines into auto-created build.gradle file for log4j test:</p>
+
+<pre><code> apply plugin: 'application'
+ dependencies {
+     compile 'org.slf4j:slf4j-api:1.7.7', 'log4j:log4j:1.2.17', 'org.slf4j:slf4j-log4j12:1.7.7'
+ }
+ mainClassName = "com.boco.logb.LoggerOneThread"
+</code></pre></li>
+<li><p>Refresh dependencies: [Gradle -> Refresh Dependencies] in context menu;</p></li>
+<li><p>Run log4j test:</p>
+
+<pre><code> cp build.gradle build.gradle.log4j
+ gradle clean run
+</code></pre></li>
+<li><p>For logback test, create a new file build.gradle.logback based on build.gradle.log4j, but use the following dependencies:</p></li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>compile 'org.slf4j:slf4j-api:1.7.7', 'ch.qos.logback:logback-classic:1.1.2', 'ch.qos.logback:logback-core:1.1.2'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The config files log4j.properties and logback.xml, and Java file LoggerOneThread.java are identical to that in sbt section.</p>
+
+<ol>
+<li><p>Run logback test:</p>
+
+<pre><code> cp build.gradle.logback build.gradle
+ gradle clean run
+</code></pre></li>
+</ol>
+
+
+<h1>Eclipse Interface</h1>
+
+<p>How to creat Eclipse setting files (.classpath and .project) so that we can import this project into Eclipse, editing and debuging in it.</p>
+
+<p>For gradle, add <code>apply plugin: 'eclipse'</code> into build.gradle and run <code>gradle cleanEclipse eclipse</code>;</p>
+
+<p>For sbt, add <code>addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")</code> (for sbt 0.13) into $PROJECT_HOME/project/plugins.sbt, and run <code>sbt eclipse</code>;</p>
+
+<h1>Run Program</h1>
+
+<h2>gradle</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
+</span><span class='line'>cp build.gradle.log4j build.gradle
+</span><span class='line'>gradle clean run
+</span><span class='line'>// run logback test
+</span><span class='line'>cp build.gradle.logback build.gradle
+</span><span class='line'>gradle clean run</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>sbt</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
+</span><span class='line'>cp build.sbt.log4j build.sbt
+</span><span class='line'>sbt clean run
+</span><span class='line'>// run logback test
+</span><span class='line'>cp build.sbt.logback build.sbt
+</span><span class='line'>sbt clean run</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you have multiple main entry in source files, you can use &lsquo;runMain com.boco.logb.LoggerOneThread&rsquo; instead of &ldquo;run&rdquo; to run a specific program.</p>
+
+<h1>Conclusion</h1>
+
+<p>Gradle is mainly for building of Groovy and Java project, while sbt is mainly for building of Scala and Java project. So far Gradle has better support for building Java project.
+For example, it&rsquo;s very convenient to build production zip or tar files with Gradle&rsquo;s application plugin (via the &ldquo;distZip&rdquo; task), while there&rsquo;s no corresponding plugin in sbt.
+It&rsquo;s convenient to add or remove dependencies within Eclipse with the Gradle plugin of Eclipse (not the eclipse plugin of Gradle), while there&rsquo;s no sbt plugin of Eclipse (sbteclipse of typesafehub is a eclipse plugin of sbt). So we have to refresh build path of dependencies manually when developing a project in Eclipse created by sbt.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/09/163500/">Package Repository Management on Ubuntu and Mint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-09T16:35:00+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:35 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>Add repository: &lsquo;sudo apt-add-repository ppa:kernel-ppa/ppa`</p></li>
+<li><p>List all repositories: <code>ls /etc/apt/sources.list.d</code></p></li>
+<li><p>Remove repository: <code>sudo apt-add-repository --remove ppa:kernel-ppa/ppa</code>.
+If you can&rsquo;t get the ppa name, do it manually with <code>sudo rm /etc/apt/sources.list.d/theppa.list</code>.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/03/150610/">Build BVT System Based on Docker</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-03T15:06:10+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>3:06 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>System: ArchLinux 64bit, IP address: 10.32.1.18.</p>
+
+<h1>Build</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>sudo docker -p 8080:8080 --name myjenkins jenkins</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now you can access <a href="http://10.32.1.18:8080">jenkins server</a> in browser.</p>
+
+<p>List running containers: <code>sudo docker ps</code> (so you can get the container&rsquo;s name for stoping and restarting later);</p>
+
+<p>Stop jenkins server: <code>sudo docker stop myjenkins</code>;</p>
+
+<p>Restart this server: <code>sudo docker start myjenkins</code>;</p>
+
+<h1>Backup and Restore</h1>
+
+<p>Backup image: <code>sudo docker save -o jenkins-docker.tar jenkins</code>;</p>
+
+<p>Restore image: <code>sudo docker load -i jenkins-docker.tar</code>;</p>
+
+<p>Backup container:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>(optional) sudo docker stop jenkins
+</span><span class='line'>sudo docker export myjenkins &gt; mybvt-system.tar
+</span><span class='line'>scp mybvt-system.tar chad@laptop:~/
+</span><span class='line'>ssh chad@laptop
+</span><span class='line'>cat mybvt-system.tar | sudo docker import - exampleimagelocal:new</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But where is the imported container?</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/03/111703/">Automount USB Disk on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-03T11:17:03+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:17 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>ArchLinux</h1>
+
+<p>Install: <code>sudo pacman -S udiskie</code>;</p>
+
+<p>Start service: run <code>udiskie &amp;</code> manually when system startup, or add &ldquo;udiskie &amp;&rdquo; into ~/.xinitrc;</p>
+
+<p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
+
+<h2>Unmount USB disk</h2>
+
+<p>Create an executable script in /usr/local/bin:</p>
+
+<pre><code>$ cat /usr/local/bin/unmount
+#!/bin/sh
+
+# Global variables
+TITLE="Unmount Utility"
+COLUMNS=3 # TARGET,SOURCE,FSTYPE
+#IFS=$'\n'
+
+# Populate list of unmountable devices
+deviceList=($(findmnt -Do TARGET,SOURCE,FSTYPE | grep -e "sd[b-z]"))
+deviceCount=$((${#deviceList[@]} / $COLUMNS))
+
+# Start of program output
+echo $TITLE
+
+# Display list of devices that can be unmounted
+for ((device=0; device&lt;${#deviceList[@]}; device+=COLUMNS))
+do
+  printf "%4s)   %-25s%-13s%-10s\n"\
+    "$(($device / $COLUMNS))"\
+    "${deviceList[$device]}"\
+    "${deviceList[$(($device + 1))]}"\
+    "${deviceList[$(($device + 2))]}"
+done
+
+printf "%4s)   Exit\n" "x"
+
+# Get input from user
+read -p "Choose a menu option: " input
+
+# Input validation
+if [ "$input" = "X" ] || [ "$input" = "x" ]
+then
+  echo "Exiting"
+  exit 0
+fi
+
+if (( $input&gt;=0 )) &amp;&amp; (( $input&lt;$deviceCount ))
+then
+  echo "Unmounting: ${deviceList[$(($input * $deviceCount))]}"
+  sudo umount "${deviceList[$(($input * $deviceCount))]}"
+  exit 0
+else
+  echo "Invalid menu choice"
+  exit 1
+fi
+$ chmod 755 /usr/local/bin/unmount
+</code></pre>
+
+<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
+See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a> for details.
+Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
+
+<p>See <code>man udiskie</code> for more information.</p>
+
+<h1>Mint</h1>
+
+<p>Install: <code>sudo aptitude install udevil</code>;</p>
+
+<p>Start service: run <code>devmon</code> in dmenu when system startup, or add &ldquo;devmon &amp;&rdquo; into ~/.xsession;</p>
+
+<p>After plug USB key into computer, it will be automount to /media folder.
+If you do not startup devmon in background, you can run <code>devmon -a</code> to mount the USB key.</p>
+
+<p>Run <code>devmon -c</code> to unmount the USB key.</p>
+
+<p>See <code>man devmon</code> for more information.</p>
+
+<h1>Difference between .xinitrc and .xsession:</h1>
+
+<p>If you startup your system with <a href="https://wiki.archlinux.org/index.php/display_manager">display manager</a>, where you get a graphical login screen, it will read ~/.xsession.
+In case of you startup your system without display manager and login to shell, startup i3 (or other wm) with <code>startx</code>, then the <a href="http://en.wikipedia.org/wiki/Xinit">xinit</a> program will read ~/.xinitrc;</p>
+
+<p>See <a href="https://unix.stackexchange.com/questions/47359/what-is-xsession-for">What is “.xsession” for?</a> for details.</p>
+
+<p>See <a href="https://wiki.archlinux.org/index.php/Arch_boot_process">Arch boot process</a> for how Getty manage login process in system boot process.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/30/104928/">Docker Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-30T10:49:28+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Mint</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># sudo aptitude update
+</span><span class='line'># sudo aptitude install docker.io aufs-tools cgroup-lite apparmor-utils
+</span><span class='line'># sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
+</span><span class='line'># sudo sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
+</span><span class='line'># docker run ubuntu:14.04 echo 'hello ubuntu'
+</span><span class='line'># docker version
+</span><span class='line'>Client version: 0.9.1
+</span><span class='line'>Go version (client): go1.2.1
+</span><span class='line'>Git commit (client): 3600720
+</span><span class='line'>Server version: 0.9.1
+</span><span class='line'>Git commit (server): 3600720
+</span><span class='line'>Go version (server): go1.2.1
+</span><span class='line'>Last stable version: 1.2.0, please update docker</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>ArchLinux</h1>
+
+<p>Docker is only available on X86_64 repository so far.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># pacman -S docker
+</span><span class='line'># systemctl enable docker
+</span><span class='line'># systemctl start docker
+</span><span class='line'># docker run ubuntu:14.04 echo 'hello world'
+</span><span class='line'># docker run -i -t ubuntu:14.04 /bin/bash
+</span><span class='line'># lsb_release -a
+</span><span class='line'>Distributor ID: Ubuntu
+</span><span class='line'>Description: Ubuntu 14.04.1 LTS
+</span><span class='line'>Release: 14.04
+</span><span class='line'>Codename: trusty
+</span><span class='line'># exit
+</span><span class='line'># docker version
+</span><span class='line'>Client version: 1.2.0
+</span><span class='line'>Go version (client): go1.3.1
+</span><span class='line'>OS/Arch (client): linux/amd64
+</span><span class='line'>Server version: 1.2.0
+</span><span class='line'>Server API version: 1.14
+</span><span class='line'>Go version (server): go1.3.1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So you can see at least for now Docker is much newer and easy to use on Arch than on Mint (Ubuntu).
+If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relogin, you will find the &ldquo;tree&rdquo; command disappeared.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -419,667 +1042,6 @@ Verify user&rsquo;s group with <code>id</code>, <code>groups</code> or <code>gro
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/20/104236/">Closure in Different Languages</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-20T10:42:36+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following code snippets compare closures in several languages.</p>
-
-<p>First is closure in javascript. Here I use <a href="https://github.com/creationix/nvm">nvm</a> to run javascript code.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ cat closure.js
-</span><span class='line'>function extent() {
-</span><span class='line'>    var n = 0;
-</span><span class='line'>    return function() {
-</span><span class='line'>        n++;
-</span><span class='line'>        console.log("n=" + n);
-</span><span class='line'>    }
-</span><span class='line'>}
-</span><span class='line'>
-</span><span class='line'>extent()();
-</span><span class='line'>extent()();
-</span><span class='line'>f = extent();
-</span><span class='line'>console.log("-----");
-</span><span class='line'>//console.log(extent.uniqueId());
-</span><span class='line'>f();
-</span><span class='line'>f();
-</span><span class='line'>
-</span><span class='line'>$ nvm alias default 0.10
-</span><span class='line'>$ nvm run closure.js
-</span><span class='line'>Running node v0.10.30
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>-----
-</span><span class='line'>n=1
-</span><span class='line'>n=2</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In above example, the closure is <code>function() { n++; console.log... }</code>. It&rsquo;s bound to variable &ldquo;f&rdquo;. The local variable &ldquo;n&rdquo; is &ldquo;closed&rdquo; into closure. Its lifetime is the same with &ldquo;f&rdquo;. So after the first execution of f, its inner state is saved.</p>
-
-<p>For Python, nested function can only access variables in outer scope, but can&rsquo;t reassign (modify) them. So I use list as a workaround. In Python 3, there is a new keyword &ldquo;nonlocal&rdquo; to remove this restriction.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ cat closure.py2.py
-</span><span class='line'>def extent():
-</span><span class='line'>    n = [0]
-</span><span class='line'>    def afun():
-</span><span class='line'>        n[0] += 1
-</span><span class='line'>        print('n=' + str(n[0]))
-</span><span class='line'>    return afun
-</span><span class='line'>
-</span><span class='line'>extent()()
-</span><span class='line'>extent()()
-</span><span class='line'>print('-----')
-</span><span class='line'>f = extent()
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>print("type of f is %s, its id is %d" % (type(f), id(f)))
-</span><span class='line'>
-</span><span class='line'>$ python closure.py2.py 
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>-----
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>type of f is &lt;type 'function'&gt;, its id is 140403684898408
-</span><span class='line'>
-</span><span class='line'>$ cat closure.py3.py
-</span><span class='line'>def extent():
-</span><span class='line'>    n = 0
-</span><span class='line'>    def afun():
-</span><span class='line'>        nonlocal n
-</span><span class='line'>        n += 1
-</span><span class='line'>        print('n=' + str(n))
-</span><span class='line'>    return afun
-</span><span class='line'>
-</span><span class='line'>extent()()
-</span><span class='line'>extent()()
-</span><span class='line'>f = extent()
-</span><span class='line'>print('----')
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>print("type of f is %s, its id is %d" % (type(f), id(f)))
-</span><span class='line'>
-</span><span class='line'>[0] python3 closure.py3.py
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>----
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>type of f is &lt;class 'function'&gt;, its id is 139914425096528</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The Ruby environment used here is <a href="http://rvm.io/">RVM</a>. Ruby version is 2.1.2.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ rvm use 2.1.2 --default
-</span><span class='line'>$ cat closure.rb
-</span><span class='line'>def extent
-</span><span class='line'>    n = 0
-</span><span class='line'>    lambda {
-</span><span class='line'>        n += 1
-</span><span class='line'>        printf "n=%d\n", n
-</span><span class='line'>    }
-</span><span class='line'>end
-</span><span class='line'>
-</span><span class='line'>extent().call()
-</span><span class='line'>extent().call()
-</span><span class='line'>f = extent()
-</span><span class='line'>puts '------'
-</span><span class='line'>f.call()
-</span><span class='line'>f.call()
-</span><span class='line'>puts "class of f is #{f.class.name}, its id is #{f.object_id}"
-</span><span class='line'>
-</span><span class='line'>$ ruby closure.rb
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>------
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>class of f is Proc, its id is 6724520</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Two versions of Scala, define functions via &ldquo;def&rdquo; and &ldquo;val&rdquo; give different results:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ diff *.scala
-</span><span class='line'>1c1
-</span><span class='line'>&lt; def extent = {
-</span><span class='line'>---
-</span><span class='line'>&gt; val extent = {
-</span><span class='line'>
-</span><span class='line'>$ cat closure-def.scala
-</span><span class='line'>def extent = {
-</span><span class='line'>    var n = 0
-</span><span class='line'>    () =&gt; {
-</span><span class='line'>        n += 1
-</span><span class='line'>        println("n=" + n)
-</span><span class='line'>    }
-</span><span class='line'>}
-</span><span class='line'>
-</span><span class='line'>extent()
-</span><span class='line'>extent()
-</span><span class='line'>val f = extent
-</span><span class='line'>println("------")
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
-</span><span class='line'>
-</span><span class='line'>$ scala closure-def.scala
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>------
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>Class of f is class Main$$anon$1$$anonfun$extent$1, its id is 8970973
-</span><span class='line'>
-</span><span class='line'>$ cat closure-val.scala 
-</span><span class='line'>val extent = {
-</span><span class='line'>    var n = 0
-</span><span class='line'>    () =&gt; {
-</span><span class='line'>        n += 1
-</span><span class='line'>        println("n=" + n)
-</span><span class='line'>    }
-</span><span class='line'>}
-</span><span class='line'>
-</span><span class='line'>extent()
-</span><span class='line'>extent()
-</span><span class='line'>val f = extent
-</span><span class='line'>println("------")
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
-</span><span class='line'>$ scala closure-val.scala 
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>------
-</span><span class='line'>$ scala closure-val.scala 
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>------
-</span><span class='line'>n=3
-</span><span class='line'>n=4
-</span><span class='line'>Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973</span></code></pre></td></tr></table></div></figure>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/18/111841/">Ruby Build Tools</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-18T11:18:41+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:18 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>&ldquo;gem&rdquo; (as a command) is a tool to download and install gems from <a href="https://rubygems.org/">RubyGems</a>. It&rsquo;s Python counterpart should be pip. It install some global gems (files), such as rake, bundler, etc.</p>
-
-<p>&ldquo;gem&rdquo; (as a file on disk), such as &ldquo;bundler-1.6.1.gem&rdquo; is a package which has the same standard structure. It&rsquo;s Java counterpart should be &ldquo;jar&rdquo; file.</p>
-
-<p><a href="http://bundler.io/">bundler</a> is used to manage project-level gems, whose versions for example. It works based on a spec file named &ldquo;Gemfile&rdquo; at project&rsquo;s root directory. It&rsquo;s Java counterpart should be Ivy.</p>
-
-<p><a href="https://rubygems.org/gems/rake">rake</a> is a build tool of Ruby. You can define many tasks and their dependencies in file &ldquo;Rakefile&rdquo;. It&rsquo;s Java counterpart should be Ant, and makefor Linux.</p>
-
-<p>Functions of Maven or Gradle for Java covers bundler and rake.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/17/115200/">Install ArchLinux on Old ASUS A3000 Laptop</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-17T11:52:00+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:52 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>My old ASUS A3 laptop is bought at 2004. It CPU is Intel Celeron 1.33GHz, 490MB memory.</p>
-
-<ol>
-<li><p>Download install media: archlinux-2014.04.01-dual.iso;</p></li>
-<li><p>Write this ISO to USB stick with <a href="http://www.pendrivelinux.com/yumi-multiboot-usb-creator/">YUMI</a>;</p></li>
-<li><p>Plugin a usb-netcard (because the netcard of A3000 doesn&rsquo;t work) and startup A3000 with this USB key;</p></li>
-<li><p>When &ldquo;Boot> &rdquo; appeared, press <TAB>, then input &ldquo;pxe&rdquo;, then press <TAB> again, input &ldquo;nohave64&rdquo;;</p></li>
-<li><p>After ArchLinux i686 startup, setup ADSL connection with <code>pppoe-setup</code> (I install ArchLinux at home via ADSL):</p>
-
-<p> NIC: enp0s29f7u2
- Username: 100002172688
- Password: k4&hellip;
- DNS: server</p></li>
-</ol>
-
-
-<p>and use default values for other items.</p>
-
-<ol>
-<li><p>Install arch system. After setup hostname:</p>
-
-<p> pacman -S rp-pppoe openssh grub
- grub-install &ndash;target=i386-pc &ndash;recheck /dev/sda</p></li>
-<li><p>Shutdown system, unpluged USB key, restart system. A &ldquo;GRUB load failed&hellip; no such partition&hellip;&rdquo; error raise</p></li>
-<li><p>Install arch system. After setup hostname:</p>
-
-<p> pacman -S rp-pppoe openssh grub
- grub-install &ndash;target=i386-pc &ndash;recheck /dev/sda</p></li>
-<li><p>Using USB wireless card to replace USB wired netcard: <code>pacman -S iw gnome-keyring</code>. The USB wireless card is TP-LINK TL_WN725N, bought at jd.com 2013.2.18.</p></li>
-<li><p>Install video driver: the video card is Intel checked by <code>lspci|grep VGA</code>, so <code>pacman -S xf86-video-intel</code>;</p></li>
-<li><p>Config SSH servive: <code>systemctl enable sshd</code>;</p></li>
-<li><p>Shutdown system, unplug USB key, restart system. A &ldquo;GRUB load failed&hellip; no such partition&hellip;&rdquo; error raise.</p></li>
-<li><p>List partition UUID with <code>blkid</code>, compare them with that in /boot/grub/grub.cfg. They dismatch.</p></li>
-<li><p>Startup system with USB key. After <code>arch-chroot</code>, run <code>grub-mkconfig -o /boot/grub/grub.cfg</code> to rebuild grub file;</p></li>
-<li><p>Restart laptop. Arch load successfully.</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/15/175039/">Run MapReduce Jobs on Spark</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-15T17:50:39+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:50 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Interactive Mode</h1>
-
-<p>Follow <a href="http://spark.apache.org/docs/latest/quick-start.html">Quick Start of Spark 1.0.2 on Apache Spark website</a>.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># hadoop fs -put alarm_data_for_explore-0501-0505.txt alarm_data_for_explore-0501-0505.txt 
-</span><span class='line'>
-</span><span class='line'># hadoop fs -ls
-</span><span class='line'>...
-</span><span class='line'>-rw-r--r--   3 root root  260780698 2014-08-15 16:45 alarm_data_for_explore-0501-0505.txt
-</span><span class='line'>
-</span><span class='line'># wc -l alarm_data_for_explore-0501-0505.txt
-</span><span class='line'>1362005
-</span><span class='line'>
-</span><span class='line'># head -1 alarm_data_for_explore-0501-0505.txt 
-</span><span class='line'>-2117657102|102|1000012276|License...|3|4|102|
-</span><span class='line'>
-</span><span class='line'># grep 007-002-00-000592 alarm_data_for_explore-0501-0505.txt | wc -l
-</span><span class='line'>12
-</span><span class='line'>
-</span><span class='line'># mv alarm_data_for_explore-0501-0505.txt aaa.txt       // this local file is unnecessary any more
-</span><span class='line'>
-</span><span class='line'># spark-shell
-</span><span class='line'>
-</span><span class='line'>scala&gt; val textFile = sc.textFile("alarm_data_for_explore-0501-0505.txt")
-</span><span class='line'>textFile: org.apache.spark.rdd.RDD[String] = MappedRDD[1] at textFile at &lt;console&gt;:12
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.count()
-</span><span class='line'>...
-</span><span class='line'>res5: Long = 1362005
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.first()
-</span><span class='line'>...
-</span><span class='line'>res8: String = -2117657102|102|1000012276|License...|3|4|102|
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.filter(line =&gt; line.contains("007-002-00-000592")).count()
-</span><span class='line'>...
-</span><span class='line'>res12: Long = 12
-</span><span class='line'>
-</span><span class='line'>scala&gt; import java.lang.Math
-</span><span class='line'>import java.lang.Math
-</span><span class='line'>
-</span><span class='line'>scala&gt; textFile.map(line =&gt; line.split("|").size).reduce((a, b) =&gt; Math.max(a, b))
-</span><span class='line'>...
-</span><span class='line'>res13: Int = 372</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Run Spark Script</h2>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ cat wfp-spark
-</span><span class='line'>val MIN_SUP = 0.0003
-</span><span class='line'>val MIN_CONF = 0
-</span><span class='line'>val MAX_RELATION_ORDER = 3
-</span><span class='line'>val DATA_FILE = "input"
-</span><span class='line'>
-</span><span class='line'>val textFile = sc.textFile(DATA_FILE)
-</span><span class='line'>val weight = textFile.map(x =&gt; x -&gt; x.split(",")(5).toFloat).cache
-</span><span class='line'>val data = textFile.groupBy(x =&gt; x.split(",")(0))
-</span><span class='line'>
-</span><span class='line'>$ spark-shell -i wfp-spark
-</span><span class='line'>...</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now you are in a spark shell, all variables such as MIN_SUP, MIN_CONF are accessible.</p>
-
-<h1>Batch Mode</h1>
-
-<p>Follow <a href="http://www.cloudera.com/content/cloudera-content/cloudera-docs/CDH5/latest/CDH5-Installation-Guide/cdh5ig_running_spark_apps.html">Running Spark Applications in CDH 5 Installation Guide</a>.</p>
-
-<pre><code># locate spark-defaults.conf       // find out where is $SPARK_HOME
-/etc/spark/conf.cloudera.spark/spark-defaults.conf
-...
-
-# ll /etc/spark/conf.cloudera.spark
-...
--rw-r--r-- 1 root root 883 Aug 14 10:12 spark-env.sh
-
-# cat /etc/spark/conf.cloudera.spark/spark-env.sh
-...
-export SPARK_HOME=/opt/cloudera/parcels/CDH-5.1.0-1.cdh5.1.0.p0.53/lib/spark
-...
-
-# source /etc/spark/conf.cloudera.spark/spark-env.sh     // load $SPARK_HOME, etc
-
-# spark-submit --class org.apache.spark.examples.SparkPi --deploy-mode client --master yarn $SPARK_HOME/examples/lib/spark-examples_2.10-1.0.0-cdh5.1.0.jar 10
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/13/102446/">Build Gradle Project in Netbeans</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-13T10:24:46+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:24 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Rename project: edit project name in settings.gradle, then right click project, choose &ldquo;Reload Project&rdquo;;</p></li>
-<li><p>Modify dependencies: edit build.gradle, then right click project, choose [Tasks -> buildDependents];</p></li>
-</ul>
-
-
-<p>The jVi plugin is not support Netbeans 8, so its editing is not very convenient like in Eclipse.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/18">&larr; Older</a>
@@ -1097,23 +1059,23 @@ export SPARK_HOME=/opt/cloudera/parcels/CDH-5.1.0-1.cdh5.1.0.p0.53/lib/spark
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
+        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
+        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
+        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
+        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
+        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
       </li>
     
   </ul>

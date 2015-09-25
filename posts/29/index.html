@@ -9,10 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Install yum install -y java-1.7.0-openjdk-devel
-curl -s get.gvmtool.net|bash
-source "/root/.gvm/bin/gvm-init.sh"
-gvm i groovy 2.2.1 Usage groovysh &hellip;">
+  <meta name="description" content="Print the last line: awk &lsquo;END{print $0}&rsquo;
+Print the second last field: awk &lsquo;{print $(NF-1)}&rsquo;
+Print the second last field of &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +67,325 @@ gvm i groovy 2.2.1 Usage groovysh &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/10/095838/">Awk Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-10T09:58:38+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>Print the last line: awk &lsquo;END{print $0}&rsquo;</p></li>
+<li><p>Print the second last field: awk &lsquo;{print $(NF-1)}&rsquo;</p></li>
+<li><p>Print the second last field of last line: awk &lsquo;END{print $(NF-1)}&rsquo;</p></li>
+<li><p>Set a complex delimiter: awk -F &lsquo;, &rsquo; &lsquo;END{print $(NF-1)}&rsquo;</p></li>
+</ul>
+
+
+<p>Note: You can&rsquo;t use double quotes instead of single quotes, or an error raises.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/09/153003/">Use Apt Fast to Speedup Apt-get</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-09T15:30:03+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:30 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<pre><code># apt-get install axel aria2
+# apt-get install python-software-properties
+# add-apt-repository ppa:apt-fast/stable
+# apt-get update
+# apt-get install apt-fast
+# apt-fast update
+</code></pre>
+
+<h1>Usage</h1>
+
+<pre><code># apt-fast python-dev
+</code></pre>
+
+<p>Not very fast.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/08/170400/">Linux Benchmarking</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-08T17:04:00+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Some Theory</h1>
+
+<ul>
+<li><p><a href="http://stackoverflow.com/questions/368472/linux-benchmarking-tools">http://stackoverflow.com/questions/368472/linux-benchmarking-tools</a></p></li>
+<li><p><a href="http://tldp.org/HOWTO/Benchmarking-HOWTO.html">Linux Benchmarking HOWTO</a>.</p></li>
+</ul>
+
+
+<h1>Tools</h1>
+
+<h2>Disk IO Benchmark</h2>
+
+<h3>Writing Speed</h3>
+
+<pre><code>$ dd bs=1M count=512 if=/dev/zero of=test conv=fdatasync
+</code></pre>
+
+<p>from <a href="http://systembash.com/content/simple-disk-benchmarking-in-linux-using-dd/">Simple Disk Benchmarking in Linux Using &lsquo;dd&rsquo;</a></p>
+
+<h3>Reading Speed</h3>
+
+<pre><code>$ hdparm -tT $(df $HOME|awk 'FNR == 2 {print $1}')
+</code></pre>
+
+<p>where &ldquo;df $HOME|awk &lsquo;FNR == 2 {print $1}&rsquo;&rdquo; get the disk name of the $HOME folder. For example, on my laptop it is /dev/sda1, on 49 server it is /dev/mapper/vg_bocoty49-lv_root. In awk command, &ldquo;FNR == 2&rdquo; means the second line.
+This is the &ldquo;origin&rdquo; version:</p>
+
+<pre><code>$ hdparm -tT /dev/sda
+</code></pre>
+
+<p>from <a href="http://www.lostsaloon.com/technology/how-to-test-the-read-and-write-speeds-of-a-hard-disk-in-linux/">How to Test the Read and Write Speeds of a Hard Disk in Linux</a>.</p>
+
+<p>Another reference: <a href="https://wiki.archlinux.org/index.php/Hdparm">https://wiki.archlinux.org/index.php/Hdparm</a></p>
+
+<h2>Network Throughput Benchmark</h2>
+
+<p>Run the following command on the &ldquo;server&rdquo; host, not the &ldquo;client&rdquo; host which is testd.</p>
+
+<pre><code>$ cat testspeed.sh
+
+filesize=$3
+dd bs=1M count=$filesize if=/dev/zero of=test
+timeres=$(/usr/bin/time -p scp test $1@$2:/home/$1/ 2&gt;&amp;1 &gt;/dev/null)
+echo timeres: $timeres
+duration=$(echo $timeres|awk 'FNR == 1 {print $2}')
+echo duration: $duration
+speed=$(echo "scale=2; $filesize / $duration" | bc -l)
+echo $speed MB/s
+</code></pre>
+
+<p>The output format of &ldquo;time&rdquo; and &ldquo;bc&rdquo; command varies depending on distro of OS, so I only implements above on my OS: Linux Mint 14.
+The &ldquo;-p&rdquo; options give a better output format of this command.
+The output of &ldquo;scp&rdquo; is in stdout, while that of &ldquo;time&rdquo; in stderr, so I hide stdout and redirect stderr to stdout, so the output can be processed by the following &ldquo;awk&rdquo;.
+&ldquo;bc -l&rdquo; do a float division instead of a integer division.
+&ldquo;scale=2&rdquo; set the division scale (precision) to 2 digits after the period.</p>
+
+<p>Run this scprit with a 64MB test file:</p>
+
+<pre><code>$ ./speed.sh chad 10.0.2.49 64
+</code></pre>
+
+<p>Now with a 128MB test file:</p>
+
+<pre><code>$ ./testspeed.sh 128
+</code></pre>
+
+<p>Note: iperf is network throughput tool, but it has to be installed. So it&rsquo;s a little complicated.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/04/120436/">Ruby on Rails Note</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-04T12:04:36+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Installation</h1>
+
+<h2>Install Javascript runtime</h2>
+
+<p>Install <a href="https://github.com/creationix/nvm">nvm</a>, then add a node.js version:</p>
+
+<pre><code>$ nvm install 0.10.26
+$ nvm use 0.10.26
+</code></pre>
+
+<h2>Install Ruby environment</h2>
+
+<p>Install <a href="https://rvm.io/">rvm</a>, then add a ruby version:</p>
+
+<pre><code>$ rvm install 2.1.0
+$ rvm use 2.1.0
+</code></pre>
+
+<h2>Install Ruby on rails</h2>
+
+<pre><code>$ gem install rails
+$ rails new first_app
+</code></pre>
+
+<h1>Start RoR server</h1>
+
+<pre><code>$ cd first_app; rails server
+</code></pre>
+
+<p>Note:</p>
+
+<ol>
+<li><p>You will need to <code>apt-get -f install; apt-get install apt-get install libsqlite3-dev</code> on Linux Mint to create RoR project.</p></li>
+<li><p>If you didn&rsquo;t install javascript runtime, or didn&rsquo;t add it to current session with <code>nvm use ...</code>, you will get the following error when starting rails server:</p>
+
+<p> rails server autodetect could not find a javascript runtime&hellip;</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/04/102033/">Java Memory Schedule</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-04T10:20:33+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:20 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Test program (TestFreeMemory.java):</p>
+
+<pre><code>public class TestFreeMemory {
+    public static void main(String[] args){
+        long maxMem = Runtime.getRuntime().maxMemory()/(1024*1024);
+        System.out.println("Max Mem: " + maxMem);
+        long freeMem = Runtime.getRuntime().freeMemory()/(1024*1024);
+        System.out.println("Free Mem: " + freeMem);
+        long totalMem = Runtime.getRuntime().totalMemory()/(1024*1024);
+        System.out.println("Total Mem: " + totalMem);
+    }
+}
+</code></pre>
+
+<p>$ javac TestFreeMemory.java
+$ java -Xms32m -Xmx500m TestFreeMemory
+Max Mem: 444
+Free Mem: 30
+Total Mem: 30</p>
+
+<p>$ java -Xms64m -Xmx500m TestFreeMemory
+Max Mem: 444
+Free Mem: 61
+Total Mem: 61</p>
+
+<p>$ java -Xms64m -Xmx1024m TestFreeMemory
+Max Mem: 910
+Free Mem: 61
+Total Mem: 61</p>
+
+<p>$ java -Xms32m -Xmx2048m TestFreeMemory
+Max Mem: 1820
+Free Mem: 30
+Total Mem: 30</p>
+
+<p>You can see (444/500)=(910/1024)=(1820/2048), so Runtime.getRuntime().maxMemory() is determined by &ldquo;-Xmx&rdquo;, which presents the upper limit of java process. The Runtime.getRuntime().totalMemory() is the initial memory capacity, which is determined by &ldquo;-Xms&rdquo; , it will grow when needed by program, until to &ldquo;-Xmx&rdquo;.</p>
+
+<p>$ java -Xms32m -Xmx20480m TestFreeMemory
+Max Mem: 18204
+Free Mem: 30
+Total Mem: 30</p>
+
+<p>$ free -m
+             total       used       free     shared    buffers     cached
+Mem:         15937      15759        178          0        248       3068
+-/+ buffers/cache:      12443       3494
+Swap:         8039        641       7398</p>
+
+<p>The upper limit of physical memory is 15GB, while I declared 20GB max memory for java process. This shows that the &ldquo;-Xmx&rdquo; is a <strong>nominal</strong> value, which means java won&rsquo;t check its realizability when startup.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -440,296 +758,6 @@ openSUSE12 KDE 64bit:           404 1442 21.89</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/27/120107/">A Python Environment Detector</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-27T12:01:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:01 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
-
-<p>The application module, detapp.py:</p>
-
-<pre><code>import logging
-from envdet import rcmd
-
-logger = logging.getLogger('DetectApp')
-logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('detect.log')
-fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-fh.setFormatter(formatter)
-logger.addHandler(ch)
-logger.addHandler(fh)
-
-
-def isOracleJDK(str):
-    return 'Java(TM)' in str
-
-res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
-logger.info('Check result:%s' % res)
-</code></pre>
-
-<p>The environment detection module, envdet.py:</p>
-
-<pre><code>from subprocess import Popen, PIPE, STDOUT
-import signal
-import logging
-
-logger = logging.getLogger('DetectApp.envdet')
-
-def handler(signum, frame):
-    logger.error('Signal handler called with signal: %d' % signum)
-    raise IOError("Command execution timeout!")
-
-def rcmd(user, host, cmd, check_handler, timeout=10):
-    signal.signal(signal.SIGALRM, handler)
-    signal.alarm(timeout)
-
-    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
-
-    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
-
-    fullres = line = ''
-    while p.poll() is None:
-        out = p.stdout.read(1)
-        fullres = fullres + out
-        if out=='\n':
-            logger.debug(line)
-            line = ''
-        else:
-            line = line + out
-    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
-    return check_handler(fullres)
-</code></pre>
-
-<p>The technical points here are:</p>
-
-<ul>
-<li><p>Run shell command in Python and retrieve output and return code;</p></li>
-<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
-<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/27/115808/">Run Script on Remote Host via SSH</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-27T11:58:08+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>user=&lsquo;bvt&rsquo;
-host=&lsquo;10.0.2.47&rsquo;
-ssh $user@$host &lsquo;bash&rsquo; &lt;&lt;EOF
-source /etc/profile
-java -version
-hostname
-EOF</p>
-
-<p>You need copy your ssh pub key to target host before hand, or you will have to enter the password at runtime.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/26/184711/">Install Fabric 1.8.3 Manually on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-26T18:47:11+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:47 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Ubuntu 12.04</h1>
-
-<p>When you install Fabric with <code>apt-get install fabric</code>, you get a fabric with version 1.3.x, which is too old. So we need install it manually:</p>
-
-<pre><code># apt-get install -y python-dev
-# apt-get install -y python-pip
-# pip install fabric
-</code></pre>
-
-<p>That&rsquo;s it. If you want to speed up the installation process, download Fabric-1.8.3.tar.gz and paramiko-1.12.3.tar.gz from PYPI. Then install them with:</p>
-
-<pre><code># pip install paramiko-1.12.3.tar.gz
-# pip install Fabric-1.8.3.tar.gz
-</code></pre>
-
-<p>Note: when install from source (tar.gz file), python-dev is necessary, or you will get a compile error.</p>
-
-<h1>CentOS 6.4</h1>
-
-<pre><code># yum install -y python-devel
-# yum install -y python-pip
-# pip install fabric
-</code></pre>
-
-<p>In a new OS, you should run <code>apt-get update</code> or <code>yum update</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/26/144843/">Delete Trailing Spaces With Vim</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-26T14:48:43+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>:%s/\s+$</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/26/143445/">Build Web Server With Apache and Passenger</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-26T14:34:45+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:34 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Follow the instructions at <a href="http://www.modrails.com/documentation/Users%20guide%20Apache.html">2.6. Generic installation, upgrade and downgrade method: via tarball of Phusion Passenger users guide, Apache version</a></p>
-
-<p>Build web server on a precise64 Ubuntu virtual machine with vagrant. First download the tar file from this website, then create a vagrant file:</p>
-
-<pre><code>$ pwd
-/home/chad/docs/passenger
-
-$ ls
-passenger-4.0.40.tar.gz  Vagrantfile
-
-$ cat Vagrantfile
-# -*- mode: ruby -*-                                                            
-# vi: set ft=ruby :                                                             
-
-$script = &lt;&lt;EOF
-echo 'Acquire::http::Proxy "http://10.21.3.31:8087";' &gt; /etc/apt/apt.conf
-apt-get update
-apt-get install rake
-apt-get install libcurl4-openssl-dev
-apt-get install apache2-mpm-worker
-apt-get install apache2-threaded-dev
-/usr/bin/gem install rack
-apt-get install libapr1-dev
-apt-get install libaprutil1-dev
-mkdir /opt/passenger
-cd /opt/passenger
-tar zxvf /vagrant/passenger-4.0.40.tar.gz
-#cd passenger-4.0.40
-#./bin/passenger-install-apache2-module
-EOF
-
-VAGRANTFILE_API_VERSION = "2"
-
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "precise64"
-
-  config.vm.define "svr" do |server|
-    server.vm.hostname = "www.httpserver.com"
-    server.vm.provider :virtualbox do |vbox|
-      vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
-      vbox.customize ["modifyvm", :id, "--memory", 1000]
-    end
-    server.vm.network "forwarded_port", guest: 80, host: 8765
-    config.vm.provision "shell", inline: $script
-  end
-end
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/30">&larr; Older</a>
@@ -747,23 +775,23 @@ end
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
+        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
+        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
+        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
+        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
+        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
       </li>
     
   </ul>

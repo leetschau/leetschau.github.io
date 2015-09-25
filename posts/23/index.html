@@ -9,8 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Ragged array is a multi-dimensional array, whose elements has different length: $ cat Test.java
-public class Test { public static void main(String[] &hellip;">
+  <meta name="description" content="Prerequisites The host server of the environment is 10.0.2.47;
+Install vagrant on server 47;
+Add vagrant box of precise x86_64: vagrant box add ...; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +67,538 @@ public class Test { public static void main(String[] &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/23/135000/">Virtual BVT System</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-06-23T13:50:00+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:50 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Prerequisites</h1>
+
+<ol>
+<li><p>The host server of the environment is 10.0.2.47;</p></li>
+<li><p>Install <a href="http://www.vagrantup.com/">vagrant</a> on server 47;</p></li>
+<li><p>Add vagrant box of precise x86_64: <code>vagrant box add ...</code>;</p></li>
+<li><p>Create a directory named &ldquo;bvt-package&rdquo; under ~/warez, which contains:
+ apache-ant-1.9.3-bin.tar.bz2
+ cobertura.jar
+ hamcrest-core-1.3.jar
+ jdk-6u45-linux-x64.bin
+ jenkins-1.544.war
+ junit-4.8.1.jar
+ sonar-3.6.1.zip
+ svn_amd64_ubuntu12.04
+     libapr1_1.4.6-1_amd64.deb
+     libaprutil1_1.3.12+dfsg-3_amd64.deb
+     libdb4.8_4.8.30-11ubuntu1_amd64.deb
+     libneon27-gnutls_0.29.6-1_amd64.deb
+     libsvn1_1.6.17dfsg-3ubuntu3_amd64.deb
+     subversion_1.6.17dfsg-3ubuntu3_amd64.deb
+ unzip_6.0-4ubuntu1_amd64.deb
+ zip_3.0-4_amd64.deb</p></li>
+<li><p>The demo product codes in subversion repository is <a href="http://10.0.2.59:8118/svn/gcp/Development-Area/GNDP">GNDP</a>;</p></li>
+</ol>
+
+
+<h1>Build BVT Environment</h1>
+
+<pre><code>$ cd /home/bvt/docs
+$ take mybvt
+$ vagrant box list
+$ vagrant init precise64
+// Add the following texts into Vagrantfile after the line 'config.vm.box = "precise64":'
+  config.vm.define "bs" do |bvtserver|
+    bvtserver.vm.hostname = "bvt-server"
+    bvtserver.vm.network "private_network", ip: "192.168.50.3",
+        virtualbox__intnet: "testnet"
+    bvtserver.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+      vbox.customize ["modifyvm", :id, "--memory", 1000]
+    end
+    bvtserver.vm.provision :shell, path: "provision.sh", privileged: false
+    bvtserver.vm.network "forwarded_port", guest: 9000, host: 9000
+    bvtserver.vm.network "forwarded_port", guest: 8088, host: 8088
+  end
+$ scp -r bvt@10.0.2.47:/home/bvt/warez/bvt-package packages
+$ vagrant up bs
+</code></pre>
+
+<h1>Use This Environment</h1>
+
+<ol>
+<li><p>Open <a href="http://10.0.2.47:9000">Sonarqube website</a>, login with &ldquo;admin/admin&rdquo;, in Settings -> Qualify Profiles, add rules &ldquo;TongYong&rdquo; with import &ldquo;tyrules.xml&rdquo; on local disk (the next section its content);;</p></li>
+<li><p>Open <a href="http://10.0.2.47:8088/">Jenkins website</a>;</p></li>
+<li><p>Create Jenkins project: create a project named &ldquo;GNDP&rdquo; and add a &ldquo;shell&rdquo; build step: &ldquo;/vagrant/bvt-gndp.sh&rdquo;;</p></li>
+<li><p>Build this project;</p></li>
+<li><p>You get the build log on jenkins website and code analysis results on sonarqube website;</p></li>
+</ol>
+
+
+<h1>Needed Scripts</h1>
+
+<h2>Vagrant provision script</h2>
+
+<p>This is the environment building script executed during the vagrant provision period, so it&rsquo;s cited in Vagrantfile.</p>
+
+<pre><code>$ cat /home/bvt/docs/mybvt/provision.sh
+#!/bin/sh
+
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+sudo dpkg -i /vagrant/packages/svn_amd64_ubuntu12.04/*.deb
+sudo dpkg -i /vagrant/packages/zip_3.0-4_amd64.deb
+sudo dpkg -i /vagrant/packages/unzip_6.0-4ubuntu1_amd64.deb
+APP_HOME=/home/vagrant/apps
+mkdir $APP_HOME
+cd $APP_HOME
+chmod 755 /vagrant/packages/jdk-6u45-linux-x64.bin
+sh /vagrant/packages/jdk-6u45-linux-x64.bin
+tar jxf /vagrant/packages/apache-ant-1.9.3-bin.tar.bz2
+unzip /vagrant/packages/sonar-3.6.1.zip
+
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+export JENKINS_HOME=/home/vagrant/jenkinshome
+mkdir $JENKINS_HOME
+
+sonar-3.6.1/bin/linux-x86-64/sonar.sh start
+nohup java -jar /vagrant/packages/jenkins-1.544.war --httpPort=8088 1&gt;jenkins.log 2&gt;jenkins-err.log &amp;
+</code></pre>
+
+<h2>BVT shell script</h2>
+
+<p>This script checkout the source code to be built, then invoke the Ant script. It&rsquo;s cited in Jenkins project definition.</p>
+
+<pre><code>$ cat /home/bvt/docs/mybvt/bvt-gndp.sh
+#!/bin/sh
+
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+
+svnprefix='svn co --non-interactive --no-auth-cache --username bvt_common --password password'
+svnroot='http://10.0.2.59:8118/svn/gcp/Development-Area'
+prod=GNDP
+$svnprefix ${svnroot}/3-SCL/Trunk/$prod /vagrant/codes/$prod
+
+rm -rf /vagrant/codes/*.zip
+cd /vagrant/codes/$prod;  ant
+</code></pre>
+
+<h2>Ant build script</h2>
+
+<p>This script resides in the root folder of the source project GNDP in subversion repository.</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
+&lt;property name="build.dir" value="${basedir}/build" /&gt;
+&lt;target name="init"&gt;
+    &lt;delete dir="${build.dir}"/&gt;
+    &lt;mkdir dir="${build.dir}"/&gt;
+&lt;/target&gt;
+
+&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+&lt;target name="compile-src" depends="init"&gt;
+    &lt;mkdir dir="${src.class.dir}"/&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+&lt;/target&gt;
+&lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+&lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+&lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+
+&lt;target name="instrument" depends="compile-src"&gt;
+    &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+    &lt;fileset dir="${src.class.dir}"&gt;
+        &lt;include name="**/*.class" /&gt;
+    &lt;/fileset&gt;
+    &lt;/cobertura-instrument&gt;
+&lt;/target&gt;
+
+&lt;property name="test.dir" value="${basedir}/test" /&gt;
+&lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+&lt;target name="compile-test" depends="instrument"&gt;
+    &lt;mkdir dir="${test.class.dir}"/&gt;
+    &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+        &lt;/classpath&gt;
+    &lt;/javac&gt;
+&lt;/target&gt;
+
+&lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+&lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+&lt;target name="unittest" depends="compile-test"&gt;
+    &lt;mkdir dir="${unittest.report.dir}"/&gt;
+    &lt;junit printsummary="yes" fork="yes"&gt;
+        &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;pathelement location="${test.class.dir}"/&gt;
+            &lt;pathelement location="${src.dir}"/&gt;
+            &lt;path refid="lib.path"/&gt;
+        &lt;/classpath&gt;
+        &lt;formatter type="xml"/&gt;
+        &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+            &lt;fileset dir="${test.dir}"&gt;
+                &lt;include name="**/*.java" /&gt;
+            &lt;/fileset&gt;
+        &lt;/batchtest&gt;
+    &lt;/junit&gt;
+&lt;/target&gt;
+
+&lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+&lt;target name="coverage-report" depends="unittest"&gt;
+    &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+&lt;/target&gt;
+
+&lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+&lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+&lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+&lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+&lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+&lt;property name="sonar.projectVersion" value="2.1" /&gt;
+&lt;property name="sonar.language" value="java" /&gt;
+&lt;property name="sonar.sources" value="src" /&gt;
+&lt;property name="sonar.tests" value="test" /&gt;
+&lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+&lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+&lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+&lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+&lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+&lt;target name="sonar" depends="coverage-report"&gt;
+    &lt;taskdef classpath="sonar-ant-task-2.1.jar" uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"/&gt;
+    &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+&lt;/target&gt;
+&lt;/project&gt;
+</code></pre>
+
+<h2>Code Static check rules</h2>
+
+<p>This file defines the static check rules used by Sonarqube. It&rsquo;s imported manually from file &ldquo;tyrules.xml&rdquo; on local hard disk.</p>
+
+<pre><code>$ cat ~/docs/tyrules.xml
+
+&lt;?xml version="1.0" encoding="UTF-8"?&gt; 
+&lt;!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN" "http://www.puppycrawl.com/dtds/configuration_1_3.dtd"&gt; 
+&lt;module name="Checker"&gt; 
+    &lt;property name="severity" value="warning"/&gt; 
+    &lt;module name="TreeWalker"&gt; 
+        &lt;metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;module name="MethodLength"&gt; 
+            &lt;property name="max" value="200"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="NestedIfDepth"&gt; 
+            &lt;property name="max" value="5"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="CyclomaticComplexity"/&gt; 
+            &lt;module name="ParameterNumber"&gt; 
+            &lt;property name="max" value="6"/&gt; 
+        &lt;/module&gt; 
+    &lt;/module&gt; 
+    &lt;module name="StrictDuplicateCode"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="min" value="75"/&gt; 
+    &lt;/module&gt; 
+    &lt;module name="FileLength"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="max" value="1000"/&gt; 
+    &lt;/module&gt; 
+&lt;/module&gt; 
+</code></pre>
+
+<h1>For Unit Test</h1>
+
+<ol>
+<li>copy junit-4.*.jar, cobertura.jar and hamcrest-core-1.3.jar to $ANT_HOME/lib;</li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/20/121235/">Replay Recent Executed Commands</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-06-20T12:12:35+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:12 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>Replay recent executed 15 commands: <code>fc -l -15</code>;</p></li>
+<li><p>Replay recent executed 15 commands in reverse order: <code>fc -lr -15</code>;</p></li>
+<li><p>Replay recent executed 15 commands without list number: <code>fc -ln -15</code>;</p></li>
+<li><p>Replay recent executed commands from &ldquo;man &hellip;&rdquo;: <code>fc -ln man</code>;</p></li>
+<li><p>Edit some last commands (from No.14 to No.24) and execute them: <code>fc -e vi 14 24</code>;</p></li>
+</ul>
+
+
+<p>You can also use &ldquo;-s&rdquo; options to modify commands ant execute, see <code>man fc</code> for details.</p>
+
+<ul>
+<li>Clear history: <code>history -c</code>.</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/18/111355/">Import Subversion Repository From Subversion Dump File</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-06-18T11:13:55+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Overall steps</h1>
+
+<ol>
+<li><p>Get dump file from <a href="FTP:">FTP:</a></p></li>
+<li><p>Build repository based on the dump file;</p></li>
+<li><p>Authorize user of this repository.</p></li>
+</ol>
+
+
+<h1>Operation details</h1>
+
+<h2>On Windows</h2>
+
+<pre><code># get dump file with TotalCmd;
+cd K:\svn
+svnadmin create ALARM
+svnadmin load ALARM &lt; f:\tmp\ALARM-dumpfile
+# add the following text into file "c:\Program Files\Apache Group\Apache2\svnaccessfile"
+    ALARM-dev=user1,user2,user3
+    ####
+    [ALARM:/Development-Area]
+    @ALARM-dev = rw
+    @QA = rw
+    @Manager = r
+    bvt_common = r
+    * = 
+    [ALARM:/Management-Area]
+    @ALARM-dev = rw
+    @QA = rw
+    @Manager = r
+    * = 
+    [ALARM:/Release-Area]
+    @ALARM-dev = rw
+    @Manager = r
+    @QA = rw
+    test = r
+    * = 
+    [ALARM:/Test-Area]
+    @ALARM-dev = r
+    @QA = rw
+    @Manager = r
+    * = 
+# add following text into file "c:\Program Files\Apache Group\Apache2\passwd"
+    user1:pwd1
+    user2:pwd2
+    user3:pwd3
+</code></pre>
+
+<h2>On Linux</h2>
+
+<pre><code>ftp 123.xxx.xxx.xxx
+&gt; get ALARM-dumpfile
+&gt; bye
+cd $SVN_REPO_HOME
+svnadmin create ALARM
+svnadmin load ALARM &lt; ~\ALARM-dumpfile
+# edit file svnaccessfile &amp; passwd the same way with in Windows
+</code></pre>
+
+<p>Note:</p>
+
+<p>The default auth rule is &ldquo;everyone can access everything&rdquo; like the following text in svnaccessfile:</p>
+
+<pre><code>[/] 
+* = r
+@Manager = rw
+@QA = rw
+@Dev = rw
+@TEST-all = rw
+</code></pre>
+
+<p>then define more detailed rules to override the default one, notice the last line:</p>
+
+<pre><code>[ALARM:/Development-Area]
+@ALARM-dev = rw
+...
+* = 
+</code></pre>
+
+<p>But we can define auth rules in another way:</p>
+
+<pre><code>[/]
+* =
+[ALARM:/Development-Area]
+@ALARM-dev = rw
+...
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/13/155048/">Group Substitution in Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-06-13T15:50:48+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:50 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The origin text is:</p>
+
+<p>sqoop export &ndash;columns int_id,date_time,mr_count,ecno_pollution,rscp_0,rscp_1,rscp_2,rscp_3,rscp_4,rscp_5,load_time &ndash;input-field</p>
+
+<p>The target text is:</p>
+
+<p>sqoop export &ndash;columns int_id,date_time,mr_count,ecno_pollution,rscp0,rscp1,rscp2,rscp3,rscp4,rscp5,load_time &ndash;input-field</p>
+
+<p>We want remove all underscore in &ldquo;rscp_3&rdquo;, which means converting it to &ldquo;rscp3&rdquo;. The real text has ninety more items, so we can&rsquo;t do substitutions manually. And other items also use underscore, so you can&rsquo;t only remove all underscores.</p>
+
+<p>Solution: <code>:s/rscp_\(\d\+\)/rscp\1/gc</code>.</p>
+
+<p>We use &ldquo;(&rdquo; and &ldquo;)&rdquo; to mark a group, use &ldquo;\1&rdquo; to represent it in the new strings.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/12/114812/">Join Ragged Columns Im Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-06-12T11:48:12+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:48 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I need to format some texts copied from a PDF file:</p>
+
+<p>a
+ab
+abc
+cd
+e</p>
+
+<p>=>
+=>
+=>
+=>
+=></p>
+
+<p>x
+xy
+xyz
+pq
+p</p>
+
+<p>The target form is:</p>
+
+<p>a   => x
+ab  => xy
+abc => xyz
+cd  => pq
+e   => p</p>
+
+<p>I want to select the whole last section (x&hellip;p) in visual block mode, and paste them after the 2nd section (=>). But in visual block mode (triggered by Ctrl-v), I can&rsquo;t select all of last section. Because there&rsquo;s only one character &ldquo;p&rdquo; in the last line, so only &ldquo;x&rdquo; in the 3rd line (xyz) will be selected. The solution is set &ldquo;virtualedit&rdquo; mode to &ldquo;all&rdquo; with &ldquo;:set ve=all&rdquo;. Now the cursor is free to anywhere no matter if there&rsquo;s a character. After the joining, we have to remove all trailing spaces. So the overall process is:</p>
+
+<p>:set ve=all
+&lt;C-v, select and paste, ESC to normal mode>
+<select all line joined together in visual line mode>
+:&lsquo;&lt;,&rsquo;>s/\s*//g
+:set ve=</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -341,243 +874,6 @@ You can keep the edit window of vimim.txt open. While the file saved, the item w
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/29/115513/">A Good Tutorial About C++ Syntax and Points</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-29T11:55:13+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The whole tutorial <a href="http://www.cplusplus.com/doc/tutorial/">C++ Language</a> is concise and helpful. The section <a href="http://www.cplusplus.com/doc/tutorial/pointers/">Pointers</a> is a good introduction of pointers. It distinguishes many myth of pointers, for example:</p>
-
-<ul>
-<li><p>It distinguishes &ldquo;pointer declaration&rdquo; of &ldquo;dereference operation&rdquo;. They use both the same operator &ldquo;*&rdquo;, but are different things.</p></li>
-<li><p>Pointer and array are largely the same, but an import difference: pointer can be reassigned, while array variable can&rsquo;t.</p></li>
-<li><p>Incrementation of a pointer produce different result regarding to the data type it referenced. Say a pointer p has the address 1000, according to its referenced type, the incrementation results are:</p>
-
-<p>  char * p; p = 1000; p++ is 1001;
-  short * p; p = 1000; p++ is 1002;
-  long * p; p = 1000; p++ is 1004;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/28/162120/">Mechanical Keyboard</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-28T16:21:20+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:21 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Compared with regular membrane keyboard, mechanical keyboard are more suitable for power PC users, like coders and game players.</p>
-
-<p>Brand:</p>
-
-<ul>
-<li><p>Cherry</p></li>
-<li><p>Keycool</p></li>
-<li><p>Filco</p></li>
-</ul>
-
-
-<p>Ref:</p>
-
-<ul>
-<li><p><a href="http://www.pcworld.com/article/240939/mechanical_keyboards_should_you_switch_.html">Mechanical Keyboards: Should You Switch?</a></p></li>
-<li><p><a href="http://www.pcworld.com/article/242037/mechanical_keyboard_faq_pick_the_right_switch.html">Mechanical Keyboard FAQ: Pick the Right Switch</a></p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/28/105855/">Python Console Debugger</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-28T10:58:55+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:58 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Create a python file and debug it in gdb style with pdb:</p>
-
-<pre><code>$ pdb testpdb.py
-&gt; /home/chad/docs/tmp/testpdb.py(1)&lt;module&gt;()
--&gt; aa = 3
-(Pdb) help
-...
-(Pdb) help l
-...
-(Pdb) l
-  1  -&gt; aa = 3
-  2     bb = 4
-  3     cc = aa + bb
-  4     print(cc)
-[EOF]
-(Pdb) w
-  /usr/lib/python2.7/bdb.py(400)run()
--&gt; exec cmd in globals, locals
-  &lt;string&gt;(1)&lt;module&gt;()
-&gt; /home/chad/docs/tmp/testpdb.py(1)&lt;module&gt;()
--&gt; aa = 3
-(Pdb) n
-&gt; /home/chad/docs/tmp/testpdb.py(2)&lt;module&gt;()
--&gt; bb = 4
-(Pdb) b 4
-Breakpoint 1 at /home/chad/docs/tmp/testpdb.py:4
-(Pdb) c
-&gt; /home/chad/docs/tmp/testpdb.py(4)&lt;module&gt;()
--&gt; print(cc)
-(Pdb) w
-  /usr/lib/python2.7/bdb.py(400)run()
--&gt; exec cmd in globals, locals
-  &lt;string&gt;(1)&lt;module&gt;()
-&gt; /home/chad/docs/tmp/testpdb.py(4)&lt;module&gt;()
--&gt; print(cc)
-(Pdb) p bb
-4
-(Pdb) c
-7
-The program finished and will be restarted
-&gt; /home/chad/docs/tmp/testpdb.py(1)&lt;module&gt;()
--&gt; aa = 3
-(Pdb) q
-</code></pre>
-
-<p>The command is exactly the same with gdb.</p>
-
-<p>On some OS like ArchLinux, there isn&rsquo;t &ldquo;pdb&rdquo; command, so you have to find the location of &ldquo;pdb.py&rdquo;, then define an alias in ~/.zshrc:</p>
-
-<pre><code>$ locate pdb.py
-...
-/usr/lib/python3.4/pdb.py
-...
-$ echo 'alias pdb="/usr/lib/python3.4/pdb.py"' &gt;&gt; ~/.zshrc
-</code></pre>
-
-<p>Now you can use &ldquo;pdb <script_file_name>&rdquo; as in Mint.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/28/084746/">Modify SSH Welcome Message of Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-28T08:47:46+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:47 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The ssh welcome message of a Linux OS is stored in file /etc/motd. So modify it for customization.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/28/082704/">Reminder Application on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-28T08:27:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:27 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Alarm Clock</h1>
-
-<ol>
-<li><p>sudo apt-get install alarm-clock</p></li>
-<li><p>Alt-F2: alarmclock, or <code>alarmclock &amp;</code> from command line;</p></li>
-</ol>
-
-
-<p>Of course Thunderbird is a solution, but is a heavy one.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/24">&larr; Older</a>
@@ -595,23 +891,23 @@ $ echo 'alias pdb="/usr/lib/python3.4/pdb.py"' &gt;&gt; ~/.zshrc
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
+        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
+        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
+        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
+        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
+        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
       </li>
     
   </ul>

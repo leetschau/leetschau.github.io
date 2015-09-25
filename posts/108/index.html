@@ -9,9 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="用VIM当文本分析器分析log4j打出的日志时，有一个问题很棘手，那就是经常要搜索
-[DEBUG] [2010-08-09 15:44:49,421] [com.boco.godu.GAPI.impl.DataReader]
-这样的字符串，直接在/后面粘贴上字符串肯定不行，因为里面有大量的 &hellip;">
+  <meta name="description" content="LinkedBlockingQueue inputQ = new LinkedBlockingQueue(); Byte[] destArr = inputQ.toArray( new Byte[0]); byte [] resultArr = new byte [destArr. length &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +65,337 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/11/085442/">将队列转换为字符串</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-11T08:54:42+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:54 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>LinkedBlockingQueue<Byte> inputQ = new LinkedBlockingQueue<Byte>();</p>
+
+<p> Byte[] destArr = inputQ.toArray( new Byte[0]);</p>
+
+<p> byte [] resultArr = new  byte [destArr. length ];</p>
+
+<p> for ( int i = 0; i &lt; resultArr. length ; i++) {</p>
+
+<p>  resultArr[i] = destArr[i].byteValue();</p>
+
+<p> }</p>
+
+<p> strRes = new String(resultArr);</p>
+
+<p> 转换过程是：队列==>Byte数组==>byte数组==>字符串。下面是应用了此一转换的完整的Result类实现。</p>
+
+<p> /**</p>
+
+<ul>
+<li><p>通过字节队列创建一个新的返回结果实例</p></li>
+<li></li>
+<li><p>@param inputQ</p></li>
+<li><p> 结果字节队列</p></li>
+<li><p>@param cmdType</p></li>
+<li><p> 命令返回类型</p></li>
+</ul>
+
+
+<p> */</p>
+
+<p> public Result( final LinkedBlockingQueue<Byte> inputQ, final  int cmdType) {</p>
+
+<p>  cmdReturnType = cmdType;</p>
+
+<p>  Byte[] destArr = inputQ.toArray( new Byte[0]);</p>
+
+<p>  byte [] resultArr = new  byte [destArr. length ];</p>
+
+<p>  for ( int i = 0; i &lt; resultArr. length ; i ++) {</p>
+
+<p>   resultArr[ i ] = destArr[ i ].byteValue();</p>
+
+<p>  }</p>
+
+<p>  strRes = new String(resultArr);</p>
+
+<p> }</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/10/203539/">在队列中寻找字符串算法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-10T20:35:39+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:35 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在一个队列destQ中，从前向后搜索是否有字符串flag，下面是算法实现以及测试程序。回溯功能暂未实现。</p>
+
+<p> private  int findFlag( final LinkedBlockingQueue<Byte> destQ,</p>
+
+<p> final String flag) {</p>
+
+<p> byte [] flagArr = flag.getBytes();</p>
+
+<p> Byte[] destArr = destQ.toArray( new Byte[0]);</p>
+
+<p> int matchCount = 0; // 已匹配的字节数</p>
+
+<p> int flagPos = -1; // 标志末尾的编号</p>
+
+<p> int i = 0;</p>
+
+<p> int  backupIndex = 0; // 用于回溯的索引</p>
+
+<p> while (i &lt;= destQ.size()) {</p>
+
+<p> if (flag.length() &lt;= matchCount) {</p>
+
+<p> flagPos = i;</p>
+
+<p> break ;</p>
+
+<p> } else {</p>
+
+<p> if (destArr[i] == flagArr[matchCount]) {</p>
+
+<p> matchCount++;</p>
+
+<p> } else {</p>
+
+<p> matchCount = 0;</p>
+
+<p> // i = backupIndex;</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p> i = i + 1;</p>
+
+<p> if (matchCount == 1) {</p>
+
+<p> backupIndex = i;</p>
+
+<p> }</p>
+
+<p> }</p>
+
+<p> return flagPos;</p>
+
+<p> }</p>
+
+<p> @Test</p>
+
+<p> public  void runFindFlag() {</p>
+
+<p> LinkedBlockingQueue<Byte> analyzerBuffer = new LinkedBlockingQueue<Byte>();</p>
+
+<p> for ( int i = 33; i &lt; 123; i++) {</p>
+
+<p> analyzerBuffer.offer( new Byte(( byte ) i));</p>
+
+<p> }</p>
+
+<p> String endFlag = &ldquo;123&rdquo; ;</p>
+
+<p> int endFlagPos = findFlag(analyzerBuffer, endFlag);</p>
+
+<p> List<Byte> cmplXmlStr = new ArrayList<Byte>();</p>
+
+<p> analyzerBuffer.drainTo(cmplXmlStr, endFlagPos);</p>
+
+<p> System. out .println(cmplXmlStr);</p>
+
+<p> }</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/10/190026/">为Eclipse配置绿色版JDK</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-10T19:00:26+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>7:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>1、解压JDK，例如f:\warez\Develop\Java\jdk1.5.0_16；</p>
+
+<p>2、修改环境变量，在Path中增加：f:\warez\Develop\Java\jdk1.5.0_16\bin；</p>
+
+<p>3、解压Eclipse，例如f:\warez\IDEs\Eclipse0621目录下；启动Eclipse（f:\warez\IDEs\Eclipse0621\eclipse.exe），如果提示找不到jre，可以用 “f:\warez\IDEs\Eclipse0621\eclipse.exe -vm f:\warez\Develop\Java\jdk1.5.0_16\bin” 的方式启动；</p>
+
+<p>4、在Eclipse的Window==>Preferences==>Java==>Installed JREs中添加：</p>
+
+<p> F:\warez\Develop\Java\jdk1.5.0_16；</p>
+
+<p>5、重启Eclipse，如果仍然提示找不到jre，在Installed JREs==>Execution Enviroments中选对应的JDK版本打勾；</p>
+
+<p>6、重启Eclipse验证设置成功；</p>
+
+<p>7、为eclipse.exe增加快捷键，例如在Hoekey里加一行：~@E = Run|&ldquo;f:\warez\IDEs\Eclipse0621\eclipse.exe&rdquo;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/10/162133/">LinkedBlockingQueue的drainTo方法示例代码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-10T16:21:33+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:21 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>LinkedBlockingQueue<String> analyzerBuffer = new LinkedBlockingQueue<String>();</p>
+
+<p> String abc = &ldquo;abc&rdquo; ;</p>
+
+<p> analyzerBuffer.offer(abc);</p>
+
+<p> List<String> tmp = new ArrayList<String>();</p>
+
+<p> analyzerBuffer.drainTo(tmp);</p>
+
+<p> System. out .println(tmp);</p>
+
+<p> System. out .println(analyzerBuffer);</p>
+
+<p> analyzerBuffer.offer(abc);</p>
+
+<p> analyzerBuffer.offer(abc);</p>
+
+<p> analyzerBuffer.drainTo(tmp);</p>
+
+<p> System. out .println(tmp);</p>
+
+<p> System. out .println(analyzerBuffer);</p>
+
+<p> 输出：</p>
+
+<p> [abc]</p>
+
+<p> []</p>
+
+<p> [abc, abc, abc]</p>
+
+<p> []</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/10/140800/">Arraycopy将数组分为两部分时游标的设置方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-10T14:08:00+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:08 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>System.arraycopy是复制数组的一个常用工具，它在游标处如何分为两个是一个需要注意的问题，例如下面的示例代码：</p>
+
+<p>  byte [] src = { 104, 101, 108, 108, 111 };</p>
+
+<p> int endPos = 2;</p>
+
+<p> byte [] dest = new  byte [endPos];</p>
+
+<p> byte [] surplus = new  byte [src. length - endPos];</p>
+
+<p> System. arraycopy (src, 0, dest, 0, dest. length );</p>
+
+<p> System. arraycopy (src, endPos, surplus, 0, src. length - endPos);</p>
+
+<p> 游标（变量endPos）位置为2时，dest数组是{104, 101}，surplus数组是{108, 108, 111}。</p>
+
+<p> 也就是说，编号为游标的元素（从0开始编号）在原数组分割后变为后面数组的第一个元素。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -379,222 +708,6 @@ So you can use <code>:vert sb#</code> to open most recently used buffer in a ver
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/03/112839/">VIM的命令历史</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-03T11:28:39+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>11:28 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>例如有一段文本，将所有CTRL替换为ctrl，将所有A替换为a，也就是执行了:%s/CTRL/ctrl/g和:%s/A/a/g两条命令，然后进行了很多其他编辑，最后关闭VIM。
- 后来又有一段文本，也需要将所有CTRL替换为ctrl，将所有A替换为a，这时候不需要重新敲上面两个命令，只需要输入:%s，然后按向上键，:%s/CTRL/ctrl/g就自己跑出来了。
- 如果不确定以前用过这个命令没有，可以用:his查看已输入命令的历史列表，编号越大，表示离现在越近。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/02/144518/">VIM的寄存器</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-02T14:45:18+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2010</span></span> <span class='time'>2:45 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>VIM的寄存器分为3种，一种以数字命名，一种以字母命名，还有一种名字其他符合，如星号“*”。
- 数字寄存器标号是0~9，每次拷贝操作时如果不指定寄存器名字，则默认放在0寄存器中，原来0中的内容放到1中，1放到2中，依此类推，原来9中的内容被舍弃；
- 字母寄存器的标号是a~z，它们的内容保持不变；
- 还有一些以符号命名的寄存器，详见:h reg，用:reg命令可以列出所有寄存器以及它们的值。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/02/144347/">用VIM查找特定字符串</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-02T14:43:47+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2010</span></span> <span class='time'>2:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>分析文本的时候经常出现的一个场景是：在关键字key的后面使用了一个变量，现在需要知道如何定义这个变量，但不知道它的名字，也不知道定义它的位置，一般采用的方法是先查找key，找到这个变量的名字，如str，然后再查找str，一般最开始处的str就是定义的位置。但有时str可能很长，对于UltraEdit这样的软件这个动作很简单，选中str，然后F3即可，但VIM没有这个功能，实现这个动作相对稍微麻烦些：
- 1、用/key找到str；
- 2、拷贝这个str（注1）；
- 3、/&lt;ctrl+r>0查找选中的字符串；即先输入/，然后ctrl+r，然后输入0（原因见博文“VIM的寄存器”）。
- 注1：
- 不论中英文字符串，都是用标点或者空格作为word之间的分隔符，对于英文字符串，词与词之间有空格，用ynw比较好（其中n是词的个数，标点算一个词，例如project.classpath是3个word），用y3w就可以拷贝到寄存器中，中文字符串词间无空格，可用ynl拷贝（l是向右移动命令，n表示移动次数，即字数）。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/07/26/170859/">Log4j日志的输出级别设置</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-07-26T17:08:59+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:08 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>log4j日志文件的输出级别分为7级，由高到低依次是：off, fatal, error, warn, info, debug, all。</p>
-
-<p> 在“log4j.properties”文件的log4j.appender.***.Threshold属性中设置输出的优先级，例如log4j.appender.stdout.Threshold=DEBUG。</p>
-
-<p> 比自己低级别的输出将不会出现在对应的log文件里，例如设置为error，则warn,info,debug级别的日志不写入log文件，设置为info则debug信息不写入log文件。通过在不同的log文件里设置不同的Threshold级别的方法，可以已达到分类输出的目的，例如错误日志文件专门记录error，信息日志记录除调试信息以外的日志，调试日志记录所有输出的日志。</p>
-
-<p> 除了针对appender设置屏蔽级别，还可以针对某一个类设置屏蔽级别，例如：</p>
-
-<p>  log4j.logger.com.boco.godu.GAPI.impl.Connection=WARN</p>
-
-<p> 这样com.boco.godu.GAPI.impl.Connectio类中所有级别低于WARN的日志都不会输出。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/07/22/155359/">基于JUnit的测试包和测试用例的模板</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-07-22T15:53:59+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2010</span></span> <span class='time'>3:53 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>测试用例
- 模板代码见附录 1 ，实际的测试代码写在方法 dataPortTest 中，注意这个方法不能有参数和返回值，前面用 @Test 标示，就可以用 JUnit 测了，如果这个测试用例仅仅做单个测试，不加到测试包中，可以去掉 suite 和 SyncActorTest 两个方法。
- 测试包
- 模板代码见附录 2 ， addTest 的参数格式是 new TestClassName(“testMethodName”) ，一个测试类中可以有多个测试方法，一个包中可以测很多类，测试包可以很方便地选择需要测试的类和方法。
- 附录 1
- package com.boco.godu.GAPI;
- import junit.framework.Assert;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-import org.junit.Test;
- public class SyncActorTest extends TestCase {
- public static TestSuite suite() {
- TestSuite suite = new TestSuite();
- suite.addTest(new SyncActorTest(&ldquo;dataPortTest&rdquo;));
- return suite;
- }
- public SyncActorTest(final String name) {
- super(name);
- }
- @Test
- public void dataPortTest() {
- ConnFactory connFactory = new ConnFactory(&ldquo;10.0.2.47&rdquo;, 1235);
- connFactory.setUserName(&ldquo;<aa><7001><administrator><autocmd>&rdquo;);
- connFactory.setPassword(&ldquo;goduapp&rdquo;);
- Assert.assertEquals(&ldquo;goduapp&rdquo;, connFactory.getPassword());
- try {
- IConnection conn = connFactory.getConnection();
- Assert.assertEquals(IConnection.CONNECTION_INITIAL, conn.getStatus());
- ISyncActor syncActor = conn.getSyncActor();
- Document recXml = syncActor.sendCmd(&ldquo;ls id=1938695146&rdquo;).getXml();
- // some other Assert&hellip;
- syncActor.close();
- conn.close();
- } catch (Exception e) {
- e.printStackTrace();
- }
- }
-}
- 附录 2
- package com.boco.godu.GAPI;
- import junit.framework.TestCase;
-import junit.framework.TestSuite;
- public class GapiTestSuite extends TestCase {
- public static TestSuite suite() {
- TestSuite suite = new TestSuite();
- suite.addTest(new SyncActorTest(&ldquo;dataPortTest&rdquo;));
- suite.addTest(new SyncActorTest(&ldquo;dataPortTest2&rdquo;));
- suite.addTest(new SyncActorTest2(&ldquo;&hellip;&rdquo;));
- suite.addTest(&hellip;);
- return suite;
- }
-}</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/109">&larr; Older</a>
@@ -612,23 +725,23 @@ import junit.framework.TestSuite;
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
+        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
+        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
+        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
+        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
+        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
       </li>
     
   </ul>

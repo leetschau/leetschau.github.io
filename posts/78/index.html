@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="使用两台windows机器做集群节点，其中一台同时作为代理服务器（集群入口），搭建过程如下： 根据笔记 GODU as Web Service 的 SimpleHTTPServer + Ajax实现 在10.31.1.71和10.31.1.190两台机器上分别搭建HTTP Server， &hellip;">
+  <meta name="description" content="与网络安装相比，DVD安装的优点是不受网络限制，安装速度快，
+VMWare上的CentOS用DVD安装软件的前提是能够挂接上DVD（ISO）文件，需要在虚拟机配置项的Hardware->CD/DVD项中选择"use ISO image file:&ldquo;，
+选中ISO文件，然后勾选" &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +67,300 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/20/103014/">使用DVD作为vmware上CentOS的软件安装源</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-20T10:30:14+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:30 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>与网络安装相比，DVD安装的优点是不受网络限制，安装速度快，
+VMWare上的CentOS用DVD安装软件的前提是能够挂接上DVD（ISO）文件，需要在虚拟机配置项的Hardware->CD/DVD项中选择"use ISO image file:&ldquo;，
+选中ISO文件，然后勾选"Device Status"下面的两项："Connected"和"Connected at power on"，如下图：</p>
+
+<p>需要安装软件时，将rpm文件从DVD中拷贝到本地目录中双击运行，或者通过修改配置的方法使yum命令指向DVD而不是网络：</p>
+
+<p>确认DVD上有repodata/repomd.xml文件，此文件的全路径为：/media/CentOS_6.2_Final/ repodata/repomd.xml，
+根据它修改/etc/yum.repos.d中的CentOS-Base.repo和CentOS-Media.repo两个文件，
+Base是首选文件，所以将其改名为CentOS-Base.repo.bak，然后将Media中的baseurl改为"file:///media/CentOS_6.2_Final/&ldquo;，
+即DVD的repomd.xml路径中repodata之前的部分，enabled值改为1。</p>
+
+<p>安装Telnet客户端：</p>
+
+<p><code>rpm -qa|grep telnet</code>查看是否已安装telnet。
+如果没有，用"yum install telnet"安装之，这个只是Telnet Client，Server最好不要装，安全性差，
+CentOS 6.2默认安装了SSH Server（用rpm -qa|grep ssh验证），完全可以取代Telnet Server。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/20/093123/">包名不要与已有模块名一致</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-20T09:31:23+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:31 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>例如项目新建了一个名为pexpect的package，下面新建了名为client的module，才其中使用"import pexpect"导入pexpect会出错，因为python认为导入的是package，而不是python模块。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/19/163003/">Linux上中文乱码问题的解决办法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-19T16:30:03+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:30 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>中文出现乱码，首先需要查看字符串编码和解码的方法是否一致，其次检查Linux的LANG环境变量中的编码是否匹配程序的编解码方法。</p>
+
+<p>建议统一编码为UTF-8，对应的bash脚本：export LANG=zh_CN.UTF-8</p>
+
+<p>编码是字符串转换为字节数组（二进制串），解码是逆过程，charset指定了其中转换/逆转换的方式（见 字符编解码的故事 ）。就Java而言，用指定的charset（例如UTF-8）对字符串编码用"byte[] dst = input_string.getBytes(&ldquo;UTF-8&rdquo;);&ldquo;实现，解码用“String dst = new String(input_byte_array, "UTF-8&rdquo;);”实现；</p>
+
+<p>如果编码使用“byte[] dst = input_string.getBytes()”，则具体的编码方式依赖于操作系统，存在编码错误的风险，解码用“String dst = new String(input_byte_array);”也存在解码错误的风险，所以在编/解码过程中最好明确指定使用的charset。</p>
+
+<p>下面的代码将字节数组转换为16进制字节码字符串，以便观察不同的charset如何影响生成的字节码。</p>
+
+<p> public class MQReceiver {
+ public static void main(String[] args) {
+  byte[] buf = mq.recvTextMessage(); // receive msg from mq
+  if (buf != null) {
+   String hexRes = bytes2HexString(buf);
+   System.out.println(hexRes);
+   System.out.println(getChnBytes(hexRes));
+   String bufstr = new String(buf,&ldquo;UTF-8&rdquo;);
+   System.out.println(&ldquo;Recv alarm: &rdquo; + bufstr);
+  } else {
+   System.out.println(&ldquo;buf: &rdquo; + buf);
+  }
+ }</p>
+
+<p> public static String bytes2HexString(byte[] b) {
+  String ret = &ldquo;&rdquo;;
+  for (int i = 0; i &lt; b.length; i++) {
+   String hex = Integer.toHexString(b[i] &amp; 0xFF);
+   if (hex.length() == 1) {
+    hex = &lsquo;0&rsquo; + hex;
+   }
+   ret += hex.toUpperCase();
+  }
+  return ret;
+ }
+ public static String getChnBytes(String input) {
+  String sflag = &ldquo; &lt;FM_ALARM_MSG.AlarmText> &rdquo;;
+  String eflag = &ldquo;&lt;/FM_ALARM_MSG.AlarmText>&rdquo;;
+  byte[] start = sflag.getBytes();
+  byte[] end = eflag.getBytes();
+  String ss = bytes2HexString(start);
+  String se = bytes2HexString(end);
+  int beginIndex = input.indexOf(ss) + ss.length();
+  int endIndex = input.indexOf(se);
+  return input.substring(beginIndex, endIndex);
+ }
+}</p>
+
+<p>其中getChnBytes方法从下面的字符数组中找到汉字，提取出来，以便于观察汉字部分编码的变化，</p>
+
+<p> &lt;FM_ALARM_MSG.EventTime>2012-06-20 14:39:51&lt;/FM_ALARM_MSG.EventTime> &lt;FM_ALARM_MSG.AlarmText> 检查数据库连接产生异常&lt;/FM_ALARM_MSG.AlarmText><C_FP0></C_FP0></p>
+
+<p>例如UTF-8的“ 检查数据库连接产生异常”编码输出如下：</p>
+
+<p> E6A380
+E69FA5
+E695B0
+E68DAE
+E5BA93
+E8BF9E
+E68EA5
+E4BAA7
+E7949F
+E5BC82
+E5B8B8</p>
+
+<p>注： 快典网 可以在线查看汉字的各种编码。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/15/111332/">Java整数手工编码实例</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-15T11:13:32+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Kenneth L. Calvert &amp; Michael J. Donahoo: TCP/IP Sockets in Java - Practical Guide for Programmers(Second Edition), Chapter 3, BruteForceCoding.java要解决的问题是：对于一个整数（byte, int, short或者 long），怎么编码为二进制流以便于网络传输？接收端又应该如何解码？下面这个测试是对这个程序中对int数编码的进一步说明：</p>
+
+<p> @Test
+ public void testShift4() {
+  int input = 100000001;
+  byte high8bits = (byte) (input >> ((4 - 0 - 1) * Byte.SIZE));
+  assertEquals(high8bits, 5);
+  byte secondHigt8bits = (byte) (input >> ((4 - 1 - 1) * Byte.SIZE));
+  assertEquals(secondHigt8bits, -11);
+  byte thirdHigh8bits = (byte) (input >> ((4 - 2 - 1) * Byte.SIZE));
+  assertEquals(thirdHigh8bits, -31);
+  byte low8bits = (byte) (input >> ((4 - 3 - 1) * Byte.SIZE));
+  assertEquals(low8bits, 1);
+  System.out.println(&ldquo;input is: &rdquo; + Integer.toHexString(input));
+  System.out
+    .println(&ldquo;left 8 bits are: &rdquo; + Integer.toHexString(high8bits));
+  System.out.println(&ldquo;2nd 8 bits are: &rdquo;
+    + Integer.toHexString(secondHigt8bits));
+  System.out.println(&ldquo;3rd 8 bits are: &rdquo;
+    + Integer.toHexString(thirdHigh8bits));
+  System.out
+    .println(&ldquo;right 8 bits are: &rdquo; + Integer.toHexString(low8bits));
+  System.out.println(&ldquo;input is: &rdquo; + Integer.toBinaryString(input));
+  System.out.println(&ldquo;left 8 bits are: (00000)&rdquo;
+    + Integer.toBinaryString(high8bits));
+  String secondHigt8bitsStr = Integer.toBinaryString(secondHigt8bits);
+  System.out
+    .println(&ldquo;2nd 8 bits are: &rdquo;
+      + secondHigt8bitsStr.substring(secondHigt8bitsStr
+        .length() - 8));
+  String thirdHigh8bitsStr = Integer.toBinaryString(thirdHigh8bits);
+  System.out.println(&ldquo;3rd 8 bits are: &rdquo;
+    + thirdHigh8bitsStr.substring(thirdHigh8bitsStr.length() - 8));
+  System.out.println(&ldquo;right 8 bits are: (0000000)&rdquo;
+    + Integer.toBinaryString(low8bits));
+ }</p>
+
+<p>运行结果：
+input is: 5f5e101</p>
+
+<p>left 8 bits are: 5</p>
+
+<p>2nd 8 bits are: fffffff5</p>
+
+<p>3rd 8 bits are: ffffffe1</p>
+
+<p>right 8 bits are: 1</p>
+
+<p>input is: 101111101011110000100000001</p>
+
+<p>left 8 bits are: (00000)101</p>
+
+<p>2nd 8 bits are: 11110101</p>
+
+<p>3rd 8 bits are: 11100001</p>
+
+<p>right 8 bits are: (0000000)1</p>
+
+<p>可以看到BruteForceCoding.java使用了右移的方法进行编码，从左至右，每次取一个字节，如果使用ByteBuffer，编码为：使用int buffer，编码为：</p>
+
+<p>由此可见Java的ByteBuffer和int buffer是如何简化我们工作的。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/06/14/180411/">关于Web的几个概念</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-06-14T18:04:11+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>6:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Web 是 Internet 上的一个文档系统，为了使用Web，首先要有 Web Server （以 Web Service 的形式）接收用户浏览器（ Web Browser ）发出的连接请求并予以反馈，Web Server接收到请求后解码，并转发给 Web Application （可以理解为一个运行在Web上的，可以用浏览器使用的应用程序），后者进行业务逻辑处理，返回结果给Web Server，再返回到用户浏览器中。 WSGI 起到了Web Server和Web Application之间的桥梁的作用，它是一个Python语言规范，类似于一个Protocol。</p>
+
+<p>Application Server（例如 GlassFish ）提供的是业务解决方案（Web Server是基于HTTP协议处理用户请求），它与Web Server的区别见：</p>
+
+<p> Web服务器和应用服务器的区别</p>
+
+<p> App server, Web server: What&rsquo;s the difference?</p>
+
+<p> Application Server vs Web Server</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -384,209 +680,6 @@ NetBeans调试PHP的方式是：只要一个php文件里加入了断点，且Net
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/29/181042/">Windows中删除文件关联</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-29T18:10:42+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>6:10 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用TotalCMD查看jar文件内容很方便，但安装了java后安装程序将jar的文件关联改成了java，导致双击jar文件后不是进入jar文件内部，而是用java.exe运行这个jar，想要查看内容还得用7zip打开，很麻烦，解决方法是删除jar文件与java.exe的关联，最简单的方法是在命令行里输入：</p>
-
-<p> assoc .jar=</p>
-
-<p>如果要删除扩展名为abc的关联，执行"assoc .abc=&ldquo;即可，在Win7上验证通过。`</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/29/142752/">基于Eclipse+Pydev的Python开发环境</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-29T14:27:52+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Django开发
-安装Pydev后可以新建Django项目，Ctrl+2+dj运行django项目；运行python module快捷键：F9，运行unittest快捷键：Ctrl+F9；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/28/100022/">Apache Commons-io的字符串编解码问题</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-28T10:00:22+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:00 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>用Apache org.apache.commons.io.input.Tailer监控日志文件变化很方便，但如果文件中有中文，回调函数TailerListener.handle中参数line是乱码，原因是目前的Tailer是按“西欧语言”（ISO8859-1）对日志文件进行解码的，而日志文件一般是用GBK或者UTF-8编码。解决方法是对line用ISO8859-1再进行一次编码得到原始的字节数组，然后用日志文件的格式进行解码，这样最终得到的字符串就OK了。实现方法如下：</p>
-
-<p>服务类：</p>
-
-<p> &hellip;</p>
-
-<p> LogMonitorListener lml = new LogMonitorListener();</p>
-
-<p> Tailer lmt = new Tailer(logfile, lml, 3000);</p>
-
-<p> &hellip;</p>
-
-<p> lmt.run();</p>
-
-<p>监听器类：</p>
-
-<p>public class LogMonitorListener extends TailerListenerAdapter {</p>
-
-<p> &hellip;</p>
-
-<p> @Override</p>
-
-<p> public void handle(String line) {</p>
-
-<p>  msg = new String(line.getBytes(&ldquo;ISO8859-1&rdquo;), &ldquo;GBK&rdquo;) ; //用来处理GBK格式的日志</p>
-
-<p>   msg = new String(line.getBytes(&ldquo;ISO8859-1&rdquo;), &ldquo;UTF-8&rdquo;) ; //用来处理UTF-8格式的日志</p>
-
-<p>  &hellip;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/25/174816/">Django报`ascii Codec Can't Decode Byte ... Ordinal Not in Range 128`错误解决方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-25T17:48:16+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下午在Django里连接telnet服务器，总报"ascii codec can&rsquo;t decode byte &hellip; ordinal not in range 128"错误，参考，发现是由于Python2.x telnetlib的连接参数要求是str类型，但Django里所有的字符串都是unicode，二者不兼容导致上述错误，解决方法是用Django提供的smart_str()方法将unicode转换为str：</p>
-
-<p>from neconnector.models import Channel
-from django.utils.encoding import smart_str
-import telnetlib
-def translate_str(input):</p>
-
-<p> return smart_str(input, encoding=&lsquo;utf-8&rsquo;, strings_only=False, errors=&lsquo;strict&rsquo;)</p>
-
-<p>ch = get_object_or_404(Channel, pk=conn_id) #从数据库里取出unicode类型对象</p>
-
-<p>ip = translate_str(ch.ip) # 转换为str</p>
-
-<p>tn = telnetlib.Telnet(ip)</p>
-
-<p>&hellip;</p>
-
-<p>同理，写入数据库时需要用smart_unicode方法做逆向转换。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/25/092525/">基于Notepad++的Django开发环境</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-05-25T09:25:25+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:25 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Notepad++(np++) 6.1.3, plugin: TagsView &amp; Light Explorer</p>
-
-<p>font: consolas 12</p>
-
-<p>color theme: zenburn</p>
-
-<p>hotkey: activate tagview: alt-g; light explorer: alt-a; editor: not find yet</p>
-
-<p>关于np++的配置系统，参考 NpWiki++ 上的 Notepad++&rsquo;s configuration files 一节。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/79">&larr; Older</a>
@@ -604,23 +697,23 @@ def translate_str(input):</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
+        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
+        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
+        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
+        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
+        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
       </li>
     
   </ul>

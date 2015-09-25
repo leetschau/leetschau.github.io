@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Follow VirtualBox on Arch Wiki. Install VirtualBox: pacman -S virtualbox virtualbox-host-modules qt4 ...;
-Load VirtualBox kernel driver manually: &hellip;">
+  <meta name="description" content="Based on Writing an Hadoop MapReduce Program in Python. Create mapper and reducer script and make them executable with chmod 755 *.py: mapper.py: #!/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,379 @@ Load VirtualBox kernel driver manually: &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/07/112649/">Run Python MapReduce on Hadoop Cluster</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-07T11:26:49+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:26 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Based on <a href="http://www.michael-noll.com/tutorials/writing-an-hadoop-mapreduce-program-in-python/">Writing an Hadoop MapReduce Program in Python</a>.</p>
+
+<ol>
+<li>Create mapper and reducer script and make them executable with <code>chmod 755 *.py</code>:</li>
+</ol>
+
+
+<p>mapper.py:</p>
+
+<pre><code>#!/usr/bin/env python
+import sys
+# input comes from STDIN (standard input)
+for line in sys.stdin:
+    # remove leading and trailing whitespace
+    line = line.strip()
+    # split the line into words
+    words = line.split()
+    # increase counters
+    for word in words:
+        # write the results to STDOUT (standard output); what we output here will be the input for the Reduce step, i.e. the input for reducer.py tab-delimited; the trivial word count is 1
+        print '%s\t%s' % (word, 1)
+</code></pre>
+
+<p>reducer.py:</p>
+
+<pre><code>#!/usr/bin/env python
+
+from operator import itemgetter
+import sys
+
+current_word = None
+current_count = 0
+word = None
+
+# input comes from STDIN
+for line in sys.stdin:
+    # remove leading and trailing whitespace
+    line = line.strip()
+
+    # parse the input we got from mapper.py
+    word, count = line.split('\t', 1)
+
+    # convert count (currently a string) to int
+    try:
+        count = int(count)
+    except ValueError:
+        # count was not a number, so silently ignore/discard this line
+        continue
+
+    # this IF-switch only works because Hadoop sorts map output by key (here: word) before it is passed to the reducer
+    if current_word == word:
+        current_count += count
+    else:
+        if current_word:
+            # write result to STDOUT
+            print '%s\t%s' % (current_word, current_count)
+        current_count = count
+        current_word = word
+
+# do not forget to output the last word if needed!
+if current_word == word:
+    print '%s\t%s' % (current_word, current_count)
+</code></pre>
+
+<ol>
+<li><p>Get input text file and put them into hdfs: download the text version of <a href="http://www.gutenberg.org/etext/20417">The Outline of Science, Vol. 1 (of 4) by J. Arthur Thomson</a>, <a href="http://www.gutenberg.org/etext/5000">The Notebooks of Leonardo Da Vinci</a> and <a href="http://www.gutenberg.org/etext/4300">Ulysses by James Joyce</a>. Then upload them to hdfs:</p>
+
+<p> $ hadoop fs -mkdir gutenberg
+ $ hadoop fs -put pg<em>.txt gutenberg/
+ $ hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-</em>streaming<em>.jar -file /home/hduser/mapper.py -mapper /home/hduser/mapper.py -file /home/hduser/reducer.py -reducer /home/hduser/reducer.py -input /user/hduser/gutenberg/</em> -output /user/hduser/gutenberg-output</p></li>
+</ol>
+
+
+<p>You have to make sure the &ldquo;gutenberg-output&rdquo; folder has not existed. When finished, you can see the result with:</p>
+
+<pre><code>$ hadoop fs -ls gutenberg-output
+$ hadoop fs -cat gutenberg-output/part-00000
+</code></pre>
+
+<p>Verified on CDH 4.3, built on 8 CentOS 6.3 64bit host, Python 2.6.6, 2014-8-7.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/07/092400/">Scala Development on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-07T09:24:00+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:24 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>sbt + vim</h1>
+
+<ol>
+<li><p>Download sbt package (sbt-0.13.5.deb for Mint 17 64bit) from <a href="http://www.scala-sbt.org/">sbt website</a>;</p></li>
+<li><p>Install it, then start sbt repl with <code>sbt</code> in shell;</p></li>
+</ol>
+
+
+<p>This will install sbt and scala.</p>
+
+<p>Now you can run scala repl with <code>sbt console</code> in shell, or run <code>console</code> within sbt repl.</p>
+
+<h2>Script REPL</h2>
+
+<p>Create a file &ldquo;Hi.scala&rdquo;:</p>
+
+<pre><code>object Hi extends App {
+    println("Hi, there")
+}
+</code></pre>
+
+<p>Then run this script within sbt:</p>
+
+<pre><code>$ sbt
+...
+&gt; run
+...
+[info] Running Hi
+Hi, there
+</code></pre>
+
+<p>You can use tilde prefix to detect source change automatically, just use &ldquo;~run&rdquo; instead of &ldquo;run&rdquo; in above example.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/06/144020/">Manage Python Versions With Pyenv</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-06T14:40:20+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:40 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://github.com/yyuu/pyenv">pyenv</a> is python equivalent of rvm of ruby.
+It can replace the virtualenvwrapper, and there&rsquo;s no need to install virtualenv before pyenv.
+It will install virtualenv automatically.</p>
+
+<p>On ArchLinux, you just install it according its documents on the website:</p>
+
+<pre><code>$ curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+</code></pre>
+
+<p>But on Mint 17, you have to install libraries beforehand:</p>
+
+<pre><code>$ sudo apt-get install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl
+</code></pre>
+
+<p>Then run &ldquo;curl &hellip;&rdquo; to install it.</p>
+
+<p>Then add &ldquo;export &hellip; eval &hellip;&rdquo; into ~/.zshrc according to its prompt at the end of the installation.</p>
+
+<h1>Usage</h1>
+
+<pre><code>$ pyenv commands         // list all available commands
+$ pyenv install -l       // list all available versions to install
+$ pyenv install 2.6.6
+$ pyenv rehash           // run this command after install a new version
+$ pyenv versions         // list all installed versions
+$ pyenv shell 2.6.6      // set python version to 2.6.6 in this session (shell)
+$ pyenv local 2.6.6      // create a .python-version file under CWD, it will use 2.6.6 afterwards according to this file
+$ pyenv shell system     // go back to use the system python version
+$ pyevn which python     // check the python path in current environment
+$ pyenv uninstall 2.6.6
+</code></pre>
+
+<h2>No Special Package Nedded</h2>
+
+<p>If your python project need no special dependency packages, use <code>pyenv local 2.6.6</code> is a good idea.
+It only create a .python-version under the folder. Very clean.</p>
+
+<h2>Need Install Package</h2>
+
+<p>If your project need some package, which you don&rsquo;t want to put into system environment, use</p>
+
+<pre><code>$ pyenv virtualenv 2.6.6 myproj
+</code></pre>
+
+<p>Now you have a INDEPENDENT python environment based on 2.6.6. You can verify this by run:</p>
+
+<pre><code>$ cd myproj
+$ pyenv activate myproj
+$ pyenv which python
+/home/chad/.pyenv/versions/myproj/bin/python
+$ pyenv deactivate
+</code></pre>
+
+<h1>Fabric on ArchLinux</h1>
+
+<p>Fabric uses library paramiko, which is incompatible with Python 3.x.
+After fabric installed on ArchLinux with pip, when you run <code>fab test</code>, a &ldquo;cannot import name isMappingType&rdquo; error occurs.
+So we need install a Python 2.7, then install fabric based on it:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>pyenv install 2.7.8
+</span><span class='line'>pyenv shell 2.7.8
+</span><span class='line'>pip install fabric</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now create a test fabfile.py:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>def test():
+</span><span class='line'>    print("hello world")</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And run it: <code>fab test</code>.</p>
+
+<p>In a new shell, run fabric with <code>pyenv shell 2.7.8; fab test</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/05/183431/">List All Possible Sort Result of a List</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-05T18:34:31+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:34 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following Python codes gives all possible sort result of a list:</p>
+
+<pre><code>def mysort(data):
+    if len(data) == 1:
+        return [data]
+    res = []
+    tail = data.pop()
+    all_sort = mysort(data)
+    for one_sort in all_sort:
+        for i in range(0,len(one_sort)):
+            res.append(one_sort[:i] + [tail] + one_sort[i:])
+    return res
+
+aa = [1, 2, 3, 4, 5]
+print(mysort(aa))
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/04/082233/">Build C Development Environment With VirtualBox</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-08-04T08:22:33+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:22 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Host: Win7, VM: CentOS 6.5 minimal</p>
+
+<h1>VM setup</h1>
+
+<p>setup network and share folders in Settings of VM.</p>
+
+<h2>Network setup</h2>
+
+<ol>
+<li><p>In settings of VM: the first NIC is host-only, second is bridged.</p></li>
+<li><p>Start VM, create /etc/sysconfig/network-scripts/ifcfg-eth1 based on ifcfg-eth0, the hardware address is from /etc/udev/rules/70-persistent.network;</p></li>
+<li><p>reboot;</p></li>
+</ol>
+
+
+<h1>Install Guest Addons</h1>
+
+<p>In VM:</p>
+
+<pre><code> # yum update
+ # yum install gcc
+ # yum install kernel-devel
+ # mount /dev/scd0 /media/cdrom
+ # sh /media/VBOXADDITIONS_4.0.12_72916/VBoxLinuxAdditions.run
+</code></pre>
+
+<p>Now you can visit share folders in /media/sf_<share_folder_name>.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -382,346 +754,6 @@ n
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/24/153852/">Install Hadoop With CDH on CentOS</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-24T15:38:52+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:38 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Define hostname on every node</h1>
-
-<p>Add &ldquo;HOSTNAME=cloud60&rdquo; into file /etc/sysconfig/network on host 10.12.2.60. Then reboot system.
-Do this with it&rsquo;s own hostname on every node.</p>
-
-<h1>Add host name to every node</h1>
-
-<p>Add /etc/hosts to every node:</p>
-
-<pre><code>10.12.2.60 cloud60
-10.12.2.61 cloud61
-10.12.2.62 cloud62
-10.12.2.63 cloud63
-10.12.2.90 cloud90
-10.12.2.91 cloud91
-10.12.2.92 cloud92
-10.12.2.93 cloud93
-</code></pre>
-
-<p>where 10.12.2.60 is the manager node (where the cloudera manager is installed).</p>
-
-<h1>Local Repository</h1>
-
-<p>Copy DVD iso file to manager node, mount it. Create a link of /mnt/cdrom to /var/www/html with httpd:</p>
-
-<pre><code># mkdir /mnt/cdrom
-# mount -o loop /path/to/CentOS6.3-DVD.iso /mnt/cdrom
-# cd /var/www/html
-# ln -s /mnt/cdrom cdrom
-</code></pre>
-
-<p>Then add file cdrom.repo under /etc/yum.repos.d/:</p>
-
-<pre><code>[cdrom]
-name = CDROM
-baseurl = http://10.12.2.60/cdrom/
-gpgcheck = 0
-</code></pre>
-
-<h1>Other notes</h1>
-
-<ul>
-<li><p>Add user &ldquo;boco&rdquo; to &ldquo;sudoers&rdquo; on all nodes: add &ldquo;boco ALL=(ALL) NOPASSWD: ALL&rdquo; to /etc/sudoers;</p></li>
-<li><p>The manager node can ssh to any other node with no password (ssh-copy-id &hellip;);</p></li>
-<li><p>SSH from normal node to manager node to remove &ldquo;are you sure you want to continue connecting (yes/no)?&rdquo; prompt;</p></li>
-<li><p>Shutdown iptables on all nodes: <code>service iptables stop</code> and <code>chkconfig iptables off</code>;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/23/154955/">Reset Forgotten Password in Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-23T15:49:55+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>3:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>CentOS</h1>
-
-<ol>
-<li><p>When system booting, press Space bar to interrupt the GRUB process;</p></li>
-<li><p>Press &ldquo;a&rdquo; and <Enter>;</p></li>
-<li><p>When see &ldquo;rhgb quiet&rdquo;, add &ldquo; 1&rdquo; after &ldquo;quiet&rdquo; and press <Enter>;</p></li>
-</ol>
-
-
-<p>Now CentOS boot in single user mode, you login as root, use <code>passwd</code> to reset password.</p>
-
-<h1>Mint</h1>
-
-<ol>
-<li><p>When system booting to the GRUB 2 menu, select the system entry you want to recover, press &ldquo;e&rdquo;;</p></li>
-<li><p>In the start script, find the line &ldquo;linux &hellip; ro quiet splash $vt_handoff&rdquo;;</p></li>
-<li><p>Modify &ldquo;ro&rdquo; to the end of line to &ldquo;rw init=/bin/bash&rdquo;;</p></li>
-<li><p>Press Ctrl-x to continue system start;</p></li>
-<li><p>Now you are in root shell, reset root password with <code>passwd</code>;</p></li>
-<li><p>Press Ctrl-Alt-Del to restart machine;</p></li>
-</ol>
-
-
-<p>Verified on Linux Mint 17.</p>
-
-<p>Ref: <a href="http://community.linuxmint.com/tutorial/view/1355">Reset forgotten/lost main user password in Linux Mint 12+</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/23/151635/">Fix NIC Name of Cloned CentOS VMs</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-23T15:16:35+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>3:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Sometimes the NIC name in output of <code>ip addr</code> or <code>ifconfig</code> is not the same with that defined in /etc/sysconfig/network-scripts/ifcfg-eth0, for example, in ifcfg-eth0, the first line is:</p>
-
-<pre><code>DEVICE="eth0"
-</code></pre>
-
-<p>but the output of <code>ip addr</code> is:</p>
-
-<pre><code>2: eth1: &lt;BROADCAST...
-</code></pre>
-
-<p>This is because the source of <code>ip addr</code> is /etc/udev/rules.d/70-persistent-net.rules. Edit this file to correct the NIC name.</p>
-
-<p>The total step to fix network of a centos VM is:</p>
-
-<ol>
-<li><p>vi /etc/sysconfig/network   // fix hostname and gateway IP</p></li>
-<li><p>vi /etc/sysconfig/network-scripts/ifcfg-eth0 // fix NIC name, host IP and netmask</p></li>
-<li><p>vi /etc/udev/rules.d/70-persistent-net.rules  // NIC name and hardware address should be the same with that in file ifcfg-eth0</p></li>
-<li><p>reboot</p></li>
-</ol>
-
-
-<h1>Update 2014-9-19</h1>
-
-<p>The MAC address is determined by <code>ifconfig -a</code>, so copy IP address after &ldquo;HWaddr&rdquo; in command output, and modify &ldquo;HWADDR&rdquo; in /etc/&hellip;/ifcfg-eth0, then <code>sudo service network restart</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/20/164953/">Linux发行版的更新方式</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-20T16:49:53+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>之前一直以为Mint 14像Windows一样，过期之后还可以一直用，后来发现Linux和Windows的一个很大的不同，就是由于Linux是通过Repo安装和更新软件的，所以一旦发行版制作者不再维护这个版本，就会把该版本的Packages从Repo中移除，比如Mint 14是今年（2014年）5月份生命周期结束的(End of Life, EOL)，之后除非下载deb包安装，否则用"apt-get update"和"apt-get install &hellip;&ldquo;都会报错，因为Repo中已经没有Nadia和Quantal的目录了，手工升级的方法是：</p>
-
-<ol>
-<li><p>到/etc/apt/source.list中的地址看看哪些版本还在，比如在<a href="http://mirrors.ustc.edu.cn/ubuntu/dists/">http://mirrors.ustc.edu.cn/ubuntu/dists/</a> , <a href="http://security.ubuntu.com/ubuntu/dists/">http://security.ubuntu.com/ubuntu/dists/</a> 和 <a href="http://archive.ubuntu.com/ubuntu/dists/">http://archive.ubuntu.com/ubuntu/dists/</a> 下面可以看到，比Nadia高的有saucy和trusty两个版本，因为saucy距离nadia比较近，升级成功的可能性大，所以我们先升级到saucy，由于这个版本马上也要到期了，我们在升级完后可以再次升级到trusty，就可以用到2019年4月了；</p></li>
-<li><p>确定了升级的目标版本，把/etc/apt/source.list中的nadia都该为petra，quantal改为saucy，参考<a href="http://www.linuxmint.com/oldreleases.php">Linux Mint Releases</a>确定Mint的对应版本代码；</p></li>
-<li><p><code>sudo apt-get update</code>，如果出现错误，修复之，比如出现了一个PuppetLab更新错误，是由于之前曾把puppetlabs的ppa加入进来了，运行<code>rm sources.list.d/puppetlabs.list</code>删除之，重新apt-get update，直到没有错误为止；</p></li>
-<li><p><code>sudo apt-get dist-upgrade</code>, 这一步很慢，比如nadia升价到petra下载了2GB多安装包，所以网络一定要够快，否则就只能整夜下载了；安装过程中会询问是否更新版本号，我认为还是更新好，否则真实的版本与/etc/issue和lsb_release的结果不符会造成困惑；下载完成后的安装也很慢，整个升级过程大约2小时左右（网速大约1MB/s），远比用新的Live盘安装慢多了，而且如果版本间间隔大，还存在升级失败的风险，所以还是应该把/home做到一个单独的分区上，然后用目标版本的Live盘安装新系统，如果只能用apt升级的方法，建议找一本有意思的书，守在电脑旁，因为升级过程中时不时会要求用户决定使用哪个配置文件（这次升级过程中我所有的项目都输入Y，即使用新版本的配置文件），所以无法做到完全自动化；</p></li>
-<li><p><code>sudo apt-get upgrade</code>;</p></li>
-<li><p><code>reboot</code>;</p></li>
-<li><p>验证：<code>lsb_release -a</code>;</p></li>
-</ol>
-
-
-<p>整个执行过程可以通过ssh登录到服务器上运程执行；</p>
-
-<p>重启后登录屏幕是黑屏，但SSH能够正常登录，貌似是Linux Mint的登录管理器MDM出了问题，卸载了相关的两个模块：</p>
-
-<pre><code># dpkg -P mdm
-# dpkg -P mint-mdm-themes
-</code></pre>
-
-<p>重启后变为字符登录界面，登录后运行<code>startxfce4</code>可以启动xfce环境。</p>
-
-<p>一个收获是升级后RabbitVCS可以用了；</p>
-
-<p>Debian的更新方法类似，也是先改source.list，然后"apt-get dist-upgrade"；</p>
-
-<p>CentOS不同，小版本之间的升级用"yum update"就搞定了，大版本之间只能用重装的方法升级；</p>
-
-<p>ArchLinux属于纯正的rolling release，没有版本的概念，好处是不需要大升级，坏处是有时更近之后系统会起不来；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/18/201809/">Build Multiple OS on a Host</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-07-18T20:18:09+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:18 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Rearrange Disk Partitions</h1>
-
-<p>Start computer with gparted LiveCD and start GParted. The data partition is &ldquo;/dev/sda1&rdquo;.</p>
-
-<ol>
-<li><p>Use &ldquo;Resize/Move&rdquo; to move /dev/sda1 partition to the end of the disk, before the swap partition. Shrink 928GB to 295GB, where 87GB are used. It took about 5 hours. You can only shrink the partition without moving them to the end, which will be faster than the previous &ldquo;shrink + move&rdquo; method.</p></li>
-<li><p>Right click /dev/sda1 -> Manage Flags, uncheck the &ldquo;boot&rdquo; flag.</p></li>
-<li><p>Create a new 50GB partition /dev/sda3 with EXT4 format, label it as &ldquo;system1&rdquo; and quit GParted;</p></li>
-<li><p>Start computer with new system (Mint 17 64bit here) LiveCD;</p></li>
-<li><p>Install Mint, select &ldquo;Something else&rdquo; when asked for &ldquo;Installation type&rdquo;;</p></li>
-<li><p>Select /dev/sda3, click &ldquo;change&rdquo;, then choose &ldquo;Ext4 journaling file system&rdquo; in &ldquo;Use as&rdquo;, then choose &ldquo;/&rdquo; as the &ldquo;Mount point&rdquo;, set /dev/sda1 mounted at /home and the old swap partition as swap;</p></li>
-<li><p>Install the system, then reboot;</p></li>
-</ol>
-
-
-<h2>Transfer old data</h2>
-
-<p>The old partition is mounted on /home, so the old home folder is now /home/home/chad. So we need:</p>
-
-<ol>
-<li><p>Move sub-folders of /home/home/chad to /home/chad;</p></li>
-<li><p>After some days when it&rsquo;s sure all data have been transfered, delete all folders and files under /home except &ldquo;chad&rdquo; (new $HOME folder);</p></li>
-</ol>
-
-
-<p>Now on /dev/sda3, there is only one folder &ldquo;chad&rdquo;. When install the second system, just mount /dev/sda3 to /home, everything will be ok.</p>
-
-<h2>Supported methods for disk partition management</h2>
-
-<p>Start &ldquo;Terminal&rdquo; on LiveCD.</p>
-
-<ol>
-<li><p>Detect disk: <code>gdisk /dev/sda</code>, notice  your detection target is the whole disk instead of a partition, so &ldquo;sda&rdquo; can&rsquo;t be written as &ldquo;sda1&rdquo;, or there will no MBR be found.</p></li>
-<li><p>Backup MBR: <code>sfdisk -d /dev/sda &gt; parts.txt</code>, you can recover MBR with <code>sfdisk /dev/sda &lt; backup-sda.sfdisk</code> , or with &ldquo;dd&rdquo; command:</p>
-
-<p> Backup: # dd if=/dev/sda of=/backup/mbr_sda.bak bs=512 count=1
- Restore: # dd if=/backup/mbr_sda.bak of=/dev/hda bs=512 count=1</p></li>
-</ol>
-
-
-<h1>Install the Second OS</h1>
-
-<ol>
-<li><p>Backup MBR and grub.cfg:</p></li>
-<li><p>Install centOS 6.5 Minimal with USB stick;</p></li>
-<li><p>Choose &ldquo;Create Custom Layout&rdquo;, create a new partititon, mounted at /, and mount sdb1 as /home;</p></li>
-<li><p>Uncheck &ldquo;Install boot loader on /dev/sdb&rdquo;;</p></li>
-<li><p>Reboot system. There is no change in boot menu, startup origin system (Mint 17), run <code>update-grub</code> with root.</p></li>
-<li><p>Reboot, you can see the CentOS is in boot menu.</p></li>
-</ol>
-
-
-<p>Note: If you don&rsquo;t want an OS in your boot menu, rename its &ldquo;boot&rdquo; folder as &ldquo;boot.old&rdquo; (or anything else).</p>
-
-<p>Ref:</p>
-
-<p><a href="http://www.maketecheasier.com/move-home-folder-ubuntu/">How to Move Your Home Folder to Another Partition</a></p>
-
-<p>Google: Linux系统启动过程</p>
-
-<p><a href="http://keping.me/linux-boot-process/">Linux系统启动过程</a></p>
-
-<p><a href="http://www.thegeekstuff.com/2011/02/linux-boot-process/">6 Stages of Linux Boot Process (Startup Sequence)</a></p>
-
-<p><a href="http://www.lifelinux.com/how-to-backup-restore-master-boot-record-mbr-in-linux/">How To Backup &amp; Restore Master Boot Record (MBR) In Linux</a></p>
-
-<p><a href="http://www.techpository.com/?page_id=123">Linux: Copy Master Boot Record (MBR)</a></p>
-
-<p>Manpage of sfdisk.</p>
-
-<p><a href="https://sites.google.com/site/easylinuxtipsproject/grub">Boot loader Grub: how to repair, adapt or remove it</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/20">&larr; Older</a>
@@ -739,23 +771,23 @@ gpgcheck = 0
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a>
+        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a>
+        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/15/122519/">JSDoc Notes</a>
+        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a>
+        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a>
+        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
       </li>
     
   </ul>
