@@ -9,8 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="We clone a remote repository, check out a remote branch. $ git clone https://github.com/limingth/meteor-master-classes.git
-$ cd meteor-master-classes &hellip;">
+  <meta name="description" content="一个图层文件(shp）有自己的坐标系，通过【右键->属性->通用->坐标参照系】查看。
+直接修改坐标系导致图层对象消失，原因不明。
+在图层上【右键->另存为】，在坐标系中搜索2154，选择"EPSG:2154"，保存在另一个shp文件中。 在QGIS窗口右下角状态栏中显示的坐标系只作显示用， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +67,276 @@ $ cd meteor-master-classes &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/29/114138/">QGIS的坐标系和缓冲区</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-29T11:41:38+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:41 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>一个图层文件(shp）有自己的坐标系，通过【右键->属性->通用->坐标参照系】查看。
+直接修改坐标系导致图层对象消失，原因不明。
+在图层上【右键->另存为】，在坐标系中搜索2154，选择"EPSG:2154"，保存在另一个shp文件中。</p>
+
+<p>在QGIS窗口右下角状态栏中显示的坐标系只作显示用，与图层自己的坐标系无关。</p>
+
+<p>当生成图层对象的缓冲区（主菜单->矢量->地学数据处理工具->缓冲区分析）时，
+其中【缓冲距离】的单位是图层自身坐标系确定的单位，
+例如WGS84的单位是degree，具体含义尚不清楚，大致是地球这个球体上两点与球心形成夹角的角度，
+&ldquo;EPSG:2154"坐标系的单位是米。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/26/101038/">Penetrate GFW With ShadowSocks</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-26T10:10:38+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:10 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>To browse internet with <a href="https://github.com/shadowsocks/shadowsocks">shadowsocks</a>,</p>
+
+<h1>Server setup</h1>
+
+<p>You need a VPS (buy it from linode or digitalocean, etc, as the outlet),
+to run the server with root (say its IP address is &ldquo;123.234.23.45&rdquo;):</p>
+
+<pre><code># aptitude install python-pip
+# pip install shadowsocks
+# ssserver -p 2043 -k er@20 -m aes-256-cfb --user nobody -d start
+</code></pre>
+
+<p>See the logs:</p>
+
+<pre><code>tail -f /var/log/shadowsocks.log
+</code></pre>
+
+<p>Or start it in foreground:</p>
+
+<pre><code># ssserver -p 2043 -k testpwd
+</code></pre>
+
+<h1>Client</h1>
+
+<p>Client is the machine you want to bypass the GFW.</p>
+
+<h2>Windows</h2>
+
+<p>Download the client package (Shadowsocks-win-dotnet4.0-2.3.1.zip for now),
+extract it, and run.</p>
+
+<p>You can check its &ldquo;System Proxy&rdquo; option, which is convenient for all browsers and terminal.</p>
+
+<h2>Linux</h2>
+
+<h3>Install</h3>
+
+<p>For Ubuntu/Mint:</p>
+
+<pre><code>$ sudo aptitude install python-pip
+$ sudo pip install shadowsocks
+</code></pre>
+
+<p>Now you have a socks5 proxy. If you want convert it into a http proxy:</p>
+
+<pre><code>$ sudo aptitude install polipo
+$ service polipo stop
+$ sslocal -s 123.234.23.45 -p 2043 -b 127.0.0.1 -l 1080 -k testpwd
+$ sudo polipo socksParentProxy=localhost:1080
+</code></pre>
+
+<p>Now setup the http proxy of your browser as localhost:8123.
+To use the proxy in terminal, add prefix &ldquo;http_proxy=<a href="http://localhost:8123">http://localhost:8123</a>&rdquo;,
+for example:</p>
+
+<pre><code>http_proxy=http://localhost:8123 curl www.xys.org
+</code></pre>
+
+<p>Or use a text-based web browser:</p>
+
+<pre><code>http_proxy=http://localhost:8123 lynx rsf.org
+</code></pre>
+
+<p>where 8123 is the default port number of polipo.</p>
+
+<p><a href="https://github.com/shadowsocks/shadowsocks/wiki/Using-Shadowsocks-with-Command-Line-Tools">Using Shadowsocks with Command Line Tools</a> in
+<a href="https://github.com/shadowsocks/shadowsocks/wiki">shadowsocks wiki</a> use proxychains to achieve proxy in terminal,
+which didn&rsquo;t work for me.</p>
+
+<p>To summarize, you need 3 processes to access blocked website on Linux:</p>
+
+<ol>
+<li><p>The shadowsocks server on the VPS abroad;</p></li>
+<li><p>The shadowsocks client on your machine;</p></li>
+<li><p>The polipo to convert a socks proxy into a http proxy.</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/23/174442/">Resolving Merge Conflicts in Git</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-23T17:44:42+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>5:44 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Edit the conflicted files manually.
+Remove &ldquo;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&rdquo;, &ldquo;=======&rdquo; and &ldquo;>>>>>>>&rdquo;,
+then add and commit the modified files to resolve the conflict.</p>
+
+<p>When using git-flow, if a conflict appears when finishing a release,
+after resolve and commit the conflicted files,
+run <code>git flow release finish 0.2.0</code> again.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://genomewiki.ucsc.edu/index.php/Resolving_merge_conflicts_in_Git">Resolving merge conflicts in Git</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/22/145820/">Take Screenshot With Shutter on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-22T14:58:20+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>2:58 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<p>On Linux Mint:</p>
+
+<pre><code>sudo aptitude install shutter libgoo-canvas-perl
+</code></pre>
+
+<p>the second one is for editing the screenshot.</p>
+
+<p>On Ubuntu 14.04:</p>
+
+<pre><code>sudo aptitude install shutter
+</code></pre>
+
+<h1>Usage</h1>
+
+<p>Run <code>shutter</code> in dmenu, click &ldquo;Selection&rdquo; on toolbar.</p>
+
+<p>Shutter is a multi-tab application, and save picture to disk automatically,
+which is very convenient.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/22/103439/">Manage Vagrant-Created VMs on Linux Mint</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-04-22T10:34:39+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>10:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>After installation of Virtualbox,
+specify the VM files location in VirutalBox:
+[File -> Preferences -> General -> Default Machine Folder]
+to &ldquo;$HOME/docs/vms&rdquo;;</p></li>
+<li><p>Add <code>alias vb='VBoxManage'</code> into ~/.bash_aliases;</p></li>
+<li><p>List all existing VMs: <code>vb list vms</code>;</p></li>
+<li><p>List all running VMs: <code>vb list runningvms</code>;</p></li>
+<li><p>Print the details of a VM: <code>vb showvminfo xxx</code>,
+where xxx is one item name in output of <code>vb list vms</code>;</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -535,290 +806,6 @@ Then install fzf with git.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/04/15/105035/">How to Sync a Fork on Github</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-04-15T10:50:35+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:50 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I forked <a href="https://github.com/mitsuhiko/flask">flask repository</a> to
-<a href="https://github.com/leetschau/flask">my own account</a>.</p>
-
-<p>After several months, there are many new commits to the original flask repo.
-How to sync these new commits to my fork?</p>
-
-<h1>Option 1: In Github Web UI</h1>
-
-<p>Three steps: compare, send pull request, and merge.</p>
-
-<p>See Olufemi Israel Olanipeku&rsquo;s answer of
-<a href="http://stackoverflow.com/questions/20984802/how-can-i-keep-my-fork-in-sync-without-adding-a-separate-remote/21131381#21131381">How can I keep my fork in sync without adding a separate remote?</a> for details.</p>
-
-<h1>Option 2: In Terminal</h1>
-
-<p>You can do it via your local clone:</p>
-
-<ol>
-<li><p>Clone leetschau/flask to local machine;</p></li>
-<li><p>Add mitsuhiko/flask as a remote repo;</p></li>
-<li><p>Pull new commit from mitsuhiko/flask to your local machine;</p></li>
-<li><p>Push your local repo to leetschau/flask.</p></li>
-</ol>
-
-
-<p>See <a href="https://help.github.com/articles/syncing-a-fork/">Syncing a fork</a> for details.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/04/08/161006/">Python的Generator和yield</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-04-08T16:10:06+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:10 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的代码演示了yield的一个使用场景：</p>
-
-<pre><code>def fab(max): 
-    n, a, b = 0, 0, 1 
-    while n &lt; max: 
-        yield b 
-        # print b 
-        a, b = b, a + b 
-        n = n + 1 
-
-for n in fab(5):
-    print(n)
-</code></pre>
-
-<p>简单地讲，yield的作用就是把一个函数变成一个Generator，
-带有yield的函数不再是一个普通函数，Python解释器会将其视为一个Generator，
-调用<code>fab(5)</code>不会执行fab函数，而是返回一个iterable对象。
-在for循环执行时，每次循环都会执行fab函数内部的代码，执行到<code>yield b</code>时，
-fab 函数就返回一个迭代值，下次迭代时，代码从<code>yield b</code>的下一条语句继续执行，
-而函数的本地变量看起来和上次中断执行前是完全一样的，于是函数继续执行，直到再次遇到<code>yield</code>。</p>
-
-<p>上面的<code>fab</code>函数也可以返回一个List，与Generator相比，缺点是内存使用量会很大，
-比如要读取一个10GB的文件，如果直接使用f.read()会把整个文件加载到内存中，
-用Generator代替List，可以保证内存使用量是固定的，例如下面的1024字节：</p>
-
-<pre><code>def read_file(fpath): 
-    BLOCK_SIZE = 1024 
-    with open(fpath, 'rb') as f: 
-        while True: 
-            block = f.read(BLOCK_SIZE) 
-            if block: 
-                yield block 
-            else: 
-                return
-</code></pre>
-
-<p>上面的文件读取是为了演示yield的用法，在实际读取文件时，
-如果是大文件，不能一次性载入所有内容，使用for循环，一次载入一行到内存：</p>
-
-<pre><code>with open('workfile', 'r') as f:
-    for line in f:
-        print(line)
-</code></pre>
-
-<p>反之，如果文件比较小，需要一次性载入内存，使用<code>readlines()</code>方法：</p>
-
-<pre><code>with open('workfile', 'r') as f:
-    lines = f.readlines()
-</code></pre>
-
-<p>参考：</p>
-
-<p><a href="http://www.ibm.com/developerworks/cn/opensource/os-cn-python-yield/">Python yield 使用浅析</a></p>
-
-<p><a href="https://docs.python.org/2/tutorial/inputoutput.html">7. Input and Output</a> in <a href="https://docs.python.org/2/tutorial/index.html">The Python Tutorial</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/04/08/074421/">Manipulate PSD Files in Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-04-08T07:44:21+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><code>gimp</code> is preinstalled on Mint.</p>
-
-<pre><code>$ gimp target.psd
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/30/181242/">Convert MS Word File to PDF Files</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-03-30T18:12:42+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>On Ubuntu/Mint,
-when we receive MS Word documents (.doc or .docx), convert it to pdf,
-then open it with evince.</p>
-
-<pre><code>sudo apt-get install unoconv
-doc2pdf target.docx
-</code></pre>
-
-<p>doc2pdf save output pdf file into <same-name>.pdf by default.</p>
-
-<p>Ref: <a href="http://askubuntu.com/questions/396825/convert-docx-to-pdf">Convert docx to PDF</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/30/175224/">Scrapy Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-03-30T17:52:24+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:52 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Install on Ubuntu/Mint:</p>
-
-<pre><code>sudo apt-get install python-twisted python-libxml2 python-simplejson
-sudo pip install scrapy
-</code></pre>
-
-<p>Create an alias in ~/.bash_aliases for convenience: <code>alias sa='scrapy'</code>.</p>
-
-<p>Crawl website in shell:</p>
-
-<pre><code>$ scrapy shell http://myexpo.com/exhibition/32191.html
-...
-[1] name = response.xpath('//h1/text()').extract()[0]
-[2] time = response.xpath('//div[@class="location"]/span[1]/text()').extract()[0].split('\r\n')[1].strip()
-[3] addr = response.xpath('//div[@class="location"]/span[2]/text()').extract()[0].split('\r\n')[1].strip()
-</code></pre>
-
-<h1>Crawl my blog</h1>
-
-<p>$ sa startproject myblog</p>
-
-<p>Ref:</p>
-
-<p><a href="http://blog.csdn.net/u012150179/article/details/32911511">scrapy研究探索（二）——爬w3school.com.cn</a></p>
-
-<h1>Unicode character in Python 2.x</h1>
-
-<p>You have to add u'&lsquo; prefix to a unicode string in Python 2.x.
-Their raw value is in &rsquo;\u' format.
-To see them in human friendly format, use <code>print()</code> function.</p>
-
-<pre><code>In [85]: ex = u'中国2015年3月'
-
-In [86]: ex
-Out[86]: u'\u4e2d\u56fd2015\u5e743\u6708'
-
-In [87]: print(ex)
-中国2015年3月
-
-In [88]: ex.find(u'年')
-Out[88]: 6
-</code></pre>
-
-<p>See more detailed contents about this topic in note &ldquo;Unicode and File I/O in Python 2.X and 3.X&rdquo;.</p>
-
-<h1>XPath Grammar</h1>
-
-<p>Ref: <a href="http://www.w3school.com.cn/xpath/xpath_syntax.asp">XPath 语法</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/7">&larr; Older</a>
@@ -836,23 +823,23 @@ Out[88]: 6
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
+        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
+        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
+        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
+        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
+        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
       </li>
     
   </ul>

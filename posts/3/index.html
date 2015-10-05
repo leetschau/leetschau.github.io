@@ -9,9 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Say your partner is Tom. Fork Tom&rsquo;s repository;
-Clone your forked repository to your laptop;
-Commit modificatioins to your laptop repository; &hellip;">
+  <meta name="description" content="We are running a website and a backend data management system,
+both are meteor web servers. The backend needs fetch data from the website.
+So they &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,462 @@ Commit modificatioins to your laptop repository; &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-11T12:39:34+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:39 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We are running a website and a backend data management system,
+both are meteor web servers.</p>
+
+<p>The backend needs fetch data from the website.
+So they have to share one database, and the same &ldquo;users&rdquo; collection for both.
+That means one can register on the website and login to the backend,
+which is obviously unacceptable.</p>
+
+<p>To distinguish users of the website and the backend,
+I choose package <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
+
+<p>All the backend users will have roles <code>['backend', 'admin']</code>,
+while website users haven&rsquo;t.</p>
+
+<p>In &ldquo;safe&rdquo; environment, backend has its own user registration entry.
+Users registered there will be given above roles automatically.</p>
+
+<p>Put the following codes into server side JavaScript files to achieve above goal
+(based on examples/rolesWithAccountsUI on meteor-roles):</p>
+
+<pre><code>var ROLE_NAME = 'editor';
+var GROUP_NAME = 'backend';
+
+Meteor.publish('mallData', function(){
+  if (Roles.userIsInRole(this.userId, ROLE_NAME, GROUP_NAME)) {
+    console.log('pass check');
+    return Mall.find();
+  } else {
+    console.log('not pass check');
+    this.stop();
+    return;
+  }
+});
+
+Meteor.startup(function () {
+  Accounts.onCreateUser(function (options, user) {
+    Roles.setRolesOnUserObj(user, ROLE_NAME, GROUP_NAME);
+    if (options.profile) {
+      user.profile = options.profile
+    }
+    return user;
+  });
+});
+
+Roles.setRolesOnUserObj = function (users, roles, group) {
+  if (!users) throw new Error ("Missing 'users' param")
+  if (!roles) throw new Error ("Missing 'roles' param")
+  if (group) {
+    if ('string' !== typeof group)
+      throw new Error ("Roles error: Invalid parameter 'group'. Expected 'string' type")
+    if ('$' === group[0])
+      throw new Error ("Roles error: groups can not start with '$'")
+
+    // convert any periods to underscores
+    group = group.replace(/\./g, '_')
+  }
+
+  // ensure arrays to simplify code
+  if (!_.isArray(users)) users = [users]
+  if (!_.isArray(roles)) roles = [roles]
+
+
+  // remove invalid roles
+  roles = _.reduce(roles, function (memo, role) {
+    if (role
+        &amp;&amp; 'string' === typeof role
+        &amp;&amp; role.trim().length &gt; 0) {
+      memo.push(role.trim())
+    }
+    return memo
+  }, [])
+
+  // if roles is empty, quit
+  if (roles.length === 0) return
+
+  // ensure all roles exist in 'roles' collection
+  existingRoles = _.reduce(Meteor.roles.find({}).fetch(), function (memo, role) {
+    memo[role.name] = true
+    return memo
+  }, {})
+  _.each(roles, function (role) {
+    if (!existingRoles[role]) {
+      Roles.createRole(role)
+    }
+  })
+
+  // ensure users is an array of objects
+  _.each(users, function (user) {
+    if ('object' !== typeof user) {
+      throw new Error("Expected 'users' argument to be an object or array of objects")
+    }
+  })
+
+
+  // Set the roles on the actual user object
+
+  if (group) {
+
+    // roles is a key/value dict object
+
+    _.each(users, function (user) {
+      user.roles = {}
+      user.roles[group] = roles
+    })
+
+  } else {
+
+    // roles is an array of strings
+
+    _.each(users, function (user) {
+      user.roles = roles
+    })
+
+  }
+
+}
+</code></pre>
+
+<p>Now any user outside &lsquo;backend&rsquo; group, or without &lsquo;editor&rsquo; role, can&rsquo;t get any data from server.</p>
+
+<p>Unfortunately Internet is unsafe at all.
+So the registration entry has to be removed from the accounts-ui:</p>
+
+<pre><code>Meteor.startup(function () {
+  Accounts.config({
+    forbidClientAccountCreation : true
+  });
+});
+</code></pre>
+
+<p>Now if you want give a website personnel rights to edit data through backend,
+first he should register on the website,
+then you define his role manually in mongo console:</p>
+
+<pre><code>&gt; db.users.find({ "emails.0.address":"user@123.com" }, { "emails":1 })
+&gt; db.users.update({_id: "PM36t6eRmuC9oELdu"}, { $set: { roles: {"backend": [ "editor" ]} } })
+</code></pre>
+
+<p>First find the id of the user (here is &ldquo;<a href="&#x6d;&#x61;&#105;&#x6c;&#x74;&#111;&#x3a;&#117;&#115;&#x65;&#x72;&#x40;&#49;&#x32;&#x33;&#46;&#x63;&#111;&#x6d;">&#117;&#115;&#101;&#114;&#64;&#49;&#50;&#51;&#x2e;&#x63;&#111;&#109;</a>&rdquo;) by his email address.
+Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRmuC9oELdu&rdquo;).</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-07T15:57:21+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:57 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Collection definitions in root directory</h1>
+
+<ol>
+<li><p>autopublish package exists: data can be seen and updated;</p></li>
+<li><p>Remove autopublish package: data can&rsquo;t be seen;</p></li>
+<li><p>Add publish method in server js file, and subscribe methods in client js file:
+data can be seen and updated;</p>
+
+<pre><code> # in server:
+ Meteor.publish('mallData', function(){
+   return Mall.find();
+ });
+
+ # in client:
+ Meteor.subscribe('mallData');
+</code></pre></li>
+<li><p>Remove insecure package: data can be seen, but can&rsquo;t be updated;</p></li>
+<li><p>Add an allow rule in js file in root directory: only &ldquo;status&rdquo; field can be updated.</p>
+
+<pre><code> Mall.allow({
+   update: function(userId, doc, fieldNames, modifier){
+     if ((fieldNames.length === 1) &amp;&amp;
+         (fieldNames[0] === 'status')){
+       return true;
+     }
+   }
+ });
+</code></pre>
+
+<p> Meanwhile inserting and remvoing operations will be denied by the server.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="http://joshowens.me/meteor-security-101/">METEOR SECURITY 101</a> by Josh Owens.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/05/125922/">Meteor实施案例</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-05T12:59:22+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>国外</h1>
+
+<p><a href="http://blonk.co/">blonk</a>: 找工作，移动APP，iOS, Android, 双方在感兴趣的对方上点Yes，如果匹配成功开始聊天；</p>
+
+<p><a href="https://respond.ly/">respond.ly</a>: 基于Twitter的客户服务和协作平台；</p>
+
+<p><a href="http://www.flowkey.com/en">Flowkey</a>: 教育类，钢琴在线教学，web, iOS, Android，音频对比，反馈建议，用户量：50,000+</p>
+
+<p><a href="http://versoapp.com/">verso</a>: 教育类，移动APP，iOS, Android，教师添加视频，学生写反馈，100多个国家的几千所学校；</p>
+
+<p><a href="https://beta.workpop.com/">Workpop</a>: 找/应聘小时工，Web App;</p>
+
+<p><a href="http://www.classcraft.com/">Classcraft</a>: 教学类应用，平台：Web, iOS，学习变为角色扮演，老师定义学生角色，获取经验值；</p>
+
+<p><a href="https://lookback.io/">Lookback</a>: 移动应用用户体验反馈软件，原理：屏幕录制（记录手指位置和拖动），然后发送；平台：Web, iOS, Mac, Android；</p>
+
+<p><a href="http://www.tuniliv.com/">Tuniliv</a>: 突尼斯货运与物流系统；</p>
+
+<p><a href="http://www.telescopeapp.org/">Telescope</a>: 软件平台，论坛模板；</p>
+
+<h1>国内</h1>
+
+<p><a href="http://newfairs.com">牛展网</a>: 会展服务；</p>
+
+<p><a href="http://maodou.io/">毛豆网</a>: 在线教育/外包；</p>
+
+<h1>生态系统</h1>
+
+<p>[node.js]</p>
+
+<p>[mongodb]</p>
+
+<p>[bootstrap]</p>
+
+<p>[meteoric]</p>
+
+<h1>参考资料</h1>
+
+<p><a href="http://www.quora.com/What-are-the-larger-examples-of-Meteor">What are the larger examples of Meteor?</a></p>
+
+<p><a href="http://www.jianshu.com/p/ps8C8N">关于Meteor的5个误解</a></p>
+
+<p><a href="https://www.meteor.com/case-studies/build-apps-with-meteor">https://www.meteor.com/case-studies/build-apps-with-meteor</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-08-02T11:34:17+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>11:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Meteor developer Tom and Bob are in different location.
+Tom is the main coder and Bob is the mentor.
+Their remote collaboration mode is:</p>
+
+<ul>
+<li><p>Voice talk through Moxtra/QQ/Skype;</p></li>
+<li><p>Code and browser sharing through a VPS on Internet;</p></li>
+</ul>
+
+
+<h1>VPS Configuration</h1>
+
+<p>The IP address of the VPS is 100.101.102.103.
+Add a user &ldquo;nf&rdquo; as the SSH forwarding user:</p>
+
+<pre><code>useradd -m nf
+passwd nf
+</code></pre>
+
+<p>To allow remote port forwarding to bind to non-loopback addresses,
+add <code>GatewayPorts yes</code> into /etc/ssh/sshd_config, and <code>service ssh reload</code>.
+Without this, the listening port on VPS is bind to &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.
+You can find out it with <code>netstat -lnput|grep 3000</code>, when the forwarding port is 3000.</p>
+
+<h1>Code editor sharing</h1>
+
+<p>Tom install tmux on his Linux OS.
+And start up a tmux session as the develop environment:</p>
+
+<pre><code>tmux new -s myWebsite
+</code></pre>
+
+<p>To make Bob ssh to his laptop, Tom need run the following command on his laptop:</p>
+
+<pre><code>ssh -g -R 10022:localhost:22 nf@100.101.102.103
+</code></pre>
+
+<p>where -g means &ldquo;Allows remote hosts to connect to local forwarded ports&rdquo;,
+-R means a &ldquo;Remote&rdquo; port forwarding is created with this ssh connection
+(which means when this ssh connection closed, the port forwarding will be dropped, too).
+In &ldquo;10022:localhost:22&rdquo;, the first part is the port number on remote host,
+the second and third is the hostname and port number of local machine.</p>
+
+<p>So the whole command means:
+Tom ssh to server 100.101.102.103 as user nf,
+while creating a port forwarding.
+So all connect to 10022 on remote host, will be forwarded to Tom&rsquo;s laptop on port 22.</p>
+
+<p>After login, the forwarding tunnel is created.
+On VPS, verify port 3000 is bind to public interface instead of loopback:</p>
+
+<pre><code>netstat -lnput|grep 3000
+</code></pre>
+
+<p>Bob need run the following command to join Tom:</p>
+
+<pre><code>ssh -p 10022 tom@100.101.102.103
+tmux attch -t myWebsite
+</code></pre>
+
+<p>Notice that the user name is &ldquo;tom&rdquo; instead of &ldquo;nf&rdquo; in above command.
+And the password is tom&rsquo;s on his laptop, instead of nf&rsquo;s on the VPS.</p>
+
+<h1>Web serer sharing</h1>
+
+<p>Tom run this command to create the tunnel:</p>
+
+<pre><code>ssh -g -R 3000:localhost:3000 nf@100.101.102.103
+</code></pre>
+
+<p>Bob can visit the web server with url &ldquo;100.101.102.103:3000&rdquo;.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding">http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding</a></p>
+
+<p><a href="https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/">https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-07-31T16:06:27+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>4:06 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>On Ubuntu 14.04, <code>cat</code> can display Chinese characters correctly.
+But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t display correctly.</p>
+
+<p>Solution:</p>
+
+<p>Run <code>export LC_ALL=en_US.UTF-8</code> before <code>git log</code>.</p>
+
+<p>If it works, add this line into /etc/environment.</p>
+
+<p>If it doesn&rsquo;t work, run <code>export LANG=en_US.UTF-8</code>.</p>
+
+<p>If it doesn&rsquo;t work, run <code>apt-get install language-pack-en-base</code>.</p>
+
+<p>In vim, run <code>set enc=utf-8</code>.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue">http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue</a></p>
+
+<p><a href="http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim">http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -356,233 +812,6 @@ console.log(filterObj);
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/04/190036/">Learning Resources for Programming Language Theory</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-07-04T19:00:36+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p><a href="http://www.cs.toronto.edu/~hehner/aPToP/">A practical theory of programming</a>;</p></li>
-<li><p><a href="https://en.wikipedia.org/wiki/Programming_language_theory">Programming language theory on Wikipedia</a>;</p></li>
-<li><p><a href="http://book.douban.com/subject/3743526/">Programming Language Pragmatics by Michael L. Scott</a>;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/30/101243/">Trace File Change History in Git Repository</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-30T10:12:43+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:12 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The website need hide some menu items under developing,
-by comment out the html codes (at line 19~24 in file &ldquo;client/comTemp.html&rdquo;).
-But last night we found they reappeared in the newest version.
-Apparently someone used the older version (in which they were not commented out)
-overwrite the latest version by error (without intention).</p>
-
-<p>How to find out who, at which commit make this mistake?</p>
-
-<p><strong>Step 1</strong>: get the error version.</p>
-
-<pre><code>$ git blame -L 19,24 client/comTemp.html
-dc7d385a (Tom     2015-06-26 17:39:28 +0800 19)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="/mall"&gt;Mall&lt;/a&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="/services"&gt;Services&lt;/a&gt;
-dc7d385a (Tom     2015-06-26 17:39:28 +0800 24)    &lt;/li&gt;
-</code></pre>
-
-<p>Here the line 19 should be <code>&lt;!--&lt;li&gt;</code> and line 24 should be <code>&lt;/li&gt;--&gt;</code>,
-to hide &ldquo;Mall&rdquo; and &ldquo;Services&rdquo;, which are under developing.</p>
-
-<p><strong>Step 2</strong>: get the newest right version.</p>
-
-<p>The wrong commit is &ldquo;dc7d385a&rdquo;, so we have to find the nearest change <strong>before</strong> it:</p>
-
-<pre><code>$ git blame -L 19,24 'dc7d385a^' -- client/comTemp.html
-96269db1 (Bob     2015-06-10 15:36:31 +0800 19)    &lt;!--&lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="/mall"&gt;Mall&lt;/a&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="/services"&gt;Services&lt;/a&gt;
-96269db1 (Bob     2015-06-10 15:36:31 +0800 24)    &lt;/li&gt;--&gt;
-</code></pre>
-
-<p>So we know Mall and Services were commented out at commit 96269db1, 2015-06-10,
-and uncommented by error at commit dc7d385a, 2015-06-26, by Tom.</p>
-
-<p><strong>Step 3</strong>: show code changes.</p>
-
-<pre><code>$ git show dc7d385a -- client/comTemp.htm
-...
--    &lt;!--&lt;li&gt;
-+    &lt;li&gt;
-       &lt;a href="/mall"&gt;Mall&lt;/a&gt;
-     &lt;/li&gt;
-     &lt;li&gt;
-       &lt;a href="/services"&gt;Services&lt;/a&gt;
--    &lt;/li&gt;--&gt;
-+    &lt;/li&gt;
-...
-</code></pre>
-
-<p>It shows in commit dc7d385a,
-two lines were deleted: &ldquo;<!--<li>&rdquo; and &ldquo;</li>&ndash;>&rdquo;,
-while two lines were added: &ldquo;<li>&rdquo; and &ldquo;</li>&rdquo;.</p>
-
-<p><strong>Step 4 (optional)</strong>: revert the commit</p>
-
-<pre><code>git revert dc7d385a
-</code></pre>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket">http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/27/085109/">Control Linux Server With Tmux on Windows Client</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-27T08:51:09+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:51 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I&rsquo;ve tried Kitty as SSH client.
-But under tmux, the right &ldquo;Alt&rdquo; key doesn&rsquo;t work,
-while it works good with MobaXterm.</p>
-
-<p>Full screen switch: F11;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/25/102358/">Meteoric Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-25T10:23:58+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:23 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>meteor create ionicEx
-cd ionicEx
-meteor add iron:router fourseven:<a href="&#109;&#97;&#x69;&#x6c;&#116;&#x6f;&#x3a;&#x73;&#99;&#115;&#x73;&#x40;&#50;&#x2e;&#48;&#x2e;&#x30;">&#x73;&#x63;&#x73;&#x73;&#x40;&#x32;&#46;&#48;&#x2e;&#x30;</a> meteoric:ionic-sass meteoric:ionicons-sass meteoric:ionic</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/19/104111/">Tails System</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-06-19T10:41:11+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:41 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Tails 1.4 can <strong>not</strong> be installed with YUMI.
-It will cause a &ldquo;setup chroot failure&rdquo;.
-There is a bug report on Tails for this:
-<a href="https://labs.riseup.net/code/issues/9115">Chroot browsers don&rsquo;t work when Tails is manually installed with YUMI</a>.</p>
-
-<p>After start up with USB key, press <TAB> after the &ldquo;BOOT&rdquo; prompt.
-I tried all 3 options. Only &ldquo;menu_486&rdquo; could boot the system.</p>
-
-<p>Once logged in, connect WiFi, use &ldquo;unsafe_browser&rdquo; to check the internet connection.
-If it&rsquo;s OK, use Tor browser.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -600,23 +829,23 @@ If it&rsquo;s OK, use Tor browser.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
+        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
+        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
+        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
+        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
+        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
       </li>
     
   </ul>

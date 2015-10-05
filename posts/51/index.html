@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Goto virtual disk folder and run command &ldquo;VBoxManage modifyhd .vdi &ndash;resize new_size&rdquo;. Note that the parameter following &ldquo;& &hellip;">
+  <meta name="description" content="Jenkins will cleanup workspaces of jobs for some (unknown) reasons. So we have to save them to some other place as product publish repository. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,238 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/05/160413/">Use ArtifactDeployer Plugin to Publish Product Artifacts</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-05T16:04:13+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Jenkins will cleanup workspaces of jobs for some (unknown) reasons. So we have to save them to some other place as product publish repository. ArtifactDeployer plugin is perfect for this purpose.</p>
+
+<h1>Installation</h1>
+
+<p>Jenkins -> Manage Jenkins -> Manage Plugins -> Available, check &ldquo;Jenkins Artifact Deployer Plug-in&rdquo;, then click &ldquo;Install without restart&rdquo;. If the Jenkins server can&rsquo;t access internet, you can use http proxy to achieve install online;</p>
+
+<h1>Usage</h1>
+
+<ol>
+<li><p>In the &ldquo;Configure&rdquo; page of job GCP-6.20, add a post-build action &ldquo;[ArtifactDeployer] Deploy artifacts from workspace to remote directories&rdquo;. Enter &ldquo;<em>*/build/</em>.zip&rdquo; in &ldquo;Files to deploy&rdquo;, and &ldquo;/home/bvt/.jenkins/userContent/GCP&rdquo; in &ldquo;Remote directory&rdquo;. And check &ldquo;Clean-up remote directory before deployment&rdquo; and &ldquo;Delete remote artifacts when the build is deleted&rdquo; in &ldquo;Advanced&rdquo;. You can add more artifacts by click &ldquo;Add&rdquo; button.</p></li>
+<li><p>Build job GCP-6.20;</p></li>
+<li><p>After build, you can get artifacts at <a href="http://10.0.2.74:8088/userContent/GCP,">http://10.0.2.74:8088/userContent/GCP,</a> or in <a href="http://10.0.2.74:8088/job/GCP-6.20">the home page of this job</a>;</p></li>
+</ol>
+
+
+<p>Note: It seems that ArtifactDeployer can only save artifacts somewhere in the bvt host. There is a &ldquo;Publish Over&rdquo; plugin which can send artifacts to remote hosts via ssh(sftp) or ftp protocol.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/01/182936/">Jave IDE on Xfce</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-01T18:29:36+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>6:29 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Eclipse sucks. Tooltips in text editor disappears.</p>
+
+<p>Netbeans is ok.</p>
+
+<p>IntelliJ is ok. I will use this one as my Hadoop IDE. Tooltips looks ok by adding &ldquo;auto.show.quick.doc=true&rdquo; at file $INTELLIJ_HOME/bin/idea.properties. See &ldquo;<a href="http://stackoverflow.com/questions/6615516/intellij-tooltip-shows-javadocs">http://stackoverflow.com/questions/6615516/intellij-tooltip-shows-javadocs</a>&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/01/133729/">Jenkins Backup and Restore</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-01T13:37:29+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>1:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Backup</h1>
+
+<p>Working directory: We will backup all files into folder &ldquo;bvtBackup&rdquo; in current working directory. In this case the CWD is ~/docs, so all files will be backuped into ~/docs/bvtBackup.</p>
+
+<h2>Backup Job Configuration Files</h2>
+
+<pre><code>rsync -rtvu --include='config.xml' --exclude='**/**/**' bvt@10.0.2.74:/home/bvt/.jenkins/jobs/ bvtBackupjobs/
+</code></pre>
+
+<p>Here &ldquo;&ndash;exclude=&lsquo;<strong>/</strong>/**&rsquo;&rdquo; limits the recursive depth is 2 (all subdirectories of &ldquo;jobs&rdquo; deeper than 2 are ignored).</p>
+
+<h2>Backup Plugins</h2>
+
+<pre><code>rsync -rtvu --exclude='*/' bvt@10.0.2.74:/home/bvt/.jenkins/plugins/ bvtBackup/plugins/
+</code></pre>
+
+<p>Exclude all directories, because they will be automatically extracted from .jpi(or .hpi) files when Jenkins startup.</p>
+
+<h2>Backup System Level Configurations</h2>
+
+<pre><code>rsync -rtvu --include='*.xml' --exclude='*' bvt@10.0.2.74:/home/bvt/.jenkins/ bvtBackup/
+</code></pre>
+
+<p>Here we can see that option include has higher priority than exclude.</p>
+
+<h2>Other Things not Backuped</h2>
+
+<p>User information, stored in &ldquo;users&rdquo; directory. And some security stuff.</p>
+
+<h2>Put them all together</h2>
+
+<p>For efficiency, we save all above actions in one script bvt_backup.sh in ~/docs, and we can simply sync all above files by run this script:</p>
+
+<pre><code>#!/bin/sh
+rsync -rtvu --include='config.xml' --exclude='**/**/**' bvt@10.0.2.74:/home/bvt/.jenkins/jobs/ bvtBackup/jobs/ 
+rsync -rtvu --exclude='*/' bvt@10.0.2.74:/home/bvt/.jenkins/plugins/ bvtBackup/plugins/ 
+rsync -rtvu --include='*.xml' --exclude='*' bvt@10.0.2.74:/home/bvt/.jenkins/ bvtBackup/ 
+</code></pre>
+
+<h1>Restore</h1>
+
+<h2>Restore to a Running Jenkins Server</h2>
+
+<ol>
+<li><p>Copy modified new configuration files to the home directory of Jenkins;</p></li>
+<li><p>java -jar jenkins-cli.jar -s <a href="http://localhost:8088">http://localhost:8088</a> reload-configuration</p></li>
+</ol>
+
+
+<h2>Start a New Jenkins Server from Backuped Files</h2>
+
+<ol>
+<li><p>Copy above file to the home directory of Jenkins;</p></li>
+<li><p>Specify Jenkins home directory: export JENKINS_HOME=&hellip;;</p></li>
+<li><p>Start Jenkins server: java -jar jenkins.war</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/30/110558/">搭建Ubuntu封闭局域网</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-07-30T11:05:58+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:05 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>机器的网线插在路由器的lan口上</p>
+
+<h1>vi /etc/network/interfaces</h1>
+
+<p>auto lo
+iface lo inet loopback
+auto eth0
+iface eth0 inet static
+address 192.168.1.2
+netmask 255.255.255.0
+gateway 192.168.1.1</p>
+
+<p>Ref: <a href="http://www.ha97.com/4895.html">http://www.ha97.com/4895.html</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/29/183938/">目录已存在导致Jenkins项目构建失败的解决方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-07-29T18:39:38+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:39 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Jenkins中的项目在下载源代码时，如果Working Directory中存在未加入版本控制的文件或者目录已经存在于SVN库中，会导致更新失败，整个构建终止，解决方法是将SVN的检出策略由"Use &lsquo;svn upate&rsquo; as much as possible"改为"Emulate clean checkout by first deleting unversioned/ignored files, then &lsquo;svn update&rsquo;&ldquo;。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -193,7 +425,7 @@
 
 <p>For example, compare ~/.vimrc at different hosts:</p>
 
-<p> ssh <a href="&#x6d;&#97;&#x69;&#108;&#x74;&#111;&#58;&#98;&#118;&#x74;&#64;&#x31;&#48;&#x2e;&#48;&#46;&#50;&#x2e;&#x37;&#x34;">&#98;&#118;&#x74;&#64;&#x31;&#x30;&#x2e;&#x30;&#46;&#x32;&#x2e;&#x37;&#x34;</a> &ldquo;cat /home/bvt/.vimrc&rdquo; | diff -y &ndash;suppress-common-lines - .vimrc</p>
+<p> ssh <a href="&#x6d;&#97;&#105;&#108;&#116;&#x6f;&#x3a;&#x62;&#x76;&#116;&#64;&#49;&#x30;&#x2e;&#48;&#x2e;&#50;&#46;&#x37;&#x34;">&#98;&#x76;&#116;&#64;&#x31;&#48;&#46;&#x30;&#46;&#x32;&#46;&#55;&#x34;</a> &ldquo;cat /home/bvt/.vimrc&rdquo; | diff -y &ndash;suppress-common-lines - .vimrc</p>
 
 <p>where -y is abbr. of &ldquo;&ndash;side-by-side&rdquo;.</p>
 
@@ -331,259 +563,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/24/165328/">Build Erlang Application With Rebar</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-24T16:53:28+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:53 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>See usage mannul at <a href="https://github.com/rebar/rebar/wiki">rebar wiki</a>;</p>
-
-<p>Or you can Download rebar manually at <a href="https://github.com/basho/rebar">rebar homepage</a>;</p>
-
-<p>Basic usage:</p>
-
-<ol>
-<li><p>Download rebar to project root directory;</p></li>
-<li><p><code>./rebar create-app</code></p></li>
-<li><p>edit source files;</p></li>
-<li><p><code>./rebar compile</code></p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/22/180846/">Clipboard Manager on Xfce</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-22T18:08:46+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>6:08 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Clipman-plugin</h1>
-
-<p>sudo apt-get install xfce4-clipman-plugin</p>
-
-<p>No config function. No hotkey. Very basic function. But it support 1-step-paste.</p>
-
-<h1>Parcellite (1.0.2rc5)</h1>
-
-<p>Installation with apt-get is different with that with Software Manager. That from apt-get seeams working strange, so not use it. Use Software Manager to install it. A GUI and you can config its hotkey. But its a 2-step-paste app (you have to select a item using hotkey, then focus target text editor, then ctrl-v to paste).
-Parcellite can enable &ldquo;copy on selection&rdquo; by checking &ldquo;Use Primary&rdquo; and &ldquo;Synchronize clipboards&rdquo; in [Preferences -> Behavior -> Clipboards].</p>
-
-<p>But in GUI this feature always causes trouble. For example, we want browse website yahoo, so we first copy text &ldquo;www.yahoo.com&rdquo;, then switch to browser, select all text &ldquo;www.baidu.com&rdquo; in address bar, then overwrite them with shortcut Ctrl-v. With &ldquo;copy on selection&rdquo; enabled, when you select &ldquo;www.baidu.com&rdquo;, it&rsquo;s automatically copy to clipboard. So when you press Ctrl-v, you get &ldquo;www.baidu.com&rdquo; instead of &ldquo;www.yahoo.com&rdquo;.</p>
-
-<p>In console environment &ldquo;copy on selection&rdquo; is convenient, but with tmux, it&rsquo;s unnecessary any more.</p>
-
-<h1>Glipper (2.4)</h1>
-
-<p>Install with Software Manager. Behave like Parcellite, you can configure hotkey, but 2-step-paste.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/21/232205/">Notes About Emacs</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-21T23:22:05+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>11:22 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Install Emacs 24 on Mint:</p>
-
-<pre><code>  sudo apt-get install emacs24
-</code></pre></li>
-<li><p>Start emacs GUI: <code>emacs</code>; or start emacs in terminal: <code>emacs -nw</code> (means no window);</p></li>
-<li><p>Query shortcut of a command: C-h w;</p></li>
-<li><p>List All available command of current buffer: C-h b;</p></li>
-<li><p>Create a new file buffer: C-x C-f. Then you can write your file name (tab auto-complete is supported);</p></li>
-<li><p>Save to file: C-x C-s;</p></li>
-<li><p>List buffers: C-x C-b;</p></li>
-<li><p>Go to another buffer: C-x b;</p></li>
-<li><p>Go to previous/next buffer: C-x Left/Right arrow key;</p></li>
-<li><p>Kill buffer: C-x k;</p></li>
-<li><p>Leave Emacs: C-x C-c; In Evil :q or :x also can quit Emacs;</p></li>
-<li><p>Show line number: M-x linum-mode, See <a href="http://superuser.com/questions/212193/how-do-i-display-line-numbers-in-emacs-not-in-the-mode-line">http://superuser.com/questions/212193/how-do-i-display-line-numbers-in-emacs-not-in-the-mode-line</a></p></li>
-<li><p>Run lisp command in emacs: in <em>scratch</em> buffer, input expression, put the cursor at the end of the it, and press C-x C-e;</p></li>
-<li><p>Cancel command in mini-buffer: C-g;</p></li>
-<li><p>Word completion: M-/, if the word completed is not your hoped, press M-/ again. (see &ldquo;3.4. Word Abbreviations&rdquo; in &ldquo;Learning GNU Emacs&rdquo; for more);</p></li>
-<li><p>Scroll window: Current window: PgUp/PgDown; Other window: C-M-v/V</p></li>
-<li><p>Bookmarks: Set bookmarks: C-x r m; List bookmarks: C-x r l (you can edit bookmarks in this window, use q to quit); Jump to bookmarks: C-x r b; Rename or delete bookmarks: M-x bookmark-&hellip;</p></li>
-<li><p>Repeat last command: C-x Esc Ecs;</p></li>
-<li><p>Query-replace: M-%</p></li>
-<li><p>Recursive edit in query-replace: enter recursive mode: C-r, quit recursive mode: C-M-c</p></li>
-<li><p>Read man page: M-x man<CR> command-name<CR></p></li>
-<li><p>Find files in a directory: M-x find-name-dired, or locate;</p></li>
-<li><p>Search text in files under a directory: M-x grep-find;</p></li>
-<li><p>Edit remote files: C-x C-f /user@host:file_path</p></li>
-<li><p>Read Emacs manual in Emacs: M-x info<RET>, use C-s to search string, keep press C-s to cycle through the results.</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/19/144931/">Zip Directories With/without Root Directory</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-19T14:49:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Under directory docs there is a build.xml and a &ldquo;tmp&rdquo; subdir like this:</p>
-
-<p>tmp</p>
-
-<p>|&ndash; aaa</p>
-
-<p>`&ndash; newdir</p>
-
-<p> `&ndash; bbb</p>
-
-<p>If you want create a zip file with tmp as the root folder, you should write build.xml like this:</p>
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
- <project name="MyProject" basedir="./" default="zip">
-  <target name="zip"></p>
-
-<p>   <zip destfile="mz.zip" basedir="." includes="tmp/**"/></p>
-
-<p>  </target></p>
-
-<p> </project></p>
-
-<p>If you only want zip all contents under tmp (without root folder tmp), you should modify build.xml like this:</p>
-
-<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?>
- <project name="MyProject" basedir="./" default="zip">
-  <target name="zip"></p>
-
-<p>   <zip destfile="mz.zip" basedir="tmp"/></p>
-
-<p>  </target></p>
-
-<p> </project></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/19/104345/">Start Jenkins Server With Specified Home Directory</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-19T10:43:45+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:43 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>You can get the current home directory of a Jenkins server at &ldquo;Manage Jenkins -> Configure System -> Home Directory&rdquo;.</p>
-
-<p>When starting a Jenkins server, you can specify its home directory through setting environment variable JENKINS_HOME:</p>
-
-<pre><code>export JENKINS_HOME=~/.jenkins
-</code></pre>
-
-<p>then</p>
-
-<pre><code>java -jar &lt;jenkins-ver.war&gt; --httpPort=8088
-</code></pre>
-
-<p>or start as a daemon service:</p>
-
-<pre><code>nohup java -jar &lt;jenkins-ver.war&gt; --httpPort=8088 1&gt;jenkins.log 2&gt;jenkins.log &amp;
-</code></pre>
-
-<p>When update Jenkins or install some new plugins, you may find all jobs gone. Don&rsquo;t be panic, it&rsquo;s probably because the home folder are changed (for example, ~/.hudson) by the plugins. Specify home directory as above, all jobs will come back.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/52">&larr; Older</a>
@@ -601,23 +580,23 @@ Parcellite can enable &ldquo;copy on selection&rdquo; by checking &ldquo;Use Pri
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
+        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
+        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
+        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
+        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
+        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
       </li>
     
   </ul>

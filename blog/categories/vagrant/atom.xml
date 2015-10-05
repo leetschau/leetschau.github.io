@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Vagrant | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/vagrant/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-09-25T20:12:36+08:00</updated>
+  <updated>2015-10-05T15:23:42+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,107 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Meteor Development Environment on Windows]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/05/131004/"/>
+    <updated>2015-10-05T13:10:04+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/05/131004</id>
+    <content type="html"><![CDATA[<p>If you want develop Meteor on Windows machine,
+it&rsquo;s inconvenient to install meteor, mongodb, vim, etc. on Windows.
+My choice is use VM as develop environment.</p>
+
+<p>First install <a href="https://www.virtualbox.org/">VirtualBox</a>, <a href="https://www.vagrantup.com/">Vagrant</a>,
+<a href="http://executor.dk/">Executor</a>.</p>
+
+<p>Add the Meteor Dev vagrant box to system <code>vagrant box add meteorBox mybox.box</code>.
+The box is based on Ubuntu 14.04 LTS (Trusty), with provisioned Meteor, MongoDB, git, tmux,
+vim and its plugins.</p>
+
+<p>Create the VM: <code>vagrant init meteorBox</code>;</p>
+
+<p>There are different SSH clients:</p>
+
+<h1>MobaXterm</h1>
+
+<p>Download <a href="http://mobaxterm.mobatek.net/">MobaXterm</a> and extract it to app folder,
+say d:\Apps\MobaXterm_v7.7.</p>
+
+<p>Create a new session in MobaXterm named &ldquo;localvm&rdquo;, with username &ldquo;vagrant&rdquo; and port 2222;</p>
+
+<p>In Executor, add the following keywords:</p>
+
+<pre><code>keyword: vmStart
+Command: vagrant
+Parameters: up
+Start in: e:\Docs\MeteorBox\sysClone\vm
+
+keyword: vmSuspend
+Command: vagrant
+Parameters: suspend
+Start in: e:\Docs\MeteorBox\sysClone\vm
+
+Keyword: vmLogin
+Command: MobaXterm_Personal_7.7.exe
+Parameters: -bookmark localvm -exitwhendone
+Start in: d:\Apps\MobaXterm_v7.7
+
+Keyword: vmStart&amp;Login
+Command: vmStart||vmLogin
+</code></pre>
+
+<p>Now you can use [win-z, vmStart&amp;Login] to start VM and login.
+Before you shutdown Windows machine, remember use [win-z, vmSuspend] to suspend VM
+(which is always impossible).</p>
+
+<p>Note: to add or edit keywords in Executor, use shortcut [win-z, Ctrl-k],
+see Executor documents for details.</p>
+
+<h1>Kitty</h1>
+
+<p>If you prefer Kitty (portable version of Putty) to MobaXterm,</p>
+
+<p>Add a new Session &ldquo;localvm&rdquo; in Kitty:</p>
+
+<pre><code>Host name: localhost
+Port: 2222
+Connection -&gt; Data -&gt; Auto-login username &amp; password: vagrant
+Window -&gt; Behavior: check "Full screen on Alt-Enter"
+</code></pre>
+
+<p>The corresponding &ldquo;vmLogin&rdquo; will be:</p>
+
+<pre><code>Keyword: vmLogin
+Command: kitty.exe
+Parameters: -load localvm
+Start in: d:\Apps\Kitty
+</code></pre>
+
+<h1>ConEmu + Kitty</h1>
+
+<p>You can even wrap Kitty into <a href="https://github.com/Maximus5/ConEmu">ConEmu</a>,
+which is a good Windows console alternative.</p>
+
+<p>In ConEmu, add a task in Settings -> Startup -> Tasks:</p>
+
+<pre><code>Name: Kitty
+Hotkey: Win + Alt + X
+Task parameters: blank
+Commands: d:\Apps\Kitty\kitty.exe -new_console -load "VagrantLinux"
+</code></pre>
+
+<p>And set Kitty as the auto startup task:
+Set <code>Settings -&gt; Startup -&gt; Startup options -&gt; Specified named task</code> to &ldquo;Kitty&rdquo;.</p>
+
+<p>Add a new Executor keyword for ConEmu:</p>
+
+<pre><code>Keyword: vmLogin
+Command: d:\Apps\ConEmu\ConEmu.exe
+</code></pre>
+
+<p>(or use [Win + Alt + X] to login to VM manually in ConEmu).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Manage Vagrant-Created VMs on Linux Mint]]></title>
@@ -405,64 +506,6 @@ vagrant ssh [vm-name] -c 'sh /vagrant/build-gcp-web-6.1_P2_GZ.sh'
 <li><p>Enable SSH Server on openSUSE: YaST -> Firewall, add SSH Server to &ldquo;Allowed Services&rdquo;.</p></li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Build Puppet Clusters With Vagrant]]></title>
-    <link href="http://leetschau.github.io/blog/2014/03/18/162706/"/>
-    <updated>2014-03-18T16:27:06+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/03/18/162706</id>
-    <content type="html"><![CDATA[<p>$ cd ~/docs/propuppetex/chapter3
-$ cat Vagrantfile
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|</p>
-
-<p>  config.vm.box = &ldquo;centos64&rdquo;</p>
-
-<p>  config.vm.define &ldquo;ppt&rdquo; do |ppt|
-    ppt.vm.hostname = &ldquo;puppet.boco.com.cn&rdquo;
-    ppt.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.3&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    ppt.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    ppt.vm.provision :shell, path: &ldquo;master.sh&rdquo;
-  end</p>
-
-<p>  config.vm.define &ldquo;web&rdquo; do |web|
-    web.vm.hostname = &ldquo;web.boco.com.cn&rdquo;
-    web.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.4&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    web.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    web.vm.provision :shell, path: &ldquo;web.sh&rdquo;
-  end
-end</p>
-
-<p>$ cat master.sh
-echo &lsquo;<em>&rsquo; > /etc/puppet/autosign.conf
-sed -i &lsquo;/[.</em>]/ a \    autosign = true&rsquo; /etc/puppet/puppet.conf # add &ldquo;autosign = true&rdquo; in [main] and [agent]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-mkdir /etc/puppet/manifests
-cat > /etc/puppet/manifests/site.pp &lt;<-EOF
-node 'web' {
-  file { '/home/vagrant/aaa.conf':
-    content => &lsquo;this is made by puppet master!&rsquo;,
-  }
-}
-EOF
-service iptables stop</p>
-
-<p>$ cat web.sh
-sed -i &lsquo;1 a \    master = puppet&rsquo; /etc/puppet/puppet.conf # add &ldquo;master = puppet&rdquo; after the line [main]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-echo &ldquo;proxy=<a href="http://10.21.3.31:8888">http://10.21.3.31:8888</a>&rdquo; >> /etc/yum.conf
-service iptables stop</p>
-
-<p>Now run &ldquo;puppet master &ndash;no-daemonize &ndash;verbose&rdquo; on ppt, run &ldquo;puppet agent &ndash;test&rdquo; on web, you can file the file &ldquo;aaa.conf&rdquo; at /home/vagrant.</p>
 ]]></content>
   </entry>
   

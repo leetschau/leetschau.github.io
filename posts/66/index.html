@@ -9,7 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="expect http://ubuntuforums.org/showthread.php?t=220139 http://www.chinaunix.net/old_jh/24/594417.html http://kahimyang.info/kauswagan/howto_blogs/704 &hellip;">
+  <meta name="description" content="下载libevent-2.0.21-stable.tar.gz
+tar -xzvf libevent-2.0.21-stable.tar.gz
+查看README文件，运行第一步./configure
+报错，原因是没有找到C编译器；
+安装C编译器；sudo apt-get install gcc &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +69,242 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/10/135439/">Libevent安装过程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-10T13:54:39+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>1:54 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>下载<a href="https://github.com/downloads/libevent/libevent/libevent-2.0.21-stable.tar.gz">libevent-2.0.21-stable.tar.gz</a></p></li>
+<li><p>tar -xzvf libevent-2.0.21-stable.tar.gz</p></li>
+<li><p>查看README文件，运行第一步./configure</p></li>
+<li><p>报错，原因是没有找到C编译器；</p></li>
+<li><p>安装C编译器；sudo apt-get install gcc</p></li>
+<li><p>重新运行./configure，配置完成；</p></li>
+<li><p>运行make，报make未安装，安装后再次执行；</p></li>
+<li><p>$ make verify</p></li>
+<li><p>sudo make install</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/10/114625/">Multi-thread Echo Server: Python Version</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-10T11:46:25+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>源代码（mulThrServ.py）：</p>
+
+<p> import socket
+ import threading
+ import SocketServer
+ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
+  def handle(self):
+   data = self.request.recv(1024)
+   cur_thread = threading.current_thread()
+   print &ldquo;cur_thread: &rdquo; + cur_thread.name
+   print &ldquo;data: &rdquo; + data
+   response = &ldquo;{}: {}&rdquo;.format(cur_thread.name, data)
+   self.request.sendall(response)
+ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+  pass
+ def client(ip, port, message):
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  sock.connect((ip, port))
+  try:
+   sock.sendall(message)
+   response = sock.recv(1024)
+   print &ldquo;Received: {}&rdquo;.format(response)
+  finally:
+   sock.close()
+ if <strong>name</strong> == &ldquo;<strong>main</strong>&rdquo;:
+  # Port 0 means to select an arbitrary unused port
+  HOST, PORT = &ldquo;localhost&rdquo;, 0
+  server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+  ip, port = server.server_address
+ # Start a thread with the server &ndash; that thread will then start one
+  # more thread for each request
+  server_thread = threading.Thread(target=server.serve_forever)
+  # Exit the server thread when the main thread terminates
+  server_thread.daemon = True
+  server_thread.start()
+  print &ldquo;Server loop running in thread:&rdquo;, server_thread.name
+  client(ip, port, &ldquo;Hello World 1&rdquo;)
+  client(ip, port, &ldquo;Hello World 2&rdquo;)
+  client(ip, port, &ldquo;Hello World 3&rdquo;)
+  server.shutdown()</p>
+
+<p>运行（Ubuntu Server 12.04）：</p>
+
+<p>$ python mulThrServ.py</p>
+
+<p>Server loop running in thread: Thread-1</p>
+
+<p>Received: Thread-2: Hello World 1</p>
+
+<p>Received: Thread-3: Hello World 2</p>
+
+<p>Received: Thread-4: Hello World 3</p>
+
+<p>可以看到对客户端的每次连接，服务端都启动了新的线程进行处理。此程序在python 2.7上运行完成，在python 2.6上运行时字符串的format函数写法与2.7不同，需要修改。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/09/111232/">Ubuntu Server安装telnet服务时`Unable to Locate Package Telnetd`解决方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-09T11:12:32+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>装好Ubuntu Server 12.04后，用apt-get安装telnetd报"E: Unable to locate package telnetd"，解决方法如下：</p>
+
+<ol>
+<li><p>虚拟机采用NAT方式与主机连接；</p></li>
+<li><p>sudo apt-get update（更新apt-get的软件源）</p></li>
+<li><p>sudo apt-get install telnetd</p></li>
+<li><p>sudo /etc/init.d/openbsd-inetd restart</p></li>
+</ol>
+
+
+<p>验证：</p>
+
+<p>ps -ef|grep telnetd</p>
+
+<p>&ldquo;openbsd-inetd restart"指令执行完后需要几秒钟才能启动telnetd服务；</p>
+
+<p>注意，安装软件（或者其他连接互联网的动作只能在NAT模式下运行，而主机用telnet/ssh方式连接虚拟机只能在Host-only模式下，所以当连接失败时注意检查是否模式没设置对。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/06/233852/">用VirtualBox搭建虚拟局域网</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-06T23:38:52+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:38 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>用 Oracle VM VirtualBox 安装虚拟机，我在Windows 7上安装了ubuntu 11.10和xubuntu12.04两个虚拟机；</p></li>
+<li><p>将这两个虚拟机的“网络”属性设为“仅主机（Host-Only）适配器”；在win7的“网络和共享中心”中出现了一个“VirtualBox Host Only Network”，用ipconfig可以看到这个适配器的IP地址是192.168.56.101；</p></li>
+<li><p>启动这两个虚拟机，用ifconfig可以查看各自的ip地址，可以看到默认网卡eth0的IP地址是192.168.56.102和103；</p></li>
+<li><p>用apt-get安装sshd和telnetd服务；</p></li>
+<li><p>现在就可以互相ping其他两个机器了，win7上可以（用kitty）telnet/ssh连接ubuntu，但ubuntu无法连接win7上的GODU服务，原因不明；</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/05/235950/">以命令行方式使用Desktop版Ubuntu</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-05T23:59:50+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>方法1：安装Ubuntu Server版，好处是默认不安装GUI，且可以自动安装ssh服务和其他很多服务，且消耗系统资源少（约200MB内存，Desktop版启动后需要500MB左右内存），启动和关闭速度快（关机：shutdown -P now）；</p>
+
+<p>方法2：安装Ubuntu Desktop版，出现用户登录界面时按Ctrl+Alt+F1键进入命令行界面，F1~F6对应tty1~tty6，按Alt+F1~F6可以在tty1~tty6间切换，按Alt+F7返回GUI用户登录界面（在Linux Mint 14上，这个快捷键是Alt+F8），这种方法的好处是需要用图形界面时可以很容易的切换回来，如果是Server版还得安装X Window组件才能出现GUI。</p>
+
+<p>方法3：参考"<a href="http://askubuntu.com/questions/148717/how-do-i-boot-into-the-console-and-then-launch-the-ubuntu-desktop-from-it">http://askubuntu.com/questions/148717/how-do-i-boot-into-the-console-and-then-launch-the-ubuntu-desktop-from-it</a>"，可是在虚拟机上无效；</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -446,448 +686,6 @@ check &ldquo;Close ConEmu window&rdquo;;</p></li>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/26/231249/">BinarySearchST计算成本的测试代码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-26T23:12:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面是在原有BinarySearchST类上的修改，增加了两个成员（visitTimes与visitTime）和一个方法（getComparisionTimes），查找的成本主要体现在rank方法中的“cmp=key.compareTo(keys[m])”，在这一句后面加上visitTime++来标记访问次数增加了一次；写入的成本体现在put方法的两个位置，当key已经在keys中时，本次put的总成本是visitTime+1，当key不在keys数组中时（增加一个新元素），每移动一个元素，visitTime要加1，注意每次put操作记录结束后，除了要将次数存入visitTimes数组，还要将visitTime清零。</p>
-
-<p>另外下面的代码省略了与原BinarySearchST类相同的成员和方法。</p>
-
-<p> public class BinarySearchST<Key extends Comparable<Key>, Value> {
-  private final List<Integer> visitTimes = new ArrayList<Integer>(); // 每次put访问数组的次数的集合
-  int visitTime = 0; // 一次put操作中访问数组的次数计数器
-  public Value get(Key key) {
-   if (isEmpty())
-    return null;
-   int i = rank(key);
-   visitTime++;
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0)
-    return vals[i];
-   return null;
-  }
-  public int rank(Key key) {
-   int lo = 0, hi = N - 1;
-   while (lo &lt;= hi) {
-    int m = lo + (hi - lo) / 2;
-    int cmp = key.compareTo(keys[m]);
-    visitTime++;
-    if (cmp &lt; 0)
-     hi = m - 1;
-    else if (cmp > 0)
-     lo = m + 1;
-    else {
-     return m;
-    }
-   }
-   return lo;
-  }
-  public void put(Key key, Value val) {
-   if (val == null) {
-    delete(key);
-    return;
-   }
-   int i = rank(key);
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0) {
-    vals[i] = val;
-    visitTimes.add(visitTime + 1); // 查找了visitTime次，写入的成本是1
-    visitTime = 0;
-    return;
-   }
-   if (N == keys.length)
-    resize(2 * keys.length);
-   for (int j = N; j > i; j&ndash;) {
-    keys[j] = keys[j - 1];
-    vals[j] = vals[j - 1];
-    visitTime++;
-   }
-   keys[i] = key;
-   vals[i] = val;
-   N++;
-   visitTimes.add(visitTime);
-   visitTime = 0;
-   assert check();
-  }
-  public List<Integer> getComparisionTimes() {
-   return visitTimes;
-  }
- }</p>
-
-<p>计算成本的图像演示代码FrequencyCounter类见笔记 SequentialSearchST算法成本的图形演示 。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/25/072710/">键盘插拔对用户登录的影响实验</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-25T07:27:10+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>7:27 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>实验服务器：Ubuntu Server 12.04；</p>
-
-<p>实验过程：</p>
-
-<ol>
-<li><p>在服务器本机上以用户user1登录服务器；</p></li>
-<li><p>在另一台终端上以SSH方式登录服务器，用who命令查看当前登录用户有两个：</p></li>
-</ol>
-
-
-<p> root@guserver:~# who -H
- NAME  LINE   TIME    COMMENT
- user1 tty1   2013-01-25 07:21
- user1 pts/0  2013-01-25 07:22 (10.31.1.32)
-由IP地址可知，上面的tty1是服务器本机登录用户，pts/0是SSH登录用户；</p>
-
-<ol>
-<li><p>拔出服务器上的USB键盘插头，终端上再执行who命令，与上面的结果相同；</p></li>
-<li><p>再插上服务器上的USB键盘，不论是否插入原插槽，都可以继续输入指令，完全不受键盘插拔的影响；</p></li>
-</ol>
-
-
-<p>结论：</p>
-
-<p>键盘登录服务器的方式下，USB键盘的插拔和改变USB插口不会影响用户的登录状态。进一步，键盘作为操作系统的standard input，不受其物理状态（是否连接）的影响。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/24/174632/">Notes About Multiboot Usb Creator</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-24T17:46:32+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>U盘上的多系统启动工具，Windows上YUMI比较好，
-Ubuntu上<a href="http://www.pendrivelinux.com/multiboot-create-a-multiboot-usb-from-linux/">MultiSystem</a>用法复杂，
-<a href="http://sourceforge.net/projects/unetbootin/">unetbootin</a>是另外一款，
-需要安装p7zip（apt-get install p7zip-full），不能做多个Live CD在一个U盘上，
-安装新系统前要格式化USB盘，否则安装无效。</p>
-
-<p>用YUMI制作包含小马PE 2013版（XMPE2013.ISO）、
-Windows 7安装盘和Ubuntu Server 12.04 amd64(ubuntu-12.04.1-server-amd64.iso)的启动盘过程如下：</p>
-
-<ol>
-<li><p>插入U盘；</p></li>
-<li><p>启动YUMI（YUMI-0.0.8.7.exe）；</p></li>
-<li><p>安装界面上首先选好U盘的盘符，然后选安装系统的类型，
-上面3个系统对应的类型分别是：“Try an unlisted ISO(run from RAM)”（列表最后面）、
-“Windows Vista/7/8 Installer”和“Ubuntu Server 12.04 amd64”；</p></li>
-<li><p>选择对应的ISO文件；</p></li>
-<li><p>点击“Create”开始安装；</p></li>
-</ol>
-
-
-<p>安装的系统可以通过勾选“Remove an Installed Item?”卸载，但PE盘无法卸载。如果真不想要的话可以格盘重做一个。</p>
-
-<hr />
-
-<p>2013-01-28：
-使用YUMI制作了包含小马PE 2013版、Windows 7安装盘和Ubuntu Server 12.04的启动盘，
-在PNY盘（8GB）和Kingston microSD卡（8GB）上制作后3个系统都可以正常启动（DELL PC机），
-在SanDisk U3 curzer盘（4GB）上制作后无法启动，原因不明。
-XBoot不支持Windows启动ISO，放弃。</p>
-
-<hr />
-
-<p>2013-01-27：
-安装了小马PE 2013，注意小马PE的ISO文件不要使用中文文件名，否则在YUMI启动列表里会变成乱码。
-参考：<a href="http://www.rjno1.com/yumi">YUMI 0.0.8.7绿色版-制作引导多个iso系统镜像的自启动U盘</a></p>
-
-<hr />
-
-<p>2013-01-24：
-上午先用Sardu（2.0.5和2.0.6）做USB启动盘，它感知不到U盘，已经插入U盘还提示插入U盘，放弃，
-改用YUMI，首先在U盘上装了Ubuntu Server 12.04，后来又装了小马PE，虽然都装上了，但小马PE不能用；
-明天尝试装Win7。</p>
-
-<p>类似的工具还有一个叫XBoot的，下载了，没试；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/24/155123/">SequentialSearchST算法成本的图形演示</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-24T15:51:23+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:51 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>中文版238页图3.1.3演示了SequentialSearchST算法中每次写入单词数量（put方法中）时需要进行的比较次数，也就是此算法的成本，但书中没有生成此图的代码，下面是我自己的实现（第一个是新增的类，后两个是修改的类）：</p>
-
-<p> package edu.princeton.cs.algs4;
- public class VisualAccumulator {
-  private double total;
-  private int N;
-  public VisualAccumulator(int trials, double max) {
-   StdDraw.setXscale(0, trials);
-   StdDraw.setYscale(0, max);
-   StdDraw.setPenRadius(.005);
-  }
-  public void addDataValue(double val) {
-   N++;
-   total += val;
-   StdDraw.setPenColor(StdDraw.DARK_GRAY);
-   StdDraw.point(N, val);
-   StdDraw.setPenColor(StdDraw.RED);
-   StdDraw.point(N, total / N);
-   StdOut.println(&ldquo;Red point value:&rdquo; + total / N);// 平均比较次数
-  }
-  public double mean() {
-   return total / N;
-  }
-  @Override
-  public String toString() {
-   return &ldquo;Mean (&rdquo; + N + &ldquo; values): &rdquo; + String.format(&ldquo;%7.5f&rdquo;, mean());
-  }
-  public static void main(String[] args) {
-   int T = 300;
-   VisualAccumulator a = new VisualAccumulator(T, 1.0);
-   for (int t = 0; t &lt; T; t++) {
-    a.addDataValue(StdRandom.random());
-   }
-   StdOut.println(a);
-  }
- }</p>
-
-<p> public class SequentialSearchST&lt;Key, Value> {
-  private final List<Integer> compareTimes = new ArrayList<Integer>();
-  public List<Integer> getComparisionTimes() {
-   return compareTimes;
-  }
-  public void put(Key key, Value val) {
-   int compareTime = 0;
-   if (val == null) {
-    compareTimes.add(1);
-    delete(key);
-    return;
-   }
-   for (Node x = first; x != null; x = x.next) {
-    compareTime++;
-    if (key.equals(x.key)) {
-     x.val = val;
-     compareTimes.add(compareTime);
-     return;
-    }
-   }
-   first = new Node(key, val, first);
-   N++;
-   compareTimes.add(compareTime);
-  }
-  public static void main(String[] args) {
-   StdIn2.setInputFile(&ldquo;data/tale.txt&rdquo;);
-   SequentialSearchST&lt;String, Integer> st = new SequentialSearchST&lt;String, Integer>();
-   for (int i = 0; !StdIn2.isEmpty(); i++) {
-    String key = StdIn2.readString();
-    st.put(key, i);
-   }
-   List<Integer> comparisionTimes = st.getComparisionTimes();
-   VisualAccumulator va = new VisualAccumulator(comparisionTimes.size(), 1.0);
-   for (int t = 0; t &lt; comparisionTimes.size(); t++) {
-    va.addDataValue(comparisionTimes.get(t));
-   }
-   for (String s : st.keys())
-    StdOut.println(s + &ldquo; &rdquo; + st.get(s));
-  }
- }</p>
-
-<p> public class FrequencyCounter {
-  public static void main(String[] args) {
-   StdIn2.setInputFile(&ldquo;data/tale.txt&rdquo;);
-   int distinct = 0, words = 0;
-   int minlen = 8; // this is the first parameter
-   SequentialSearchST&lt;String, Integer> st = new SequentialSearchST&lt;String, Integer>();
-   while (!StdIn2.isEmpty()) {
-    String key = StdIn2.readString();
-    if (key.length() &lt; minlen)
-     continue;
-    words++;
-    if (st.contains(key)) {
-     st.put(key, st.get(key) + 1);
-    } else {
-     st.put(key, 1);
-     distinct++;
-    }
-   }
-   String max = &ldquo;&rdquo;;
-   st.put(max, 0);
-   for (String word : st.keys()) {
-    if (st.get(word) > st.get(max))
-     max = word;
-   }
-   StdOut.println(max + &ldquo; &rdquo; + st.get(max));
-   StdOut.println(&ldquo;distinct = &rdquo; + distinct);
-   StdOut.println(&ldquo;words = &rdquo; + words); // 以上是原始版本的代码，修改了获取输入的方法
-   List<Integer> comparisionTimes = st.getComparisionTimes(); // 获取原始成本数据
-   int maxComp = 0;
-   for (Integer i : comparisionTimes) {
-    if (i > maxComp) {
-     maxComp = i;
-    }
-   } // 获得原始成本最大值，以确定画布的Y轴高度
-   VisualAccumulator va = new VisualAccumulator(comparisionTimes.size(), maxComp);
-   for (int t = 0; t &lt; comparisionTimes.size(); t++) {
-    va.addDataValue(comparisionTimes.get(t));
-   } // 画图
-  }
- }</p>
-
-<p>以上VisualAccumulator是完整的类，SequentialSearchST只写出了新增的属性compareTimes及其get方法，和修改后的put和main方法；FrequencyCounter类中修改后的main方法，</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/23/125458/">调试Algorithms一书中带有输入重定向的代码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-23T12:54:58+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>12:54 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Algorithms(by Robert Sedgewick)中运行算法程序一般是这样的：</p>
-
-<p> java AlgorithmClass &lt; inputFile.txt</p>
-
-<p>例如第47页"java BinarySearch tinyW.txt &lt; tinyT.txt"，其中的"&lt;&ldquo;是输入重定向（standard input redirect），即用文件（tiny.txt）的内容代替键盘（standard input）作程序的输入，在Eclipse中调试这种代码很麻烦，因为Eclipse不支持输入重定向（直接在参数里写&rdquo;&lt; tiny.txt"无效，但支持输出到某一指定文件中），有两个方法解决这个问题。</p>
-
-<p>首先是准备工作：</p>
-
-<ol>
-<li><p>Create a project in eclipse, then creating a folder named &ldquo;data&rdquo; in it;</p></li>
-<li><p>copy tinyT.txt &amp; tinyW.txt into &ldquo;data&rdquo;;</p></li>
-</ol>
-
-
-<h1>方法1：使用System.setIn()方法</h1>
-
-<ol>
-<li>modify &ldquo;int[] whitelist = In.readInts(args[0]);&rdquo; in BinarySearch.java as following:
-System.setIn(new FileInputStream(&ldquo;data/tinyT.txt&rdquo;));
-int[] whitelist = In.readInts(&ldquo;data/&rdquo; + &ldquo;tinyW.txt&rdquo;);</li>
-<li>run BinarySearch;
-Reference: <a href="http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file">http://stackoverflow.com/questions/188547/eclipse-reading-stdin-system-in-from-a-file</a></li>
-</ol>
-
-
-<p>这个方法的不足之处是有时候程序在运行完后会报一个JNI异常，让人很不爽，于是有了下面第二个方法。</p>
-
-<h1>方法2：自己修改StdIn类</h1>
-
-<p>分析StdIn类的代码可知，它用了一个Scanner类包装了System.in，所以只要把System.in换成我们指定的文本文件就可以了，于是新建一个StdIn2类，代码与StdIn基本一样，增加了下面的方法：</p>
-
-<p> public static void setInputFile(String path) {
-  try {
-   scanner = new Scanner(new BufferedInputStream(new FileInputStream(
-     path)), charsetName);
-  } catch (FileNotFoundException e) {
-   e.printStackTrace();
-  }
-  scanner.useLocale(usLocale);
- }</p>
-
-<p>其实就是把scanner的初始化方法放到了setInputFile中（包括声明scanner和static{}块中两处），然后修改算法代码：</p>
-
-<ol>
-<li><p>将BinarySearch中的StdIn重构为StdIn2；</p></li>
-<li><p>main()方法的开始处加上"StdIn2.setInputFile(&ldquo;data/tiny.txt&rdquo;);&ldquo;；</p></li>
-<li><p>运行代码。</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/67">&larr; Older</a>
@@ -905,23 +703,23 @@ Reference: <a href="http://stackoverflow.com/questions/188547/eclipse-reading-st
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
+        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
+        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
+        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
+        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
+        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
       </li>
     
   </ul>

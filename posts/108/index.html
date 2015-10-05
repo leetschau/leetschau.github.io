@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="LinkedBlockingQueue inputQ = new LinkedBlockingQueue(); Byte[] destArr = inputQ.toArray( new Byte[0]); byte [] resultArr = new byte [destArr. length &hellip;">
+  <meta name="description" content="镜像文件制作 ultraISO、winISO和Nero就不说了，以下比较几款免费镜像制作/装载软件。
+Folder2iso：绿色软件，免安装，将文件夹做成ISO文件，其中【Charset】一般设为cp936或者EUC-CN（有中文路径和文件）或者默认（无中文），UltraISO的替代品； &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,219 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/20/145352/">镜像文件制作/装载软件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-20T14:53:52+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>镜像文件制作</h1>
+
+<p>ultraISO、winISO和Nero就不说了，以下比较几款免费镜像制作/装载软件。
+Folder2iso：绿色软件，免安装，将文件夹做成ISO文件，其中【Charset】一般设为cp936或者EUC-CN（有中文路径和文件）或者默认（无中文），UltraISO的替代品；
+isoDisk：能装载iso文件到虚拟光驱中（类似Daemon，其虚拟光驱盘符从A开始，最多可加载20个），不能装载其他镜像文件（如img、bin、nrg等），还能将CD中的光盘做成ISO文件；
+ImgBurn：功能很全的一个freeware，但是没有装载ISO文件的功能。
+ISORecorder：光盘刻录软件（取代Nero），似乎也能将文件夹做成ISO文件；
+TotalISO：这个是一个TotalCmd的插件，仅是一个界面，要光盘刻录功能还要借助其他软件；
+总结：以目前的硬盘容量，基本无需刻录光盘，因此用Folder2iso制作ISO文件，然后用Daemon或者isoDisk装载使用即可。</p>
+
+<h1>镜像文件加载工具</h1>
+
+<ul>
+<li><a href="http://www.pismotechnic.com/">Pismo File Mount Audit Package</a>：freewaregenius推荐，需要安装，安装后右键需要mount的文件，选择mount或者quick mount加载，前者是传统的加载方式，可以指定一个驱动器盘符，后者更方便，直接把镜像文件变成一个文件夹，双击进入文件夹运行程序，卸载是在文件夹上右键，选择unmount，就还原成原始的镜像文件了；</li>
+</ul>
+
+
+<p>这个软件支持装载iso和zip文件，不支持cue, ape, rar等格式，也不支持linux格式的bin文件；</p>
+
+<ul>
+<li><a href="http://www.winarchiver.com/">WinArchiver Virtual Drive</a>：貌似属于免费试用+加收费软件，需要安装；</li>
+</ul>
+
+
+<p>参考："<a href="http://www.freewaregenius.com/another-forty-three-of-the-best-free-windows-enhancements-that-you-should-know-about-part-2/">http://www.freewaregenius.com/another-forty-three-of-the-best-free-windows-enhancements-that-you-should-know-about-part-2/</a>&ldquo;第11、12项</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/20/085649/">使用输入流读取数据时的阻塞问题</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-20T08:56:49+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:56 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>使用java.io.BufferedInputStream.read(byte[])方法读取Socket中传过来的数据时，如果需要超时退出判断机制，一定要注意B ufferedInputStream.available()的使用。下面的代码片段是一个很标准的读取过程，其中第5行的判断很重要，因为read( byte[] )方法本身是阻塞的，如果自始至终is没有收到任何数据，就会一直阻塞在read()方法上（第6行），导致整个超时判断机制失去作用，而 available()方法的使用避免了这种可能性。</p>
+
+<p> 示例程序代码：</p>
+
+<p> 01      try {   02           long startTime = System.currentTimeMillis();   03           while (someCriteria) {   04                byte[] cache = new byte[1024];   05                if (is.available() > 0) {   06                     int count = is.read(cache);   07                     if (count &lt;= 0) {   08                          if (System.currentTimeMillis() - startTime >= timeout) {   09                               throw new GapiException(&ldquo;Connection Time Out!&rdquo;);   10                          }   11                          continue;   12                     }   13                     // 后续处理   14                }   15                if (System.currentTimeMillis() - startTime >= timeout) {   16                     throw new GapiException(&ldquo;Connection Time Out!&rdquo;);   17                }   18                Thread.sleep(10);   19           }   20      } catch (Exception e) {   21           logger.error(&ldquo;ERROR: &rdquo;, e);   22      }</p>
+
+<p> 程序流程图：</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/19/210029/">将GnuCash界面语言设为英文</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-19T21:00:29+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>9:00 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>日期： 2008-01-01   作者： muzuiget</p>
+
+<p> 在XP下用 GnuCash 一段时间后感觉不错，功能够用，跨平台，在Uuntu下继续用。 不过界面汉化不全，半中半英的，很不顺眼，反正英文都看得懂了，把它设为英文界面好了。
+ Windows XP： 在Windows XP下是在安装目录下的bin文件夹，用文本编辑器打开“gnucash.bat“文件，加上这两行
+ set LANGUAGE=en_EN set LANG=en_EN（ 注：GnuCash2.2.9 winXp版中的启动文件是 gnucash.cmd,处理方法相同 ）
+ 整个文件看起来像
+ set PATH=C:\Program Files\gnucash\bin;C:\Program Files\gnucash\lib;C:\Program Files\gnucash\lib\gnucash;%PATH% set GUILE_WARN_DEPRECATED=no (&hellip;) set LTDL_LIBRARY_PATH=C:\Program Files\gnucash\lib set LANGUAGE=en_EN set LANG=en_EN start gnucash-bin
+ Ubuntu： 在Ubuntu下，我打开HOME目录下的“.GnuCash“文件，看看有没有类似的文件，没有，去查文档，找到方法，比在Windows下更简单，用这条命令运行GnuCash就可以了
+ env LANG=en_EN gnucash %f</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/16/135347/">剪贴板软件比较</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-16T13:53:47+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>1:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>剪贴板软件的功能要求包括：固定条目（favorite clips）、粘贴控制，强力粘贴（power paste）、条目排列（clips arrangements）、合并条目（merge clips）、条目组织（organize clips）、Clipboard Routing、快捷键定义、富文本控制（RichText）、条目数量设置等，
+ 固定条目 （favorite clips）
+有一些东西经常用，又比较长，敲键盘太慢，希望有个软件能把这些东西记下来，需要用的时候能够很方便地调出来，比如GODU的登录用户名<aa><7001><administrator><autocmd>，也就是所谓的“固定条目”功能。</p>
+
+<p>最先用的是Ditto，固定条目功能找不到，分组平时也用不到， 感觉不好用，用了一段时间后放弃了。</p>
+
+<p>然后是CLCL，固定条目放在一个叫“Template”的地方，但奇怪的是选中条目后回车却不粘贴，不靠谱，放弃。</p>
+
+<p>然后是 clipx ，要实现固定条目需要下一个叫stickies的插件，装好后在Configuration下 stickies中add，就可以实现固定条目功能了。将快捷键设置为Alt+P，然后字母键是固定条目，比CLCL少按一个键，且快捷键可自定义，数字是普通条目。</p>
+
+<p> ClipCache设置固定条目（这里叫“favorite clips”）的方法是在clipcache主窗口里右键该条目，然后选“Add to favorite clips”为该条目设一个标签（label），然后为“Favorite Clips”设置快捷键（在Tools->Options->Hotkey->Show Favorites），以后需要使用该条目时，用设好的快捷键呼出favorite clips窗口，然后用label匹配想要的条目即可，支持简写，例如有个条目的标签是“gu”，只写“g”然后回车即可。</p>
+
+<p> Ditto、Clipx和CLCL详细的功能对比参见善用佳软上的文章：“剪贴板增强软件综述:CLCL,ClipX,Ditto等”（ <a href="http://xbeta.info/clipx-clcl-ditto.htm">http://xbeta.info/clipx-clcl-ditto.htm</a> ），后面介绍了一个叫ArsClip的软件，功能很多，但我都用不上，不过它是开源的这一点很好。
+ 粘贴控制  Windows默认的粘贴快捷键是“Ctrl+v”，但有些程序有自己特殊的快捷键，例如SecureCRT是“SHIFT+INSERT”，“cmd.exe”是“Alt+space+e+p”应具备识别某一窗口然后定制特殊快捷键的能力。在Clipcache中是在 Tools->Options-> Pasting中定义。  强力粘贴（power paste）
+ 例如文件1里有20处文本需要放到文件2的20个地方，基本的方法是文件1里复制，切换到文件2，粘贴，在切回文件1，处理20条文本需要80次鼠标和键盘动作，借助power paste则只需要在文件1里连续复制20次，再切到文件2里连续粘贴20次即可，只需要41次动作。目前所有的开源/免费软件中仅Hamsin Clipboard（v 3.03）支持此功能，但此软件只能记录10条clip，它有单独的power paste模式，进入此模式后才能开始连续复制，之前的clip是不能连续粘贴的。clipcache对强力粘贴支持很好，可定义单独的快捷键，且有两种移动方向，结合它的条目排序功能（默认是按使用时间排序，还可以按名称、大小、加入时间等排序）和条目组织功能（将某组条目放入一个单独的文件夹中），能够极大简化大量条目的复制/粘贴劳动量。
+ 条目排列
+ 改变条目的排列顺序，例如按使用时间、名称、大小、加入时间等方式排列条目，只有软件具备强力粘贴、条目合并等功能时改变排列次序才有意义。
+ 合并条目
+ 将N个条目合并为一个条目，可以进行各种格式转换，例如每个条目一行、条目之间插入tab、删除条目起始/结尾空格、删除空行等等，目前只有clipcache具备此功能。
+ 条目组织
+ 可以将条目分类组织，例如放在不同的文件夹里，这项功能也是配合强力粘贴才有意义。
+ Clipboard Routing
+在网页/文件A里复制时，能够自动切到目标窗口粘贴，然后再切换回A里，目前仅clipcache支持此功能。
+ 快捷键定义
+ 似乎只有CLCL不支持快捷键定义，其他软件都支持，clipcache快捷键定义中不支持Win键。
+ 富文本控制
+主要是是否能够粘贴富文本和图片，以及是否支持将富文本转换为普通文本（plain text），clipcache具备此功能，如果要clipcache直接将拷贝到的RichText粘贴为PlainText（而不需要专门“转换”），在clipcache主菜单【Tools->Options->Capture】中取消勾选【Capture HTML】。
+ 条目数量设置
+ clipcache没有上限限制，支持3种限制策略：按条目数量限制、按数据库大小限制、按日期限制（如删除N天前的条目）。
+ 总结
+整体而言开源/免费软件的功能远弱于商业软件，clipcache的条目组织能力目前只有Ditto可以相比，但Ditto其他方面远逊，</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/08/12/143709/">Log4j配置文件编码不同可能导致log4j日志运行异常</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-08-12T14:37:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>有时即使log4j的配置文件log4j.properties放在了正确的位置上，内容也没有错误，但运行程序时总报appender异常，无法生成日志文件。可能的原因是配置文件的编码与项目设定的编码不一致（例如项目设置的编码是GBK，配置文件的编码使用UTF-8），导致读配置文件失败。解决的办法是将配置文件转换为项目设置的编码格式，为保证转换成功，文件中（包括注释部分）最好不要使用中文。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -397,317 +611,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/09/170059/">VIM的搜索模式</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-09T17:00:59+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>用VIM当文本分析器分析log4j打出的日志时，有一个问题很棘手，那就是经常要搜索
-[DEBUG] [2010-08-09 15:44:49,421] [com.boco.godu.GAPI.impl.DataReader]
-这样的字符串，直接在/后面粘贴上字符串肯定不行，因为里面有大量的[、]、-、点号、冒号这样的特殊字符，要想能查到，就得在它们之前加反斜杠\，每次查都这么一下，实在太麻烦，解决方法是：告诉VIM所有字符都是普通字符，不用做正则符号，告诉的方法就是设置magic属性，VIM默认是magic状态，可以用:set nomagic的方法切换到普通搜索模式，但这样一来以后再想用正则搜索还得再写:set magic，比较麻烦，最简单的方法是在/和要查找的字符串中间加上\V（注意是大写V，小写代表完全相反的意思），例如
- bad.magic dam
-dbm dcm aa dkm
- 用/d.m搜，d.m、dam、dbm等等都符合，改为/\Vd.m，就只有d.m符合了（\V前后都没有空格）。
- 关于\V详见:h magic。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/05/112702/">VIM的文件编码问题</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-05T11:27:02+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:27 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>转换文件编码</h1>
-
-<p>:set fileencoding=gbk/utf-8</p>
-
-<h1>关于vim的编码</h1>
-
-<p>Vim 有四个跟字符编码方式有关的选项，encoding、fileencoding、fileencodings、termencoding (这些选项可能的取值请参考 Vim 在线帮助 :help encoding-names)，它们的意义如下:
-1. encoding：Vim内部（软件自身）使用的字符编码方式，包括 Vim 的 buffer (缓冲区)、菜单文本、消息文本等。默认是根据你的locale选择。用户手册上建议只在 .vimrc 中改变它的值，事实上也只有在.vimrc 中改变它的值才有意义。为了理解这个参数的含义，可做如下实验：
-启动一个VIM，用:set encoding查询当前该参数的值，例如为utf-8，然后执行:set encoding=latin1，然后随便写一个命令让VIM提示出错，你会发现提示信息全是乱码。
-反过来，如果你的VIM在运行后提示信息、菜单等处是乱码，可以用:set encoding=&hellip;来尝试一下别的编码。你可以用另外一种编码来编辑和保存文件，如你的vim的encoding为utf-8，所编辑的文件采用cp936编码，VIM会自动将读入的文件转成utf-8(VIM的能读懂的方式），而当你写入文件时，又会自动转回成GBK（文件的保存编码)。
-1. fileencoding：VIM中当前编辑的文件的字符编码方式，VIM保存文件时也会将文件保存为这种字符编码方式 (不管是否新文件都如此)，可用:set fileencoding查询当前文件的编码类型，用:set fileencoding=utf-8将当前文件转换为utf-8格式。
-1. fileencodings：VIM读文件时尝试的编码方案的列表，启动时VIM按照它所列出的字符编码方式逐一探测即将打开的文件的字符编码方式，并且将 fileencoding 设置为最终尝试成功的字符编码方式。因此最好将Unicode 编码方式放到这个列表的最前面，将拉丁语系编码方式 latin1 放到最后面。
-1. termencoding：VIM所工作的终端 (或者 Windows 的 Console 窗口) 的字符编码方式。如果VIM所在的term与VIM编码相同，则无需设置。如其不然，你可以用VIM的termencoding选项将自动转换成term 的编码。这个选项对Windows 下的gVim 无效（gVim是GUI 模式的，不是Console模式），因此无需关心这个参数，一般置空就行了。
-Windows下的gVim的vimrc文件关于文件编码部分应设为：
-set encoding=utf-8
-set fileencodings=utf-8,chinese,latin-1
-set fileencoding=utf-8
-其中编码方案的第二项chinese主要是为了保持与windows上的很多默认编码格式兼容（如记事本的ANSI格式）。chinese 是个别名，在Unix 里表示gb2312，在Windows里表示cp936，也就是GBK与微软的ANSI兼容。当VIM打开cp936格式的文件时，编辑完后不要用:set fileencoding=utf-8命令将其转换为utf-8格式再保存，因为VIM生成的utf-8格式文件不带BOM表，与windows仍不兼容。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/05/112601/">Vim的剪贴板操作</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-05T11:26:01+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:26 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Normal模式下，用双引号加剪贴板编号（可以是数字和字母）来引用这个剪贴板，后面加上复制/粘贴命令就用使用这个剪贴板了，例如：</p>
-
-<p>&ldquo;1yw：将光标所在单词拷贝到1号剪贴板上；</p>
-
-<p>&ldquo;cd$：将从光标到行尾的内容剪切到c号剪贴板上；</p>
-
-<p>&ldquo;dp：将d号剪贴板上的内容粘贴到光标后；</p>
-
-<p>用:reg可以查看vim剪贴板的列表。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/03/144601/">Vim的代码缩进</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-03T14:46:01+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>2:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>例如下面一段代码：
-<manifest>
-<attribute name="Vendor" value="${vendor.name}" />
-<attribute name="Product-Name" value="${project.name}_core" />
-<attribute name="Build-Date" value="${build.date}" />
-<attribute name="Build-Time" value="${build.time}" />
-<attribute name="Build-Number" value="${build.number}" />
-</manifest>
-现在要统一缩进6个tab，在UltraEdit里首先要选中文本，然后按6次tab，VIM中的操作是：首先按V（shift+v）进入行visual模式，然后按7次j选中这段文本（或者7j也行），然后按“6>”（shift+.），如果不确定几个tab，可先>一次，这时自动退出了visual模式，再次缩进不需要重复上述操作，只要按点号（“.”，重复前次命令）即可。</p>
-
-<hr />
-
-<p>2013-01-10更新：上面的方法太麻烦了，gg>G即可。如果只缩进第2～6行：2G>6G</p>
-
-<p>下面的代码vim有更智能的缩进方法：</p>
-
-<p> public static int rank(int key, int[] a) {
-  int lo = 0;
-  int hi = a.length - 1;
-  while (lo &lt;= hi) {
-   // Key is in a[lo..hi] or not present.
-   int mid = lo + (hi - lo) / 2;
-   if  (key &lt; a[mid]) hi = mid - 1;
-   else if (key > a[mid]) lo = mid + 1;
-   else return mid;
-  }
-  return -1;
- }</p>
-
-<p>假设光标在while循环内的某处，用>aB就可以缩进，&lt;aB反缩进，其中a表示包括分隔符（这里是{和}），B表示block，即代码块（参考<a href="http://www.viemu.com/a-why-vi-vim.html%EF%BC%89%E3%80%82">http://www.viemu.com/a-why-vi-vim.html%EF%BC%89%E3%80%82</a></p>
-
-<p>上面的方法移动整个代码块，如果只想把嵌套部分向内缩进，将光标放在块内的任意行首，然后用>iB，重复这个缩进动作用“.”命令。</p>
-
-<hr />
-
-<p>2013-10-28更新：</p>
-
-<p>上面的方法是手工缩进，但vim支持大部分编程语言的自动缩进（用"=&ldquo;键），即根据打开文件的扩展名决定缩进方法，上面的缩进一条指令搞定：ggvG=</p>
-
-<p>与手工缩进相比，自动缩进受文件扩展名的限制，例如无法在xml文件的buffer里修改C代码的缩进；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/03/113116/">VIM的窗口和标签页操作</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-03T11:31:16+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>11:31 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>窗口</h1>
-
-<p>创建水平/ 垂直 分隔的窗口：:new/:vnew</p>
-
-<p>切换左/右/上/下窗口为当前窗口：ctrl+w, h/l/k/j</p>
-
-<p>切换顶/底部窗口为当前窗口：ctrl+w, t/b</p>
-
-<p>在窗口间跳转（用来在两个窗口间跳转很方便）：ctrl+w, w</p>
-
-<p>交换窗口内容：C-w,C-r 或者 C-w,C-x 前面的更顺手</p>
-
-<p>旋转窗口内容：C-w, r （第1个窗口中的文件显示在第2个窗口中，第2个窗口中文件显示在第3个窗口中，……，最后一个窗口中的文件显示在第1个窗口中）；</p>
-
-<p>移动窗口：（例如原来是两个窗口一上一下，位于下面的窗口向左移动后，将变成左右布局）</p>
-
-<p>ctrl-w H(shift+h)/L/K/J 向左/右/上/下移动窗口</p>
-
-<p>窗口最大化：上下分割窗口情况下，C-w <em>（按住Ctrl再按w，松开ctrl和w，再按</em>） ，左右分割情况下，ctrl+w, |</p>
-
-<p>水平增加窗口尺寸：C-w +；减少窗口尺寸：C-w -</p>
-
-<p>窗口最大化后复原：ctrl+w, =</p>
-
-<p>关闭窗口： :close，简写为:clo，用于关闭但不退出vim的情形；</p>
-
-<p>在新窗口中显示文件：ctrl+w, shift+s（适于对比同一文件的不同部分）</p>
-
-<p>针对所有窗口的操作</p>
-
-<p>:qa (quit all)</p>
-
-<p>:wa (write all)</p>
-
-<p>:wqa (write &amp; quit all)</p>
-
-<p>:qa! (quit all without write)</p>
-
-<p>分隔窗口（用于显示同一个文档中的不同部分）：水平分割：:split，垂直分割：:vsplit</p>
-
-<p>关闭当前窗口：:hide</p>
-
-<h2>shortcut definitions for easier window navigations</h2>
-
-<pre><code>nnoremap &lt;C-J&gt; &lt;C-W&gt;&lt;C-J&gt;
-nnoremap &lt;C-K&gt; &lt;C-W&gt;&lt;C-K&gt;
-nnoremap &lt;C-L&gt; &lt;C-W&gt;&lt;C-L&gt;
-nnoremap &lt;C-H&gt; &lt;C-W&gt;&lt;C-H&gt;
-set splitbelow
-set splitright
-nnoremap &lt;C-o&gt; :vsp&lt;CR&gt;:FufCoverageFile&lt;CR&gt;
-</code></pre>
-
-<p>The last one need installation of plugin FuzzyFinder.</p>
-
-<h2>Open existing buffer in a split widnow</h2>
-
-<ol>
-<li><p>Get target buffer id: <code>:ls</code>;</p></li>
-<li><p>Open it in a horizental window: <code>:sb&lt;n&gt;</code>, where <n> is the window id</p></li>
-<li><p>Open it in a vertical window: <code>:vert sb&lt;n&gt;</code>;</p></li>
-</ol>
-
-
-<p>In the result of <code>:ls</code> command, &ldquo;#&rdquo; means alternative buffer, which is the most recently used buffer. &ldquo;a&rdquo; means active buffer. &ldquo;+&rdquo; means this buffer is modified. &ldquo;%&rdquo; means this buffer is in the current window. Run <code>:h :ls</code> to full list.
-So you can use <code>:vert sb#</code> to open most recently used buffer in a vertical split window.</p>
-
-<h1>标签页</h1>
-
-<p>创建新标签页：:tabnew</p>
-
-<p>切换到下一个标签页：gt，前一个标签页：gT（前面都没有冒号）</p>
-
-<p>Jump to <n>th tab: <n>gt, for example &ldquo;3gt&rdquo; jump to 3rd tab directly;</p>
-
-<p>关闭标签页：:q</p>
-
-<p>Open multiple files in different tabs in command line:</p>
-
-<pre><code>$ vim -p files*
-</code></pre>
-
-<p>Open every existing buffer in a new tab:</p>
-
-<pre><code>:tab all
-</code></pre>
-
-<p>or:</p>
-
-<pre><code>:tab sba
-</code></pre>
-
-<p>where &ldquo;sba&rdquo; means open all buffer in a new window, and :tab convert the window operation to tab operation;</p>
-
-<p>详见:h tabpage</p>
-
-<p>与多个buffer相关的操作见“buffer-related operations in vim”。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/109">&larr; Older</a>
@@ -725,23 +628,23 @@ So you can use <code>:vert sb#</code> to open most recently used buffer in a ver
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
+        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
+        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
+        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
+        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
+        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
       </li>
     
   </ul>

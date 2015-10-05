@@ -9,7 +9,10 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and &hellip;">
+  <meta name="description" content="Install yum install -y java-1.7.0-openjdk-devel
+curl -s get.gvmtool.net|bash
+source "/root/.gvm/bin/gvm-init.sh"
+gvm i groovy 2.2.1 Usage groovysh &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +68,377 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/03/175002/">Groovy Develop Environment Based on GVM</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-03T17:50:02+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:50 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<pre><code>yum install -y java-1.7.0-openjdk-devel
+curl -s get.gvmtool.net|bash
+source "/root/.gvm/bin/gvm-init.sh"
+gvm i groovy 2.2.1
+</code></pre>
+
+<h1>Usage</h1>
+
+<pre><code>groovysh
+groovy hw.groovy
+</code></pre>
+
+<p>All files and installed components are in folder ~/.gvm. So simply remove this folder for uninstallation of gvm.</p>
+
+<p>gvm is portable, so if you install gvm as root, just copy .gvm folder to $HOME, chown, then <code>gvm c</code> to show the current groovy version. If it&rsquo;s not what you want, <code>gvm use groovy 2.2.1</code> to update it.</p>
+
+<p>Install gvm to another host, first copy .gvm folder, then add &ldquo;source ~/.gvm/bin/gvm-init.sh&rdquo; into .bashrc(or .zshrc), then check and setup in new host as above.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/02/143204/">Linux System Log</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-04-02T14:32:04+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>2:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>ArchLinux</h1>
+
+<pre><code># journalctl -f
+</code></pre>
+
+<h1>CentOS</h1>
+
+<p><code>sudo tail -f /var/log/messages</code> or <code>sudo tail -f /var/log/syslog</code>;</p>
+
+<h2>System logs</h2>
+
+<p>The login/logout of every user (including root) is recorded in /var/log/secure. All system logs are under the folder /var/log:</p>
+
+<ul>
+<li><p>cron &ndash; Logs for all cronjobs that are run on the server</p></li>
+<li><p>dmesg &ndash; Logs from dmesg program which is used to examine or control the kernel ring buffer.</p></li>
+<li><p>lastlog &ndash; The binary log that contains all of the last login information. (Type &ldquo;last&rdquo; to view)</p></li>
+<li><p>messages &ndash; System logs from syslogd</p></li>
+<li><p>mysqld.log &ndash; Logs from the mysqld process</p></li>
+<li><p>secure &ndash; Access logs from the sshd process</p></li>
+<li><p>yum.log &ndash; Logs from system updates via yum</p></li>
+</ul>
+
+
+<p>Who loged in as root? <code>cd /var/log; grep 'session opened for user root by' *</code></p>
+
+<p>Get the user gaia last 5 login records:</p>
+
+<pre><code>$ last -5 gaia
+gaia     pts/5        10.21.2.82       Wed Apr  2 10:30 - 15:04  (04:33)
+...
+</code></pre>
+
+<p>So you can get the login source IP, login duration, etc.</p>
+
+<h3>Configure logs</h3>
+
+<p>File &ldquo;/etc/logrotate.conf&rdquo; define the log file rotation frequency, count, etc.</p>
+
+<p>If you want to add a system log, add a definition file in /etc/logrotate.d/.</p>
+
+<h2>Command history</h2>
+
+<p>Add &ldquo;export HISTTIMEFORMAT=&lsquo; %F %T &rsquo;&rdquo; into /etc/profile, then when use command <code>history</code>, you will see the command with a timestamp.
+This only works for bash, it&rsquo;s invalid for zsh.</p>
+
+<h2>A use case</h2>
+
+<p>A couple of days ago, some users find they can&rsquo;t write in their $HOME folder. I found it&rsquo;s because the owner of their home folder is changed to another user. Obviously this is done by root, but who and when do this actually? The following is how I worked it out.</p>
+
+<ol>
+<li><p>Find out when this happened?</p>
+
+<p> $ su -
+ # history|grep chown
+   &hellip;
+   804   2014-03-12 11:24:33 chown -R gcp /home
+   &hellip;</p></li>
+<li><p>Who did this?</p>
+
+<p> # cd /var/log; grep &lsquo;session opened for user root by&rsquo; *
+ &hellip;
+ secure-20140316:Mar 12 09:44:12 bocoty49 su: pam_unix(su:session): session opened for user root by gcp(uid=501)
+ &hellip;</p></li>
+<li><p>Who is the &lsquo;gcp&rsquo;?</p>
+
+<p> # last -10 gcp
+ &hellip;
+ gcp      pts/6        10.21.2.106      Wed Mar 12 08:33 - 13:35  (05:01)
+ &hellip;</p></li>
+</ol>
+
+
+<p>This whole story: the man with IP &ldquo;10.21.2.106&rdquo; ssh to the server at 08:33, switch to root with &ldquo;su&rdquo; at 09:44:12, run &ldquo;chown -R gcp /home&rdquo; at 11:24:33.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/31/115253/">Distribute SSH Pubkey to Multiple Hosts With Fabric</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-31T11:52:53+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Generate ssh keys on source host with <code>ssh-keygen</code>;</p></li>
+<li><p>Disable known_hosts prompt(optional): add &ldquo;StrictHostKeyChecking no&rdquo; into ~/.ssh/config;</p></li>
+<li><p>Run fabric script to distribute pubkey, you have to input password manually: <code>fab distkey</code>;</p></li>
+</ol>
+
+
+<p>$ cat fabfile.py
+from fabric.api import local, task
+env.hosts = [&lsquo;10.0.2.48&rsquo;, &lsquo;10.0.2.49&rsquo;, &lsquo;10.0.7.141&rsquo;, &lsquo;10.0.7.142&rsquo;, &lsquo;10.0.7.143&rsquo;]
+@task
+def distkey():
+    env.user = &lsquo;gcp&rsquo;
+    local(&lsquo;ssh-copy-id %(user)s@%(host)s&rsquo; % env)</p>
+
+<p>You have to input password for every host. So try to use uniform password for all hosts. It will save you lots of times.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/28/182817/">Task Management in Fabric</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T18:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. So there are 2 strategies:</p>
+
+<ul>
+<li><p>Define global hosts, when detections over, modify the hosts to none, so report and send email will only run once;</p></li>
+<li><p>Use &ldquo;report&rdquo; as entrance, invoke detection within &ldquo;report&rdquo; task.</p></li>
+</ul>
+
+
+<h1>Global hosts style</h1>
+
+<p>fabfile.py:</p>
+
+<pre><code>from fabric.api import run, env, hosts
+import re
+
+env.hosts = ['Chad@10.0.2.47', 'chad@10.0.2.49']
+env.password = 'abaqus67'
+env['report'] = {}
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    env['report'][env.host] = host_report
+    env.hosts = []    # make following tasks run once
+
+def report():
+    print('Test Report:')
+    print(env.report)
+
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab --hide=everything detect report sendmail
+Test Report:
+{'10.0.2.49': {'os': 'Linux', 'jdk': True}, '10.0.2.47': {'os': 'Linux', 'jdk': False}}
+send mail...
+</code></pre>
+
+<h1>&ldquo;execute&rdquo; style</h1>
+
+<p>fab2.py:</p>
+
+<pre><code>from fabric.api import run, env, task, execute
+import re
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    env.password = env.loginfo[env.host_string]
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    return host_report
+
+@task
+def report():
+    env.hosts= ['gcp@10.0.2.48', 'gcp@10.0.2.49', 'gcp@10.0.7.141', 'gcp@10.0.7.142', 'gcp@10.0.7.143:22']
+    pwds = ['gcp', 'gcp', 'gcp@123', 'gcp@123', 'gcp@123']
+    env.loginfo = dict(zip(env.hosts, pwds))
+    res = execute(detect, hosts=host_list)
+    print('Test Report:')
+    print(res)
+
+@task
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab -f fab2.py --hide=everything report sendmail
+Test Report:
+{'gcp@10.0.2.47': {'os': 'Linux', 'jdk': False}, 'gcp@10.0.2.49': {'os': 'Linux', 'jdk': True}, ... }
+send mail...
+</code></pre>
+
+<p>You can see there is no definition and modification of global hosts, no need to maintain global variable env[&lsquo;report&rsquo;] manually in &ldquo;report&rdquo; style, and the &ldquo;detect&rdquo; function is hide from &ldquo;fab&rdquo; command line with the help of &ldquo;@task&rdquo; decorator. If you run &ldquo;fab detect&rdquo;, it will complain &ldquo;Command(s) not found&rdquo;, which provides more accurate visibility control. So I think it&rsquo;s better than the &ldquo;global hosts&rdquo; style.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li><p>Yuo can add attributes to &ldquo;env&rdquo; directly like &ldquo;env.loginfo = &hellip;&rdquo; above. And use this attribute with &ldquo;env.loginfo[&hellip;]&rdquo;;</p></li>
+<li><p>The format of host string is &ldquo;user@ip:port&rdquo;, or &ldquo;user@ip&rdquo; if port is 22;</p></li>
+<li><p>The function &ldquo;execute&rdquo; returns a dict, the key is the host_string, the value is the return value of the function executed (&ldquo;detect&rdquo; in this case). The return value of &ldquo;detect&rdquo; is a dict, so the &ldquo;execute&rdquo; function returns a nested dict.</p></li>
+<li><p>the return value of &ldquo;run&rdquo; is the stdout and stderr of the remote command.</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/28/085154/">System Memory Cost of Several Linux Distros</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T08:51:54+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:51 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The 3 numbers after the distro name is: used memory, free memory and used percent(= used/(used + free)).</p>
+
+<p>Scientific Linux Gnome 64bit:   286 1560 15.49
+CentOS 6.4 Gnome 64bit:         281 1565 15.22
+Mint 14 Xfce 64bit:             249 1596 13.50
+openSUSE13 Gnome 64bit :        454 1392 24.59
+openSUSE12 KDE 64bit:           404 1442 21.89</p>
+
+<p>You can see Mint Xfce has smallest memory cost, while openSUSE has biggest.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -356,320 +730,6 @@ end
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/25/200006/">Secure Shell基于密钥的连接过程</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-25T20:00:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>客户端&copy;连接服务端(S)时，会在自己的~/.ssh/known_hosts中记录S名称的Hash（如果希望在known_hosts文件中使用原服务端名称，在/etc/ssh/ssh_config中去掉"HashKnownHosts yes"，或者在~/.ssh/config中增加"HashKnownHosts no"）以及一个很长的特征串，当有人伪装成S骗取密码，或者S操作系统重装之后，由于后面这个特征串发生了变化，所以ssh会发出警告，只有从~/.ssh/known_hosts中删掉要连接的S那一行才能重新连接。</p>
-
-<p>使用密钥而不是密码登录S的好处是不需要每次输入密码，且能够避免“中间人攻击”，基于密钥的配置过程是：</p>
-
-<ol>
-<li><p>C创建自己的公钥和私钥(ssh-keygen命令）；</p></li>
-<li><p>C将自己的公钥保存到S（ssh-copy-id命令，实际上是加自己的公钥加入了S的~/.ssh/authorized_keys文件中）；</p></li>
-</ol>
-
-
-<p>这样就配置好了，以后当客户端需要登录服务端时，连接过程是：</p>
-
-<ol>
-<li><p>C与S首先进行Diffie–Hellman key exchange（参考<a href="http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange">http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange</a> 其中的插图对这种算法为什么是安全的解释的很清楚：密钥的混合类似于颜色的混合，反向操作几乎是不可能的，因此将混合后的密钥在网络上传输是安全的），最终生成本次会话的密钥；</p></li>
-<li><p>后续的报文基于上面生成的密钥进行对称加密传输（也就是加密和解密使用同一个密钥）。</p></li>
-</ol>
-
-
-<p>网上有写SSH登录过程使用非对称加密传输（及公钥加密、私钥解密，见<a href="http://en.wikipedia.org/wiki/Public-key_cryptography%EF%BC%89%EF%BC%8C%E8%BF%99%E6%98%AFSSH">http://en.wikipedia.org/wiki/Public-key_cryptography%EF%BC%89%EF%BC%8C%E8%BF%99%E6%98%AFSSH</a> v1的加密方式。</p>
-
-<p>详细的连接过程参考man sshd.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/25/114442/">Join Two Files Line to Line in Each Row</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-25T11:44:42+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>TY-HD-01-001
-TY-HD-01-002
-TY-HD-01-003
-TY-HD-01-004
-TY-HD-01-005
-TY-HD-01-006
-TY-HD-01-007
-TY-HD-01-008
-TY-HD-01-009
-TY-HD-01-010</p>
-
-<p>$ head tail.txt
-fa_cg_nb_c_000157
-fa_cg_nb_d_001571
-fa_cg_nb_d_000432
-fa_cg_nb_d_001796
-fa_cg_nb_d_001675
-fa_cg_nb_d_001198
-fa_cg_nb_d_001768
-fa_cg_nb_d_001445
-fa_cg_nb_d_000703
-fa_cg_nb_d_001563</p>
-
-<p>$ paste -d &lsquo;-&rsquo; head.txt tail.txt > all.txt
-$ head all.txt
-TY-HD-01-001-fa_cg_nb_c_000157
-TY-HD-01-002-fa_cg_nb_d_001571
-TY-HD-01-003-fa_cg_nb_d_000432
-TY-HD-01-004-fa_cg_nb_d_001796
-TY-HD-01-005-fa_cg_nb_d_001675
-TY-HD-01-006-fa_cg_nb_d_001198
-TY-HD-01-007-fa_cg_nb_d_001768
-TY-HD-01-008-fa_cg_nb_d_001445
-TY-HD-01-009-fa_cg_nb_d_000703
-TY-HD-01-010-fa_cg_nb_d_001563</p>
-
-<p>Note: The EOL(end of line) must be Unix style. If it&rsquo;s Windows style, the &ldquo;paste&rdquo; command will produce wrong results.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/19/171117/">Text Expansion in Vim</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-19T17:11:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>You have 2 options: imap and abbr. Use &ldquo;pt&rdquo; for abbreviation of &ldquo;Puppet&rdquo; for example, first open your vim or gVim:</p>
-
-<ul>
-<li><p>imap: &ldquo;:imap pt Puppet&rdquo;;</p></li>
-<li><p>abbr: &ldquo;:ab pt Puppet&rdquo;;</p></li>
-</ul>
-
-
-<p>The difference is, imap will expand text right after you press &ldquo;t&rdquo;,
-while for abbr, you have to type a space or tab or enter after the &ldquo;t&rdquo; to perform text expansion.
-So when writing English, use &ldquo;abbr&rdquo; for it&rsquo;s the &ldquo;normal&rdquo; way.
-If you write Chinese with English, imap is the better way,
-because there is probably no space after the expanded words.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/18/162706/">Build Puppet Clusters With Vagrant</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-18T16:27:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ cd ~/docs/propuppetex/chapter3
-$ cat Vagrantfile
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|</p>
-
-<p>  config.vm.box = &ldquo;centos64&rdquo;</p>
-
-<p>  config.vm.define &ldquo;ppt&rdquo; do |ppt|
-    ppt.vm.hostname = &ldquo;puppet.boco.com.cn&rdquo;
-    ppt.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.3&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    ppt.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    ppt.vm.provision :shell, path: &ldquo;master.sh&rdquo;
-  end</p>
-
-<p>  config.vm.define &ldquo;web&rdquo; do |web|
-    web.vm.hostname = &ldquo;web.boco.com.cn&rdquo;
-    web.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.4&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    web.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    web.vm.provision :shell, path: &ldquo;web.sh&rdquo;
-  end
-end</p>
-
-<p>$ cat master.sh
-echo &lsquo;<em>&rsquo; > /etc/puppet/autosign.conf
-sed -i &lsquo;/[.</em>]/ a \    autosign = true&rsquo; /etc/puppet/puppet.conf # add &ldquo;autosign = true&rdquo; in [main] and [agent]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-mkdir /etc/puppet/manifests
-cat > /etc/puppet/manifests/site.pp &lt;<-EOF
-node 'web' {
-  file { '/home/vagrant/aaa.conf':
-    content => &lsquo;this is made by puppet master!&rsquo;,
-  }
-}
-EOF
-service iptables stop</p>
-
-<p>$ cat web.sh
-sed -i &lsquo;1 a \    master = puppet&rsquo; /etc/puppet/puppet.conf # add &ldquo;master = puppet&rdquo; after the line [main]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-echo &ldquo;proxy=<a href="http://10.21.3.31:8888">http://10.21.3.31:8888</a>&rdquo; >> /etc/yum.conf
-service iptables stop</p>
-
-<p>Now run &ldquo;puppet master &ndash;no-daemonize &ndash;verbose&rdquo; on ppt, run &ldquo;puppet agent &ndash;test&rdquo; on web, you can file the file &ldquo;aaa.conf&rdquo; at /home/vagrant.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/18/085501/">Publish Blogs on Cnblogs.com</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-18T08:55:01+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Some frequently used action about post on cnblogs:</p>
-
-<pre><code>import xmlrpclib
-
-serviceUrl, appKey = 'http://www.cnblogs.com/yourusername/services/metaweblog.aspx', 'yourusername'
-username, password = 'yourusername', 'yourpassword'
-server = xmlrpclib.ServerProxy(serviceUrl)
-
-res = server.metaWeblog.getRecentPosts('', username, password, 10)
-print('no of posts: %d' % len(res))
-print('list posts: %s' %res)
-
-cat = server.metaWeblog.getCategories('', username, password)
-print('no of categories: %d' %len(cat))
-print('list categories: %s' %cat)
-
-post = {'title':'My 4th Post', 'description':'some test text here\na new line', 'mt_keywords': 'test, demo'}
-postid = server.metaWeblog.newPost('', username, password, post, True)
-print('postid is: %s' % postid)
-
-post = server.metaWeblog.getPost('3604635', username, password)
-print('Get Post: %s' % post)
-</code></pre>
-
-<p>When publish new post, we often meet this error:</p>
-
-<pre><code>Traceback (most recent call last):
-  File "config.py", line 18, in &lt;module&gt;
-    postid = server.metaWeblog.newPost('', usr, passwd, post, True)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1224, in __call__
-    return self.__send(self.__name, args)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1578, in __request
-    verbose=self.__verbose
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1264, in request
-    return self.single_request(host, handler, request_body, verbose)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1297, in single_request
-    return self.parse_response(response)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1473, in parse_response
-    return u.close()
-  File "/usr/lib/python2.7/xmlrpclib.py", line 793, in close
-    raise Fault(**self._stack[0])
-xmlrpclib.Fault: &lt;Fault 500: u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01'&gt;
-</code></pre>
-
-<p>To see the error information, open a python shell, run following code</p>
-
-<pre><code>print(u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01')
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>抱歉！已超过当日博文发布数量100篇限制！今天无法继续发布！
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/31">&larr; Older</a>
@@ -687,23 +747,23 @@ xmlrpclib.Fault: &lt;Fault 500: u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/24/185036/">Add a Local Meteor Package</a>
+        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/23/123748/">Stack Notes</a>
+        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a>
+        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a>
+        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a>
+        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
       </li>
     
   </ul>
