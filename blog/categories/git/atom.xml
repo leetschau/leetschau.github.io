@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Git | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/git/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-10-05T15:23:42+08:00</updated>
+  <updated>2015-10-29T20:16:11+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,103 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[将Meteor应用完整从1.2版本降级到1.1版本]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/29/200553/"/>
+    <updated>2015-10-29T20:05:53+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/29/200553</id>
+    <content type="html"><![CDATA[<p>当前版本的mup不支持Meteor 1.2，对1.1支持很好。
+一位开发者用<code>meteor update</code>升级了Meteor,然后push到代码库中，
+其他开发者同步代码后发现无法使用mup部署，
+这个问题不能简单地使用<code>meteor --releae 1.1</code>处理，
+因为从1.1到1.2，Metoer很多核心包的版本发生了变化，并增删了很多包，
+<code>meteor --release 1.1</code>只能还原Meteor自身版本，
+无法还原核心包，必须将.meteor目录下所有文件复原。</p>
+
+<p>使用git的patch功能可以方便地实现针对一个目录的复原。
+首先找到包含正确文件（旧Meteor版本和包定义）的commit，例如 15c9f125630，
+然后找到要复原的目标commit，一般是develop branch的HEAD，例如 f13b84f6c55，
+做一个反向patch：<code>git diff f13b84f6c55 15c9f125630 .meteor &gt; reverseDotMeteor.patch</code>;</p>
+
+<p>正常的<code>git diff</code>是旧版本在前，新版本在后，这样生成的patch反映的是文件内容随着时间发生的改变，
+这里将新的commit放在前面，生成的patch就能起到回到过去的作用。</p>
+
+<p>checkout目标commit并加载patch: <code>git apply reverseDotMeteor.patch</code>.</p>
+
+<p>测试mup是否能正常工作，如果能，提交修改。</p>
+
+<p>参考：<a href="http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between">http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Git Submodule]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/25/212008/"/>
+    <updated>2015-10-25T21:20:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/25/212008</id>
+    <content type="html"><![CDATA[<p>We have a parent (container) Meteor application &ldquo;niufour&rdquo;,
+now we want to add a new package &ldquo;nf-search&rdquo; to niufour.</p>
+
+<p>Check out if <code>packages/</code> has been added into .gitignore.</p>
+
+<p>Push the nf-search (outside of niufour folder) to remote repo,
+here we use a Phabricator server, with address <remote-repo-url>.</p>
+
+<p>Under the root of niufour, run:</p>
+
+<pre><code>git submodule add &lt;remote-repo-url&gt; packages/nf-search
+</code></pre>
+
+<p>The common form is: <code>git submodule add &lt;remote-repo-url&gt; &lt;local-path&gt;</code>,
+where the <local-path> is where you want to put your submodule.</p>
+
+<p>To add it into the niufour package list,
+add <code>nfcommerce:nf-search</code> into file <niufour-project-root>/.meteor/packages.</p>
+
+<p>After your partner push new codes into the repo,
+run commands below to synchronize:</p>
+
+<pre><code>git pull origin develop
+git submodule init
+git submodule update
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Search String Pattern in Git History]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/15/112116/"/>
+    <updated>2015-10-15T11:21:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/15/112116</id>
+    <content type="html"><![CDATA[<p><code>git log -p --all -G 'pattern'</code>: search a string in git history.</p>
+
+<p>-G search for all editing activity with &ldquo;pattern&rdquo;,
+while -S only search for creation and removal of &ldquo;pattern&rdquo;,
+the results of -S is the subset of results of -G.</p>
+
+<p>When the &ldquo;pattern&rdquo; is in the current commit,
+there will be only 1 result of -S,
+where the pattern is added into the texts.</p>
+
+<p>When the &ldquo;pattern&rdquo; is removed in current commit,
+there will be 2 results of -S:
+the first (which is newer) is where the pattern is removed,
+the second is where the pattern is added.</p>
+
+<p>-p denotes &ndash;patch, which will print the editing details.
+If you only want to know the commit name which deal with the &ldquo;pattern&rdquo;,
+omit this option.</p>
+
+<p>&ndash;all search in all branches.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/4468361/search-all-of-git-history-for-a-string">Search all of Git history for a string?</a></p>
+
+<p><a href="http://stackoverflow.com/questions/2839253/git-history-find-lost-line-by-keyword">Git history - find lost line by keyword</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Use Git in Vim With Fugitive]]></title>
@@ -59,6 +156,8 @@ and run <code>vim +PluginClean +PluginInstall +qa</code>.</p>
 
 <p>In &ldquo;:Gstatus&rdquo; window, you can use &ldquo;-&rdquo; to add a file in/out stage area,
 use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available actions.</p>
+
+<p>To see the file changes history: <code>:Git log --stat</code>.</p>
 ]]></content>
   </entry>
   
@@ -75,136 +174,6 @@ and <code>cp -r /tmp/myapp/.meteor $HOME/docs/myapp/</code>.</p>
 
 <p>Now open $HOME/docs/myapp in Webstorm,
 it&rsquo;s been a Meteor app already.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Chinese Characters Can't Be Displayed Correctly in Git Log]]></title>
-    <link href="http://leetschau.github.io/blog/2015/07/31/160627/"/>
-    <updated>2015-07-31T16:06:27+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/07/31/160627</id>
-    <content type="html"><![CDATA[<p>On Ubuntu 14.04, <code>cat</code> can display Chinese characters correctly.
-But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t display correctly.</p>
-
-<p>Solution:</p>
-
-<p>Run <code>export LC_ALL=en_US.UTF-8</code> before <code>git log</code>.</p>
-
-<p>If it works, add this line into /etc/environment.</p>
-
-<p>If it doesn&rsquo;t work, run <code>export LANG=en_US.UTF-8</code>.</p>
-
-<p>If it doesn&rsquo;t work, run <code>apt-get install language-pack-en-base</code>.</p>
-
-<p>In vim, run <code>set enc=utf-8</code>.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue">http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue</a></p>
-
-<p><a href="http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim">http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Development Collaboration With Pull Request]]></title>
-    <link href="http://leetschau.github.io/blog/2015/07/23/121622/"/>
-    <updated>2015-07-23T12:16:22+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/07/23/121622</id>
-    <content type="html"><![CDATA[<p>Say your partner is Tom.</p>
-
-<ol>
-<li><p>Fork Tom&rsquo;s repository;</p></li>
-<li><p>Clone your forked repository to your laptop;</p></li>
-<li><p>Commit modificatioins to your laptop repository;</p></li>
-<li><p>Push modifications to your forked repository;</p></li>
-<li><p>Send a pull request in your forked repository on github website;</p></li>
-<li><p>Tom accept your request and merges into his repository;</p></li>
-<li><p>In your laptop repository, add upstream repository as a remote source;</p></li>
-<li><p>Sync with the upstream repository with <code>git fetch</code> and <code>git merge</code>;</p></li>
-</ol>
-
-
-<p>This is a whole cycle. Repeat above steps to collaborate with Tom.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/7244321/how-to-update-github-forked-repository">How to update GitHub forked repository?</a></p>
-
-<p><a href="https://help.github.com/articles/pushing-to-a-remote/#pushing-a-branch">Pushing to a remote</a></p>
-
-<p><a href="https://help.github.com/articles/syncing-a-fork/">Syncing a fork</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Trace File Change History in Git Repository]]></title>
-    <link href="http://leetschau.github.io/blog/2015/06/30/101243/"/>
-    <updated>2015-06-30T10:12:43+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/06/30/101243</id>
-    <content type="html"><![CDATA[<p>The website need hide some menu items under developing,
-by comment out the html codes (at line 19~24 in file &ldquo;client/comTemp.html&rdquo;).
-But last night we found they reappeared in the newest version.
-Apparently someone used the older version (in which they were not commented out)
-overwrite the latest version by error (without intention).</p>
-
-<p>How to find out who, at which commit make this mistake?</p>
-
-<p><strong>Step 1</strong>: get the error version.</p>
-
-<pre><code>$ git blame -L 19,24 client/comTemp.html
-dc7d385a (Tom     2015-06-26 17:39:28 +0800 19)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="http://leetschau.github.io/mall"&gt;Mall&lt;/a&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="http://leetschau.github.io/services"&gt;Services&lt;/a&gt;
-dc7d385a (Tom     2015-06-26 17:39:28 +0800 24)    &lt;/li&gt;
-</code></pre>
-
-<p>Here the line 19 should be <code>&lt;!--&lt;li&gt;</code> and line 24 should be <code>&lt;/li&gt;--&gt;</code>,
-to hide &ldquo;Mall&rdquo; and &ldquo;Services&rdquo;, which are under developing.</p>
-
-<p><strong>Step 2</strong>: get the newest right version.</p>
-
-<p>The wrong commit is &ldquo;dc7d385a&rdquo;, so we have to find the nearest change <strong>before</strong> it:</p>
-
-<pre><code>$ git blame -L 19,24 'dc7d385a^' -- client/comTemp.html
-96269db1 (Bob     2015-06-10 15:36:31 +0800 19)    &lt;!--&lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 20)      &lt;a href="http://leetschau.github.io/mall"&gt;Mall&lt;/a&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 21)    &lt;/li&gt;
-6bb3ba70 (Franky  2015-05-04 15:45:50 +0800 22)    &lt;li&gt;
-8b64184a (Bob     2015-05-04 19:32:43 +0800 23)      &lt;a href="http://leetschau.github.io/services"&gt;Services&lt;/a&gt;
-96269db1 (Bob     2015-06-10 15:36:31 +0800 24)    &lt;/li&gt;--&gt;
-</code></pre>
-
-<p>So we know Mall and Services were commented out at commit 96269db1, 2015-06-10,
-and uncommented by error at commit dc7d385a, 2015-06-26, by Tom.</p>
-
-<p><strong>Step 3</strong>: show code changes.</p>
-
-<pre><code>$ git show dc7d385a -- client/comTemp.htm
-...
--    &lt;!--&lt;li&gt;
-+    &lt;li&gt;
-       &lt;a href="http://leetschau.github.io/mall"&gt;Mall&lt;/a&gt;
-     &lt;/li&gt;
-     &lt;li&gt;
-       &lt;a href="http://leetschau.github.io/services"&gt;Services&lt;/a&gt;
--    &lt;/li&gt;--&gt;
-+    &lt;/li&gt;
-...
-</code></pre>
-
-<p>It shows in commit dc7d385a,
-two lines were deleted: &ldquo;<!--<li>&rdquo; and &ldquo;</li>&ndash;>&rdquo;,
-while two lines were added: &ldquo;<li>&rdquo; and &ldquo;</li>&rdquo;.</p>
-
-<p><strong>Step 4 (optional)</strong>: revert the commit</p>
-
-<pre><code>git revert dc7d385a
-</code></pre>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket">http://stackoverflow.com/questions/14836696/delete-last-commit-in-bitbucket</a></p>
 ]]></content>
   </entry>
   

@@ -9,7 +9,10 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="使用一个数组，评分为3对应着： html: &lt;span class="glyphicon text-danger"&gt;&lt;/span&gt; js: Template.UserEvaluations.helpers({ rankicons: function() { return &hellip;">
+  <meta name="description" content="首先在阿里云上购买一台"云服务器ECS"，
+然后进入通过SSH连接VPS。 作为Meteor应用的生产环境，只需要安装mongoDB和Node.js就可以了，不需要安装Meteor.
+通过aptitude安装的mongoDB虽然版本比较老(2.4)，但不接受本机以外的连接，
+安全性有保障。 # &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +74,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/02/13/153724/">使用星星图标获取用户评分</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/03/26/203002/">Deploy Meteor Application Manually</a></h1>
     
     
       <p class="meta">
@@ -80,32 +83,58 @@
 
 
 
-<time class='entry-date' datetime='2015-02-13T15:37:24+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:37 pm</span></time>
+<time class='entry-date' datetime='2015-03-26T20:30:02+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:30 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>使用一个数组，评分为3对应着：</p>
+  <div class="entry-content"><p>首先在<a href="http://www.aliyun.com/">阿里云</a>上购买一台"云服务器ECS"，
+然后进入通过SSH连接VPS。</p>
 
-<p>html:</p>
+<p>作为Meteor应用的生产环境，只需要安装mongoDB和Node.js就可以了，不需要安装Meteor.
+通过aptitude安装的mongoDB虽然版本比较老(2.4)，但不接受本机以外的连接，
+安全性有保障。</p>
 
-<pre><code>  &lt;span class="glyphicon  text-danger"&gt;&lt;/span&gt;
+<pre><code># aptitude update
+# aptitude install mongodb-server
+# aptitude install software-properties-common
+# add-apt-repository ppa:chris-lea/node.js
+# aptitude update
+# aptitude install nodejs
 </code></pre>
 
-<p>js:</p>
+<p>Then create a start script &ldquo;startMeteor&rdquo;:</p>
 
-<pre><code>Template.UserEvaluations.helpers({
-  rankicons: function() {
-    return ['glyphicon-star', 'glyphicon-star', 'glyphicon-star', 'glyphicon-star-empty', 'glyphicon-star-empty'];
-  }
-});
+<pre><code>#!/bin/bash
+
+export PORT=80
+export MONGO_URL=mongodb://localhost:27017/newfairs
+export ROOT_URL=http://www.newfairs.biz
+node /root/bundle/main.js &gt; /root/meteorApp.log
 </code></pre>
 
-<p>Ref:</p>
+<p>Now build Meteor application package on developing computer,
+and transfer it to production machine:</p>
 
-<p><a href="http://stackoverflow.com/questions/14189672/meteor-iterate-list-in-template">http://stackoverflow.com/questions/14189672/meteor-iterate-list-in-template</a></p>
+<pre><code>cd /path/to/meteorProjectRoot
+meteor build .
+scp newfairsweb.tar.gz alivps:~/
+</code></pre>
+
+<p>On production machine, extract Meteor package and install it as a node app:</p>
+
+<pre><code>cd /root
+tar zxf newfairsweb.tar.gz
+cd bundle/programs/server
+npm install
+</code></pre>
+
+<p>将VPS恢复到初始状态的方法是：在云服务器ECS主页的"实例"页下，
+对应主机最右边，"管理 升级 续费 更多"中点击"更多"，
+首先点击"停止"来停止实例运行，然后点击"重新初始化磁盘"，
+将系统盘和数据盘都初始化。</p>
 </div>
   
   
@@ -118,7 +147,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/02/08/163932/">在Meteor应用中计算用户评分平均值</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/03/25/195307/">Deploy Meteor App With MUP</a></h1>
     
     
       <p class="meta">
@@ -127,599 +156,96 @@
 
 
 
-<time class='entry-date' datetime='2015-02-08T16:39:32+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:39 pm</span></time>
+<time class='entry-date' datetime='2015-03-25T19:53:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:53 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>以下方法使用的客户端展现代码(html)是一样的：
-<code>&lt;h2&gt;展会评分：&lt;span class="label label-success"&gt;&lt;/span&gt;&lt;/h2&gt;</code>.</p>
+  <div class="entry-content"><h1>Create VPS</h1>
 
-<h1>使用MapReduce</h1>
+<p>First build a vps on <a href="https://digitalocean.com/">DigitalOcean</a>, and name it &ldquo;MeteorUpEx&rdquo;.
+Get its IP address &ldquo;128.199.72.xxx&rdquo; at the home page of the droplet.
+Get its root password in you email.
+Add the following section into ~/.ssh/config:</p>
 
-<p>MapReduce一次性将所有展会的用户评分平均值计算出来，优点是每次用户请求页面时不需要计算，直接从计算结果中取值。
-缺点是实时性差，由于MapReduce计算比较耗时，且计算结果存储在一个单独的collection中，
-新的计算结果会覆盖旧的，所以不能一次只计算一个展会的平均值（因为计算结果collection会覆盖掉有来包含所有结果的collection），
-只能在服务清闲的时间（比如凌晨）进行一次批量计算。</p>
-
-<p>在MongoDB中运行mapReduce：</p>
-
-<pre><code>db.userComments.mapReduce(
-    function(){ emit(this.fairId, this.rank); },
-    function(key, values) { return Array.avg(values); },
-    { out: "rank_avg" }
-);
+<pre><code>Host do
+Hostname 128.199.72.206
+User root
 </code></pre>
 
-<p>客户端控制器(js):</p>
+<p>Add ssh auto login with <code>ssh-copy-id do</code>.</p>
 
-<pre><code>UserAvgRank = new Mongo.Collection("rank_avg");
+<h1>Publish Meteor App</h1>
 
-Template.UserComments.helpers({
-  rankAverage: function() {
-    var rec = UserAvgRank.findOne({ _id: Router.current().params._id });
-    return Math.round(rec.value * 10) / 10;
-  }
-});
+<p>Install <a href="https://github.com/arunoda/meteor-up">Meteor Up</a> with <code>npm install -g mup</code>.</p>
+
+<p>Create a mup project:</p>
+
+<pre><code>cd ~/docs/tmp
+mkdir nfDeploy
+cd nfDeploy
+mup init
 </code></pre>
 
-<h1>aggregate计算平均值</h1>
-
-<p>使用MongoDB collection的aggregate方法在用户请求时实时计算平均值，优缺点与MapReduce方法正好相反。</p>
-
-<p>在Meteor 1.0.3版本中，不支持collection的aggregate方法，
-可以通过安装meteorhacks:aggregate包的方法解决这个问题，但这个方法也只能运行在服务端。</p>
-
-<pre><code>Template.UserComments.helpers({
-  rankAverage: function() {
-    var rec = Comments.aggregate( [ {$match: {fairId: Router.current().params._id} }, { $group: {_id: "$fairId", avgRank: {$avg: "$rank"}} } ]);
-    return Math.round(rec.avgRank * 10) / 10;
-  }
-});
-</code></pre>
-
-<h1>JavaScript手工计算</h1>
-
-<p>也是一种实时计算方法，代码量最大，但版本依赖性小。</p>
-
-<pre><code>Template.UserComments.helpers({
-  rankAverage: function() {
-    var rateNum = Comments.find().count();
-    if (rateNum === 0) return false;
-    var total = 0;
-    Comments.find( {} ).forEach(function(elem) {
-      total = total + elem.rank;
-    });
-    var avg = total / rateNum;
-    return Math.round(avg * 10) / 10;
-  }
-});
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/04/152524/">A Meteor Modal Window</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-04T15:25:24+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>modal login</h1>
-
-<p><template name="LoginModal">
-  <button type="button" class="btn btn-link" data-toggle="modal" data-target="#loginForm">登录</button>
-  <div class="modal fade" id="loginForm" tabindex="-1" role="dialog" aria-labelledby="mymodallabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="mymodallabel">登录</h4>
-        </div>
-        <div class="modal-body">
-          <form id="userLogin" class="form-horizontal">
-            <div class="form-group">
-              <label for="inputEmail" class="col-sm-2 control-label">Email</label>
-              <div class="col-sm-10">
-                <input type="email" class="form-control" id="inputEmail" placeholder="Email">
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="inputPassword" class="col-sm-2 control-label">密码</label>
-              <div class="col-sm-10">
-                <input type="password" class="form-control" id="inputPassword" placeholder="Password">
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="col-sm-offset-2 col-sm-10">
-                <div class="checkbox">
-                  <label> <input type="checkbox">记住我</label>
-                </div>
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="col-sm-offset-2 col-sm-10">
-                还没有帐号？<a href="/register" data-toggle="modal">注册新帐号</a>
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary">登录</button>
-          <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template></p>
-
-<h1>user login control</h1>
-
-<p>if (Meteor.isServer) {
-  Meteor.startup(function () {
-    Accounts.onLogin(function(userObj) {
-      Router.go(&ldquo;/&rdquo;);
-    });</p>
-
-<pre><code>Accounts.onLoginFailure(function(userObj) {
-  console.log("wrong pwd for " + userObj.user.profile.nickname);
-});
-</code></pre>
-
-<p>  });
-}</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/03/174123/">几款开源文本编辑器比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-03T17:41:23+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>5:41 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Brackets</h1>
-
-<p><a href="http://brackets.io/">Brackets</a>是一款面向Web开发的文本编辑器；</p>
-
-<p>通过插件管理器实现vim模式支持，效果好；</p>
-
-<p>修改字号方便：ctrl + =/-;</p>
-
-<p>不修改项根目录；</p>
-
-<p>不能像atom那样在命令行中将工作目录作为参数传入，比如在启动后设置；</p>
-
-<p>打开文件夹快捷键：ctrl-alt-o;
-打开文件快捷键：ctrl-shift-o, 在当前目录中模糊匹配；</p>
-
-<p>分割窗口只有“不分割”，“横向分割”，“纵向分割”3种方式，且只能用鼠标操作，不方便；</p>
-
-<p>在html中实时修改css文件：ctrl-e;</p>
-
-<p>推荐插件：</p>
-
-<ul>
-<li><p>Brackets Vim: vim模式插件，可以使用ex命令（冒号开头的命令，如:w,:q等），需要与外界粘贴/拷贝文本，需要先在[File -> Enable Vim]中关闭vim模式，再用鼠标选择文本，再ctrl-c/v;</p></li>
-<li><p>Command line shortcuts: 可以将命令行定义成快捷键；</p></li>
-<li><p>Brackets Key Remapper: 目录[Debug -> Open Preferences File]，打开配置文件，修改默认快捷键，"view.hideSidebar"改为ctrl-alt-m；</p></li>
-<li><p>Theme: 增加暗色方案；</p></li>
-<li><p>Display Shortcuts: 显示可用的所有快捷键，可以搜索，很方便, ctrl-alt-/;</p></li>
-</ul>
-
-
-<h1>Atom</h1>
-
-<p><a href="https://atom.io/">Atom</a>由Github出品，未来可能不完全开源;</p>
-
-<p>启动速度慢；</p>
-
-<p>对窗口分割、窗口尺寸切换的支持不太好；</p>
-
-<p>全局搜索快捷键：Ctrl-Shift-P;
-打开文件快捷键：Ctrl-P;</p>
-
-<p>vi模式不能使用ex命令，操作不流畅；</p>
-
-<h1>Zed</h1>
-
-<p>体积比atom小一半，解压后直接运行，但其暗色主题都是灰色的，对比度不够；</p>
-
-<p>会在项目根目录下创建一个.zeddata文件，如果使用git做项目管理的话，需要把这个文件加入到ignore列表中；</p>
-
-<p>没有tab，可以水平分割为1～3个窗口，可以方便地在窗口间转移，这一点比atom强很多；</p>
-
-<p>自动保存功能使得:w不再需要，但最Meteor这样自动更新的环境，自动保持会使应用频繁更新；</p>
-
-<p>自带Vim模式，可以方便地使用vi快捷键；</p>
-
-<h1>LightTable</h1>
-
-<p>LightTable是一个Clojure开发环境，但也能作为一款通用文本编辑器；</p>
-
-<p>打开命令自动搜索：ctrl-space;</p>
-
-<p>安装vim插件：ctrl-space -> show plugin manager -> 输入vim，安装之，ex命令可用；与外部copy/paste需要在插入模式中用鼠标完成；</p>
-
-<p>打开文件：ctrl-o;</p>
-
-<p>总体而言无法替代vim；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-01T13:48:29+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>1:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>For Meteor 1.0.3, the built-in database is mongodb 2.4, which is not support full text search by default.
-So we need install a stand-alone MongoDB 2.6, create a &ldquo;meteor&rdquo; database, and let Meteor to use it as backend database:</p>
-
-<p>First start MongoDB server: <code>mongod --dbpath ~/docs/mongodb-repo</code>;</p>
-
-<p>Then create a new database &ldquo;meteor&rdquo; for Meteor app backend:</p>
-
-<pre><code>$ mongo
-&gt; show dbs
-&gt; use meteor
-</code></pre>
-
-<p>Next start Meteor server and connect it with the Mongodb server:</p>
-
-<pre><code>$ MONGO_URL="mongodb://localhost:27017/meteor" meteor
-&gt; db.zips.getIndexes()
-&gt; db.zips.dropIndex("forsearch_text")
-&gt; db.zips.ensureIndex( {city: "text", state: "text"} )
-&gt; db.zips.find( {$text: {$search: "lee ma"}} ).count()
-488
-</code></pre>
-
-<p>Here <code>use meteor</code> create a new database in MongoDB (if it doesn&rsquo;t exists yet)
-and use it as the current database.
-Use <code>db</code> to get the current database name.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://docs.mongodb.org/manual/tutorial/getting-started/">Getting Started with MongoDB</a></p>
-
-<p><a href="http://docs.mongodb.org/manual/administration/indexes-text/">Text Search Tutorials of MongoDB 2.6.7</a>;</p>
-
-<p><a href="http://docs.mongodb.org/manual/reference/operator/query/text/">$text query operator of MongoDB 2.6.7</a></p>
-
-<p><a href="http://stackoverflow.com/questions/10610131/checking-if-a-field-contains-a-string">Checking if a field contains a string</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/30/183509/">Meteor应用中简单查询的实现方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-30T18:35:09+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:35 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>简单搜索要求多个检索词能够以任意顺序出现在多个字段中，目前的解决方法有两种思路：</p>
-
-<p>一是创建一个额外的检索项，把所有要检索的字段用字符串方式组合起来放在检索项中，然后用正则表达式匹配；
-这种方式实际上有信息冗余，所以原始数据变化后一定要及时更新检索项；</p>
-
-<p>二是用第三方包实现这种功能。</p>
-
-<h1>自定义搜索：检索词放在单独Collection中</h1>
-
-<p>优点是检索词单独存放，需要去掉或者更新检索词时，只要简单地drop掉检索词Collection即可，
-适于存储大量记录；</p>
-
-<p>缺点有两个：
-首先显示查询结果比较麻烦，需要先在检索项集合中搜出命中目标的_id，然后再查询原始数据表显示完整信息；
-其次这种数据结构对组合查询支持不好，比如要查询"名称"字段中含有"abc"，并且"类别"字段中含有"xyz"的展会，
-由于"类别"字段是一个复杂对象，需要事先组合成一个字符串，这一项如果放在单独的collection中，
-需要查询两个不同的集合，然后取它们的并集。</p>
-
-<p>首先在MongoDB中，创建用于简单搜索的新collection &ldquo;simpleSearch&rdquo;:</p>
-
-<pre><code>db.fairs.find().forEach(function(elem) {
-    var searchStr = elem.chnName + elem.engName + elem.position;
-    db.simpleSearch.save({ _id: elem._id, searchBody: searchStr });
-})
-</code></pre>
-
-<p>然后定义路由处理函数：</p>
-
-<pre><code>Fairs = new Mongo.Collection("fairs");
-SimpleSearch = new Mongo.Collection("simpleSearch");
-
-Router.route('/results/:inp', function() {
-  // basic search url: /results/abc?type=basic
-  // complex search url: /results/?type=complex?name=xxx?time=xxx?position=xxx?category=xxx
-  var fullStr = this.params.inp;
-  var searchType = this.params.query.type;
-  if (searchType === "basic") {
-    var parts = fullStr.trim().split(" ");
-    for (i=0; i&lt;parts.length; ++i) {
-      parts[i] = "(?=.*" + parts[i] + ")";
+<p>Now you can see a mup.json file, edit it as follows:</p>
+
+<pre><code>{
+  "servers": [
+    {
+      "host": "128.199.72.xxx",
+      "username": "root",
+      "pem": "~/.ssh/id_rsa"
     }
-    var queryPtn = new RegExp("(" + parts.join("") + ")", "i");
-    var ids = [];
-    SimpleSearch.find( { searchBody: queryPtn }, { fields: { searchBody:0 }} ).forEach(
-      function(elem) {
-        ids.push(elem._id);
-      });
-    this.render('SearchResults', {
-      data: function() {
-        return Fairs.find( { _id: { $in: ids } } );
-      }
-    });
-  } else if (searchType === "complex") {
-    ...
-  }
-});
-</code></pre>
+  ],
 
-<p>这里首先查询SimpleSearch集合，然后将查询得到的展会<em>id存入临时容器ids数组中，然后在Fairs集合中通过"$in"操作符取得所有ids数组中</em>id对应的展会对象。</p>
+  "setupMongo": true,
+  "setupNode": true,
+  "nodeVersion": "0.10.36",
+  "setupPhantom": true,
+  "appName": "newfairs",
 
-<h1>自定义搜索：检索词放在原始信息文档中</h1>
+  "app": "/home/chad/docs/tmp/newfairs/newfairsweb",
 
-<p>这个方法把原始信息和检索项放在同一个集合中，几个检索项放在集合的一个key下面，
-集合会比较臃肿，但查询和显示都方便，适用于尺寸不大的数据库。</p>
-
-<p>控制器定义：</p>
-
-<pre><code>Fairs = new Mongo.Collection("fairs");
-Router.route('/results/:inp', function() {
-  // basic search url: /results/abc?type=basic
-  // complex search url: /results/?type=complex?name=xxx?time=xxx?position=xxx?category=xxx
-  var fullStr = this.params.inp;
-  var searchType = this.params.query.type;
-  if (searchType === "basic") {
-    var parts = fullStr.trim().split(" ");
-    for (i=0; i&lt;parts.length; ++i) {
-      parts[i] = "(?=.*" + parts[i] + ")";
-    }
-    var queryPtn = new RegExp("(" + parts.join("") + ")", "i");
-    this.render('SearchResults', {
-      data: function() {
-        return Fairs.find( { "indexStr.simpleSearch": queryPtn } );
-      }
-    });
-  } else if (searchType === "complex") {
-    ...
-  }
-});
-</code></pre>
-
-<h1>基于Search Source的实现方法</h1>
-
-<p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
-通过<code>meteor add meteorhacks:search-source</code>添加到meteor中，
-代码参照了<a href="https://github.com/meteorhacks-samples/meteor-instant-search-demo">meteor-instant-search-demo</a>.</p>
-
-<h2>准备数据源</h2>
-
-<h3>导入数据</h3>
-
-<ol>
-<li><p>下载<a href="http://media.mongodb.org/zips.json">zips.json</a>；
-参考<a href="http://stackoverflow.com/questions/5723896/is-there-a-sample-mongodb-database-along-the-lines-of-world-for-mysql">Is there a sample MongoDB Database along the lines of world for MySql?</a>.</p></li>
-<li><p>导入Meteor数据库中：启动meteor服务，然后在另一个shell里运行：
-<code>~/apps/mongodb-linux-x86_64-2.6.5/bin/mongoimport -h localhost:3001 --db meteor --collection zips --type json --file zips.json</code>;</p></li>
-<li><p>增加搜索字段：由于简单搜索要求输入可能匹配任意字段，
-能达到这个要求的唯一方法就是将被查询的字段连接成一个完整的“搜索”字符串，
-输入的各项可以以任何顺序出现在这个搜索字符串（这里这一项名为"forsearch"）中，下面增加这一项：</p>
-
-<pre><code> db.zips.find().forEach(function(elem) {
-     db.zips.update(
-       {_id: elem._id},
-       { $set: {forsearch: elem.city + ' ' + elem.state}}
-     );
- });
-
- db.fairs.find().forEach(function(elem) {
-     var cat_minor = _.reduce(elem.category.minor
-     db.fairs.update(
-       {_id: elem._id},
-       { $set: {forsearch: elem.chnName + ' ' + elem.engName + ' ' + elem.time + ' ' + elem.position + catStr}}
-     );
- });
-</code></pre>
-
-<p> 参考<a href="http://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field">Update MongoDB field using value of another field</a>.</p></li>
-</ol>
-
-
-<h2>搜索逻辑</h2>
-
-<p>下面"/&ldquo;都指项目根目录。</p>
-
-<h3>数据集定义</h3>
-
-<p>在/collections.js中定义数据集和索引：</p>
-
-<pre><code>Zips = new Mongo.Collection('zips');
-if(Meteor.isServer) {
-  Zips._ensureIndex({city: 1, state: 1});
-}
-</code></pre>
-
-<h3>服务端</h3>
-
-<p>在/server/server.js中定义：</p>
-
-<pre><code>SearchSource.defineSource('zips', function(searchText, options) {
-  var options = {sort: {isoScore: -1}, limit: 20};
-
-  if(searchText) {
-    var regExp = buildRegExp(searchText);
-    var selector =  {forsearch: regExp};
-    return Zips.find(selector, options).fetch();
-  } else {
-    return Zips.find({}, options).fetch();
-  }
-});
-
-function buildRegExp(searchText) {
-  var parts = searchText.trim().split(/[ \-\:]+/);
-  for (i=0; i&lt;parts.length; ++i) {
-    parts[i] = "(?=.*" + parts[i] + ")";
-  }
-  var res = new RegExp("(" + parts.join("") + ")", "i");
-  return res;
-}
-</code></pre>
-
-<p>buildRegExp函数中的正则表达式<code>(?=.*A)(?=.*B)</code>可以实现对A和B任意顺序的匹配，
-即既能匹配A.<em>B，又能匹配B.</em>A，
-参考<a href="http://stackoverflow.com/questions/19896324/match-string-in-any-word-order-regex">match string in any word order regex</a>.</p>
-
-<h3>客户端：搜索输入框框即时响应</h3>
-
-<p>搜索框是通用控件，所以定义在了/client/comTemp.js中，定义了对框中keyup事件的响应：</p>
-
-<pre><code>Template.Header.events({
-  "keyup #search-input": _.throttle(function(e) {
-    var text = $(e.target).val().trim();
-    ZipSearch.search(text);
-  }, 200)
-});
-</code></pre>
-
-<h3>客户端：搜索结果展示页面</h3>
-
-<p>定义在/client/results.html中。</p>
-
-<pre><code>&lt;template name="SearchResults"&gt;
-  &lt;div id="search-result" class="container content"&gt;
-    &lt;div id="search-meta"&gt;
-
-        searching ...
-
-    &lt;/div&gt;
-
-
-      &lt;div class="package"&gt;
-        &lt;h4 class="name"&gt;
-          }
-        &lt;/h4&gt;
-        &lt;div class="description"&gt;
-          }, }
-        &lt;/div&gt;
-      &lt;/div&gt;
-
-  &lt;/div&gt;
-&lt;/template&gt;
-</code></pre>
-
-<h3>客户端：搜索结果的数据控制</h3>
-
-<p>定义在/client/results.js中。</p>
-
-<pre><code>var options = {
-  keepHistory: 1000 * 60 * 5,
-  localSearch: true
-};
-var fields = ['forsearch'];     // 这里定义要搜索的字段
-
-ZipSearch = new SearchSource('zips', fields, options);
-// 这里的zips要与服务端SearchSource.defineSource中定义的名字一致
-
-Template.SearchResults.helpers({
-  getZips: function() {
-    return ZipSearch.getData({
-      transform: function(matchText, regExp) {
-        console.log("matchText: " + matchText);
-        console.log("regExp: " + regExp);
-        var res = matchText.replace(regExp, "&lt;b&gt;$&amp;&lt;/b&gt;");
-        console.log("res is: " + res);
-        return res;
-      },
-      sort: {isoScore: -1}
-    });
+  "env": {
+    "PORT": 80,
+    "ROOT_URL": "http://niufairs.biz"
   },
 
-  isLoading: function() {
-    return ZipSearch.getStatus().loading;
-  }
-});
-
-Template.SearchResults.rendered = function() {
-  ZipSearch.search('');
-};
+  "deployCheckWaitTime": 15
+}
 </code></pre>
+
+<p>Note that the &ldquo;appName&rdquo; is also the database name used by Meteor app in mongoDB.
+&ldquo;app&rdquo; is the path of your Meteor app source code folder on your local computer.
+mup will bundle codes in it, and publish them to host on vps.</p>
+
+<p>You can only use key authentication.
+If you use password, an &ldquo;sshpass required for password based authentication&rdquo; error occurs.</p>
+
+<p>Setup production environment: <code>mup setup</code>;
+Delpoy app: <code>mup deploy</code>;</p>
+
+<p>If you use external mongodb, add &ldquo;MONGO_URL&rdquo; into &ldquo;env&rdquo; section of mup.json. For example:</p>
+
+<pre><code>"MONGO_URL": "mongodb://104.237.135.xxx:27017/meteor"
+</code></pre>
+
+<p>After changing the mongo url, run <code>mup reconfig</code> to validate the new config and restart the Meteor app.</p>
+
+<h1>Import Data</h1>
+
+<p>First dump data from database &ldquo;meteor&rdquo; in source mongoDB server to local machine:</p>
+
+<pre><code>mongodump -h 104.237.135.xxx -d meteor -o mynf
+scp -r mynf do:~/
+ssh do
+cd mynf
+mongorestore -d newfairs meteor
+</code></pre>
+
+<p>Now verify data in mongoDB of the vps with <code>mongo newfairs</code>.</p>
 </div>
   
   
@@ -732,7 +258,7 @@ Template.SearchResults.rendered = function() {
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/01/29/141348/">Git-flow Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/03/18/095552/">Web Scanning Notes</a></h1>
     
     
       <p class="meta">
@@ -741,245 +267,454 @@ Template.SearchResults.rendered = function() {
 
 
 
-<time class='entry-date' datetime='2015-01-29T14:13:48+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>2:13 pm</span></time>
+<time class='entry-date' datetime='2015-03-18T09:55:52+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:55 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>git is a powerful version control tool, while its large amount of commands and options make it hard to use.</p>
+  <div class="entry-content"><h1>Discovery Scanning</h1>
 
-<p>So <a href="https://github.com/nvie/gitflow">git-flow</a> was created to make git mush convenient. It&rsquo;s a high level branching tools for git.</p>
+<p>This step find the IP address of a website, most frequently with <code>ping</code> tools.</p>
 
-<p>Fist install it with <code>apt-get install git-flow</code> on Debian-family distros.</p>
+<h1>Port scanning</h1>
 
-<h1>Usage</h1>
+<p>This step find the openning ports on a host.</p>
 
-<h2>Workflow on a single feature</h2>
+<h2>Stealth scan</h2>
 
-<p>The following paragraphs is from [Why aren&rsquo;t you using git-flow?}(<a href="http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/">http://jeffkreeftmeijer.com/2010/why-arent-you-using-git-flow/</a>).</p>
+<p>Scan commonly used 1000 ports (preconfigured by nmap) of a host: <code>nmap -sS &lt;target-ip&gt;</code>;</p>
 
-<p>Branch &ldquo;master&rdquo; is always &ldquo;production ready&rdquo; code. Commits are never made directly to master. Rather, code on master only gets there after a production release branch is created and &ldquo;finished&rdquo; (more on that in a sec). Thus the code on master is always able to be released to production. Also, master is always in a predictable state, so you never need to worry if master (and thus production) has changes one of your other branches doesn&rsquo;t.</p>
+<p>Scan all port of a host: <code>nmap -sS &lt;target-ip&gt; -p 0-65535</code>;</p>
 
-<p>&ldquo;develop&rdquo; is the branch you&rsquo;ll be doing most of your work off of; it&rsquo;s also the branch that represents the code to be deployed in the next release. feature branches represent non-trivial features and fixes that have not yet been deployed (a completed feature branch is merged back into develop). Updating master is done through the creation of a release.</p>
+<p>Example:</p>
 
-<p>Most of your work is done on the develop branch. This branch contains all of the completed features and bug fixes yet to be released; nightly builds or continuous integration servers should target develop, as it represents the code that will be included in the next release. For one-off commits, feel free to commit to develop directly.</p>
+<pre><code>$ sudo nmap -sS xxx.xxx.xxx.143 -p 27010-27020
 
-<p>Use <code>git flow help</code> or <code>git flow feature help</code> to list all available commands.</p>
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:01 CST
+Nmap scan report for newfairs.com (xxx.xxx.xxx.143)
+Host is up (0.30s latency).
+PORT      STATE  SERVICE
+27010/tcp closed flexlm10
+27011/tcp closed unknown
+27012/tcp closed unknown
+27013/tcp closed unknown
+27014/tcp closed unknown
+27015/tcp closed unknown
+27016/tcp closed unknown
+27017/tcp open   unknown
+27018/tcp closed unknown
+27019/tcp closed unknown
+27020/tcp closed unknown
 
-<pre><code>$ git flow init  // Convert an existing git repo to git-flow style:
-
-$ git flow feature start &lt;feature-name&gt;
-
-$ git commit -m "now finish this feature"
-
-// if you want cancel this feature:
-$ git flow feature  // list the current feature name, here is "searchSource"
-$ git flow feature delete searchSource
-// or do it manually
-$ git checkout develop  // switch to "develop" branch
-$ git branch  // list current branches
-$ git branch -d feature/&lt;feature-name&gt;   // "feature/" is the default prefix of all feature branches
-$ git branch  // verify the feature is deleted
-
-// push feature to remote repository
-$ git flow feature publish
-
-// get feature commit from remote repository
-$ git flow feature pull
-
-// after the feature is finished and tested
-$ git flow feature finish &lt;feature-name&gt;
+Nmap done: 1 IP address (1 host up) scanned in 5.66 seconds
 </code></pre>
 
-<p>Note that do not add &ldquo;feature/&rdquo; prefix before feature name.
-This command merge feature branch back into develop branch, so the feature branch disappear from now on.
-If you don&rsquo;t want save your feature branch into remote repo, push to remote AFTER you finish your feature with this &ldquo;finish&rdquo; command.
-There is a corresponding &ldquo;release&rdquo; command:</p>
+<p>Port 27017 (used by mongoDB) is detected.</p>
 
-<pre><code>$ git flow release start v0.1.0
-$ git flow release finish v0.1.0
+<h2>Connection scan</h2>
+
+<p>Command: <code>nmap -sT &lt;target-ip&gt;</code>;</p>
+
+<p>Compared with connection scan, stealth scan won&rsquo;t be logged by the target.
+So it&rsquo;s more safe.</p>
+
+<h1>Banner grabbing</h1>
+
+<p>This step get the banner of a service on a specific port (here is 21):</p>
+
+<pre><code>sudo nmap -sT xxx.xxx.xxx.234 -p 21 --script=banner
+
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:30 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.064s latency).
+PORT   STATE SERVICE
+21/tcp open  ftp
+| banner: 220-FileZilla Server v0.9.33 beta\x0D\x0A220-written by Tim Kos
+|_se (Tim.Kosse@gmx.de)\x0D\x0A220 Please visit http://sourceforge.net...
 </code></pre>
 
-<p>See <a href="http://danielkummer.github.io/git-flow-cheatsheet/">git-flow cheatsheet</a> for details of git-flow.</p>
+<p>So this is a FileZilla server, version 0.9.33,
+which implies the OS is probably Windows.</p>
 
-<h2>Switching between multiple features</h2>
+<h1>Service identification</h1>
 
-<p>Say you now have finished version 1.0 and tag it with &ldquo;1.0&rdquo;.
-Next you will add function A to the product.
-You have two methods to achieve function A, &ldquo;search source&rdquo; and &ldquo;full text&rdquo;.
-You want to experiment them one by one, so create the first test branch with <code>git flow feature start searchSource</code>,
-After some commits, now you want to evaluate the second.</p>
+<p>This step detect what service is running on a specific port of a host.</p>
 
-<p>You can&rsquo;t <code>git flow feature finish searchSource</code> for two reasons:</p>
+<p>This is the detection on port 3389: <code>sudo nmap xxx.xxx.xxx.234 -p 3389 -sV</code>;</p>
 
-<p>First you may switching back to this feature in the future.
-If you finish this feature, this branch disappeared.</p>
+<p>Example:</p>
 
-<p>Second you need experiment &ldquo;full text&rdquo; based on version 1.0.
-But if you &ldquo;finish&rdquo; feature &ldquo;search source&rdquo;, the modifications will be added to branch develop.
-If you <code>git flow feature start fullText</code>, the codes won&rsquo;t be that in version 1.0.</p>
+<pre><code>sudo nmap xxx.xxx.xxx.234 -p 80 -sV                
 
-<p>So what you want is working on multiple branches simultaneously:</p>
-
-<pre><code>$ git flow feature start searchSource
-... // some developments on branch searchSource
-$ git commit -m "finish a milestone by method search source"
-$ git flow feature start fullText
-... // some developments on branch fullText
-$ git commit -m "finish a milestone by method full text"
-$ git flow feature list
-$ git flow feature checkout searchSource
-... // some developments on branch searchSource
-$ git commit -m "finish the 2nd milestone by method search source"
-$ git flow feature checkout fullText
-... // some developments on branch fullText
-$ git commit -m "finish the 2nd milestone by method full text"
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 09:23 CST
+Nmap scan report for xxx.xxx.xxx.234
+Host is up (0.072s latency).
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.2.17 ((Win32) PHP/5.3.5)
 </code></pre>
 
-<p>If you have some casual modifications which you don&rsquo;t want to commit, use <code>git stash</code> instead of <code>git commit</code>.
-Use <code>git stash list</code> to list all stashed changes, and <code>git stash pop</code> to take the stashed codes out.
-Or <code>git stash apply</code> to take codes out without removing saved stash record.</p>
+<h1>Operating system identification</h1>
 
-<p>Finally you choose &ldquo;full text&rdquo; to achieve function A.
-So add it to your develop code base: <code>git flow feature finish fullText</code>.
-And leave the branch &ldquo;search source&rdquo; alone.</p>
+<p>Command: <code>nmap &lt;target-ip&gt; -O</code>;</p>
 
-<p>If you are sure &ldquo;search source&rdquo; are useless any more,
-print all existing features with <code>git flow feature list</code>,
-then remove it with <code>git flow feature delete searchSource</code>.</p>
+<p>Example:</p>
 
-<p>There is a GUI tool called <code>gitk</code>, which can be installed with <code>apt-get install gitk</code>.
-See commits on current branch with <code>gitk</code>, or see all branches with <code>gitk --all</code>.</p>
+<pre><code>$ sudo nmap xxx.xxx.xxx.143 -O
 
-<p>There is also a <a href="https://github.com/bobthecow/git-flow-completion">git-flow-completion</a> tool for zsh.
-Install it if you like.</p>
+Starting Nmap 6.40 ( http://nmap.org ) at 2015-03-18 08:43 CST
+Nmap scan report for xxx.com (xxx.xxx.xxx.143)
+Host is up (0.32s latency).
+Not shown: 984 closed ports
+PORT     STATE    SERVICE
+22/tcp   open     ssh
+80/tcp   open     http
+135/tcp  filtered msrpc
+139/tcp  filtered netbios-ssn
+445/tcp  filtered microsoft-ds
+593/tcp  filtered http-rpc-epmap
+901/tcp  filtered samba-swat
+1068/tcp filtered instl_bootc
+1723/tcp filtered pptp
+3000/tcp open     ppp
+3128/tcp filtered squid-http
+4444/tcp filtered krb524
+5800/tcp filtered vnc-http
+5900/tcp filtered vnc
+6129/tcp filtered unknown
+6667/tcp filtered irc
+Aggressive OS guesses: Linux 3.2 - 3.6 (96%), Linux 2.6.32 - 2.6.39 (94%), Linux 2.6.32 - 3.0 (93%), Linux 3.5 (92%), Linux 2.6.32 (92%), IPFire firewall 2.11 (Linux 2.6.32) (92%), Linux 2.6.15 - 2.6.26 (likely embedded) (90%), Linux 2.6.32 - 2.6.33 (90%), Linux 2.6.32 - 2.6.35 (90%), Linux 2.6.18 (90%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 23 hops
+
+OS detection performed. Please report any incorrect results at http://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 83.20 seconds
+</code></pre>
+
+<p>Ref: &ldquo;Kali Linux Network Scanning Cookbook&rdquo; by Justin Hutchens.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/10/102817/">Convert a CVS Repo to SVN Repo</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-10T10:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Download cvs2svn-2.4.0.tar.gz from <a href="http://cvs2svn.tigris.org/">cvs2svn</a> and extract it.
+We get a folder named &ldquo;cvs2svn-2.4.0&rdquo;.</p>
+
+<p>The cvs repo to be converted is at $HOME/Desktop/goat.
+There&rsquo;s a &ldquo;CVSROOT&rdquo; and &ldquo;dev/GOAT&rdquo; folder in it.</p>
+
+<p>Change CWD to cvs2svn-2.4.0 and run <code>./cvs2svn --encoding=GBK --fallback-encoding=utf8 -s ~/Desktop/goatsvn ~/Desktop/goat</code>.</p>
+
+<p>After convertion, you get your subversion repo at $HOME/Desktop/goatsvn.</p>
+
+<p>Check it with <code>svn ls file://$HOME/Desktop/goatsvn</code>, and <code>svn log HEAD file://$HOME/Desktop/goatsvn</code>
+and <code>svn cat file://$HOME/Desktop/goatsvn/...</code>.</p>
+
+<p>If you encouter this error: &ldquo;ERROR: A CVS repository cannot contain both repo/path/file.txt,v and repo/path/Attic/file.txt,v&rdquo;:
+<code>./cvs2svn --retain-conflicting-attic-files --encoding=GBK --fallback-encoding=utf8 -s ~/Desktop/dev2SVN ~/Desktop/ARENA/dev2</code></p>
+
+<p>Next add this repo to a existing repository:</p>
+
+<p>Ref:</p>
+
+<p>Google for &ldquo;subversion format 5&rdquo;.</p>
+
+<p><a href="http://serverfault.com/questions/277441/difference-between-the-format-and-db-format-files-in-a-subversion-repository">http://serverfault.com/questions/277441/difference-between-the-format-and-db-format-files-in-a-subversion-repository</a></p>
+
+<p><a href="http://stackoverflow.com/questions/3420741/cvs-comma-v-files-in-attic-and-directory">http://stackoverflow.com/questions/3420741/cvs-comma-v-files-in-attic-and-directory</a></p>
+
+<p><a href="http://cvs2svn.tigris.org/faq.html#atticprob">http://cvs2svn.tigris.org/faq.html#atticprob</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/06/180118/">Update Data in MongoDB</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-06T18:01:18+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Say you want to update data in updated.csv into &ldquo;fairs&rdquo; collection of &ldquo;meteor&rdquo; database in MongoDB.</p>
 
 <ol>
-<li><p>Download <a href="http://sourceforge.net/p/zsh/code/ci/master/tree/Completion/Unix/Command/_git?format=raw">_git</a> and replace /usr/share/zsh/functions/Completion/Unix/_git;</p></li>
-<li><p>Download <a href="https://raw2.github.com/bobthecow/git-flow-completion/master/git-flow-completion.zsh">git-flow-completion.zsh</a>, save it as ~/.git-flow-completion.zsh;</p></li>
-<li><p>Add &ldquo;source ~/.git-flow-completion.zsh&rdquo; into ~/.zshrc;</p></li>
+<li><p>Convert data to be updated in csv file to json file: <code>csvjson updated.csv rawdata.json</code>;</p></li>
+<li><p>Load this file in a js script &ldquo;my-script&rdquo; with <code>var data = require('./rawdata.json');</code>;</p></li>
+<li><p>Check and convert data content in my-script, and write the reulst into another json file &ldquo;result.json&rdquo;:</p>
+
+<pre><code> var fs = require('fs');
+ fs.writeFile('result.json', JSON.stringify(result));
+</code></pre></li>
+<li><p>Run my-script with <code>node my-script</code>;</p></li>
+<li><p>Import result.json into a new collection &ldquo;tmp&rdquo; of MongoDB database with
+<code>mongoimport -d $TargetDB -c $TargetCol --type json --file result.json --jsonArray</code>;</p></li>
+<li><p>Update collection fairs while traversing collection tmp;</p>
+
+<pre><code> db = connect("localhost:27017/meteor");
+ cursor = db.tmp.find();
+ while ( cursor.hasNext() ) {
+   db.fairs.save(cursor.next());
+ }
+</code></pre></li>
+<li><p>Save above script into update.js;</p></li>
+<li><p>Update data with <code>mongo update.js</code>;</p></li>
 </ol>
 
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/26/174649/">Meteor Development Styles</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-26T17:46:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Naming Styles</h1>
-
-<ul>
-<li><p>Template, class, enum name use BigCamelCase;</p></li>
-<li><p>File, identifier, function name use smallCamelCase;</p></li>
-<li><p>CSS class name: css-class-name;</p></li>
-<li><p>Constant value name: CONSTANT_VALUES_LIKE_THIS;</p></li>
-</ul>
-
 
 <p>Ref:</p>
 
-<p><a href="https://github.com/meteor/meteor/wiki/Meteor-Style-Guide">Meteor Style Guide</a></p>
-
-<p><a href="https://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml#Naming">Googe JavaScript Naming rules</a>:
-use functionNamesLikeThis, variableNamesLikeThis, ClassNamesLikeThis, EnumNamesLikeThis, methodNamesLikeThis, CONSTANT_VALUES_LIKE_THIS, foo.namespaceNamesLikeThis.bar, and filenameslikethis.js.</p>
-
-<p><a href="https://github.com/airbnb/javascript">Airbnb JavaScript Style Guide</a></p>
-
-<h1>Small Project Structure with Iron Router</h1>
-
-<p>The following is the file structure of small meteor app,
-which put all files into root folder, to simplify file editing and browsing.</p>
-
-<ul>
-<li><p>head.html: contains &ldquo;<head> &hellip; </head>&rdquo;;</p></li>
-<li><p>layout.html: defines layouts of the app, each in a &ldquo;<template>&rdquo;, you can put multiple layouts in this file;</p></li>
-<li><p>router.js: defines all routes and layouts. Put all javascript codes starting with &ldquo;Router.&rdquo; (such as Router.route, Router.configure) into this file;</p></li>
-<li><p>collections.js: define persistent collections, or models of application;</p></li>
-<li><p>style.css: defines global css styles here;</p></li>
-<li><p>comTemp.html: defines global common templates here;</p></li>
-<li><p>page triad: consists of a view (html), a controller (js) and a formatter (css).
-  So the home page triad consists of home.html, home.js and home.css;</p></li>
-</ul>
+<p><a href="http://docs.mongodb.org/manual/tutorial/write-scripts-for-the-mongo-shell/">Write Scripts for the mongo Shell</a></p>
+</div>
+  
+  
 
 
-<h1>Large Project Structures</h1>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/06/101802/">Website Server Provsion</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p><a href="https://github.com/DiscoverMeteor/Microscope">Microscope</a> of <a href="https://www.discovermeteor.com/">Discover Meteor</a> is a good example:</p>
 
-<p>$ git clone <a href="https://github.com/DiscoverMeteor/Microscope.git">https://github.com/DiscoverMeteor/Microscope.git</a>
-$ cd Microscope
-$ tree -L 3
-.
-├── client
-│   ├── helpers
-│   │   ├── config.js
-│   │   ├── errors.js
-│   │   └── handlebars.js
-│   ├── main.html
-│   ├── main.js
-│   ├── stylesheets
-│   │   └── style.css
-│   └── templates
-│       ├── application
-│       ├── comments
-│       ├── includes
-│       ├── notifications
-│       └── posts
-├── lib
-│   ├── collections
-│   │   ├── comments.js
-│   │   ├── notifications.js
-│   │   └── posts.js
-│   ├── permissions.js
-│   └── router.js
-├── LICENSE.txt
-├── README.markdown
-├── README.nitrous.md
-└── server
-    ├── fixtures.js
-    └── publications.js</p>
+
+
+<time class='entry-date' datetime='2015-03-06T10:18:02+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:18 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Work flow</h1>
+
+<ol>
+<li><p>Install packages: tree, curl, git;</p></li>
+<li><p>Create user chad, add it to sudoers;</p></li>
+<li><p>Install Meteor: <code>curl https://install.meteor.com | /bin/sh</code>;</p></li>
+<li><p>download mongoDB package (mongodb-linux-x86_64-rhel62-3.0.0.tgz for now) from <a href="https://www.mongodb.org/">mongoDB</a>;</p></li>
+<li><p>Extract mongoDB package to $HOME/apps, add $MONGO_HOME/bin to $PATH
+ (in file ~/.bash_profile);</p></li>
+<li><p>Config mongoDB: save the following codes into $HOME/docs/mongoRepo/mongo.conf:</p>
+
+<pre><code> net:
+   bindIp: 127.0.0.1
+   port: 27017
+ storage:
+   dbPath: dbHome
+ systemLog:
+   destination: file
+   path: "mongodb.log"
+   logAppend: true
+</code></pre></li>
+<li><p>Start mongod: <code>mongod --config mongo.conf</code>, or in background: <code>nohup mongod --config mongo.conf &amp;</code>;</p></li>
+</ol>
+
+
+<h1>Ansible</h1>
+
+<h2>Managing Node</h2>
+
+<p>Install <a href="http://www.ansible.com/">ansible</a> with <code>sudo pip install ansible</code>.</p>
+
+<h2>Provision of remote host</h2>
+
+<p>On remote host, create user with <code>sudo useradd -m chad</code>
+and set password: <code>sudo passwd chad</code>.
+On manging node, add ssh automatic login of chad and root on remote host with <code>ssh-copy-id</code>.</p>
+
+<p>For a vagrant host, run the following commands in project&rsquo;s root directory:</p>
+
+<pre><code>vagrant ssh
+sudo passwd
+// set password for root ...
+sudo useradd -m chad
+sudo passwd chad
+// set password for chad ...
+exit
+ssh-copy-id chad@localhost -p 2222
+ssh-copy-id root@localhost -p 2222
+</code></pre>
+
+<p>// Install Node.js, MongoDB,</p>
+
+<p>Install mms with installing its rpm package,
+you can remove it later with:</p>
+
+<pre><code># service --status-all
+# rpm -qa|grep mongo
+mongodb-mms-automation-agent-manager-1.6.2.960-1.x86_64
+# rpm -e mongodb-mms-automation-agent-manager-1.6.2.960-1.x86_64
+# service --status-all
+</code></pre>
+
+<p>Change host name:</p>
+
+<p>Add &ldquo;newfairs.biz&rdquo; after &ldquo;127.0.0.1  &rdquo;, before &ldquo;localhost&rdquo; in /etc/hosts.
+Restart mms agent: <code>service mongodb-mms-automation-agent restart</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/06/090609/">Setup MongoDB Server on Aliyun</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-06T09:06:09+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:06 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>For version 3.0.</p>
+
+<h1>Install</h1>
+
+<p>On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract:</p>
+
+<pre><code>wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+cd /opt
+tar zxf ~/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+mkdir -p /data/db
+</code></pre>
+
+<h1>Authentication Management</h1>
+
+<p>Start mongod without auth on VPS (ip: 123.56.18.18): <code>mongod</code>;</p>
+
+<p>Connect to server with <code>mongo 123.56.18.18</code>;
+Create system user administrator:</p>
+
+<pre><code>use admin
+db.createUser(
+    {
+      user: "superuser",
+      pwd: "12345678",
+      roles: [ "root" ]
+    }
+)
+</code></pre>
+
+<p>Create user in current database:</p>
+
+<pre><code>use products
+db.createUser({user: "niufair", pwd: "nfsecret", roles: ["readWrite"]})
+show users
+</code></pre>
+
+<p>Create a production config file mongo.conf:</p>
+
+<pre><code>net:
+  #bindIp: 10.251.212.248
+  port: 15515
+systemLog:
+  destination: file
+  path: "mongo.log"
+  logAppend: true
+security:
+  authorization: enabled
+</code></pre>
+
+<p>Stop and restart mongod with <code>nohup mongod --config mongo.conf &amp;</code>;</p>
+
+<p>Connect to server as a database user: <code>mongo 123.56.18.18:15515/products -u niufair -p nfsecret</code>.
+You can <code>show collections</code>, <code>db.doc.insert()</code>, etc.</p>
+
+<p>Start Meteor app with <code>MONGO_URL="mongodb://niufair:nfsecret@123.56.18.18:15515/products" meteor</code>.</p>
+
+<p>Connect to server as administrator: <code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin</code>.</p>
+
+<p>Use <code>db.removeUser("username")</code> to remove user.</p>
+
+<h2>Create a new database under authentication</h2>
+
+<p>Say we want to create a new database named &ldquo;bakdb&rdquo;:</p>
+
+<pre><code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin
+use bakdb
+db.createUser({user: "niufair", pwd: "nfsecret", roles: ["readWrite"]})
+</code></pre>
+
+<p>Verify: <code>mongo -u niufair -p nfsecret 123.56.18.18:15515/bakdb</code>;</p>
 
 <p>Ref:</p>
 
-<p><a href="http://docs.meteor.com/#/full/structuringyourapp">Structuring your application in Meteor Docs</a></p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication-without-bypass/">Enable Authentication after Creating the User Administrator</a></p>
 
-<p><a href="https://github.com/EventedMind/iron-router/blob/devel/Guide.md">iron-router official guide</a></p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-user-to-database/">Add a User to a Database</a></p>
 
-<p>google &ldquo;iron router layout&rdquo;;</p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-admin-user/">Create an Administrative User with Unrestricted Access</a></p>
 
-<p><a href="http://www.manuel-schoebel.com/blog/iron-router-tutorial">Iron-Router Tutorial</a></p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication/">Enable Client Access Control</a></p>
 
-<p><a href="http://stackoverflow.com/questions/21824045/meteor-iron-router-layout-template">Meteor Iron Router layout template</a></p>
+<p><a href="http://docs.mongodb.org/manual/reference/built-in-roles/">Built-In Roles</a></p>
 
-<p><a href="http://stackoverflow.com/questions/19909945/meteor-iron-router-layout-rendering">Meteor Iron-Router Layout Rendering</a></p>
+<p><a href="http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb">http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb</a></p>
 
-<p><a href="http://robertdickert.com/blog/2014/05/09/set-up-navigation-with-iron-router-and-bootstrap/">Set Up Navigation With Iron Router and Bootstrap</a></p>
+<h1>MMS</h1>
 
-<p><a href="http://meteortips.com/tutorial/iron-router-part-1/">A Beginner’s Guide to Iron Router, Part 1</a> on <a href="http://meteortips.com/">Meteor Tips</a></p>
+<p>Connect mongodb server without authentication: <code>mongo &lt;ip&gt;:&lt;port&gt;</code>;</p>
 </div>
   
   
@@ -992,7 +727,7 @@ $ tree -L 3
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/01/26/173952/">离线保存网页</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/03/05/095056/">Manage Website Remotely</a></h1>
     
     
       <p class="meta">
@@ -1001,17 +736,33 @@ $ tree -L 3
 
 
 
-<time class='entry-date' datetime='2015-01-26T17:39:52+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:39 pm</span></time>
+<time class='entry-date' datetime='2015-03-05T09:50:56+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:50 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>首先试用了Firefox的"Save as PDF"这个插件，发现对于内容复杂的网页，保存总出错。</p>
+  <div class="entry-content"><h1>Prerequisite</h1>
 
-<p>又试了"Screengrab!&ldquo;这个插件，把整个网页保存成一改png文件，效果不错，
-即使网页超出了一屏，也可以保存为一个完整的图片。</p>
+<h2>Managing Node</h2>
+
+<p>// Install Fabric with <code>sudo pip install fabric</code>.</p>
+
+<p>Install ansible with <code>sudo pip install ansible</code>.</p>
+
+<h2>Provision of remote host</h2>
+
+<p>Create user with <code>sudo useradd -m chad</code>,
+then add ssh-auto-login with <code>ssh-copy-id ...</code>.</p>
+
+<p>// Install Node.js, MongoDB,</p>
+
+<h1>Backup MongoDB</h1>
+
+<h1>Import new data</h1>
+
+<h1>Update website codes</h1>
 </div>
   
   
@@ -1024,7 +775,7 @@ $ tree -L 3
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/01/20/090427/">Encrypt and Remove Encryption in Vim</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/02/28/152115/">Website Monitor for Meteor Application</a></h1>
     
     
       <p class="meta">
@@ -1033,21 +784,119 @@ $ tree -L 3
 
 
 
-<time class='entry-date' datetime='2015-01-20T09:04:27+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:04 am</span></time>
+<time class='entry-date' datetime='2015-02-28T15:21:15+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:21 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>To encrypt a file with vim, use <code>:X</code> when saving the file.</p>
+  <div class="entry-content"><h1>Google Analytics</h1>
 
-<p>To remove the encryption, run <code>:set key=</code> in vim,
-make some modifications in text,
-then save file with <code>:x</code>.</p>
+<p>Add tracking code (<script>&hellip;</script>) into the &ldquo;<head>&hellip;</head>&rdquo; (commonly in head.html) of your meteor app.</p>
 
-<p>Note that if you didn&rsquo;t make any modifications in text,
-The encryption will not be removed.</p>
+<p>You can find your tracking codes at Admin -> User Management -> Tracking Info -> Tracking Code.</p>
+
+<p>Get real-time data (such as on-site user number) at Reporting -> Real-Time -> Overview.</p>
+
+<h1>Kadira</h1>
+
+<pre><code>meteor add meteorhacks:kadira
+</code></pre>
+
+<p>Add the following codes into server/kadira.js:</p>
+
+<pre><code>Kadira.connect('&lt;App ID&gt;', '&lt;App Secret&gt;');
+</code></pre>
+
+<p>get your AppID and App secret at <a href="https://kadira.io/">Kadira</a> -> [Your App] -> Settings.</p>
+
+<p>Then see read-time statistics on its dashboard.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/28/114611/">System Monitor Tools for Linux Server</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-28T11:46:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>sar</h1>
+
+<p>On CentOS 6.5, install sysstat with <code>yum install sysstat</code>.
+And the cron jobs will be created in /etc/cron.d/sysstat.
+The default routines defined in this file is running system activity accounting every 10 minutes,
+and generating a daily summary of process accounting at 23:53 each day.</p>
+
+<p>Now you can see system memory usage hisory with <code>sar -r 2 5</code>,
+which means display memory usage every 2 seconds, 5 times totally.</p>
+
+<p>To see the memory history: <code>sar -r -f /var/log/sa/sa28</code>,
+the total free memory is the sum of 3 items: kbmemfree, kbbuffers, kbcached.</p>
+
+<p>Refs:</p>
+
+<ul>
+<li><p><a href="https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar">https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar</a></p></li>
+<li><p><a href="http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.">http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.</a></p></li>
+</ul>
+
+
+<h1>dstat</h1>
+
+<p>On CentOS 6.5, install dstat with <code>yum install dstat</code>.</p>
+
+<p>Log the memory usage with <code>dstat --output memlog.csv -t -m 600 500</code>,
+which will log totally 500 times, with a 10-minute interval.</p>
+
+<h1>Glances</h1>
+
+<p>Install it with <code>curl -L http://bit.ly/glances | /bin/bash</code>.
+This only works on Linode node.
+It failed on my loptop with message &ldquo;connection reset by peer&rdquo;.
+On the Linode node, the installation failed with &ldquo;yum&rdquo; and &ldquo;pip&rdquo;.
+It seems the reason is the dependencies are not met.</p>
+
+<p>Use it with <code>glances</code> with root, or <code>glances -w</code> as a web server.
+Then you can see the status of your server with url &ldquo;<a href="http://104.237.135.143:61208">http://104.237.135.143:61208</a>&rdquo;.</p>
+
+<p>For keep a system log, use <code>glances -t 600 --export-csv /tmp/glances.csv</code>,
+which means write a csv-format log every 10 minutes (3 seconds by default) to /tmp/glances.csv.</p>
+
+<p>P.S.: There&rsquo;s also a <a href="http://munin-monitoring.org/">Munin</a>.
+It seems the installation is complex, so I gave up.</p>
+
+<h1>collectl</h1>
+
+<p>Install with <code>yum install collectl</code>.</p>
+
+<p>Print memeory usage with <code>collectl -i 2 -c 5 -sm</code>.</p>
+
+<p>Print all subsystems with <code>collectl --showsubsys</code>.</p>
+
+<p>Log output information with &ldquo;-f&rdquo; options: <code>collectl -sm -i 2 -c 5 -f mylog</code>.
+It creates a gz file, which you have to extract with <code>gzip -d mylog...</code>.</p>
+
+<p>Ref: <a href="http://lintut.com/best-command-line-tools-for-linux-performance-monitring/">http://lintut.com/best-command-line-tools-for-linux-performance-monitring/</a></p>
 </div>
   
   
@@ -1072,23 +921,23 @@ The encryption will not be removed.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
+        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
+        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
+        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
+        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
+        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

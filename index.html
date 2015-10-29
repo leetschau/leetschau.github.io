@@ -9,9 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="If you want develop Meteor on Windows machine,
-it&rsquo;s inconvenient to install meteor, mongodb, vim, etc. on Windows.
-My choice is use VM as &hellip;">
+  <meta name="description" content="当前版本的mup不支持Meteor 1.2，对1.1支持很好。
+一位开发者用meteor update升级了Meteor,然后push到代码库中，
+其他开发者同步代码后发现无法使用mup部署，
+这个问题不能简单地使用meteor --releae 1.1处理，
+因为从1.1到1.2， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -73,7 +75,7 @@ My choice is use VM as &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a></h1>
     
     
       <p class="meta">
@@ -82,106 +84,34 @@ My choice is use VM as &hellip;">
 
 
 
-<time class='entry-date' datetime='2015-10-05T13:10:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>1:10 pm</span></time>
+<time class='entry-date' datetime='2015-10-29T20:05:53+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:05 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>If you want develop Meteor on Windows machine,
-it&rsquo;s inconvenient to install meteor, mongodb, vim, etc. on Windows.
-My choice is use VM as develop environment.</p>
+  <div class="entry-content"><p>当前版本的mup不支持Meteor 1.2，对1.1支持很好。
+一位开发者用<code>meteor update</code>升级了Meteor,然后push到代码库中，
+其他开发者同步代码后发现无法使用mup部署，
+这个问题不能简单地使用<code>meteor --releae 1.1</code>处理，
+因为从1.1到1.2，Metoer很多核心包的版本发生了变化，并增删了很多包，
+<code>meteor --release 1.1</code>只能还原Meteor自身版本，
+无法还原核心包，必须将.meteor目录下所有文件复原。</p>
 
-<p>First install <a href="https://www.virtualbox.org/">VirtualBox</a>, <a href="https://www.vagrantup.com/">Vagrant</a>,
-<a href="http://executor.dk/">Executor</a>.</p>
+<p>使用git的patch功能可以方便地实现针对一个目录的复原。
+首先找到包含正确文件（旧Meteor版本和包定义）的commit，例如 15c9f125630，
+然后找到要复原的目标commit，一般是develop branch的HEAD，例如 f13b84f6c55，
+做一个反向patch：<code>git diff f13b84f6c55 15c9f125630 .meteor &gt; reverseDotMeteor.patch</code>;</p>
 
-<p>Add the Meteor Dev vagrant box to system <code>vagrant box add meteorBox mybox.box</code>.
-The box is based on Ubuntu 14.04 LTS (Trusty), with provisioned Meteor, MongoDB, git, tmux,
-vim and its plugins.</p>
+<p>正常的<code>git diff</code>是旧版本在前，新版本在后，这样生成的patch反映的是文件内容随着时间发生的改变，
+这里将新的commit放在前面，生成的patch就能起到回到过去的作用。</p>
 
-<p>Create the VM: <code>vagrant init meteorBox</code>;</p>
+<p>checkout目标commit并加载patch: <code>git apply reverseDotMeteor.patch</code>.</p>
 
-<p>There are different SSH clients:</p>
+<p>测试mup是否能正常工作，如果能，提交修改。</p>
 
-<h1>MobaXterm</h1>
-
-<p>Download <a href="http://mobaxterm.mobatek.net/">MobaXterm</a> and extract it to app folder,
-say d:\Apps\MobaXterm_v7.7.</p>
-
-<p>Create a new session in MobaXterm named &ldquo;localvm&rdquo;, with username &ldquo;vagrant&rdquo; and port 2222;</p>
-
-<p>In Executor, add the following keywords:</p>
-
-<pre><code>keyword: vmStart
-Command: vagrant
-Parameters: up
-Start in: e:\Docs\MeteorBox\sysClone\vm
-
-keyword: vmSuspend
-Command: vagrant
-Parameters: suspend
-Start in: e:\Docs\MeteorBox\sysClone\vm
-
-Keyword: vmLogin
-Command: MobaXterm_Personal_7.7.exe
-Parameters: -bookmark localvm -exitwhendone
-Start in: d:\Apps\MobaXterm_v7.7
-
-Keyword: vmStart&amp;Login
-Command: vmStart||vmLogin
-</code></pre>
-
-<p>Now you can use [win-z, vmStart&amp;Login] to start VM and login.
-Before you shutdown Windows machine, remember use [win-z, vmSuspend] to suspend VM
-(which is always impossible).</p>
-
-<p>Note: to add or edit keywords in Executor, use shortcut [win-z, Ctrl-k],
-see Executor documents for details.</p>
-
-<h1>Kitty</h1>
-
-<p>If you prefer Kitty (portable version of Putty) to MobaXterm,</p>
-
-<p>Add a new Session &ldquo;localvm&rdquo; in Kitty:</p>
-
-<pre><code>Host name: localhost
-Port: 2222
-Connection -&gt; Data -&gt; Auto-login username &amp; password: vagrant
-Window -&gt; Behavior: check "Full screen on Alt-Enter"
-</code></pre>
-
-<p>The corresponding &ldquo;vmLogin&rdquo; will be:</p>
-
-<pre><code>Keyword: vmLogin
-Command: kitty.exe
-Parameters: -load localvm
-Start in: d:\Apps\Kitty
-</code></pre>
-
-<h1>ConEmu + Kitty</h1>
-
-<p>You can even wrap Kitty into <a href="https://github.com/Maximus5/ConEmu">ConEmu</a>,
-which is a good Windows console alternative.</p>
-
-<p>In ConEmu, add a task in Settings -> Startup -> Tasks:</p>
-
-<pre><code>Name: Kitty
-Hotkey: Win + Alt + X
-Task parameters: blank
-Commands: d:\Apps\Kitty\kitty.exe -new_console -load "VagrantLinux"
-</code></pre>
-
-<p>And set Kitty as the auto startup task:
-Set <code>Settings -&gt; Startup -&gt; Startup options -&gt; Specified named task</code> to &ldquo;Kitty&rdquo;.</p>
-
-<p>Add a new Executor keyword for ConEmu:</p>
-
-<pre><code>Keyword: vmLogin
-Command: d:\Apps\ConEmu\ConEmu.exe
-</code></pre>
-
-<p>(or use [Win + Alt + X] to login to VM manually in ConEmu).</p>
+<p>参考：<a href="http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between">http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between</a></p>
 </div>
   
   
@@ -194,7 +124,7 @@ Command: d:\Apps\ConEmu\ConEmu.exe
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/29/112248/">Kibana Notes</a></h1>
     
     
       <p class="meta">
@@ -203,54 +133,29 @@ Command: d:\Apps\ConEmu\ConEmu.exe
 
 
 
-<time class='entry-date' datetime='2015-10-05T11:09:47+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:09 am</span></time>
+<time class='entry-date' datetime='2015-10-29T11:22:48+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:22 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Install</h1>
+  <div class="entry-content"><p>Following <a href="https://www.elastic.co/guide/en/kibana/current/getting-started.html">Getting Started with Kibana</a>.</p>
 
-<p>Add <code>Plugin 'tpope/vim-fugitive'</code> into ~/.vimrc
-and run <code>vim +PluginClean +PluginInstall +qa</code>.</p>
+<p>Import accounts with <code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json</code>
+instead of <code>curl -XPOST 'localhost:9200/bank/_bulk?pretty' --data-binary @accounts.json</code>.</p>
 
-<h1>Get Help</h1>
+<pre><code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json
+head -1 accounts.json
+{"index":{"_id":"1"}}
 
-<p>:help fugitive</p>
+curl -XPOST 'localhost:9200/shakespeare/_bulk?pretty' --data-binary @shakespeare.json
+head -1 shakespeare.json
+{"index":{"_index":"shakespeare","_type":"act","_id":0}}
+</code></pre>
 
-<h1>Frequently Use Commands</h1>
-
-<table>
-<thead>
-<tr>
-<th>Action Name </th>
-<th> Meaning                </th>
-<th> Close Window with</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>:Gblame     </td>
-<td> show info of each line </td>
-<td> q</td>
-</tr>
-<tr>
-<td>:Gdiff      </td>
-<td> show diff in vim       </td>
-<td> :q</td>
-</tr>
-<tr>
-<td>:Gstatus    </td>
-<td> show git status        </td>
-<td> q</td>
-</tr>
-</tbody>
-</table>
-
-
-<p>In &ldquo;:Gstatus&rdquo; window, you can use &ldquo;-&rdquo; to add a file in/out stage area,
-use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available actions.</p>
+<p>So if the index and type is not defined in json file,
+it should be defined when imported with curl.</p>
 </div>
   
   
@@ -263,7 +168,7 @@ use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available action
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a></h1>
     
     
       <p class="meta">
@@ -272,260 +177,299 @@ use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available action
 
 
 
-<time class='entry-date' datetime='2015-10-03T09:52:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>9:52 am</span></time>
+<time class='entry-date' datetime='2015-10-29T08:06:01+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:06 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Generating Test Data with Meteor Factory and Fake</h1>
+  <div class="entry-content"><p>// the object need to be validate according to the schema:
+var fair = { &hellip; };
+var mycon = NewfairsCore.Schemas.Fair.namedContext();</p>
 
-<p>The following tests set up with <a href="https://github.com/percolatestudio/meteor-factory/">meteor-factory</a>.</p>
+<p>// this method returns true if the object is valid according to the schema
+// or false if it is not:
+mycon.validate(fair);</p>
 
-<p>First create Meteor app, install packages, define collections and start server:</p>
+<p>// this method lists all invalid keys:
+mycon.invalidKeys();</p>
+</div>
+  
+  
 
-<pre><code>meteor create testApp
-cd testApp
-meteor add dburles:factory
-meteor add babrahams:constellation
-cat &lt;&lt; EOF &gt; collections.js
-Authors = new Meteor.Collection('authors');
-Books = new Meteor.Collection('books');
-EOF
-# Authors and Books must be defined in both servers and client
-# or `Factory.create("books");` will fail.
-# So they can't be defined in browser console
-MONGO_URL="mongodb://localhost:27017/test" meteor
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-28T10:29:57+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:29 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Install elasticsearch;</p>
+
+<p>Follow the instructions in <a href="https://github.com/andrewreedy/meteor-elasticsearch">meteor-elasticsearch</a></p>
+
+<p>Choose plugin version according to
+<a href="https://github.com/richardwilly98/elasticsearch-river-mongodb.">https://github.com/richardwilly98/elasticsearch-river-mongodb.</a></p>
+
+<p>Get elasticsearch version: <code>curl -XGET 'localhost:9200'</code></p>
+
+<p>So mongo river plugin version 2.0.9 is installed:</p>
+
+<pre><code>cd /usr/share/elasticsearch
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --remove com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.9
 </code></pre>
 
-<p>Then open <a href="http://localhost:3000/">http://localhost:3000/</a> in browser,
-Open <a href="https://github.com/JackAdams/constellation">constellation console</a> with Ctrl-C.
-Open browser console (with F12), run codes below:</p>
+<p>Start elasticsearch server: <code>sudo /usr/share/elasticsearch/bin/elasticsearch --default.path.conf=/etc/elasticsearch/</code></p>
 
-<pre><code>Factory.define('author', Authors, {
-  name: 'John Smith'
-});
-// all authors created through Factory have the same "name"
+<p>Create a Meteor app with external mongodb connection, and verify it;</p>
 
-Factory.define('book', Books, {
-  authorId: Factory.get('author'),
-  name: 'A book',
-  year: function() { return _.random(1900, 2014); }
-});
+<p>Add ES package: <code>meteor add bigdata:elasticsearch</code>;</p>
+
+<p>Add the setting file &ldquo;settings.json&rdquo;;</p>
+
+<p>Start the meteor server: <code>MONGO_URL="mongodb://user:pwd@ip:port/db" meteor --settings settings.json</code></p>
+
+<p>Problem: the ES variable is undefined.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-27T12:08:07+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:08 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In [System Settings -> Brightness &amp; Lock],
+set &ldquo;Turn screen off when inactive for&rdquo; to &ldquo;Never&rdquo; and turn off &ldquo;Lock&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/25/213630/">Fix GUI App Start Failure With No Display Found</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-25T21:36:30+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When running <code>gitg</code> in Ubuntu terminal, I got errors below:</p>
+
+<blockquote><p><strong> (gitg:29283): WARNING </strong>: Could not open X display</p>
+
+<p>(gitg:29283): Gtk-WARNING **: cannot open display: localhost:10.0</p></blockquote>
+
+<p>Solution: check you $DISPLAY value, if it&rsquo;s not &ldquo;:0.0&rdquo;,
+run <code>export DISPLAY=:0.0</code>.</p>
+
+<p>Ref: <a href="http://askubuntu.com/questions/438451/could-not-open-display-null-error-how-can-i-fix-this">http://askubuntu.com/questions/438451/could-not-open-display-null-error-how-can-i-fix-this</a></p>
+
+<p>To test keycode of the same key in different OS,
+I ssh to my Linux laptop with Kitty on Windows.
+When I run <code>xev</code>, I got an error:
+<code>xev: unable to open display ''</code>.</p>
+
+<p>If you ssh to a remote server, and</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/25/212008/">Git Submodule</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-25T21:20:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:20 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We have a parent (container) Meteor application &ldquo;niufour&rdquo;,
+now we want to add a new package &ldquo;nf-search&rdquo; to niufour.</p>
+
+<p>Check out if <code>packages/</code> has been added into .gitignore.</p>
+
+<p>Push the nf-search (outside of niufour folder) to remote repo,
+here we use a Phabricator server, with address <remote-repo-url>.</p>
+
+<p>Under the root of niufour, run:</p>
+
+<pre><code>git submodule add &lt;remote-repo-url&gt; packages/nf-search
 </code></pre>
 
-<p>Now each time you run <code>Factory.create('author');</code>,
-a new document is inserted into the collection &ldquo;authors&rdquo;.
-You can see it on the constellation console under &ldquo;authors&rdquo; section.</p>
+<p>The common form is: <code>git submodule add &lt;remote-repo-url&gt; &lt;local-path&gt;</code>,
+where the <local-path> is where you want to put your submodule.</p>
 
-<p>If you want create user with different names,
-add a new package <a href="https://github.com/anticoders/meteor-fake/">meteor-fake</a>
-with <code>meteor add anti:fake</code>, and modify above definitions as follows:</p>
+<p>To add it into the niufour package list,
+add <code>nfcommerce:nf-search</code> into file <niufour-project-root>/.meteor/packages.</p>
 
-<pre><code>Factory.define('author', Authors, {
-  name: function() { return Fake.user({fields: ['name']}).name; }
-});
+<p>After your partner push new codes into the repo,
+run commands below to synchronize:</p>
 
-Factory.define('book', Books, {
-  authorId: Factory.get('author'),
-  name: function() { return Fake.sentence(4); },
-  year: function() { return _.random(1900, 2014); }
-});
+<pre><code>git pull origin develop
+git submodule init
+git submodule update
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/24/115416/">Elasticsearch Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-24T11:54:16+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:54 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Download deb package of <a href="https://www.elastic.co/products/elasticsearch">ealsticSearch</a>
+and install:</p>
+
+<pre><code>aptitude update
+aptitude install openjdk-7-jdk
+wget https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.0.0/elasticsearch-2.0.0.tar.gz
+tar zxf elasticsearch-2.0.0.tar.gz
+cd elasticsearch-2.0.0
+bin/elasticsearch
 </code></pre>
 
-<p>When enable the &ldquo;Autopublish&rdquo; tab, you can see all the collections
-even after the autopublish package removed from Meteor app.</p>
+<p>Or you can install it as a service with deb package</p>
 
-<h1>Used in Package</h1>
+<pre><code>wget https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.7.3.deb
+sudo dpkg -i elasticsearch-1.7.3.deb
+sudo /etc/init.d/elasticsearch restart
+</code></pre>
 
-<p>The container app is named &ldquo;mininf&rdquo;, which has a package named &ldquo;nfcore&rdquo;.</p>
+<p>Start in foreground:
+<code>sudo /usr/share/elasticsearch/bin/elasticsearch --default.path.conf=/etc/elasticsearch/</code>.
+If you omit the option &ldquo;&ndash;default.path.conf&rdquo;,
+you&rsquo;ll get an error:
+<code>org.elasticsearch.ElasticsearchException: Failed to load logging configuration</code>.</p>
 
-<p>There will be 3 roles of user in this scenario, Add, Sub and Multi.
-Users with Add role can only ask addition questions,
-with Sub can only ask substraction questions,
-with Multi can only ask multiplication questions.</p>
+<p>When you want start the 2nd node in the same machine,
+always start it this way with the same command above.</p>
 
-<p>A user without a role can&rsquo;t ask any questions.</p>
+<p>Or run it in background:
+<code>/usr/share/elasticsearch/bin/elasticsearch -d --default.path.conf=/etc/elasticsearch/</code>;</p>
 
-<p>The users and their roles will be created with <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
+<p>Put the result as well-formatted json:</p>
 
-<p>There are 2 collections, accounts and questions,
-whose schemas are defined with <a href="https://github.com/aldeed/meteor-simple-schema">simple-schema</a>.</p>
+<pre><code>npm install -g json
+curl 'localhost:9200/megacorp/employee/_search?pretty' | json
+</code></pre>
 
-<p>Target:</p>
+<p>Create a new index:</p>
 
-<p>Run the container app, use constellation to watch it&rsquo;s data;
-Define data schema with simple-schema;
-Use factory to insert user and question to collections;
-Run test on container app, see the result.</p>
-
-<p>The implementation steps:</p>
-
-<ol>
-<li><p>Create mininf and nfcore;</p></li>
-<li><p>Add simple-schema and roles in the package definition of mininf;</p></li>
-<li><p>Add jasmine and velocity in the package test definition of mininf;</p></li>
-<li><p>Create schemas of users and questions in package;</p></li>
-<li><p>Create collections in package and attach schemas on them;</p></li>
-<li><p>Create pub/sub for users and questions;</p>
-
-<p> meteor create mininf
- cd mininf
- meteor create &ndash;package leo:nfcore
- cat &lt;&lt; EOF > packages/nfcore/package.js
- Package.describe({
-   name: &lsquo;leo:nfcore&rsquo;,
-   version: &lsquo;0.0.1&rsquo;,
-   summary: &lsquo;&rsquo;,
-   git: &lsquo;&rsquo;,
-   documentation: &lsquo;README.md&rsquo;
- });
- Package.onUse(function(api) {
-   api.versionsFrom(&lsquo;1.2.0.2&rsquo;);
-   api.use(&lsquo;ecmascript&rsquo;);
-   // this makes nfcore itself can use variable &ldquo;SimpleSchema&rdquo; in the source code
-   api.use(&ldquo;aldeed:<a href="&#109;&#x61;&#105;&#x6c;&#116;&#x6f;&#x3a;&#x73;&#105;&#109;&#112;&#x6c;&#101;&#x2d;&#x73;&#x63;&#x68;&#x65;&#109;&#x61;&#x40;&#49;&#x2e;&#x33;&#46;&#51;">&#x73;&#x69;&#109;&#112;&#108;&#101;&#45;&#115;&#x63;&#104;&#x65;&#x6d;&#x61;&#x40;&#x31;&#x2e;&#51;&#x2e;&#x33;</a>&rdquo;);
-   api.use(&ldquo;alanning:roles&rdquo;);
-   // this makes any packages using nfcore can use &ldquo;SimpleSchema&rdquo;
-   api.imply(&ldquo;aldeed:simple-schema&rdquo;);
-   api.imply(&ldquo;alanning:roles&rdquo;);
-   api.addFiles(&lsquo;nfcore.js&rsquo;);
-   api.export(&ldquo;NFCore&rdquo;);
- });
- Package.onTest(function(api) {
-   api.use(&lsquo;ecmascript&rsquo;);
-   api.use(&lsquo;sanjo:<a href="&#x6d;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#x6a;&#x61;&#x73;&#x6d;&#x69;&#x6e;&#101;&#x40;&#x30;&#46;&#x31;&#x39;&#x2e;&#x30;">&#x6a;&#97;&#115;&#109;&#105;&#x6e;&#101;&#64;&#48;&#x2e;&#49;&#57;&#x2e;&#x30;</a>&rsquo;);
-   api.use(&lsquo;anti:fake&rsquo;);
-   api.use(&lsquo;underscore&rsquo;);
-   api.use(&ldquo;dburles:<a href="&#109;&#97;&#x69;&#x6c;&#x74;&#111;&#x3a;&#102;&#x61;&#x63;&#x74;&#x6f;&#114;&#x79;&#64;&#x30;&#46;&#51;&#x2e;&#49;&#48;">&#x66;&#x61;&#99;&#116;&#x6f;&#x72;&#121;&#x40;&#48;&#x2e;&#x33;&#x2e;&#49;&#x30;</a>&rdquo;);
-   api.use(&lsquo;velocity:<a href="&#109;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#x68;&#x74;&#x6d;&#x6c;&#45;&#x72;&#x65;&#112;&#x6f;&#114;&#x74;&#101;&#114;&#x40;&#x30;&#46;&#x39;&#46;&#48;">&#104;&#116;&#x6d;&#108;&#x2d;&#114;&#x65;&#x70;&#x6f;&#x72;&#116;&#x65;&#114;&#64;&#x30;&#x2e;&#57;&#46;&#x30;</a>&rsquo;);
-   api.use(&lsquo;velocity:<a href="&#109;&#97;&#x69;&#108;&#116;&#x6f;&#x3a;&#99;&#x6f;&#x6e;&#115;&#111;&#x6c;&#101;&#x2d;&#114;&#x65;&#x70;&#x6f;&#114;&#116;&#101;&#x72;&#64;&#48;&#x2e;&#x31;&#x2e;&#x33;">&#x63;&#111;&#110;&#x73;&#x6f;&#108;&#101;&#x2d;&#x72;&#101;&#112;&#111;&#114;&#116;&#101;&#x72;&#64;&#48;&#46;&#x31;&#x2e;&#x33;</a>&rsquo;);
-   api.use(&lsquo;leo:nfcore&rsquo;);
-   api.addFiles(&lsquo;nfcore-tests.js&rsquo;);
- });
- EOF</p>
-
-<p> mkdir -p {common/{schemas,collections},tests,client,server}
- cat &lt;&lt; EOF > common/globals.js
- NFCore = {};
- NFCore.Schemas = {};
- NFCore.Collections = {};
- EOF</p>
-
-<p> cat &lt;&lt; EOF > common/schemas/accounts.js
- NFCore.Schemas.Accounts = new SimpleSchema({
-   name: {
-     type: String
+<pre><code>curl -XPUT 'localhost:9200/blogs' -d '
+{
+   "settings" : {
+      "number_of_shards" : 3,
+      "number_of_replicas" : 1
    }
- });
- EOF</p>
-
-<p> cat &lt;&lt; EOF > common/schemas/accounts.js
- NFCore.Schemas.Questions = new SimpleSchema({
-   owner: {
-     type: Meteor.Collection.ObjectID
-   },
-   content: {
-     type: String
-   }
- });
- EOF</p>
-
-<p> cat &lt;&lt; EOF > common/collections/collections.js
- NFCore.Collections.Accounts = new Mongo.Collection(&ldquo;accounts&rdquo;);
- NFCore.Collections.Accounts.attachSchema(NFCore.Schemas.Accounts);</p>
-
-<p> NFCore.Collections.Questions = new Mongo.Collection(&ldquo;questions&rdquo;);
- NFCore.Collections.Questions.attachSchema(NFCore.Schemas.Questions);
- EOF</p></li>
-</ol>
-
-
-<h1>Errors, Questions and Solutions</h1>
-
-<p>E: meteor object [object object] has no method &lsquo;attach schema&rsquo;.</p>
-
-<p>S: Add <code>api.use("aldeed:collection2@2.5.0");</code> and <code>api.imply("aldeed:collection2@2.5.0");</code> into Package.onUse() of package.js.</p>
-
-<p>E: insert failed: Access denied. No allow validators set on restricted collection for method &lsquo;insert&rsquo;.</p>
-
-<p>S: Add &ldquo;server&rdquo; as the 2nd parameter in package.js -> Package.onTest -> api.addFiles(<the-test-file-name>):
-<code>api.addFiles('tests/accounts.js', 'server');</code>.</p>
-
-<p>Q: In package I use Factory.create() to insert a doc into a collection, but I can&rsquo;t find the collection.</p>
-
-<p>S: Add environment &ldquo;MONGO_URL&rdquo; into the test command:
-<code>VELOCITY_TEST_PACKAGES=1 MONGO_URL="mongodb://localhost:27017/test" meteor test-packages --driver-package velocity:html-reporter leo:nfcore</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-10-01T20:21:07+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:21 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Notes for <a href="http://learnyouahaskell.com/">Learn You a Haskell for Great Good</a>.</p>
-
-<h1>Modules</h1>
-
-<p>The following code snippet demonstrate how to import and use Haskell submodule.
-Save the following codes into a shell script and run it.</p>
-
-<pre><code>#!/bin/bash
-mkdir Geometry
-cat &lt;&lt; EOF &gt; Geometry/Sphere.hs
-module Geometry.Sphere
-( volume
-, area
-) where
-
-volume :: Float -&gt; Float
-volume radius = (4.0 / 3.0) * pi * (radius ^ 3)
-
-area :: Float -&gt; Float
-area radius = 4 * pi * (radius ^ 2)
-EOF
-
-cat &lt;&lt; EOF &gt; app.hs
-import Geometry.Sphere
-main = print $ volume 3
-EOF
-
-runghc app.hs
+}'
 </code></pre>
 
-<p>The result should be &ldquo;113.097336&rdquo;.</p>
+<p>Format json in vim: <code>:%!json</code>.</p>
 
-<h1>Making Our Own Types and Typeclasses</h1>
+<p>Note:</p>
 
-<p>Value constructor is also called &ldquo;data constructor&rdquo;.</p>
+<p>You can use
+<code>curl 'localhost:9200/megacorp/employee/_search?pretty' | python -m json.tool</code>
+in command line or <code>:%!python -m json.tool</code> in vim to format json string.
+But it will sort your keys, and maybe not friendly to Unicode characters.</p>
 
 <p>Ref:</p>
 
-<p><a href="https://wiki.haskell.org/Constructor">Constructor</a></p>
+<p><a href="http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json">http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json</a></p>
 
-<p><a href="http://stackoverflow.com/questions/18204308/haskell-type-vs-data-constructor">Haskell Type vs Data Constructor</a></p>
+<p><a href="https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/">https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/</a></p>
+
+<p><code>?petty</code> sometimes will be invalid url.</p>
 </div>
   
   
@@ -538,7 +482,7 @@ runghc app.hs
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/21/133324/">Use Google Font Locally</a></h1>
     
     
       <p class="meta">
@@ -547,75 +491,27 @@ runghc app.hs
 
 
 
-<time class='entry-date' datetime='2015-09-29T12:18:47+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:18 pm</span></time>
+<time class='entry-date' datetime='2015-10-21T13:33:24+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>1:33 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Create jasmine tests and run them as the following codes:</p>
+  <div class="entry-content"><p>For example, we want use Open Sans locally.
+On <a href="https://www.google.com/fonts">Google Fonts</a>,
+in &ldquo;Open Sans&rdquo;, click &ldquo;Add to Collection&rdquo;.
+and click &ldquo;use&rdquo;.</p>
 
-<pre><code>$ meteor create jasmineEx
-$ cd jasmineEx
-$ meteor create --package newfairscommerce:add-number
-$ rm packages/add-number/add-number-tests.js
-$ mkdir -p packages/add-number/tests/{server,client}
-$ cat &lt;&lt; EOF &gt; packages/add-number/tests/example-spec.js
-describe('sanjo:jasmine on client and server', function() {
-  it('works', function() {
-    expect(it).toBeDefined();
-  })
-})
-EOF
-$ cat &lt;&lt; EOF &gt; packages/add-number/tests/client/example-spec.js
-describe('sanjo:jasmine on client', function() {
-  it('works', function() {
-    expect(it).toBeDefined();
-  })
-})
-EOF
-$ cat &lt;&lt; EOF &gt; packages/add-number/tests/server/example-spec.js
-describe('sanjo:jasmine on server', function() {
-  it('works', function() {
-    expect(it).toBeDefined();
-  })
-})
-EOF
-</code></pre>
+<p>Under &ldquo;Choose the styles you want:&rdquo;, check all items,
+under &ldquo;Choose the character sets you want:&rdquo;, check &ldquo;Latin&rdquo; and &ldquo;Latin Extended&rdquo;.</p>
 
-<p>And replace <code>Package.onTest</code> in packages/add-number/package.js with the following codes:</p>
+<p>Open the url in the 3rd step, here it is:
+<code>https://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic</code>.</p>
 
-<pre><code>Package.onTest(function(api) {
-  api.use('sanjo:jasmine@0.18.0');
-  api.use('velocity:html-reporter@0.9.0');
-  api.use('velocity:console-reporter@0.1.3');
-
-  api.addFiles('tests/server/example-spec.js', 'server');
-  api.addFiles('tests/client/example-spec.js', 'client');
-  api.addFiles('tests/example-spec.js', ['server', 'client']);
-});
-</code></pre>
-
-<p>Now run <code>VELOCITY_TEST_PACKAGES=1 meteor test-packages --driver-package velocity:html-reporter newfairscommerce:add-number</code>
-under the root directory of jasmineEx project,
-you can get the following output:</p>
-
-<pre><code>...
-=&gt; App running at: http://localhost:3000/
-I20151003-18:23:56.465(8)? jasmine-server-integration: 2 tests passed (11ms)
-I20151003-18:24:07.849(8)? jasmine-client-integration: 2 tests passed (3ms)
-</code></pre>
-
-<p>And you can get the test results in browser with url &ldquo;<a href="http://localhost:3000">http://localhost:3000</a>&rdquo;.</p>
-
-<p>Questions:</p>
-
-<p>When running the following codes, it runs into a interactive shell:</p>
-
-<pre><code>npm install -g velocity-cli
-velocity test-package newfairscommerce:add-number
-</code></pre>
+<p>Now you get a css file, save it into $WEBSITE_HOME/client/stylesheets/font/opensans.less,
+delete all sections other than &ldquo;latin&rdquo; and &ldquo;latin-ext&rdquo;,
+download</p>
 </div>
   
   
@@ -628,7 +524,7 @@ velocity test-package newfairscommerce:add-number
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/09/24/185036/">Add a Local Meteor Package From a Existing Repo</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/19/090450/">JavaScript Code Folding</a></h1>
     
     
       <p class="meta">
@@ -637,291 +533,36 @@ velocity test-package newfairscommerce:add-number
 
 
 
-<time class='entry-date' datetime='2015-09-24T18:50:36+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:50 pm</span></time>
+<time class='entry-date' datetime='2015-10-19T09:04:50+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:04 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>newfairs-v3 is the container project. newfairs-core is a package.</p>
+  <div class="entry-content"><p>Add codes below to ~/.vimrc
+and run <code>vim +PluginClean +PluginInstall +qa</code>:</p>
 
-<pre><code>meteor create newfairs-v3
-cd newfairs-v3
-meteor create --package newfairscommerce:core
-cp -r ../newfairs-core packages
-mv packages/core/{package.js,README.md} packages/newfairs-core/
-rm -rf package/core
-meteor add newfairscommerce:core
+<pre><code>" JavaScript code folding
+set foldmethod=syntax
+set foldlevelstart=3
+let javaScript_fold=1
+
+Plugin 'pangloss/vim-javascript'
 </code></pre>
 
-<p>Then you have to define dependencies for this package with adding some
-<code>api.use()</code> and loading order by adding some <code>api.addFiles(...)</code>
-in packages/newfairs-core/package.js.</p>
-</div>
-  
-  
+<p>Frequently used folding shortcuts:</p>
 
+<p>zr/zm: decrease/increase the foldlevel by one;</p>
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/23/123748/">Stack Notes</a></h1>
-    
-    
-      <p class="meta">
-        
+<p>zo/zc: open/close fold at cursor;</p>
 
+<p>zO/zM: open/close all folds;</p>
 
+<p>Ref:</p>
 
-
-<time class='entry-date' datetime='2015-09-23T12:37:48+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>12:37 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install</h1>
-
-<p>Install <a href="https://github.com/commercialhaskell/stack">stack</a> and start a demo yesod web server:</p>
-
-<pre><code>wget -q -O- https://s3.amazonaws.com/download.fpcomplete.com/ubuntu/fpco.key | sudo apt-key add -
-echo 'deb http://download.fpcomplete.com/ubuntu/trusty stable main'|sudo tee /etc/apt/sources.list.d/fpco.list
-sudo apt-get update &amp;&amp; sudo apt-get install stack -y
-cd ~/docs/playground
-stack new myHaskellProj yesod-sqlite  // very slow, 30 minutes or so
-stack install yesod-bin cabal-install --install-ghc
-stack build  // if it's interupteed by "FailedConnectionException s3.amazonaws.com 443" error, run this command again
-stack exec -- yesod devel
-</code></pre>
-
-<p>Now open &ldquo;<a href="http://localhost:3000/">http://localhost:3000/</a>&rdquo;.</p>
-
-<h1>Run Haskell Code</h1>
-
-<p>To start a ghci, in any folder, run:</p>
-
-<pre><code>stack ghci
-Prelude&gt; putStrLn "hello world"
-</code></pre>
-
-<p>To run haskell script: in any folder, run</p>
-
-<pre><code>$ cat hello.hs
-main = putStrLn "hello world"
-$ stack runghc hello.hs
-</code></pre>
-
-<h1>Editor Setup</h1>
-
-<p>Ref: <a href="http://seanhess.github.io/2015/08/05/practical-haskell-editors.html">PRACTICAL HASKELL - EDITOR SETUP WITH STACK</a>.</p>
-
-<pre><code>cd ~
-stack setup
-stack install hdevtools
-stack path|grep ghc      # to get the ghc binary path used below
-</code></pre>
-
-<p>Add <code>PATH=$PATH:$HOME/.stack/programs/x86_64-linux/ghc-7.10.2/bin:$HOME/.local/bin</code> into ~/.zshenv.</p>
-
-<p>Install syntastic and &lsquo;bitc/vim-hdevtools&rsquo; plugin for vim:</p>
-
-<p>add the following 2 lines into ~/.vimrc:</p>
-
-<pre><code>Plugin 'scrooloose/syntastic'
-Plugin 'bitc/vim-hdevtools'
-</code></pre>
-
-<p>then run <code>vim +PluginInstall</code>.</p>
-
-<p>Now your .hs files will be checked when saving.</p>
-
-<p>To verify, create hello.hs as follows:</p>
-
-<pre><code>main = do
-  print "What is your name?"
-  name &lt;- getLine
-  print ("Hello " ++ name ++ "!")
-</code></pre>
-
-<p>When cursor on &ldquo;print&rdquo; in the 2nd line, run <code>:HdevtoolsType</code>
-(which equivalent to run <code>hdevtools type hello.hs 2 3</code> in shell),
-you should get &ldquo;[Char] -> IO ()&rdquo;.</p>
-
-<p>For convenient, add the following shortcuts into ~/.vimrc:</p>
-
-<pre><code>" hdevtools setup (haskell)
-au FileType haskell nnoremap &lt;buffer&gt; &lt;F3&gt; :HdevtoolsType&lt;CR&gt;
-au FileType haskell nnoremap &lt;buffer&gt; &lt;silent&gt; &lt;F4&gt; :HdevtoolsClear&lt;CR&gt;
-</code></pre>
-
-<p>Add &ldquo;this&rdquo; at the end of file from column 3 and save
-(which is equivalent to run <code>hdevtools check hello.hs</code> in shell),
-a &ldquo;Not in scope: ‘this’&rdquo; error will raises.</p>
-
-<p>See <a href="https://github.com/schell/hdevtools">hdevtools</a> and
-<a href="https://github.com/bitc/vim-hdevtools">bitc/vim-hdevtools</a> for more information.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/22/104351/">Using Webstorm as Meteor IDE</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-22T10:43:51+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>10:43 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Terminal</h1>
-
-<p>In editor, use &ldquo;Alt-F12&rdquo; to activate terminal.
-In terminal, use &ldquo;Shift-ESC&rdquo; or &ldquo;Alt-F12&rdquo; to go back to editor.
-Double click terminal title bar to maximize the terminal panel.</p>
-
-<p>Only run Meteor server in Webstorm&rsquo;s terminal.
-Run all other terminal work (such as mongod, git, etc) in a external terminal.
-Use &ldquo;Alt-Tab&rdquo; to switch between external terminal and Webstorm.</p>
-
-<h1>Navigattion</h1>
-
-<p>Toggle file browse pane with &ldquo;Alt-1&rdquo;.</p>
-
-<p>Focus editor with &ldquo;ESC&rdquo;.</p>
-
-<h1>Editor</h1>
-
-<p>Split vertically/horizontally;</p>
-
-<h2>Vim Plugin</h2>
-
-<p>Install IdeaVim in [Settings -> Plugins] (open it with Ctrl-Shift-A).</p>
-
-<p>Open/close it in [Tools -> Vim Emulator], or &ldquo;Alt-T Ctrl-Alt-V&rdquo;.</p>
-
-<p>Close editor tab: :q</p>
-
-<h1>Frequently Used Shortcuts</h1>
-
-<p>Double shift: search everything;</p>
-
-<p>Shift-Ctrl-N: search and open files;</p>
-
-<p>Shift-Ctrl-A: search and run commands;</p>
-
-<p>Alt-Left/Right: switch between editor tabs;</p>
-
-<p>Ctrl-Shift-Enter: complate statement;</p>
-
-<p>See [Help -> Default Keymap Reference] for all.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/22/092543/">Autosave in Webstorm</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-22T09:25:43+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>9:25 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Autosave related settings of Webstorm 10.0.4 are mostly in
-[Settings -> Appearance &amp; Behavior -> System Settings -> Synchronization].</p>
-
-<p>By default the &ldquo;Save files automatically &hellip;&rdquo; is unchecked.
-So Webstorm will not save file changes before you press Ctrl-S.
-<strong>But</strong> &ldquo;Save files on frame deactivation&rdquo; is checked.
-So if you switch to another application other than Webstorm,
-all changes unsaved will be saved to disk.
-<strong>However</strong>, when you modify file A without save,
-and switch to another tab to edit file B,
-file A will not be saved, because this is not &ldquo;frame deactivation&rdquo; (why?).</p>
-
-<p>This is convenient for Meteor development.
-You can modify many files without save.
-As you switch to browser, Webstorm will save all changes to disk,
-then Meteor detects file changes and refreshes pages in browser.</p>
-
-<p>In Webstorm 10.0.4 the Linux version,
-the blue color of changed tabs is subtle (compared with that on Windows or Mac),
-check &ldquo;Mark modified tabs with asterisk&rdquo;
-in [Settings -> Editor -> General -> Editor Tabs] to make unsaved tabs easier to identify.</p>
-
-<p>Finally note that &ldquo;Ctrl-S&rdquo; in Webstorm is &ldquo;save all&rdquo; instead of &ldquo;save&rdquo;.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/21/092600/">Convert a Folder Into Meteor App in Webstorm</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-21T09:26:00+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>9:26 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>You&rsquo;ve cloned a repo from remote host into foler &ldquo;$HOME/docs/myapp&rdquo;.
-So you can&rsquo;t use <code>meteor create myapp</code> to build a new Meteor app.</p>
-
-<p>You can create this &ldquo;myapp&rdquo; under /tmp,
-and <code>cp -r /tmp/myapp/.meteor $HOME/docs/myapp/</code>.</p>
-
-<p>Now open $HOME/docs/myapp in Webstorm,
-it&rsquo;s been a Meteor app already.</p>
+<p><a href="http://stackoverflow.com/questions/4789605/how-do-i-enable-automatic-folds-in-vim">http://stackoverflow.com/questions/4789605/how-do-i-enable-automatic-folds-in-vim</a>
+<a href="https://www.linux.com/learn/tutorials/442438-vim-tips-folding-fun">https://www.linux.com/learn/tutorials/442438-vim-tips-folding-fun</a></p>
 </div>
   
   
@@ -944,23 +585,23 @@ it&rsquo;s been a Meteor app already.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
+        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
+        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
+        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
+        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
+        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-10-05T15:23:42+08:00</updated>
+  <updated>2015-10-29T20:11:07+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,527 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[将Meteor应用完整从1.2版本降级到1.1版本]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/29/200553/"/>
+    <updated>2015-10-29T20:05:53+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/29/200553</id>
+    <content type="html"><![CDATA[<p>当前版本的mup不支持Meteor 1.2，对1.1支持很好。
+一位开发者用<code>meteor update</code>升级了Meteor,然后push到代码库中，
+其他开发者同步代码后发现无法使用mup部署，
+这个问题不能简单地使用<code>meteor --releae 1.1</code>处理，
+因为从1.1到1.2，Metoer很多核心包的版本发生了变化，并增删了很多包，
+<code>meteor --release 1.1</code>只能还原Meteor自身版本，
+无法还原核心包，必须将.meteor目录下所有文件复原。</p>
+
+<p>使用git的patch功能可以方便地实现针对一个目录的复原。
+首先找到包含正确文件（旧Meteor版本和包定义）的commit，例如 15c9f125630，
+然后找到要复原的目标commit，一般是develop branch的HEAD，例如 f13b84f6c55，
+做一个反向patch：<code>git diff f13b84f6c55 15c9f125630 .meteor &gt; reverseDotMeteor.patch</code>;</p>
+
+<p>正常的<code>git diff</code>是旧版本在前，新版本在后，这样生成的patch反映的是文件内容随着时间发生的改变，
+这里将新的commit放在前面，生成的patch就能起到回到过去的作用。</p>
+
+<p>checkout目标commit并加载patch: <code>git apply reverseDotMeteor.patch</code>.</p>
+
+<p>测试mup是否能正常工作，如果能，提交修改。</p>
+
+<p>参考：<a href="http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between">http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Kibana Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/29/112248/"/>
+    <updated>2015-10-29T11:22:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/29/112248</id>
+    <content type="html"><![CDATA[<p>Following <a href="https://www.elastic.co/guide/en/kibana/current/getting-started.html">Getting Started with Kibana</a>.</p>
+
+<p>Import accounts with <code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json</code>
+instead of <code>curl -XPOST 'localhost:9200/bank/_bulk?pretty' --data-binary @accounts.json</code>.</p>
+
+<pre><code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json
+head -1 accounts.json
+{"index":{"_id":"1"}}
+
+curl -XPOST 'localhost:9200/shakespeare/_bulk?pretty' --data-binary @shakespeare.json
+head -1 shakespeare.json
+{"index":{"_index":"shakespeare","_type":"act","_id":0}}
+</code></pre>
+
+<p>So if the index and type is not defined in json file,
+it should be defined when imported with curl.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Validate Data Defined by Simple-Schema]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/29/080601/"/>
+    <updated>2015-10-29T08:06:01+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/29/080601</id>
+    <content type="html"><![CDATA[<p>// the object need to be validate according to the schema:
+var fair = { &hellip; };
+var mycon = NewfairsCore.Schemas.Fair.namedContext();</p>
+
+<p>// this method returns true if the object is valid according to the schema
+// or false if it is not:
+mycon.validate(fair);</p>
+
+<p>// this method lists all invalid keys:
+mycon.invalidKeys();</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Play Meteor With Elasticsearch]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/28/102957/"/>
+    <updated>2015-10-28T10:29:57+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/28/102957</id>
+    <content type="html"><![CDATA[<p>Install elasticsearch;</p>
+
+<p>Follow the instructions in <a href="https://github.com/andrewreedy/meteor-elasticsearch">meteor-elasticsearch</a></p>
+
+<p>Choose plugin version according to
+<a href="https://github.com/richardwilly98/elasticsearch-river-mongodb.">https://github.com/richardwilly98/elasticsearch-river-mongodb.</a></p>
+
+<p>Get elasticsearch version: <code>curl -XGET 'localhost:9200'</code></p>
+
+<p>So mongo river plugin version 2.0.9 is installed:</p>
+
+<pre><code>cd /usr/share/elasticsearch
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --remove com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.9
+</code></pre>
+
+<p>Start elasticsearch server: <code>sudo /usr/share/elasticsearch/bin/elasticsearch --default.path.conf=/etc/elasticsearch/</code></p>
+
+<p>Create a Meteor app with external mongodb connection, and verify it;</p>
+
+<p>Add ES package: <code>meteor add bigdata:elasticsearch</code>;</p>
+
+<p>Add the setting file &ldquo;settings.json&rdquo;;</p>
+
+<p>Start the meteor server: <code>MONGO_URL="mongodb://user:pwd@ip:port/db" meteor --settings settings.json</code></p>
+
+<p>Problem: the ES variable is undefined.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Customize Dell Ubuntu Laptop Turn Off Screen and Lock]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/27/120807/"/>
+    <updated>2015-10-27T12:08:07+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/27/120807</id>
+    <content type="html"><![CDATA[<p>In [System Settings -> Brightness &amp; Lock],
+set &ldquo;Turn screen off when inactive for&rdquo; to &ldquo;Never&rdquo; and turn off &ldquo;Lock&rdquo;.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fix GUI App Start Failure With No Display Found]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/25/213630/"/>
+    <updated>2015-10-25T21:36:30+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/25/213630</id>
+    <content type="html"><![CDATA[<p>When running <code>gitg</code> in Ubuntu terminal, I got errors below:</p>
+
+<blockquote><p><strong> (gitg:29283): WARNING </strong>: Could not open X display</p>
+
+<p>(gitg:29283): Gtk-WARNING **: cannot open display: localhost:10.0</p></blockquote>
+
+<p>Solution: check you $DISPLAY value, if it&rsquo;s not &ldquo;:0.0&rdquo;,
+run <code>export DISPLAY=:0.0</code>.</p>
+
+<p>Ref: <a href="http://askubuntu.com/questions/438451/could-not-open-display-null-error-how-can-i-fix-this">http://askubuntu.com/questions/438451/could-not-open-display-null-error-how-can-i-fix-this</a></p>
+
+<p>To test keycode of the same key in different OS,
+I ssh to my Linux laptop with Kitty on Windows.
+When I run <code>xev</code>, I got an error:
+<code>xev: unable to open display ''</code>.</p>
+
+<p>If you ssh to a remote server, and</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Git Submodule]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/25/212008/"/>
+    <updated>2015-10-25T21:20:08+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/25/212008</id>
+    <content type="html"><![CDATA[<p>We have a parent (container) Meteor application &ldquo;niufour&rdquo;,
+now we want to add a new package &ldquo;nf-search&rdquo; to niufour.</p>
+
+<p>Check out if <code>packages/</code> has been added into .gitignore.</p>
+
+<p>Push the nf-search (outside of niufour folder) to remote repo,
+here we use a Phabricator server, with address <remote-repo-url>.</p>
+
+<p>Under the root of niufour, run:</p>
+
+<pre><code>git submodule add &lt;remote-repo-url&gt; packages/nf-search
+</code></pre>
+
+<p>The common form is: <code>git submodule add &lt;remote-repo-url&gt; &lt;local-path&gt;</code>,
+where the <local-path> is where you want to put your submodule.</p>
+
+<p>To add it into the niufour package list,
+add <code>nfcommerce:nf-search</code> into file <niufour-project-root>/.meteor/packages.</p>
+
+<p>After your partner push new codes into the repo,
+run commands below to synchronize:</p>
+
+<pre><code>git pull origin develop
+git submodule init
+git submodule update
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Elasticsearch Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/24/115416/"/>
+    <updated>2015-10-24T11:54:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/24/115416</id>
+    <content type="html"><![CDATA[<p>Download deb package of <a href="https://www.elastic.co/products/elasticsearch">ealsticSearch</a>
+and install:</p>
+
+<pre><code>aptitude update
+aptitude install openjdk-7-jdk
+wget https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.0.0/elasticsearch-2.0.0.tar.gz
+tar zxf elasticsearch-2.0.0.tar.gz
+cd elasticsearch-2.0.0
+bin/elasticsearch
+</code></pre>
+
+<p>Or you can install it as a service with deb package</p>
+
+<pre><code>wget https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.7.3.deb
+sudo dpkg -i elasticsearch-1.7.3.deb
+sudo /etc/init.d/elasticsearch restart
+</code></pre>
+
+<p>Start in foreground:
+<code>sudo /usr/share/elasticsearch/bin/elasticsearch --default.path.conf=/etc/elasticsearch/</code>.
+If you omit the option &ldquo;&ndash;default.path.conf&rdquo;,
+you&rsquo;ll get an error:
+<code>org.elasticsearch.ElasticsearchException: Failed to load logging configuration</code>.</p>
+
+<p>When you want start the 2nd node in the same machine,
+always start it this way with the same command above.</p>
+
+<p>Or run it in background:
+<code>/usr/share/elasticsearch/bin/elasticsearch -d --default.path.conf=/etc/elasticsearch/</code>;</p>
+
+<p>Put the result as well-formatted json:</p>
+
+<pre><code>npm install -g json
+curl 'localhost:9200/megacorp/employee/_search?pretty' | json
+</code></pre>
+
+<p>Create a new index:</p>
+
+<pre><code>curl -XPUT 'localhost:9200/blogs' -d '
+{
+   "settings" : {
+      "number_of_shards" : 3,
+      "number_of_replicas" : 1
+   }
+}'
+</code></pre>
+
+<p>Format json in vim: <code>:%!json</code>.</p>
+
+<p>Note:</p>
+
+<p>You can use
+<code>curl 'localhost:9200/megacorp/employee/_search?pretty' | python -m json.tool</code>
+in command line or <code>:%!python -m json.tool</code> in vim to format json string.
+But it will sort your keys, and maybe not friendly to Unicode characters.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json">http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json</a></p>
+
+<p><a href="https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/">https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/</a></p>
+
+<p><code>?petty</code> sometimes will be invalid url.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Use Google Font Locally]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/21/133324/"/>
+    <updated>2015-10-21T13:33:24+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/21/133324</id>
+    <content type="html"><![CDATA[<p>For example, we want use Open Sans locally.
+On <a href="https://www.google.com/fonts">Google Fonts</a>,
+in &ldquo;Open Sans&rdquo;, click &ldquo;Add to Collection&rdquo;.
+and click &ldquo;use&rdquo;.</p>
+
+<p>Under &ldquo;Choose the styles you want:&rdquo;, check all items,
+under &ldquo;Choose the character sets you want:&rdquo;, check &ldquo;Latin&rdquo; and &ldquo;Latin Extended&rdquo;.</p>
+
+<p>Open the url in the 3rd step, here it is:
+<code>https://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic</code>.</p>
+
+<p>Now you get a css file, save it into $WEBSITE_HOME/client/stylesheets/font/opensans.less,
+delete all sections other than &ldquo;latin&rdquo; and &ldquo;latin-ext&rdquo;,
+download</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[JavaScript Code Folding]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/19/090450/"/>
+    <updated>2015-10-19T09:04:50+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/19/090450</id>
+    <content type="html"><![CDATA[<p>Add codes below to ~/.vimrc
+and run <code>vim +PluginClean +PluginInstall +qa</code>:</p>
+
+<pre><code>" JavaScript code folding
+set foldmethod=syntax
+set foldlevelstart=3
+let javaScript_fold=1
+
+Plugin 'pangloss/vim-javascript'
+</code></pre>
+
+<p>Frequently used folding shortcuts:</p>
+
+<p>zr/zm: decrease/increase the foldlevel by one;</p>
+
+<p>zo/zc: open/close fold at cursor;</p>
+
+<p>zO/zM: open/close all folds;</p>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/4789605/how-do-i-enable-automatic-folds-in-vim">http://stackoverflow.com/questions/4789605/how-do-i-enable-automatic-folds-in-vim</a>
+<a href="https://www.linux.com/learn/tutorials/442438-vim-tips-folding-fun">https://www.linux.com/learn/tutorials/442438-vim-tips-folding-fun</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Vim Snippet Plugins]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/17/220931/"/>
+    <updated>2015-10-17T22:09:31+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/17/220931</id>
+    <content type="html"><![CDATA[<p>Add codes below into ~/.vimrc:</p>
+
+<pre><code>let g:UltiSnipsEditSplit='vertical'
+
+Plugin 'mattn/emmet-vim'
+Plugin 'SirVer/ultisnips'
+Plugin 'honza/vim-snippets'
+</code></pre>
+
+<p>Run <code>vim +PluginClean +PluginInstall +qa</code>.
+The folder of UltiSnips is about 6.1MB, emmet-vim is about 1.6MB.</p>
+
+<p>Here <a href="https://github.com/mattn/emmet-vim">emmet-vim</a> is a html editing tool.
+For example open a new html file with <code>html:5</code>, and press <code>&lt;C-y&gt;,</code>,
+you get a full html skeleton, which means emmet installed OK.</p>
+
+<p><a href="https://github.com/sirver/ultisnips">UltiSnips</a> is a vim snippet engine,
+while <a href="https://github.com/honza/vim-snippets">vim-snippets</a> is a bunch of
+snippets definitions.</p>
+
+<p>Use <code>UltiSnipsEdit</code> to add a new snippet.
+Use <code>cl&lt;TAB&gt;</code> in a js file, to make it expand to <code>console.log(...);</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Search String Pattern in Git History]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/15/112116/"/>
+    <updated>2015-10-15T11:21:16+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/15/112116</id>
+    <content type="html"><![CDATA[<p><code>git log -p --all -G 'pattern'</code>: search a string in git history.</p>
+
+<p>-G search for all editing activity with &ldquo;pattern&rdquo;,
+while -S only search for creation and removal of &ldquo;pattern&rdquo;,
+the results of -S is the subset of results of -G.</p>
+
+<p>When the &ldquo;pattern&rdquo; is in the current commit,
+there will be only 1 result of -S,
+where the pattern is added into the texts.</p>
+
+<p>When the &ldquo;pattern&rdquo; is removed in current commit,
+there will be 2 results of -S:
+the first (which is newer) is where the pattern is removed,
+the second is where the pattern is added.</p>
+
+<p>-p denotes &ndash;patch, which will print the editing details.
+If you only want to know the commit name which deal with the &ldquo;pattern&rdquo;,
+omit this option.</p>
+
+<p>&ndash;all search in all branches.</p>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/4468361/search-all-of-git-history-for-a-string">Search all of Git history for a string?</a></p>
+
+<p><a href="http://stackoverflow.com/questions/2839253/git-history-find-lost-line-by-keyword">Git history - find lost line by keyword</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Tab and Session Management in Vim]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/14/192323/"/>
+    <updated>2015-10-14T19:23:23+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/14/192323</id>
+    <content type="html"><![CDATA[<p>Session management is provided by <a href="https://github.com/tpope/vim-obsession">tpope/vim-obsession</a>.
+Tab rename function is provided by <a href="https://github.com/gcmt/taboo.vim">gcmt/taboo.vim</a>.</p>
+
+<p>I also tried <a href="https://github.com/xolox/vim-session">xolox/vim-session</a>,
+but it can&rsquo;t persist tab name created by Taboo.</p>
+
+<p>For tab easy switch, I&rsquo;ve tried <code>noremap &lt;unique&gt; &lt;C-1&gt; 1gt</code> based on
+<a href="http://stackoverflow.com/questions/2005214/switching-to-a-particular-tab-in-vim">Switching to a particular tab in VIM</a>,
+where changes M-Num to C-Num, because M-Num is assigned to tmux window switch.
+However C-Num can&rsquo;t work,
+see <a href="http://stackoverflow.com/questions/15849537/vimrc-mapping-for-control-key-not-working">.vimrc mapping for control key not working</a>
+for explanations.
+So I adopted <code>noremap &lt;leader&gt;1 1gt</code> style based on
+<a href="http://superuser.com/questions/410982/in-vim-how-can-i-quickly-switch-between-tabs">In vim, how can I quickly switch between tabs?</a>.</p>
+
+<p>Map long Ex commands with <code>cabbrev</code> is a very useful for convenient.
+Use <Space> instead of <Tab> to enable abbreviation in <code>cabbrev</code>.
+See <code>:h :ca</code>, <a href="http://stackoverflow.com/questions/117150/can-i-re-map-commands-in-vim">Can I (re-) map commands in vim?</a>
+and <a href="http://stackoverflow.com/questions/3878692/aliasing-a-command-in-vim">Aliasing a command in vim</a>
+for details.</p>
+
+<p>With <code>cabbrev tr TabooRename</code>, you can use <code>:tr&lt;Space&gt;1:tests</code> to rename current tab into &ldquo;1:tests&rdquo;.
+Here you have to add tab index manually to make <code>&lt;leader&gt;&lt;number&gt;</code> style switching more convenient.</p>
+
+<p>To make tabline more readable,
+I customized the color of it.
+See <a href="http://stackoverflow.com/questions/4726882/how-do-you-change-the-background-color-of-the-empty-tab-space-in-vim">How do you change the background color of the empty tab space in vim?</a>
+and <a href="http://stackoverflow.com/questions/7238113/customising-the-colours-of-vims-tab-bar">Customising the colours of vim&rsquo;s tab bar</a>
+for details.</p>
+
+<p>Wrap them up in ~/.vimrc:</p>
+
+<pre><code>" Customize tabline
+hi TabLineFill term=bold cterm=bold ctermbg=0
+hi TabLine ctermfg=Yellow
+
+" Taboo
+set sessionoptions+=tabpages,globals
+cabbrev tr TabooRename
+
+" tab switching shortcuts
+noremap &lt;leader&gt;1 1gt
+noremap &lt;leader&gt;2 2gt
+noremap &lt;leader&gt;3 3gt
+noremap &lt;leader&gt;4 4gt
+noremap &lt;leader&gt;5 5gt
+noremap &lt;leader&gt;6 6gt
+noremap &lt;leader&gt;7 7gt
+noremap &lt;leader&gt;8 8gt
+noremap &lt;leader&gt;9 9gt
+noremap &lt;leader&gt;0 :tablast&lt;cr&gt;
+
+" Add these into Vundle section
+Plugin 'gcmt/taboo.vim'
+Plugin 'tpope/vim-obsession'
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Reaction Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/06/122243/"/>
+    <updated>2015-10-06T12:22:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/06/122243</id>
+    <content type="html"><![CDATA[<h1>Accounts</h1>
+
+<p>reaction-core的用户存在users表和Accounts表，下面是初始化Reaction后得到的Owner用户表结构。
+用户与业务有关的信息存在Accounts表中，其余的放在了users表中，
+server/methods/accounts.js:Accounts.onCreateUser()可以看到
+Accounts中的用户是首先clone Meteor user，然后在上面添加新属性后insert到Accounts表中。
+这里users中的用户作用有两个：</p>
+
+<ul>
+<li><p>基于Meteor accounts包管理用户的注册、验证、登录等动作；</p></li>
+<li><p>基于alanning/meteor-roles定义用户角色；</p></li>
+</ul>
+
+
+<p>下面是从数据库中得到的一组实例：</p>
+
+<pre><code>&gt; db.users.find().pretty()
+{
+  "_id" : "Jyt46yndz8e5tCWgN",
+  "createdAt" : ISODate("2015-10-06T03:43:17.711Z"),
+  "services" : {
+    "password" : {
+      "bcrypt" : "$2a$10$Oj.qa9YmYdQazg3WkvqlbOf2FM2.SI5V0a6Ar8kW8qGEc.dRhzHXe"
+    }
+  },
+  "username" : "Owner",
+  "emails" : [
+    {
+      "address" : "asy6nklv@localhost",
+      "verified" : false,
+      "provides" : "default"
+    }
+  ],
+  "roles" : {
+    "8jbLoDao7BaLhmCog" : [
+      "guest",
+      "account/profile",
+      "owner",
+      "admin",
+      "dashboard",
+      "dashboard/settings/shop",
+      "dashboard/orders",
+      "createProduct",
+      "dashboard/accounts",
+      "core",
+      "shipping",
+      "reaction-shipping",
+      "paypal",
+      "reaction-paypal",
+      "braintree",
+      "reaction-braintree",
+      "stripe",
+      "reaction-stripe",
+      "authnet",
+      "reaction-auth-net",
+      "social",
+      "reaction-social",
+      "reactionAnalytics",
+      "reaction-analytics"
+    ],
+    "__global_roles__" : [
+      "owner",
+      "admin",
+      "dashboard"
+    ]
+  }
+}
+
+&gt; db.Accounts.find().pretty()
+{
+  "_id" : "Jyt46yndz8e5tCWgN",
+  "createdAt" : ISODate("2015-10-06T03:43:17.733Z"),
+  "emails" : [
+    {
+      "address" : "asy6nklv@localhost",
+      "verified" : false,
+      "provides" : "default"
+    }
+  ],
+  "userId" : "Jyt46yndz8e5tCWgN",
+  "shopId" : "8jbLoDao7BaLhmCog",
+  "acceptsMarketing" : false,
+  "state" : "new"
+}
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Meteor Development Environment on Windows]]></title>
@@ -64,6 +585,20 @@ Command: vmStart||vmLogin
 <p>Now you can use [win-z, vmStart&amp;Login] to start VM and login.
 Before you shutdown Windows machine, remember use [win-z, vmSuspend] to suspend VM
 (which is always impossible).</p>
+
+<p>Below is the procedure of getting a project into the VM:</p>
+
+<pre><code>win-z: vmstart
+win-z: vmlogin
+# in the VM
+ssh-keygen
+# copy $(cat .ssh/id_rsa.pub) to http://phab.yourdomain.com/settings/panel/ssh
+mkdir docs;cd docs
+git clone ssh://git@phab.yourdomain.com/diffusion/YOURREPO/yourRepo.git 
+cd yourRepo
+git submodule init
+git submodule update
+</code></pre>
 
 <p>Note: to add or edit keywords in Executor, use shortcut [win-z, Ctrl-k],
 see Executor documents for details.</p>
@@ -160,6 +695,8 @@ and run <code>vim +PluginClean +PluginInstall +qa</code>.</p>
 
 <p>In &ldquo;:Gstatus&rdquo; window, you can use &ldquo;-&rdquo; to add a file in/out stage area,
 use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available actions.</p>
+
+<p>To see the file changes history: <code>:Git log --stat</code>.</p>
 ]]></content>
   </entry>
   
@@ -257,7 +794,7 @@ Run test on container app, see the result.</p>
 <li><p>Add jasmine and velocity in the package test definition of mininf;</p></li>
 <li><p>Create schemas of users and questions in package;</p></li>
 <li><p>Create collections in package and attach schemas on them;</p></li>
-<li><p>Create pub/sub for users and questions;</p>
+<li><p>Create tests;</p>
 
 <p> meteor create mininf
  cd mininf
@@ -274,7 +811,7 @@ Run test on container app, see the result.</p>
    api.versionsFrom(&lsquo;1.2.0.2&rsquo;);
    api.use(&lsquo;ecmascript&rsquo;);
    // this makes nfcore itself can use variable &ldquo;SimpleSchema&rdquo; in the source code
-   api.use(&ldquo;aldeed:<a href="&#109;&#x61;&#105;&#x6c;&#116;&#x6f;&#x3a;&#x73;&#105;&#109;&#112;&#x6c;&#101;&#x2d;&#x73;&#x63;&#x68;&#x65;&#109;&#x61;&#x40;&#49;&#x2e;&#x33;&#46;&#51;">&#x73;&#x69;&#109;&#112;&#108;&#101;&#45;&#115;&#x63;&#104;&#x65;&#x6d;&#x61;&#x40;&#x31;&#x2e;&#51;&#x2e;&#x33;</a>&rdquo;);
+   api.use(&ldquo;aldeed:<a href="&#x6d;&#x61;&#x69;&#108;&#116;&#111;&#58;&#115;&#105;&#x6d;&#x70;&#108;&#x65;&#45;&#115;&#x63;&#104;&#x65;&#109;&#x61;&#x40;&#x31;&#46;&#x33;&#46;&#x33;">&#x73;&#x69;&#x6d;&#x70;&#x6c;&#101;&#45;&#115;&#x63;&#x68;&#101;&#x6d;&#x61;&#64;&#x31;&#x2e;&#51;&#46;&#x33;</a>&rdquo;);
    api.use(&ldquo;alanning:roles&rdquo;);
    // this makes any packages using nfcore can use &ldquo;SimpleSchema&rdquo;
    api.imply(&ldquo;aldeed:simple-schema&rdquo;);
@@ -284,12 +821,12 @@ Run test on container app, see the result.</p>
  });
  Package.onTest(function(api) {
    api.use(&lsquo;ecmascript&rsquo;);
-   api.use(&lsquo;sanjo:<a href="&#x6d;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#x6a;&#x61;&#x73;&#x6d;&#x69;&#x6e;&#101;&#x40;&#x30;&#46;&#x31;&#x39;&#x2e;&#x30;">&#x6a;&#97;&#115;&#109;&#105;&#x6e;&#101;&#64;&#48;&#x2e;&#49;&#57;&#x2e;&#x30;</a>&rsquo;);
+   api.use(&lsquo;sanjo:<a href="&#109;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#x6a;&#x61;&#x73;&#x6d;&#105;&#110;&#101;&#x40;&#x30;&#x2e;&#49;&#57;&#x2e;&#x30;">&#x6a;&#x61;&#115;&#109;&#x69;&#x6e;&#x65;&#64;&#x30;&#x2e;&#49;&#x39;&#46;&#48;</a>&rsquo;);
    api.use(&lsquo;anti:fake&rsquo;);
    api.use(&lsquo;underscore&rsquo;);
-   api.use(&ldquo;dburles:<a href="&#109;&#97;&#x69;&#x6c;&#x74;&#111;&#x3a;&#102;&#x61;&#x63;&#x74;&#x6f;&#114;&#x79;&#64;&#x30;&#46;&#51;&#x2e;&#49;&#48;">&#x66;&#x61;&#99;&#116;&#x6f;&#x72;&#121;&#x40;&#48;&#x2e;&#x33;&#x2e;&#49;&#x30;</a>&rdquo;);
-   api.use(&lsquo;velocity:<a href="&#109;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#x68;&#x74;&#x6d;&#x6c;&#45;&#x72;&#x65;&#112;&#x6f;&#114;&#x74;&#101;&#114;&#x40;&#x30;&#46;&#x39;&#46;&#48;">&#104;&#116;&#x6d;&#108;&#x2d;&#114;&#x65;&#x70;&#x6f;&#x72;&#116;&#x65;&#114;&#64;&#x30;&#x2e;&#57;&#46;&#x30;</a>&rsquo;);
-   api.use(&lsquo;velocity:<a href="&#109;&#97;&#x69;&#108;&#116;&#x6f;&#x3a;&#99;&#x6f;&#x6e;&#115;&#111;&#x6c;&#101;&#x2d;&#114;&#x65;&#x70;&#x6f;&#114;&#116;&#101;&#x72;&#64;&#48;&#x2e;&#x31;&#x2e;&#x33;">&#x63;&#111;&#110;&#x73;&#x6f;&#108;&#101;&#x2d;&#x72;&#101;&#112;&#111;&#114;&#116;&#101;&#x72;&#64;&#48;&#46;&#x31;&#x2e;&#x33;</a>&rsquo;);
+   api.use(&ldquo;dburles:<a href="&#x6d;&#x61;&#105;&#108;&#116;&#x6f;&#x3a;&#x66;&#x61;&#x63;&#116;&#x6f;&#114;&#121;&#x40;&#x30;&#x2e;&#51;&#46;&#49;&#48;">&#x66;&#x61;&#99;&#x74;&#x6f;&#x72;&#121;&#64;&#x30;&#46;&#x33;&#x2e;&#49;&#x30;</a>&rdquo;);
+   api.use(&lsquo;velocity:<a href="&#x6d;&#x61;&#105;&#108;&#x74;&#x6f;&#x3a;&#104;&#x74;&#x6d;&#x6c;&#45;&#x72;&#x65;&#112;&#x6f;&#x72;&#x74;&#101;&#x72;&#x40;&#x30;&#46;&#x39;&#x2e;&#48;">&#x68;&#116;&#x6d;&#108;&#x2d;&#114;&#x65;&#x70;&#x6f;&#114;&#116;&#101;&#114;&#x40;&#x30;&#x2e;&#x39;&#46;&#48;</a>&rsquo;);
+   api.use(&lsquo;velocity:<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#x6f;&#58;&#x63;&#111;&#x6e;&#x73;&#111;&#108;&#x65;&#x2d;&#114;&#x65;&#x70;&#111;&#114;&#116;&#101;&#x72;&#64;&#x30;&#46;&#49;&#46;&#51;">&#99;&#x6f;&#x6e;&#115;&#x6f;&#108;&#101;&#45;&#114;&#x65;&#112;&#x6f;&#114;&#116;&#101;&#114;&#x40;&#48;&#x2e;&#x31;&#46;&#x33;</a>&rsquo;);
    api.use(&lsquo;leo:nfcore&rsquo;);
    api.addFiles(&lsquo;nfcore-tests.js&rsquo;);
  });
@@ -487,603 +1024,6 @@ meteor add newfairscommerce:core
 <p>Then you have to define dependencies for this package with adding some
 <code>api.use()</code> and loading order by adding some <code>api.addFiles(...)</code>
 in packages/newfairs-core/package.js.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Stack Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/23/123748/"/>
-    <updated>2015-09-23T12:37:48+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/23/123748</id>
-    <content type="html"><![CDATA[<h1>Install</h1>
-
-<p>Install <a href="https://github.com/commercialhaskell/stack">stack</a> and start a demo yesod web server:</p>
-
-<pre><code>wget -q -O- https://s3.amazonaws.com/download.fpcomplete.com/ubuntu/fpco.key | sudo apt-key add -
-echo 'deb http://download.fpcomplete.com/ubuntu/trusty stable main'|sudo tee /etc/apt/sources.list.d/fpco.list
-sudo apt-get update &amp;&amp; sudo apt-get install stack -y
-cd ~/docs/playground
-stack new myHaskellProj yesod-sqlite  // very slow, 30 minutes or so
-stack install yesod-bin cabal-install --install-ghc
-stack build  // if it's interupteed by "FailedConnectionException s3.amazonaws.com 443" error, run this command again
-stack exec -- yesod devel
-</code></pre>
-
-<p>Now open &ldquo;<a href="http://localhost:3000/">http://localhost:3000/</a>&rdquo;.</p>
-
-<h1>Run Haskell Code</h1>
-
-<p>To start a ghci, in any folder, run:</p>
-
-<pre><code>stack ghci
-Prelude&gt; putStrLn "hello world"
-</code></pre>
-
-<p>To run haskell script: in any folder, run</p>
-
-<pre><code>$ cat hello.hs
-main = putStrLn "hello world"
-$ stack runghc hello.hs
-</code></pre>
-
-<h1>Editor Setup</h1>
-
-<p>Ref: <a href="http://seanhess.github.io/2015/08/05/practical-haskell-editors.html">PRACTICAL HASKELL - EDITOR SETUP WITH STACK</a>.</p>
-
-<pre><code>cd ~
-stack setup
-stack install hdevtools
-stack path|grep ghc      # to get the ghc binary path used below
-</code></pre>
-
-<p>Add <code>PATH=$PATH:$HOME/.stack/programs/x86_64-linux/ghc-7.10.2/bin:$HOME/.local/bin</code> into ~/.zshenv.</p>
-
-<p>Install syntastic and &lsquo;bitc/vim-hdevtools&rsquo; plugin for vim:</p>
-
-<p>add the following 2 lines into ~/.vimrc:</p>
-
-<pre><code>Plugin 'scrooloose/syntastic'
-Plugin 'bitc/vim-hdevtools'
-</code></pre>
-
-<p>then run <code>vim +PluginInstall</code>.</p>
-
-<p>Now your .hs files will be checked when saving.</p>
-
-<p>To verify, create hello.hs as follows:</p>
-
-<pre><code>main = do
-  print "What is your name?"
-  name &lt;- getLine
-  print ("Hello " ++ name ++ "!")
-</code></pre>
-
-<p>When cursor on &ldquo;print&rdquo; in the 2nd line, run <code>:HdevtoolsType</code>
-(which equivalent to run <code>hdevtools type hello.hs 2 3</code> in shell),
-you should get &ldquo;[Char] -> IO ()&rdquo;.</p>
-
-<p>For convenient, add the following shortcuts into ~/.vimrc:</p>
-
-<pre><code>" hdevtools setup (haskell)
-au FileType haskell nnoremap &lt;buffer&gt; &lt;F3&gt; :HdevtoolsType&lt;CR&gt;
-au FileType haskell nnoremap &lt;buffer&gt; &lt;silent&gt; &lt;F4&gt; :HdevtoolsClear&lt;CR&gt;
-</code></pre>
-
-<p>Add &ldquo;this&rdquo; at the end of file from column 3 and save
-(which is equivalent to run <code>hdevtools check hello.hs</code> in shell),
-a &ldquo;Not in scope: ‘this’&rdquo; error will raises.</p>
-
-<p>See <a href="https://github.com/schell/hdevtools">hdevtools</a> and
-<a href="https://github.com/bitc/vim-hdevtools">bitc/vim-hdevtools</a> for more information.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Using Webstorm as Meteor IDE]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/22/104351/"/>
-    <updated>2015-09-22T10:43:51+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/22/104351</id>
-    <content type="html"><![CDATA[<h1>Terminal</h1>
-
-<p>In editor, use &ldquo;Alt-F12&rdquo; to activate terminal.
-In terminal, use &ldquo;Shift-ESC&rdquo; or &ldquo;Alt-F12&rdquo; to go back to editor.
-Double click terminal title bar to maximize the terminal panel.</p>
-
-<p>Only run Meteor server in Webstorm&rsquo;s terminal.
-Run all other terminal work (such as mongod, git, etc) in a external terminal.
-Use &ldquo;Alt-Tab&rdquo; to switch between external terminal and Webstorm.</p>
-
-<h1>Navigattion</h1>
-
-<p>Toggle file browse pane with &ldquo;Alt-1&rdquo;.</p>
-
-<p>Focus editor with &ldquo;ESC&rdquo;.</p>
-
-<h1>Editor</h1>
-
-<p>Split vertically/horizontally;</p>
-
-<h2>Vim Plugin</h2>
-
-<p>Install IdeaVim in [Settings -> Plugins] (open it with Ctrl-Shift-A).</p>
-
-<p>Open/close it in [Tools -> Vim Emulator], or &ldquo;Alt-T Ctrl-Alt-V&rdquo;.</p>
-
-<p>Close editor tab: :q</p>
-
-<h1>Frequently Used Shortcuts</h1>
-
-<p>Double shift: search everything;</p>
-
-<p>Shift-Ctrl-N: search and open files;</p>
-
-<p>Shift-Ctrl-A: search and run commands;</p>
-
-<p>Alt-Left/Right: switch between editor tabs;</p>
-
-<p>Ctrl-Shift-Enter: complate statement;</p>
-
-<p>See [Help -> Default Keymap Reference] for all.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Autosave in Webstorm]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/22/092543/"/>
-    <updated>2015-09-22T09:25:43+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/22/092543</id>
-    <content type="html"><![CDATA[<p>Autosave related settings of Webstorm 10.0.4 are mostly in
-[Settings -> Appearance &amp; Behavior -> System Settings -> Synchronization].</p>
-
-<p>By default the &ldquo;Save files automatically &hellip;&rdquo; is unchecked.
-So Webstorm will not save file changes before you press Ctrl-S.
-<strong>But</strong> &ldquo;Save files on frame deactivation&rdquo; is checked.
-So if you switch to another application other than Webstorm,
-all changes unsaved will be saved to disk.
-<strong>However</strong>, when you modify file A without save,
-and switch to another tab to edit file B,
-file A will not be saved, because this is not &ldquo;frame deactivation&rdquo; (why?).</p>
-
-<p>This is convenient for Meteor development.
-You can modify many files without save.
-As you switch to browser, Webstorm will save all changes to disk,
-then Meteor detects file changes and refreshes pages in browser.</p>
-
-<p>In Webstorm 10.0.4 the Linux version,
-the blue color of changed tabs is subtle (compared with that on Windows or Mac),
-check &ldquo;Mark modified tabs with asterisk&rdquo;
-in [Settings -> Editor -> General -> Editor Tabs] to make unsaved tabs easier to identify.</p>
-
-<p>Finally note that &ldquo;Ctrl-S&rdquo; in Webstorm is &ldquo;save all&rdquo; instead of &ldquo;save&rdquo;.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Convert a Folder Into Meteor App in Webstorm]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/21/092600/"/>
-    <updated>2015-09-21T09:26:00+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/21/092600</id>
-    <content type="html"><![CDATA[<p>You&rsquo;ve cloned a repo from remote host into foler &ldquo;$HOME/docs/myapp&rdquo;.
-So you can&rsquo;t use <code>meteor create myapp</code> to build a new Meteor app.</p>
-
-<p>You can create this &ldquo;myapp&rdquo; under /tmp,
-and <code>cp -r /tmp/myapp/.meteor $HOME/docs/myapp/</code>.</p>
-
-<p>Now open $HOME/docs/myapp in Webstorm,
-it&rsquo;s been a Meteor app already.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Generate Random Date After a Specified Date]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/20/212102/"/>
-    <updated>2015-09-20T21:21:02+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/20/212102</id>
-    <content type="html"><![CDATA[<p>The following codes can display a random date within a month after the specified fair date.</p>
-
-<pre><code>$ meteor create randomDate
-$ cd randomDate
-$ meteor add momentjs:moment
-$ cat randomDate.html
-&lt;head&gt;
-  &lt;title&gt;Random Date&lt;/title&gt;
-&lt;/head&gt;
-
-&lt;body&gt;
-  在 展会日期 输入框中输入日期，例如：2015-05-25，然后点击 评论 按钮。
-  &lt;hr&gt;
-
-&lt;/body&gt;
-
-&lt;template name="DatePanel"&gt;
-  &lt;label&gt;展会日期：&lt;/label&gt;
-  &lt;input type="text" id="fairDate"&gt;
-  &lt;button&gt;评论&lt;/button&gt;
-  &lt;p&gt;评论添加日期：&lt;/p&gt;
-&lt;/template&gt;
-
-$ cat randomDate.js
-if (Meteor.isClient) {
-  Template.DatePanel.helpers({
-    commentDate: function () {
-      return Session.get('commentDate');
-    }
-  });
-
-  Template.DatePanel.events({
-    'click button': function (e, t) {
-      var dateStr = t.find("#fairDate").value;
-      var fairDate = moment(dateStr);
-      var randomDays = Math.floor((Math.random() * 30) + 1);
-      var commentDate = fairDate.add(randomDays, 'days');
-      var commStr = commentDate.format("YYYY-MM-DD");
-      Session.set('commentDate', commStr);
-    }
-  });
-}
-
-$ meteor
-</code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[A JavaScript Closure Demo]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/16/101529/"/>
-    <updated>2015-09-16T10:15:29+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/16/101529</id>
-    <content type="html"><![CDATA[<p>下面的代码演示了JavaScript中的闭包：</p>
-
-<pre><code>$ cat test.js
-x = 100;
-inc = function(){
-  var x = 0;
-  return function(){
-    console.log(x++);
-  };
-};
-inc1 = inc();
-inc2 = inc();
-
-$ node
-&gt; require('./test.js')
-{}
-&gt; x
-100
-&gt; inc
-[Function]
-&gt; inc1
-[Function]
-&gt; inc2
-[Function]
-&gt; inc1()
-0
-undefined
-&gt; inc1()
-1
-undefined
-&gt; inc1()
-2
-undefined
-&gt; inc2()
-0
-&gt; inc2()
-1
-undefined
-&gt; inc2()
-2
-undefined
-&gt; inc2()
-3
-undefined
-&gt; inc2()
-4
-undefined
-&gt; inc1()
-3
-undefined
-&gt; inc()
-[Function]
-&gt; inc()()
-0
-undefined
-&gt; inc()()
-0
-undefined
-</code></pre>
-
-<p>可以看到inc2()最后一次执行时内部x值为4，
-inc1不受影响，执行时依然从上次的2开始增加变成3，
-所以，不同的闭包（这里是inc1和inc2）保存了自己单独的内部变量x，
-其中一个变化不会影响另一个的值。</p>
-
-<p>由于每次执行inc()返回一个新的function，所以每次执行<code>inc()()</code>都打印0。</p>
-
-<p>参考：</p>
-
-<p><a href="http://www.zhihu.com/question/35060711/answer/62641357?group_id=627257263421976576#comment-94699289">javascript的闭包的概念和ruby的闭包的概念有何异同？</a>.</p>
-
-<p>&ldquo;Load and execute external js file in node.js with access to local variables?&rdquo; on StackOverflow.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[JSDoc Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/15/122519/"/>
-    <updated>2015-09-15T12:25:19+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/15/122519</id>
-    <content type="html"><![CDATA[<p>JSDoc is a documentation generator similar to JavaDoc or PHPDoc.</p>
-
-<h1>JSDoc</h1>
-
-<p>Install <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> with <code>npm install -g jsdoc</code>.
-Generate docs with <code>jsdoc **/*.js</code>.</p>
-
-<h1>YUIDoc</h1>
-
-<p><a href="http://yui.github.io/yuidoc/">YUIDoc</a> is suitable for generate documentation for <a href="http://yuilibrary.com/">YUI</a>,
-a JavaScript library, and no longer actively maintained.</p>
-
-<p>It can only list modules and classes on the homepage,
-which is not very suitable for general purpose jsdoc.</p>
-
-<p>Install it with <code>npm install -g yuidocjs</code>.
-Run it with <code>yuidoc .</code>.
-It creates a folder named &ldquo;out&rdquo; by default in the current directory.
-Open the index.html in &ldquo;out&rdquo; folder to see the doc.</p>
-
-<h1>Editor</h1>
-
-<p>vim with <a href="https://github.com/scrooloose/nerdcommenter">scrooloose/nerdcommenter</a>.
-Use <code>&lt;leader&gt;cs</code> to add block comment.
-But note that the block generated by this plugin is started by <code>/*</code>, which is invalid for jsdoc and yuidoc.
-You have to add an asterisk behind it as <code>/**</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Push to Github Repository With SSH Keys]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/12/233609/"/>
-    <updated>2015-09-12T23:36:09+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/12/233609</id>
-    <content type="html"><![CDATA[<p>I want push to github repository without input username and password.</p>
-
-<ol>
-<li><p>Add pub key to github account [profile -> settings -> SSH keys];</p></li>
-<li><p>Set up git default user name and email address with <code>git config --global user.name</code>
-and <code>git config --global user.email</code>;</p></li>
-<li><p>Test ssh connection: <code>ssh -T git@github.com</code>;</p></li>
-<li><p>Modify remote repo address: from <code>https://github.com/USERNAME/OTHERREPOSITORY.git</code> to
-<code>git@github.com:USERNAME/OTHERREPOSITORY.git</code>, where first replace <code>https://</code> with <code>git@</code>,
-then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
-</ol>
-
-
-<p>Now you can push to github repo (<code>git push origin master</code>) without input username and password.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/6565357/git-push-requires-username-and-password">Git push requires username and password</a></p>
-
-<p><a href="https://help.github.com/articles/set-up-git/#next-steps-authenticating-to-github-from-git">Set Up Git</a></p>
-
-<p><a href="https://help.github.com/articles/generating-ssh-keys/">Generating SSH keys</a></p>
-
-<p><a href="https://help.github.com/articles/changing-a-remote-s-url/">Changing a remote&rsquo;s URL</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Change SSH Port on Linux]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/12/093754/"/>
-    <updated>2015-09-12T09:37:54+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/12/093754</id>
-    <content type="html"><![CDATA[<p>Modify /etc/ssh/sshd_config:</p>
-
-<ul>
-<li><p>Port 22 -> 222</p></li>
-<li><p>PermitRootLogin yes -> no</p></li>
-<li><p>PasswordAuthentication yes -> no</p></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Auto Translate English Words With dict.cn in Firefox]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/12/085417/"/>
-    <updated>2015-09-12T08:54:17+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/12/085417</id>
-    <content type="html"><![CDATA[<p>Everytime I want to get the meaning of a english word,
-I have to copy the word, open dict.cn,
-paste the word into the box and get the meaning, which is boring.</p>
-
-<p>While there&rsquo;re some google translate extensions of firefox,
-but they are slow and not very complete.
-For example: the word meaning of &ldquo;spoiler&rdquo; in &ldquo;This synopsis may contain spoilers.&rdquo; on
-page <a href="http://www.imdb.com/title/tt0209144/synopsis">Synopsis for Memento</a>.
-So I have to build my own translate extension based on dict.cn.</p>
-
-<h1>Steps</h1>
-
-<ol>
-<li><p>Install Greasemonkey extension in Firefox.</p></li>
-<li><p>Build a new script with the following codes.</p></li>
-<li><p>Select some text and press &ldquo;\&rdquo; key.</p>
-
-<p> // ==UserScript==
- // @name        TranslateIt
- // @namespace   LeoScript
- // @include     *
- // @version     1
- // @grant       none
- // ==/UserScript==</p>
-
-<p> // document.addEventListener(&lsquo;mouseup&rsquo;, getSel, false);
- document.addEventListener(&lsquo;keypress&rsquo;, transIt, false);</p>
-
-<p> function transIt(e) {
-   // console.log(e.key);
-   if (e.key !== &lsquo;\&rsquo;){ return; }
-   var sel = document.getSelection().toString();
-   if (sel) { window.open(&lsquo;<a href="http://dict.cn/">http://dict.cn/</a>&rsquo; + sel); }
- }</p></li>
-</ol>
-
-
-<p>Sometimes the popuped windows will be blocked by the browser.
-Add the website into the whitelist of the blocked sites.</p>
-
-<p>To debug the script, modify and save the script, reload the web page, and test the script.</p>
-
-<h1>References:</h1>
-
-<p><a href="http://hayageek.com/greasemonkey-tutorial/#install-greasemonkey">Greasemonkey Tutorial for Beginners</a></p>
-
-<p>Get selected text:</p>
-
-<p><a href="http://stackoverflow.com/questions/3260926/greasemonkey-addeventlistener-questions">greasemonkey: addEventListener questions</a></p>
-
-<p><a href="http://www.w3schools.com/jsref/met_document_addeventlistener.asp">HTML DOM addEventListener() Method</a></p>
-
-<p>Test if ctrl or alt key is pressed on clicking:</p>
-
-<p><a href="http://stackoverflow.com/questions/6806271/javascript-check-if-ctrl-button-was-pressed">JavaScript: Check if CTRL button was pressed</a></p>
-
-<p>search &lsquo;altKey&rsquo; in <a href="http://www.w3schools.com/jsref/dom_obj_event.asp">HTML DOM Events</a></p>
-
-<p><a href="http://stackoverflow.com/questions/4907843/open-a-url-in-a-new-tab-using-javascript">Open a URL in a new tab using JavaScript</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Detect Website Information]]></title>
-    <link href="http://leetschau.github.io/blog/2015/08/28/112117/"/>
-    <updated>2015-08-28T11:21:17+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/08/28/112117</id>
-    <content type="html"><![CDATA[<p>Based on <a href="http://stackoverflow.com/questions/396739/how-do-you-determine-what-technology-a-website-is-built-on">How do you determine what technology a website is built on?</a>.</p>
-
-<p>Website:</p>
-
-<p><a href="http://builtwith.com/">BuiltWith</a>.</p>
-
-<p><a href="http://w3techs.com/sites/">W3Techs</a>.</p>
-
-<p>Browser plugins:</p>
-
-<p><a href="https://wappalyzer.com/">Wappalyzer</a> for firefox and chrome.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Underscore Highlights Problem in Vim Markdown Documents]]></title>
-    <link href="http://leetschau.github.io/blog/2015/08/19/100625/"/>
-    <updated>2015-08-19T10:06:25+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/08/19/100625</id>
-    <content type="html"><![CDATA[<h1>Install GFM plugin for vim</h1>
-
-<p>To fix the highlight problem,
-use <code>Plugin 'jtratner/vim-flavored-markdown'</code> instead of
-<code>Plugin 'plasticboy/vim-markdown'</code> in .vimrc,
-and run <code>vim +PluginClean +PluginInstall +qall</code>.</p>
-
-<h1>Use Atom as Editor</h1>
-
-<p>Install <a href="https://atom.io/">Atom</a> and modify the value of &ldquo;EDITOR&rdquo; in $DSNOTE_HOME/notes.sh to &ldquo;atom -f&rdquo;.</p>
-
-<h2>Run in foreground</h2>
-
-<p>dsnot works in sync manner, while the default Atom working flow is async.
-So use &ldquo;atom -f&rdquo; instead of &ldquo;vim&rdquo; for the value of variable &ldquo;EDITOR&rdquo;.</p>
-
-<h2>Chinese character support</h2>
-
-<p>Verified on Ubuntu 14.04 LTS.</p>
-
-<p>First install font &ldquo;文泉驿正黑&rdquo;:</p>
-
-<pre><code>sudo aptitude install ttf-wqy-microhei
-sudo aptitude install ttf-wqy-zenhei
-</code></pre>
-
-<p>Then press &ldquo;Ctrl+,&rdquo; to open settings panel:</p>
-
-<p>Set [Settings -> Editor Settings -> Font Family] as:</p>
-
-<pre><code>DejaVu Sans Mono, 文泉驿正黑
-</code></pre>
-
-<p>But Chinese characters can&rsquo;t be displayed in preview window.</p>
-
-<h2>Toggle Tree View</h2>
-
-<p>Use <code>ctrl-\</code> to toggle tree view.
-<code>alt-\</code> or <code>ctrl-0</code> to focus it.</p>
-
-<h2>Markdown editing and preview</h2>
-
-<p>Use <code>Ctrl-Shift-M</code> to toggle preview panel.
-Install some advanced packages:</p>
-
-<pre><code>apm search vim
-apm install vim-mode
-apm install markdown-scroll-sync
-apm install markdown-writer
-apm install markdown-preview-plus
-apm install markdown-format
-</code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[PHPStorm Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2015/08/19/002231/"/>
-    <updated>2015-08-19T00:22:31+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/08/19/002231</id>
-    <content type="html"><![CDATA[<p>On Linux (Ubuntu 14.04 LTS), openjdk-7-jdk must be installed before running PhpStorm 9.0.</p>
-
-<p>To startup PHPStorm, Alt-F2, input <code>pstorm</code>.</p>
-
-<h1>Important Shortcuts</h1>
-
-<p>Double Shift: search everything;</p>
-
-<p>Shift - Ctrl - N: open file in project (fuzzy find);</p>
-
-<p>Alt - F12: switch focus between editor and terminal (you can use fzf and autojump in terminal);</p>
-
-<p>Shift - ESC: hide navigation bar;</p>
-
-<p>Alt-1: Toggle and focus navigation bar;</p>
-
-<p>ESC: focus editor;</p>
-
-<h1>Editor</h1>
-
-<h2>IdeaVim</h2>
-
-<p><code>:q</code>: close file;</p>
-
-<p><code>:vs</code>: split vertical;</p>
-
-<p>Ref:</p>
-
-<p><a href="https://www.jetbrains.com/phpstorm/help/keyboard-shortcuts-you-cannot-miss.html">Keyboard Shortcuts You Cannot Miss</a>;</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[eCommerce Framework]]></title>
-    <link href="http://leetschau.github.io/blog/2015/08/14/160315/"/>
-    <updated>2015-08-14T16:03:15+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/08/14/160315</id>
-    <content type="html"><![CDATA[<p><a href="https://github.com/magento">Magento</a>: PHP, Zend Framework, bitnami</p>
-
-<p>Node extension with Magento:</p>
-
-<p><a href="https://github.com/spree/spree">spree</a>: Ruby on Rails</p>
-
-<h1>Magento</h1>
 ]]></content>
   </entry>
   

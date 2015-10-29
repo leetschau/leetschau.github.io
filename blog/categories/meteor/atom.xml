@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Meteor | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/meteor/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-10-05T15:23:42+08:00</updated>
+  <updated>2015-10-29T20:11:07+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,89 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[将Meteor应用完整从1.2版本降级到1.1版本]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/29/200553/"/>
+    <updated>2015-10-29T20:05:53+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/29/200553</id>
+    <content type="html"><![CDATA[<p>当前版本的mup不支持Meteor 1.2，对1.1支持很好。
+一位开发者用<code>meteor update</code>升级了Meteor,然后push到代码库中，
+其他开发者同步代码后发现无法使用mup部署，
+这个问题不能简单地使用<code>meteor --releae 1.1</code>处理，
+因为从1.1到1.2，Metoer很多核心包的版本发生了变化，并增删了很多包，
+<code>meteor --release 1.1</code>只能还原Meteor自身版本，
+无法还原核心包，必须将.meteor目录下所有文件复原。</p>
+
+<p>使用git的patch功能可以方便地实现针对一个目录的复原。
+首先找到包含正确文件（旧Meteor版本和包定义）的commit，例如 15c9f125630，
+然后找到要复原的目标commit，一般是develop branch的HEAD，例如 f13b84f6c55，
+做一个反向patch：<code>git diff f13b84f6c55 15c9f125630 .meteor &gt; reverseDotMeteor.patch</code>;</p>
+
+<p>正常的<code>git diff</code>是旧版本在前，新版本在后，这样生成的patch反映的是文件内容随着时间发生的改变，
+这里将新的commit放在前面，生成的patch就能起到回到过去的作用。</p>
+
+<p>checkout目标commit并加载patch: <code>git apply reverseDotMeteor.patch</code>.</p>
+
+<p>测试mup是否能正常工作，如果能，提交修改。</p>
+
+<p>参考：<a href="http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between">http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Validate Data Defined by Simple-Schema]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/29/080601/"/>
+    <updated>2015-10-29T08:06:01+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/29/080601</id>
+    <content type="html"><![CDATA[<p>// the object need to be validate according to the schema:
+var fair = { &hellip; };
+var mycon = NewfairsCore.Schemas.Fair.namedContext();</p>
+
+<p>// this method returns true if the object is valid according to the schema
+// or false if it is not:
+mycon.validate(fair);</p>
+
+<p>// this method lists all invalid keys:
+mycon.invalidKeys();</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Play Meteor With Elasticsearch]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/28/102957/"/>
+    <updated>2015-10-28T10:29:57+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/28/102957</id>
+    <content type="html"><![CDATA[<p>Install elasticsearch;</p>
+
+<p>Follow the instructions in <a href="https://github.com/andrewreedy/meteor-elasticsearch">meteor-elasticsearch</a></p>
+
+<p>Choose plugin version according to
+<a href="https://github.com/richardwilly98/elasticsearch-river-mongodb.">https://github.com/richardwilly98/elasticsearch-river-mongodb.</a></p>
+
+<p>Get elasticsearch version: <code>curl -XGET 'localhost:9200'</code></p>
+
+<p>So mongo river plugin version 2.0.9 is installed:</p>
+
+<pre><code>cd /usr/share/elasticsearch
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --remove com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.9
+</code></pre>
+
+<p>Start elasticsearch server: <code>sudo /usr/share/elasticsearch/bin/elasticsearch --default.path.conf=/etc/elasticsearch/</code></p>
+
+<p>Create a Meteor app with external mongodb connection, and verify it;</p>
+
+<p>Add ES package: <code>meteor add bigdata:elasticsearch</code>;</p>
+
+<p>Add the setting file &ldquo;settings.json&rdquo;;</p>
+
+<p>Start the meteor server: <code>MONGO_URL="mongodb://user:pwd@ip:port/db" meteor --settings settings.json</code></p>
+
+<p>Problem: the ES variable is undefined.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[A Meteor Package Test Demo]]></title>
@@ -107,7 +190,7 @@ Run test on container app, see the result.</p>
 <li><p>Add jasmine and velocity in the package test definition of mininf;</p></li>
 <li><p>Create schemas of users and questions in package;</p></li>
 <li><p>Create collections in package and attach schemas on them;</p></li>
-<li><p>Create pub/sub for users and questions;</p>
+<li><p>Create tests;</p>
 
 <p> meteor create mininf
  cd mininf
@@ -124,7 +207,7 @@ Run test on container app, see the result.</p>
    api.versionsFrom(&lsquo;1.2.0.2&rsquo;);
    api.use(&lsquo;ecmascript&rsquo;);
    // this makes nfcore itself can use variable &ldquo;SimpleSchema&rdquo; in the source code
-   api.use(&ldquo;aldeed:<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#111;&#58;&#115;&#105;&#x6d;&#x70;&#108;&#101;&#x2d;&#115;&#99;&#x68;&#x65;&#109;&#97;&#64;&#49;&#46;&#x33;&#46;&#x33;">&#115;&#x69;&#109;&#x70;&#x6c;&#101;&#x2d;&#x73;&#x63;&#x68;&#x65;&#109;&#x61;&#64;&#x31;&#46;&#51;&#x2e;&#51;</a>&rdquo;);
+   api.use(&ldquo;aldeed:<a href="&#x6d;&#97;&#x69;&#x6c;&#x74;&#x6f;&#x3a;&#115;&#105;&#x6d;&#x70;&#108;&#101;&#x2d;&#x73;&#x63;&#x68;&#x65;&#x6d;&#x61;&#64;&#x31;&#x2e;&#51;&#46;&#x33;">&#115;&#105;&#109;&#x70;&#108;&#101;&#x2d;&#x73;&#x63;&#104;&#101;&#109;&#x61;&#64;&#49;&#46;&#x33;&#46;&#x33;</a>&rdquo;);
    api.use(&ldquo;alanning:roles&rdquo;);
    // this makes any packages using nfcore can use &ldquo;SimpleSchema&rdquo;
    api.imply(&ldquo;aldeed:simple-schema&rdquo;);
@@ -134,12 +217,12 @@ Run test on container app, see the result.</p>
  });
  Package.onTest(function(api) {
    api.use(&lsquo;ecmascript&rsquo;);
-   api.use(&lsquo;sanjo:<a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#x3a;&#106;&#x61;&#x73;&#109;&#105;&#x6e;&#101;&#x40;&#48;&#x2e;&#x31;&#x39;&#46;&#48;">&#x6a;&#97;&#115;&#109;&#105;&#110;&#x65;&#64;&#x30;&#x2e;&#49;&#x39;&#46;&#48;</a>&rsquo;);
+   api.use(&lsquo;sanjo:<a href="&#109;&#x61;&#105;&#108;&#116;&#x6f;&#58;&#106;&#x61;&#x73;&#109;&#105;&#x6e;&#101;&#64;&#48;&#46;&#49;&#57;&#x2e;&#x30;">&#106;&#97;&#115;&#x6d;&#105;&#110;&#x65;&#x40;&#48;&#46;&#49;&#57;&#x2e;&#48;</a>&rsquo;);
    api.use(&lsquo;anti:fake&rsquo;);
    api.use(&lsquo;underscore&rsquo;);
-   api.use(&ldquo;dburles:<a href="&#109;&#x61;&#x69;&#108;&#116;&#111;&#x3a;&#x66;&#x61;&#x63;&#116;&#111;&#114;&#x79;&#x40;&#48;&#x2e;&#51;&#46;&#49;&#x30;">&#102;&#97;&#99;&#116;&#x6f;&#x72;&#x79;&#64;&#x30;&#x2e;&#x33;&#46;&#49;&#x30;</a>&rdquo;);
-   api.use(&lsquo;velocity:<a href="&#109;&#x61;&#105;&#x6c;&#116;&#x6f;&#x3a;&#104;&#x74;&#109;&#108;&#45;&#114;&#101;&#112;&#111;&#x72;&#x74;&#101;&#x72;&#x40;&#x30;&#46;&#57;&#46;&#x30;">&#x68;&#x74;&#x6d;&#108;&#45;&#114;&#x65;&#x70;&#x6f;&#x72;&#116;&#x65;&#114;&#64;&#x30;&#46;&#57;&#x2e;&#48;</a>&rsquo;);
-   api.use(&lsquo;velocity:<a href="&#109;&#x61;&#105;&#x6c;&#x74;&#x6f;&#x3a;&#x63;&#111;&#x6e;&#x73;&#x6f;&#x6c;&#101;&#x2d;&#x72;&#101;&#x70;&#111;&#x72;&#116;&#x65;&#114;&#x40;&#x30;&#46;&#x31;&#x2e;&#51;">&#99;&#111;&#110;&#115;&#111;&#108;&#x65;&#x2d;&#x72;&#101;&#x70;&#111;&#x72;&#x74;&#x65;&#x72;&#64;&#48;&#46;&#x31;&#46;&#x33;</a>&rsquo;);
+   api.use(&ldquo;dburles:<a href="&#109;&#97;&#105;&#108;&#x74;&#x6f;&#x3a;&#x66;&#x61;&#x63;&#116;&#x6f;&#114;&#121;&#x40;&#x30;&#46;&#51;&#x2e;&#49;&#x30;">&#102;&#97;&#x63;&#x74;&#111;&#x72;&#x79;&#64;&#48;&#x2e;&#x33;&#x2e;&#49;&#x30;</a>&rdquo;);
+   api.use(&lsquo;velocity:<a href="&#109;&#x61;&#105;&#108;&#116;&#111;&#58;&#104;&#116;&#109;&#x6c;&#x2d;&#114;&#x65;&#x70;&#111;&#x72;&#x74;&#101;&#114;&#64;&#x30;&#x2e;&#57;&#x2e;&#48;">&#x68;&#116;&#x6d;&#x6c;&#45;&#x72;&#x65;&#112;&#x6f;&#x72;&#116;&#x65;&#x72;&#64;&#48;&#x2e;&#57;&#46;&#48;</a>&rsquo;);
+   api.use(&lsquo;velocity:<a href="&#x6d;&#x61;&#x69;&#108;&#x74;&#x6f;&#58;&#99;&#x6f;&#110;&#115;&#x6f;&#108;&#101;&#45;&#x72;&#101;&#x70;&#111;&#x72;&#x74;&#101;&#x72;&#64;&#x30;&#46;&#49;&#46;&#51;">&#x63;&#x6f;&#x6e;&#115;&#111;&#x6c;&#x65;&#45;&#x72;&#101;&#x70;&#111;&#114;&#116;&#101;&#114;&#64;&#x30;&#x2e;&#x31;&#46;&#51;</a>&rsquo;);
    api.use(&lsquo;leo:nfcore&rsquo;);
    api.addFiles(&lsquo;nfcore-tests.js&rsquo;);
  });
@@ -266,108 +349,6 @@ I20151003-18:24:07.849(8)? jasmine-client-integration: 2 tests passed (3ms)
 <pre><code>npm install -g velocity-cli
 velocity test-package newfairscommerce:add-number
 </code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Add a Local Meteor Package From a Existing Repo]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/24/185036/"/>
-    <updated>2015-09-24T18:50:36+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/24/185036</id>
-    <content type="html"><![CDATA[<p>newfairs-v3 is the container project. newfairs-core is a package.</p>
-
-<pre><code>meteor create newfairs-v3
-cd newfairs-v3
-meteor create --package newfairscommerce:core
-cp -r ../newfairs-core packages
-mv packages/core/{package.js,README.md} packages/newfairs-core/
-rm -rf package/core
-meteor add newfairscommerce:core
-</code></pre>
-
-<p>Then you have to define dependencies for this package with adding some
-<code>api.use()</code> and loading order by adding some <code>api.addFiles(...)</code>
-in packages/newfairs-core/package.js.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Using Webstorm as Meteor IDE]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/22/104351/"/>
-    <updated>2015-09-22T10:43:51+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/22/104351</id>
-    <content type="html"><![CDATA[<h1>Terminal</h1>
-
-<p>In editor, use &ldquo;Alt-F12&rdquo; to activate terminal.
-In terminal, use &ldquo;Shift-ESC&rdquo; or &ldquo;Alt-F12&rdquo; to go back to editor.
-Double click terminal title bar to maximize the terminal panel.</p>
-
-<p>Only run Meteor server in Webstorm&rsquo;s terminal.
-Run all other terminal work (such as mongod, git, etc) in a external terminal.
-Use &ldquo;Alt-Tab&rdquo; to switch between external terminal and Webstorm.</p>
-
-<h1>Navigattion</h1>
-
-<p>Toggle file browse pane with &ldquo;Alt-1&rdquo;.</p>
-
-<p>Focus editor with &ldquo;ESC&rdquo;.</p>
-
-<h1>Editor</h1>
-
-<p>Split vertically/horizontally;</p>
-
-<h2>Vim Plugin</h2>
-
-<p>Install IdeaVim in [Settings -> Plugins] (open it with Ctrl-Shift-A).</p>
-
-<p>Open/close it in [Tools -> Vim Emulator], or &ldquo;Alt-T Ctrl-Alt-V&rdquo;.</p>
-
-<p>Close editor tab: :q</p>
-
-<h1>Frequently Used Shortcuts</h1>
-
-<p>Double shift: search everything;</p>
-
-<p>Shift-Ctrl-N: search and open files;</p>
-
-<p>Shift-Ctrl-A: search and run commands;</p>
-
-<p>Alt-Left/Right: switch between editor tabs;</p>
-
-<p>Ctrl-Shift-Enter: complate statement;</p>
-
-<p>See [Help -> Default Keymap Reference] for all.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Autosave in Webstorm]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/22/092543/"/>
-    <updated>2015-09-22T09:25:43+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/22/092543</id>
-    <content type="html"><![CDATA[<p>Autosave related settings of Webstorm 10.0.4 are mostly in
-[Settings -> Appearance &amp; Behavior -> System Settings -> Synchronization].</p>
-
-<p>By default the &ldquo;Save files automatically &hellip;&rdquo; is unchecked.
-So Webstorm will not save file changes before you press Ctrl-S.
-<strong>But</strong> &ldquo;Save files on frame deactivation&rdquo; is checked.
-So if you switch to another application other than Webstorm,
-all changes unsaved will be saved to disk.
-<strong>However</strong>, when you modify file A without save,
-and switch to another tab to edit file B,
-file A will not be saved, because this is not &ldquo;frame deactivation&rdquo; (why?).</p>
-
-<p>This is convenient for Meteor development.
-You can modify many files without save.
-As you switch to browser, Webstorm will save all changes to disk,
-then Meteor detects file changes and refreshes pages in browser.</p>
-
-<p>In Webstorm 10.0.4 the Linux version,
-the blue color of changed tabs is subtle (compared with that on Windows or Mac),
-check &ldquo;Mark modified tabs with asterisk&rdquo;
-in [Settings -> Editor -> General -> Editor Tabs] to make unsaved tabs easier to identify.</p>
-
-<p>Finally note that &ldquo;Ctrl-S&rdquo; in Webstorm is &ldquo;save all&rdquo; instead of &ldquo;save&rdquo;.</p>
 ]]></content>
   </entry>
   

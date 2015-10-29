@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Find out if current system time and time zone services status: timedatectl status.
-If your &ldquo;Time zone&rdquo; is correct (Hongkong, in my case &hellip;">
+  <meta name="description" content="Firstly install Virtualbox and Vagrant: sudo pacman -S virtualbox vagrant If you met the following warning, and vagrant can&rsquo;t start: The &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +71,7 @@ If your &ldquo;Time zone&rdquo; is correct (Hongkong, in my case &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/09/20/103138/">Set Time Synchronization on ArchLinux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/10/20/094427/">Virtualization With Vagrant on ArchLinux</a></h1>
     
     
       <p class="meta">
@@ -81,136 +80,33 @@ If your &ldquo;Time zone&rdquo; is correct (Hongkong, in my case &hellip;">
 
 
 
-<time class='entry-date' datetime='2014-09-20T10:31:38+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:31 am</span></time>
+<time class='entry-date' datetime='2014-10-20T09:44:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Find out if current system time and time zone services status: <code>timedatectl status</code>.
-If your &ldquo;Time zone&rdquo; is correct (Hongkong, in my case), and the &ldquo;NTP enabled&rdquo; is &ldquo;no&rdquo;, then you should open time synchronization service.</p>
+  <div class="entry-content"><p>Firstly install Virtualbox and Vagrant:</p>
 
-<p>Run the following commands as root to set correct timezne and sync time with Internet.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># ln -s /usr/share/zoneinfo/Hongkong /etc/localtime
-</span><span class='line'># hwclock --systohc --utc
-</span><span class='line'># systemctl enable systemd-timesyncd.service
-</span><span class='line'># systemctl start systemd-timesyncd.service </span></code></pre></td></tr></table></div></figure>
-
-
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/Time">Time - ArchWiki</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/09/19/153017/">Linux From Scratch Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-09-19T15:30:17+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:30 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Linux from Scratch (LFS) version: 7.5.</p>
-
-<p>Host: Dell PC, ArchLinux.</p>
-
-<h1>Partition Scheme</h1>
-
-<p>The host is GPT, so use <code>cgdisk</code> to create 2 new partitions (after 2 existing partitions): root 10GB, and swap 4GB.
-When asked for partition type, input &ldquo;L&rdquo;, it will list all type code, where code of linux swap is 8200.
-Reboot and build as root:</p>
-
-<pre><code>mkfs.ext4 /dev/sda3
-mkswap /dev/sda4
-export LFS=/mnt/lfs
-mkdir -pv $LFS
-mount -v -t ext4 /dev/sda3 $LFS
-swapon -v /dev/sda4
-mkdir $LFS/sources
-chmod -v a+wt $LFS/sources
-mkdir -v $LFS/tools
-groupadd lfs
-useradd -s /bin/bash -g lfs -m -k /dev/null lfs
-passwd lfs
-chown -R lfs:lfs $LFS
-chown -v lfs $LFS/tools
-ln -sv $LFS/tools /
-chown -v lfs $LFS/sources
-su - lfs
-
-cat &gt; ~/.bash_profile &lt;&lt; "EOF"
-exec env -i HOME=$HOME TERM=$TERM PS1='\u:\w\$ ' /bin/bash
-EOF
-cat &gt; ~/.bashrc &lt;&lt; "EOF"
-set +h
-umask 022
-LFS=/mnt/lfs
-LC_ALL=POSIX
-LFS_TGT=$(uname -m)-lfs-linux-gnu
-PATH=/tools/bin:/bin:/usr/bin
-export LFS LC_ALL LFS_TGT PATH
-EOF
-
-wget -O wget-list http://www.linuxfromscratch.org/lfs/downloads/stable/wget-list
-wget -i wget-list -P $LFS/sources
-
-cd $LFS
-tar xf sources/binutils-2.24.tar.bz2
-cd binutils-2.24
-./configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror 
-make
-mkdir -v /tools/lib
-ln -sv lib /tools/lib64
-make install
-cd $LFS
-tar xf sources/gcc-4.8.2.tar.bz2
-tar xf sources/mpfr-3.1.2.tar.xz
-tar xf sources/gmp-5.1.3.tar.xz
-tar xf sources/mpc-1.0.2.tar.xz
-mv mpfr* mpfr
-mv gmp* gmp
-mv mpc* mpc
-mv mpfr gmp mpc gcc-4.8.2
-cd gcc-4.8.2
-cat &gt; runme.sh &lt;&lt;EOF
-for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
-do
-    cp -uv $file{,.orig}
-    sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&amp;@g' \
-        -e 's@/usr@/tools@g' $file.orig &gt; $file
-    echo '
-#undef STANDARD_STARTFILE_PREFIX_1
-#undef STANDARD_STARTFILE_PREFIX_2
-#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
-#define STANDARD_STARTFILE_PREFIX_2 ""' &gt;&gt; $file
-    touch $file.orig
-done
-EOF
-chmod 755 runme.sh
-./runme.sh
+<pre><code>sudo pacman -S virtualbox vagrant
 </code></pre>
+
+<p>If you met the following warning, and vagrant can&rsquo;t start:</p>
+
+<blockquote><p>The vboxdrv kernel module is not loaded.
+Either there is no module available for the current kernel (3.16.4-1-ARCH) or it failed to load.</p></blockquote>
+
+<p>run following commands to compile kernel module vboxdrv and load it:</p>
+
+<pre><code>sudo pacman -S linux-headers virtualbox-host-dkms
+sudo dkms install vboxhost/4.3.18
+sudo modprobe vboxdrv
+</code></pre>
+
+<p>Verify the module is loaded successfully with <code>lsmod |grep vboxdrv</code>.</p>
+
+<p>Ref: <a href="https://wiki.archlinux.org/index.php/VirtualBox">VirtualBox on ArchWiki</a>.</p>
 </div>
   
   
@@ -223,7 +119,7 @@ chmod 755 runme.sh
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/09/17/215227/">Xen on ArchLinux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/10/18/222508/">ArchLinux Sound Control on Thinkpad T440p</a></h1>
     
     
       <p class="meta">
@@ -232,571 +128,88 @@ chmod 755 runme.sh
 
 
 
-<time class='entry-date' datetime='2014-09-17T21:52:27+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:52 pm</span></time>
+<time class='entry-date' datetime='2014-10-18T22:25:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:25 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Today I bought a new hard disk, and tried to install xen on it.</p>
+  <div class="entry-content"><p>$ sudo pacman -S alsa-utils
+$ alsamixer
+The &ldquo;Card&rdquo; value on the left-upper corner is &ldquo;HDA Intel HDMI&rdquo;. This is not right.
+Press F6, a list appear:
+-   (default)
+0   HDA Intel HDMI
+1   HDA Intel PCH
+29  ThinkPad Console Audio Control</p>
 
-<h1>Install Base ArchLinux</h1>
+<p>This means there are totally 3 playback devices. And currently &ldquo;0 HDA Intel HDMI&rdquo; is the default one.
+However this is a wrong one. The right audio output device should have &ldquo;dB gain&hellip;&rdquo; in its &ldquo;Item&rdquo; value.
+If we choose &ldquo;1 HDA Intel PCH&rdquo;, on the upper-left corner there will be a line: &ldquo;Item: Master [dB gain: 0.00]&rdquo;.
+So this is the right one, and its id is &ldquo;1&rdquo;.</p>
+
+<p>In window of this device, tab to &ldquo;Master&rdquo;, use &ldquo;m&rdquo; key to toogle its status from &ldquo;MM&rdquo; (means mute) to &ldquo;OO&rdquo; (means open this device).
+Then use up arrow key to increase its volume, until the &ldquo;dB gain&rdquo; is zero.</p>
+
+<p>Quit it with &ldquo;ESC&rdquo; key. Create a new file ~/.asoundrc:</p>
+
+<pre><code>defaults.ctl.card 1
+defaults.pcm.card 1
+</code></pre>
+
+<p>Now test it with <code>speaker-test -c 2</code>.</p>
+
+<p>Ref: &ldquo;No sound when S/PDIF video card is installed&rdquo; section in <a href="https://wiki.archlinux.org/index.php/ALSA#Troubleshooting">Advanced Linux Sound Architecture</a>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/16/174733/">Install WPS on 64bit ArchLinux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-16T17:47:33+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Now WPS is a 32bit application. It&rsquo;s can&rsquo;t run on 64bit ArchLinux.
+So firstly we should open the multilib repository of the system. Then install WPS with yaourt.</p>
 
 <ol>
-<li><p>Start computer with USB key, choose x86_64, NBD;</p></li>
-<li><p>This is not UEFI boot: an error raised when <code>efivar -l</code>;</p></li>
-<li><p>Install system:</p>
+<li><p>Uncomment the following lines in /etc/pacman.conf:</p>
 
-<p> # rmmod tg3
- # modprobe broadcom
- # modprobe tg3
- # systemctl stop dhcpcd.service
- # dhcpcd enp2s0
- # sgdisk &ndash;zap-all /dev/sda
- # cgdisk /dev/sda
- // choose GPT partitions type, /dev/sda1: 50G, /dev/sda2: 300G, 581G free
- # mkfs.ext4 /dev/sda1
- # mkfs.ext4 /dev/sda2
- # mount /dev/sda1 /mnt
- # mkdir /mnt/home
- # mount /dev/sda2 /mnt/home
- # vi /etc/pacman.d/mirrorlist
- # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
- # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>   // add the ip into &ldquo;allow&rdquo; list tinyproxy.conf
- # pacstrap -i /mnt base base-devel
- # genfstab -U -p /mnt >> /mnt/etc/fstab
- # vi /etc/locale.gen
- # locale-gen
- # echo LANG=en_US.UTF-8 > /etc/locale.conf
- # export LANG=en_US.UTF-8
- # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime
- # hwclock &ndash;systohc &ndash;utc
- # echo xenserver > /etc/hostname
- # vi /etc/hosts
- # systemctl enable <a href="&#x6d;&#97;&#105;&#108;&#x74;&#111;&#58;&#x64;&#104;&#99;&#112;&#99;&#x64;&#64;&#101;&#110;&#x70;&#50;&#x73;&#48;&#46;&#x73;&#101;&#114;&#118;&#x69;&#99;&#x65;">&#x64;&#x68;&#99;&#112;&#x63;&#100;&#x40;&#101;&#x6e;&#x70;&#x32;&#x73;&#x30;&#x2e;&#x73;&#x65;&#x72;&#118;&#x69;&#x63;&#101;</a>
- # passwd
- # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
- # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
- # pacman -S openssh
- # systemctl enable sshd.service
- # pacman -S gptfdisk            // use syslinux boot loader for GPT installed previously
- # pacman -S syslinux
- # syslinux-install_update -iam
- # vi /boot/syslinux/syslinux.cfg    // modify sda3 to sda1 in &ldquo;APPEND root=/dev/sda3&rdquo;
- # exit
- # reboot</p></li>
-</ol>
-
-
-<h1>Customize System</h1>
-
-<p>After reboot, login as root and run:</p>
-
-<pre><code># useradd -m chad
-# passwd chad
-# passwd -l root     // disable root login, use can remove this by `sudo passwd -u root`
-# export http_proxy=http://10.32.1.154:8888
-# export https_proxy=http://10.32.1.154:8888
-# pacman -Syu
-# pacman -S xorg-server xorg-server-utils xorg-xinit i3 dmenu xf86-video-intel terminator ttf-dejavu firefox
-# su - chad
-$ echo exec i3 &gt; ~/.xinitrc
-$ startx
-</code></pre>
-
-<h1>Install Xen</h1>
-
-<p>First make sure the host can access internet, then enable multilib repository, uncomment following lines in /etc/pacman.conf:</p>
-
-<pre><code>[multilib]
-Include = /etc/pacman.d/mirrorlist
-</code></pre>
-
-<p>Install yaourt, see note &ldquo;Yaourt Notes&rdquo; for details. Then run <code>yaourt -S xen</code>. If failed, install it manually:</p>
-
-<p>Download xen.tar.gz, and run:</p>
-
-<pre><code>tar xf xen.tar.gz
-cd xen
-makepkg
-sudo pacman -U xen-4.4.1-1-x86_64.pkg.tar.xz
-</code></pre>
-
-<p>Config network:</p>
-
-<pre><code># cd /etc/netctl
-# cp examples/bridge xenbridge-dhcp
-# vi xenbridge-dhcp
-# netctl start xenbridge-dhcp
-# brctl show
-# netctl enable xenbridge-dhcp
-</code></pre>
-
-<p>Config services:</p>
-
-<pre><code>sudo systemctl enable xenstored.service
-sudo systemctl enable xenconsoled.service
-sudo systemctl enable xendomains.service
-</code></pre>
-
-<p>Config boot loader. Add following stanza to /boot/syslinux/syslinux.cfg:</p>
-
-<pre><code>LABEL xen
-    MENU LABEL Xen
-    KERNEL mboot.c32
-    APPEND ../xen-4.4.1.gz --- ../vmlinuz-linux console=tty0 root=/dev/sda1 ro --- ../initramfs-linux.img
-</code></pre>
-
-<p>And make sure there is a &ldquo;mboot.c32&rdquo; file in folder /boot/syslinux, or you have to copy it:
-<code>cp /usr/lib/syslinux/bios/mboot.c32 /boot/syslinux/</code>.</p>
-
-<p>Note: If there is file conflicting errors, use <code>sudo pacman -U --force xen-4.4.1-1-x86_64.pkg.tar.xz</code> to install it.</p>
-
-<p>Reboot, choose &ldquo;Xen&rdquo; at boot screen, then run <code>sudo xl list</code> (list all xen domains), you can see a &ldquo;Domain-0&rdquo; item.
-If you boot with ArchLinux, run <code>sudo xl list</code> will report an error.</p>
-
-<h1>Install Guest OS on Xen</h1>
-
-<p>See <a href="http://wiki.xen.org/wiki/Xen_Configuration_File_Options#Disk_Devices">Xen Configuration File Options</a> for full syntax of xen domU config files.</p>
-
-<h2>CentOS 6.5 minimal</h2>
-
-<h3>PV</h3>
-
-<p>Not succeed yet. Maybe we should use CentOS as dom0 system.</p>
-
-<pre><code>$ mkdir ~/docs/cloud60
-$ cd ~/docs/cloud60
-$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
-$ mkfs.ext4 cloud60.img
-$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
-$ cat cloud60.conf      // ???
-$ sudo xl create -c cloud60.conf
-</code></pre>
-
-<h3>HVM</h3>
-
-<pre><code>$ sudo pacman -S mesa-libgl bluez-libs tigervnc
-$ mkdir ~/docs/cloud60
-$ cd ~/docs/cloud60
-$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
-$ mkfs.ext4 cloud60.img
-$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
-$ cat cloud60.conf
-name = "hvmcentos"
-builder = "hvm"
-memory = 1024
-disk = [ "file:/home/chad/docs/cloud60/cloud60.img,xvda,w", "file:/home/chad/warez/CentOS-6.5-x86_64-minimal.iso,xvdb:cdrom,r" ]
-vif = ["bridge=xenbr0"]
-vnc = 1
-vnclisten = "0.0.0.0"
-vncdisplay = 1
-
-$ sudo xl create cloud60.conf
-$ sudo xl vncviewer hvmcentos
-</code></pre>
-
-<p>Or you can use <code>vncviewer localhost:5901</code> to connect to the guest OS, here the &ldquo;1&rdquo; in &ldquo;5901&rdquo; is determined by the value of &ldquo;vncdisplay&rdquo; in guest OS config file.
-After connecting to the guest OS, install system, then reboot and connect it with vncviewer again.
-You can use xl&rsquo;s subcommands &ldquo;list&rdquo;, &ldquo;top&rdquo; and &ldquo;info&rdquo; to probe domU systems.</p>
-
-<h1>Using Xen</h1>
-
-<p>Based on <a href="https://wiki.archlinux.org/index.php/Xen">Xen on Arch Wiki</a>.</p>
-
-<p>Use Debian as dom0: <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide#Installing_the_Xen_Project_Software">Xen Project Beginners Guide</a>;</p>
-
-<p>Use CentOS as dom0: <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart">Xen4 CentOS6 QuickStart</a>;</p>
-
-<p>Use Ubuntu as dom0: <a href="https://help.ubuntu.com/community/Xen">Xen in Ubuntu Community</a>;</p>
-
-<p>Other patterns see <a href="http://wiki.xenproject.org/wiki/Category:Guest_Install">Guest Install</a>;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/09/17/094859/">在Linux上播放带中文字幕的电影</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-09-17T09:48:59+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:48 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今天从<a href="https://kickass.to/">Kickass</a>上下载了黄秋生1996年主演的电影“伊波拉病毒”(Ebola Syndrome)，粤语版听不懂，于是想下载中文字幕，Windows上的射手播放器可以自动下载字幕，Linux上貌似没有这么好用的播放器，于是从<a href="http://shooter.cn/">射手网</a>上下载了字幕文件，用<code>iconv -f gbk -t utf8 ebola_chs.srt</code>将编码转为utf8，然后<code>sudo aptitude install mplayer</code>安装了MPlayer，发现无法正常播放中文字幕，按照网络上的介绍将默认编码设为UTF-8仍然是乱码，于是<code>sudo aptitude install smplayer</code>，然后<code>smplayer</code>启动，在[Preferences -> Subtitles -> Subtitles -> Encodings]中，将"Default subtitle encoding"设为为"UTF-8 (UTF-8)&ldquo;，将"Autoload -> Autoload subtitle files"设置为"All subs containing movie names"，并勾选"Select first available subtitle"，现在视频文件名是Ebola_LKRG.avi，字幕是Ebola_LKRG_chs.srt，播放视频文件时能够自动加载中文字幕，无乱码，另外[Preferences -> Subtitles -> Subtitles -> Font and colors -> Font]默认值为Arial，在MPlayer中同样设为Arial，中文字幕仍为乱码，可见造成乱码的原因很可能是程序本身不支持UTF8编码的多字节字符。</p>
-
-<p>调整字幕延时：
-如果某句对白在字幕文件中的时间标记是13s，但在影片中应该在第32s出现，则在[SMPlayer -> Subtitles -> Set delay&hellip;]中的值应设为-19000，即字幕向后推迟19秒。</p>
-
-<p>搜索字幕：
-[SMPlayer -> Subtitles -> Find subtitles on Opensubtitles.org].
-或者安装subdownloader: <code>sudo aptitude install subdownloader</code>，但这样软件连接服务器速度很慢，不是很好用。</p>
-
-<p>使用amule(<code>sudo aptitude install amule</code>)也可以搜索到这部影片，但下载速度很慢。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/09/15/110702/">Run Spark Tasks on ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-09-15T11:07:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:07 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install</h1>
-
-<ol>
-<li><p>Install JDK: <code>sudo pacman -S jdk7-openjdk</code>;</p></li>
-<li><p>Download pre-build package (spark-1.1.0-bin-hadoop2.4.tgz) from <a href="http://spark.apache.org/">Apache Spark website</a>;</p></li>
-<li><p>Extract and add path: <code>tar xf spark-1.1.0-bin-hadoop2.4.tgz</code>;</p></li>
-</ol>
-
-
-<h1>Run Spark script</h1>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/09/12/103608/">Two Java Building Tools</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-09-12T10:36:08+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:36 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I need build a java project to compare performance of <a href="http://logging.apache.org/log4j/2.x/">apache log4j</a> and <a href="http://logback.qos.ch/">Logback</a>. The following codes are the building procedures based on [Gradle]<a href="http://www.gradle.org/">http://www.gradle.org/</a>) and <a href="http://www.scala-sbt.org/">sbt</a>.</p>
-
-<h1>sbt</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>mkdir myproject
-</span><span class='line'>cd myproject
-</span><span class='line'>cat &lt;&lt;EOF &gt; build.sbt
-</span><span class='line'>name := "MyProject"
-</span><span class='line'>
-</span><span class='line'>version := "0.1"
-</span><span class='line'>EOF
-</span><span class='line'>mkdir project
-</span><span class='line'>echo 'addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")' &gt; project/plugins.sbt
-</span><span class='line'>sbt eclipse</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Note that the blank line between &ldquo;name&rdquo; &amp; &ldquo;version&rdquo; in build.sbt is mandatory for Scala syntax.
-Now start eclipse, import this proect, create new packages (com.boco.logb) and Java files (LoggerOneThread.java) in &ldquo;src/main/java&rdquo; folder, and config files (log4j.properties and logback.xml) in src/resources folder.
-slf4j looks for log implementations based on jars in classpath instead of conifg files, so we add both 2 config files into resource folder.</p>
-
-<p>The LoggerOneThread.java file:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>package com.boco.logb;
-</span><span class='line'>
-</span><span class='line'>import java.util.concurrent.TimeUnit;
-</span><span class='line'>
-</span><span class='line'>import org.slf4j.Logger;
-</span><span class='line'>import org.slf4j.LoggerFactory;
-</span><span class='line'>
-</span><span class='line'>public class LoggerOneThread {
-</span><span class='line'>    public static final long TOTAL_TIMES = 4000 * 1000;
-</span><span class='line'>    private static final Logger logger = LoggerFactory
-</span><span class='line'>            .getLogger(LoggerOneThread.class);
-</span><span class='line'>
-</span><span class='line'>    public static void main(String[] args) {
-</span><span class='line'>        long start = System.nanoTime();
-</span><span class='line'>        for (int i = 1; i &lt; TOTAL_TIMES; i++) {
-</span><span class='line'>            logger.debug("This is a test message. This is another test message.");
-</span><span class='line'>        }
-</span><span class='line'>        long estimatedTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime()
-</span><span class='line'>                - start);
-</span><span class='line'>        System.out.println("Write " + TOTAL_TIMES + " logs takes time "
-</span><span class='line'>                + estimatedTime + " s.");
-</span><span class='line'>    }
-</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Log4j config file log4j.properties:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>log4j.rootLogger = DEBUG, FILE
-</span><span class='line'>
-</span><span class='line'>log4j.appender.FILE=org.apache.log4j.RollingFileAppender
-</span><span class='line'>log4j.appender.FILE.File=log4j.log
-</span><span class='line'>log4j.appender.FILE.Append=true
-</span><span class='line'>log4j.appender.FILE.MaxFileSize=50MB
-</span><span class='line'>log4j.appender.FILE.MaxBackupIndex=10
-</span><span class='line'>log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
-</span><span class='line'>log4j.appender.FILE.layout.ConversionPattern=%d{MM-dd HH:mm:ss.SSS} [%t] %p %c - %m%n</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Logback config file logback.xml:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-</span><span class='line'>&lt;configuration&gt;
-</span><span class='line'>
-</span><span class='line'>    &lt;appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
-</span><span class='line'>        &lt;file&gt;logback.log&lt;/file&gt;
-</span><span class='line'>
-</span><span class='line'>        &lt;rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy"&gt;
-</span><span class='line'>            &lt;fileNamePattern&gt;logback.log.%i&lt;/fileNamePattern&gt;
-</span><span class='line'>            &lt;minIndex&gt;1&lt;/minIndex&gt;
-</span><span class='line'>            &lt;maxIndex&gt;11&lt;/maxIndex&gt;
-</span><span class='line'>        &lt;/rollingPolicy&gt;
-</span><span class='line'>
-</span><span class='line'>        &lt;triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy"&gt;
-</span><span class='line'>            &lt;maxFileSize&gt;50MB&lt;/maxFileSize&gt;
-</span><span class='line'>        &lt;/triggeringPolicy&gt;
-</span><span class='line'>
-</span><span class='line'>        &lt;encoder&gt;
-</span><span class='line'>            &lt;pattern&gt;%date{MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n&lt;/pattern&gt;
-</span><span class='line'>        &lt;/encoder&gt;
-</span><span class='line'>    &lt;/appender&gt;
-</span><span class='line'>
-</span><span class='line'>    &lt;root level="DEBUG"&gt;
-</span><span class='line'>        &lt;appender-ref ref="FILE" /&gt;
-</span><span class='line'>    &lt;/root&gt;
-</span><span class='line'>
-</span><span class='line'>&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Add following dependencies into build.sbt.log4j:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
-</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
-</span><span class='line'>  "org.slf4j" % "slf4j-log4j12" % "1.7.7",
-</span><span class='line'>  "log4j" % "log4j" % "1.2.17"
-</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And the following into build.sbt.logback:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
-</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
-</span><span class='line'>  "ch.qos.logback" % "logback-classic" % "1.1.2",
-</span><span class='line'>  "ch.qos.logback" % "logback-core" % "1.1.2"
-</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now delete .classpath file under project home folder, run <code>sbt eclipse</code> again to refresh classpath.</p>
-
-<p>When coding completed, copy build.sbt.log4j (or build.sbt.logback) as build.sbt, run <code>sbt run</code> to run this project. Run <code>sbt package</code> to create jar file under target folder.</p>
-
-<p>Some other settings in build.sbt:</p>
-
-<pre><code>organization := "org.leechau"
-</code></pre>
-
-<h1>Gradle</h1>
-
-<ol>
-<li><p>Install gradle plugin for Eclipse, and create a Gradle Project &ldquo;MyProject&rdquo; in Eclipse, choose &ldquo;Java Quickstart&rdquo; as Sample project;</p></li>
-<li><p>Add following lines into auto-created build.gradle file for log4j test:</p>
-
-<pre><code> apply plugin: 'application'
- dependencies {
-     compile 'org.slf4j:slf4j-api:1.7.7', 'log4j:log4j:1.2.17', 'org.slf4j:slf4j-log4j12:1.7.7'
- }
- mainClassName = "com.boco.logb.LoggerOneThread"
+<pre><code> [multilib]
+ Include = /etc/pacman.d/mirrorlist
 </code></pre></li>
-<li><p>Refresh dependencies: [Gradle -> Refresh Dependencies] in context menu;</p></li>
-<li><p>Run log4j test:</p>
-
-<pre><code> cp build.gradle build.gradle.log4j
- gradle clean run
-</code></pre></li>
-<li><p>For logback test, create a new file build.gradle.logback based on build.gradle.log4j, but use the following dependencies:</p></li>
+<li><p>Install WPS: <code>yaourt -S wpsoffice</code>;</p></li>
+<li><p>Install printer drivers: <code>pacman -S libcups</code>;</p></li>
+<li><p>Install fonts: download wps-office_8.1.0.3724~b1p2_x86.tar.xz from WPS website, unpack it, run <code>./install_fonts</code>;</p></li>
+<li><p>Chinese input: <code>yaourt -S fcitx-wps</code>. Modify &ldquo;kingsoft-office&rdquo; with &ldquo;wpsoffice&rdquo; in pkgbuild file of fcitx-wps, because kingsoft-office doesn&rsquo;t exits now.</p></li>
 </ol>
 
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>compile 'org.slf4j:slf4j-api:1.7.7', 'ch.qos.logback:logback-classic:1.1.2', 'ch.qos.logback:logback-core:1.1.2'</span></code></pre></td></tr></table></div></figure>
+<p>Ref:</p>
 
+<p><a href="https://wiki.archlinux.org/index.php/multilib">Multilib on Arch Wiki</a></p>
 
-<p>The config files log4j.properties and logback.xml, and Java file LoggerOneThread.java are identical to that in sbt section.</p>
-
-<ol>
-<li><p>Run logback test:</p>
-
-<pre><code> cp build.gradle.logback build.gradle
- gradle clean run
-</code></pre></li>
-</ol>
-
-
-<h1>Eclipse Interface</h1>
-
-<p>How to creat Eclipse setting files (.classpath and .project) so that we can import this project into Eclipse, editing and debuging in it.</p>
-
-<p>For gradle, add <code>apply plugin: 'eclipse'</code> into build.gradle and run <code>gradle cleanEclipse eclipse</code>;</p>
-
-<p>For sbt, add <code>addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")</code> (for sbt 0.13) into $PROJECT_HOME/project/plugins.sbt, and run <code>sbt eclipse</code>;</p>
-
-<h1>Run Program</h1>
-
-<h2>gradle</h2>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
-</span><span class='line'>cp build.gradle.log4j build.gradle
-</span><span class='line'>gradle clean run
-</span><span class='line'>// run logback test
-</span><span class='line'>cp build.gradle.logback build.gradle
-</span><span class='line'>gradle clean run</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>sbt</h2>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
-</span><span class='line'>cp build.sbt.log4j build.sbt
-</span><span class='line'>sbt clean run
-</span><span class='line'>// run logback test
-</span><span class='line'>cp build.sbt.logback build.sbt
-</span><span class='line'>sbt clean run</span></code></pre></td></tr></table></div></figure>
-
-
-<p>If you have multiple main entry in source files, you can use &lsquo;runMain com.boco.logb.LoggerOneThread&rsquo; instead of &ldquo;run&rdquo; to run a specific program.</p>
-
-<h1>Conclusion</h1>
-
-<p>Gradle is mainly for building of Groovy and Java project, while sbt is mainly for building of Scala and Java project. So far Gradle has better support for building Java project.
-For example, it&rsquo;s very convenient to build production zip or tar files with Gradle&rsquo;s application plugin (via the &ldquo;distZip&rdquo; task), while there&rsquo;s no corresponding plugin in sbt.
-It&rsquo;s convenient to add or remove dependencies within Eclipse with the Gradle plugin of Eclipse (not the eclipse plugin of Gradle), while there&rsquo;s no sbt plugin of Eclipse (sbteclipse of typesafehub is a eclipse plugin of sbt). So we have to refresh build path of dependencies manually when developing a project in Eclipse created by sbt.</p>
+<p><a href="https://wiki.archlinux.org/index.php/WPS_Office">WPS Office on Arch Wiki</a></p>
 </div>
   
   
@@ -809,7 +222,7 @@ It&rsquo;s convenient to add or remove dependencies within Eclipse with the Grad
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/09/09/163500/">Package Repository Management on Ubuntu and Mint</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/10/16/154329/">Define Key Binding With Xbindkeys on Linux</a></h1>
     
     
       <p class="meta">
@@ -818,18 +231,262 @@ It&rsquo;s convenient to add or remove dependencies within Eclipse with the Grad
 
 
 
-<time class='entry-date' datetime='2014-09-09T16:35:00+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:35 pm</span></time>
+<time class='entry-date' datetime='2014-10-16T15:43:29+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:43 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ul>
-<li><p>Add repository: &lsquo;sudo apt-add-repository ppa:kernel-ppa/ppa`</p></li>
-<li><p>List all repositories: <code>ls /etc/apt/sources.list.d</code></p></li>
-<li><p>Remove repository: <code>sudo apt-add-repository --remove ppa:kernel-ppa/ppa</code>.
-If you can&rsquo;t get the ppa name, do it manually with <code>sudo rm /etc/apt/sources.list.d/theppa.list</code>.</p></li>
+  <div class="entry-content"><p>On ArchLinux:</p>
+
+<ol>
+<li><p>Install xbindkeys: <code>pacman -S xbindkeys</code> or <code>apt-get install xbindkeys</code>;</p></li>
+<li><p>Start xbindkeys when X startup: add &ldquo;xbindkeys&rdquo; <strong>before</strong> &ldquo;exec i3&rdquo; in ~/.xinitrc;</p></li>
+<li><p>Get a template: <code>xbindkeys -d &gt; ~/.xbindkeysrc</code>;</p></li>
+<li><p>Detect key definition: <code>xbindkeys -k</code>;</p></li>
+<li><p>Add output from last command to ~/.xbindkeysrc;</p></li>
+<li><p>Reload new configs: <code>pkill xbindkeys; xbindkeys</code>;</p></li>
+<li><p>Verify the setup.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<ul>
+<li><p><a href="https://wiki.archlinux.org/index.php/Xbindkeys">Xbindkeys</a></p></li>
+<li><p><a href="http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/">http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/</a></p></li>
+</ul>
+
+
+<p>In i3 on Ubuntu, install them with <code>sudo aptitude install xbindkeys xbacklight</code>. Others are the same.</p>
+
+<p>As an example,
+add the following lines into ~/.xbindkeysrc, to increase and decrease LCD brightness of Thinkpad T440p:</p>
+
+<pre><code>"xbacklight -dec 10"
+    XF86MonBrightnessDown
+
+"xbacklight -inc 10"
+    XF86MonBrightnessUp
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/15/084044/">Install Fcitx IM on ArchLinux and I3wm</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-15T08:40:44+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:40 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>After installation of i3wm complete, it&rsquo;s time for install Chinese input method for ArchLinux.</p>
+
+<pre><code>$ sudo pacman -S fcitx fcitx-im fcitx-ui-light fcitx-libpinyin fcitx-sunpinyin
+$ sudo pacman -S ttf-dejavu adobe-source-han-sans-otc-fonts
+$ cat .xinitrc
+...
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS="@im=fcitx"
+...
+$ sudo reboot
+</code></pre>
+
+<p>To verify, run <code>fcitx</code> in terminal, check if there is any warns or errors.
+Then run <code>fcitx-configtool</code>. If there isn&rsquo;t input methods under &ldquo;Input Method&rdquo; tab,
+run <code>sudo pacman -S fcitx-cloudpinyin fcitx-sunpinyin fcitx-googlepinyin fcitx-libpinyin</code>.</p>
+
+<p>Ref: <a href="https://wiki.archlinux.org/index.php/fcitx">Fcitx on Arch Wiki</a>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/13/104106/">Remove Linux From a Windows-Linux Dual-booting Computer</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-13T10:41:06+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:41 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I installed Linux Mint on Thinkpad T440p laptop. Now I need to remove the Linux from this computer.</p>
+
+<ol>
+<li><p>Download mbrfix.zip from &ldquo;Download&rdquo; channel on <a href="http://www.sysint.no/">sysint.no</a>.</p></li>
+<li><p>Login the Windows on the laptop, unzip mbrfix.zip, copy MbrFix.exe to C drive;</p></li>
+<li><p>Open a console as administrator, run <code>MbrFix /drive 0 fixmbr /win7 /yes</code>;</p></li>
+<li><p>Format Linux partition;</p></li>
+</ol>
+
+
+<p>Reboot, bingo.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/07/224855/">Dart Development on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-07T22:48:55+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:48 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Linux Mint 64bit</h1>
+
+<p>Today I tried Dart official tutorial <a href="https://www.dartlang.org/codelabs/darrrt/">Avast, Ye Pirates: Write a Web App</a>. When I run dartium in &ldquo;Step 1: Run the skeleton app&rdquo;, I met the following errors:</p>
+
+<blockquote><p>Could not launch browser - process terminated while trying to connect. Try closing and running Dartium instances.:
+Dartium stdout: /home/xxx/Apps/dart/chromium/chrome:error while loading share libraries: libudev.so.0: cannot open shared object file: No such file or directory</p></blockquote>
+
+<p>The official solution <a href="https://code.google.com/p/dart/wiki/PreparingYourMachine">PreparingYourMachine</a> on dart wiki is somewhat complicated.
+For I&rsquo;ve installed Chrome, there is a simple way to resolve this problem:</p>
+
+<pre><code>sudo ln -s /opt/google/chrome/libudev.so.0 /usr/lib/x86_64-linux-gnu/libudev.so.0
+</code></pre>
+
+<p>Verified on Linux Mint 17 x86_64.</p>
+
+<p>Notes:</p>
+
+<ul>
+<li><p>I met a &ldquo;404 not found&rdquo; error when install libudev-dev with aptitude.</p></li>
+<li><p>To install chrome, download google-chrome-stable_current_amd64.deb from <a href="https://www.google.com/chrome/">Chrome official website</a>.</p></li>
+</ul>
+
+
+<h1>ArchLinux</h1>
+
+<p>Download Dart complete bundle (darteditor-linux-x64.zip) on<a href="https://www.dartlang.org/">Dart website</a>.
+Extract it, and start dart editor with ./DartEditor.
+However, when running a dart project with &ldquo;Run in dartium&rdquo; context menu, an &ldquo;libgconf.so.4 no exist&rdquo; error raises.
+So we have to install dart sdk to provide this library file: <code>sudo pacman -S dart</code>.</p>
+
+<p>You can also install dart-editor and dartium from AUR:</p>
+
+<pre><code>yaourt -S dart-editor dartium-bin
+</code></pre>
+
+<p>But it&rsquo;s very slow.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/06/094327/">Config Environment Variables on Linux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-10-06T09:43:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:43 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>System-wide environment variables</h1>
+
+<p>Add global environment variables in file <strong>/etc/environment</strong>.
+This file is specifically meant for system-wide environment variable settings.
+It is <strong>not</strong> a script file, but rather consists of assignment expressions, one per line:</p>
+
+<pre><code>JAVA_HOME=/usr/lib/jvm/default-java
+</code></pre>
+
+<p>So do not add &ldquo;export&rdquo; before assignments. Variable expansion does <strong>not</strong> work in this file.</p>
+
+<h1>User specific environment variables</h1>
+
+<p>Add user level environment variables in file <strong>~/.zshenv</strong>. For example, to override system PATH:</p>
+
+<pre><code>export PATH=$HOME/apps/spark-1.0.2-bin-hadoop2/bin:$PATH
+</code></pre>
+
+<h1>User aliases setup</h1>
+
+<p>For bash there is a ~/.bash_aliases file, so we define aliases in this file, and load it in zsh with adding following codes into ~/.zshrc:</p>
+
+<pre><code>if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+</code></pre>
+
+<p>Some example in ~/.bash_aliases:</p>
+
+<pre><code>alias gst='git status'
+alias dn='$HOME/apps/dsnote/donshell.sh'
+</code></pre>
+
+<p>Refs:</p>
+
+<ul>
+<li><p><a href="https://help.ubuntu.com/community/EnvironmentVariables">EnvironmentVariables on UBUNTU wiki</a>.</p></li>
+<li><p><a href="https://wiki.archlinux.org/index.php/zsh">Zsh on ArchLinux Wiki</a>.</p></li>
+<li><p><a href="http://unix.stackexchange.com/questions/71253/what-should-shouldnt-go-in-zshenv-zshrc-zlogin-zprofile-zlogout">What should/shouldn&rsquo;t go in .zshenv, .zshrc, .zlogin, .zprofile, .zlogout?</a>.</p></li>
+<li><p><a href="http://stackoverflow.com/questions/663658/what-is-the-correct-target-for-the-java-home-envrionment-variable-for-a-linux-op">What is the correct target for the JAVA_HOME envrionment variable for a Linux OpenJDK debian-based distribution?</a>.</p></li>
 </ul>
 
 </div>
@@ -844,7 +501,7 @@ If you can&rsquo;t get the ppa name, do it manually with <code>sudo rm /etc/apt/
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/09/03/150610/">Build BVT System Based on Docker</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/10/04/112244/">Restart WIFI on Mint</a></h1>
     
     
       <p class="meta">
@@ -853,50 +510,21 @@ If you can&rsquo;t get the ppa name, do it manually with <code>sudo rm /etc/apt/
 
 
 
-<time class='entry-date' datetime='2014-09-03T15:06:10+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>3:06 pm</span></time>
+<time class='entry-date' datetime='2014-10-04T11:22:44+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:22 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>System: ArchLinux 64bit, IP address: 10.32.1.18.</p>
-
-<h1>Build</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>sudo docker -p 8080:8080 --name myjenkins jenkins</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now you can access <a href="http://10.32.1.18:8080">jenkins server</a> in browser.</p>
-
-<p>List running containers: <code>sudo docker ps</code> (so you can get the container&rsquo;s name for stoping and restarting later);</p>
-
-<p>Stop jenkins server: <code>sudo docker stop myjenkins</code>;</p>
-
-<p>Restart this server: <code>sudo docker start myjenkins</code>;</p>
-
-<h1>Backup and Restore</h1>
-
-<p>Backup image: <code>sudo docker save -o jenkins-docker.tar jenkins</code>;</p>
-
-<p>Restore image: <code>sudo docker load -i jenkins-docker.tar</code>;</p>
-
-<p>Backup container:</p>
+  <div class="entry-content"><p>On i3wm of Linux Mint, sometimes the wifi can&rsquo;t refresh automatically when available.
+Use following commands to refresh wifi connection manually:</p>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>(optional) sudo docker stop jenkins
-</span><span class='line'>sudo docker export myjenkins &gt; mybvt-system.tar
-</span><span class='line'>scp mybvt-system.tar chad@laptop:~/
-</span><span class='line'>ssh chad@laptop
-</span><span class='line'>cat mybvt-system.tar | sudo docker import - exampleimagelocal:new</span></code></pre></td></tr></table></div></figure>
+</pre></td><td class='code'><pre><code class=''><span class='line'>nmcli nm wifi off
+</span><span class='line'>nmcli nm wifi on</span></code></pre></td></tr></table></div></figure>
 
-
-<p>But where is the imported container?</p>
 </div>
   
   
@@ -909,7 +537,7 @@ If you can&rsquo;t get the ppa name, do it manually with <code>sudo rm /etc/apt/
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/09/03/111703/">Automount USB Disk on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/10/02/005047/">Clojure Web Development</a></h1>
     
     
       <p class="meta">
@@ -918,203 +546,57 @@ If you can&rsquo;t get the ppa name, do it manually with <code>sudo rm /etc/apt/
 
 
 
-<time class='entry-date' datetime='2014-09-03T11:17:03+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:17 am</span></time>
+<time class='entry-date' datetime='2014-10-02T00:50:47+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>12:50 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>ArchLinux</h1>
+  <div class="entry-content"><h1>Paredit</h1>
 
-<p>Install: <code>sudo pacman -S udiskie</code>;</p>
+<p><a href="http://www.emacswiki.org/ParEdit">ParEdit</a>, a.k.a. &ldquo;structured editing&rdquo;, is some special editing operations for S-expression coding, like Lisp or Clojure. Mainstream IDEs all have support for paredit.</p>
 
-<p>Start service: run <code>udiskie &amp;</code> manually when system startup, or add &ldquo;udiskie &amp;&rdquo; into ~/.xinitrc;</p>
+<h2>Eclipse</h2>
 
-<p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
+<p>Install clojure IDE plugin <a href="https://code.google.com/p/counterclockwise/">counterclockwise</a>. It&rsquo;s default shortcuts is listed in <a href="http://doc.ccw-ide.org/keyboard-shortcuts.html">Editor Keyboard Shortcuts</a>;</p>
 
-<h2>Unmount USB disk</h2>
+<h2>Cursive</h2>
 
-<p>Create an executable script in /usr/local/bin:</p>
-
-<pre><code>$ cat /usr/local/bin/unmount
-#!/bin/sh
-
-# Global variables
-TITLE="Unmount Utility"
-COLUMNS=3 # TARGET,SOURCE,FSTYPE
-#IFS=$'\n'
-
-# Populate list of unmountable devices
-deviceList=($(findmnt -Do TARGET,SOURCE,FSTYPE | grep -e "sd[b-z]"))
-deviceCount=$((${#deviceList[@]} / $COLUMNS))
-
-# Start of program output
-echo $TITLE
-
-# Display list of devices that can be unmounted
-for ((device=0; device&lt;${#deviceList[@]}; device+=COLUMNS))
-do
-  printf "%4s)   %-25s%-13s%-10s\n"\
-    "$(($device / $COLUMNS))"\
-    "${deviceList[$device]}"\
-    "${deviceList[$(($device + 1))]}"\
-    "${deviceList[$(($device + 2))]}"
-done
-
-printf "%4s)   Exit\n" "x"
-
-# Get input from user
-read -p "Choose a menu option: " input
-
-# Input validation
-if [ "$input" = "X" ] || [ "$input" = "x" ]
-then
-  echo "Exiting"
-  exit 0
-fi
-
-if (( $input&gt;=0 )) &amp;&amp; (( $input&lt;$deviceCount ))
-then
-  echo "Unmounting: ${deviceList[$(($input * $deviceCount))]}"
-  sudo umount "${deviceList[$(($input * $deviceCount))]}"
-  exit 0
-else
-  echo "Invalid menu choice"
-  exit 1
-fi
-$ chmod 755 /usr/local/bin/unmount
-</code></pre>
-
-<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
-See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a> for details.
-Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
-
-<p>See <code>man udiskie</code> for more information.</p>
-
-<h1>Mint</h1>
-
-<p>Install: <code>sudo aptitude install udevil</code>;</p>
-
-<p>Start service: run <code>devmon</code> in dmenu when system startup, or add &ldquo;devmon &amp;&rdquo; into ~/.xsession;</p>
-
-<p>After plug USB key into computer, it will be automount to /media folder.
-If you do not startup devmon in background, you can run <code>devmon -a</code> to mount the USB key.</p>
-
-<p>Run <code>devmon -c</code> to unmount the USB key.</p>
-
-<p>See <code>man devmon</code> for more information.</p>
-
-<h1>Difference between .xinitrc and .xsession:</h1>
-
-<p>If you startup your system with <a href="https://wiki.archlinux.org/index.php/display_manager">display manager</a>, where you get a graphical login screen, it will read ~/.xsession.
-In case of you startup your system without display manager and login to shell, startup i3 (or other wm) with <code>startx</code>, then the <a href="http://en.wikipedia.org/wiki/Xinit">xinit</a> program will read ~/.xinitrc;</p>
-
-<p>See <a href="https://unix.stackexchange.com/questions/47359/what-is-xsession-for">What is “.xsession” for?</a> for details.</p>
-
-<p>See <a href="https://wiki.archlinux.org/index.php/Arch_boot_process">Arch boot process</a> for how Getty manage login process in system boot process.</p>
-</div>
-  
-  
+<ul>
+<li>Cursive: install IntelliJ and Cursive plugin, see default shortcuts definition at <a href="https://cursiveclojure.com/userguide/paredit.html">Structural editing</a>;</li>
+</ul>
 
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/30/104928/">Docker Notes</a></h1>
-    
-    
-      <p class="meta">
-        
+<h1>REPL for Ring Application</h1>
+
+<p>Say the application name is &ldquo;guestbook&rdquo; (based on &ldquo;Web Development with Clojure&rdquo; by Dmitri Sotnikov).</p>
+
+<h2>Eclipse</h2>
+
+<p>The counterclockwise plugin need to be installed beforehand.</p>
+
+<ol>
+<li><p>Build a new &ldquo;Clojure Project&rdquo; with name &ldquo;guestbook&rdquo;, set &ldquo;Leiningen template&rdquo; as &ldquo;compojure-app&rdquo;;</p></li>
+<li><p>Open guestbook.routes.home.clj, and run menu item [Clojure -> Load file in REPL];</p></li>
+<li><p>In REPL window (the window title is &ldquo;REPL @ nrepl://127.0.0.1:xxxx(guestbook.routes.home)&rdquo;, run (use &lsquo;guestbook.repl) and (start-server), you can use Ctrl+Up/Down to navigate in command history;</p></li>
+<li><p>See homepage with url &ldquo;<a href="http://localhost:8080">http://localhost:8080</a>&rdquo;;</p></li>
+<li><p>Modify codes, refresh web page to see the result. If this doesn&rsquo;t work, close the REPL window and restart server;</p></li>
+</ol>
 
 
+<h2>Cursive</h2>
+
+<ol>
+<li><p>In terminal: <code>lein new compojure-app mybook</code>;</p></li>
+<li><p>In Cursive, import &ldquo;mybook&rdquo; via &ldquo;Import Project&rdquo;, choose &ldquo;Leiningen&rdquo; for &ldquo;Import project from external model&rdquo;;</p></li>
+<li><p>Open &ldquo;Terminal&rdquo; window in Cursive, run <code>lein repl</code>, (use &lsquo;guestbook.repl) and (start-server);</p></li>
+<li><p>See homepage with url &ldquo;<a href="http://localhost:8080">http://localhost:8080</a>&rdquo;;</p></li>
+<li><p>Modify codes, refresh web page to see the result. If this doesn&rsquo;t work, restart server in &ldquo;Terminal&rdquo; window;</p></li>
+</ol>
 
 
-<time class='entry-date' datetime='2014-08-30T10:49:28+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:49 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Mint</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># sudo aptitude update
-</span><span class='line'># sudo aptitude install docker.io aufs-tools cgroup-lite apparmor-utils
-</span><span class='line'># sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
-</span><span class='line'># sudo sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
-</span><span class='line'># docker run ubuntu:14.04 echo 'hello ubuntu'
-</span><span class='line'># docker version
-</span><span class='line'>Client version: 0.9.1
-</span><span class='line'>Go version (client): go1.2.1
-</span><span class='line'>Git commit (client): 3600720
-</span><span class='line'>Server version: 0.9.1
-</span><span class='line'>Git commit (server): 3600720
-</span><span class='line'>Go version (server): go1.2.1
-</span><span class='line'>Last stable version: 1.2.0, please update docker</span></code></pre></td></tr></table></div></figure>
-
-
-<h1>ArchLinux</h1>
-
-<p>Docker is only available on X86_64 repository so far.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'># pacman -S docker
-</span><span class='line'># systemctl enable docker
-</span><span class='line'># systemctl start docker
-</span><span class='line'># docker run ubuntu:14.04 echo 'hello world'
-</span><span class='line'># docker run -i -t ubuntu:14.04 /bin/bash
-</span><span class='line'># lsb_release -a
-</span><span class='line'>Distributor ID: Ubuntu
-</span><span class='line'>Description: Ubuntu 14.04.1 LTS
-</span><span class='line'>Release: 14.04
-</span><span class='line'>Codename: trusty
-</span><span class='line'># exit
-</span><span class='line'># docker version
-</span><span class='line'>Client version: 1.2.0
-</span><span class='line'>Go version (client): go1.3.1
-</span><span class='line'>OS/Arch (client): linux/amd64
-</span><span class='line'>Server version: 1.2.0
-</span><span class='line'>Server API version: 1.14
-</span><span class='line'>Go version (server): go1.3.1</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So you can see at least for now Docker is much newer and easy to use on Arch than on Mint (Ubuntu).
-If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relogin, you will find the &ldquo;tree&rdquo; command disappeared.</p>
+<p>Note: I&rsquo;ve tried <a href="http://www.lighttable.com/">Light Table</a>. It can open the guestbook project created by leiningen, but can&rsquo;t connect to it. So I give it up, and use Eclipse instead.</p>
 </div>
   
   
@@ -1139,23 +621,23 @@ If you install &ldquo;tree&rdquo; with apt-get in the container, logout and relo
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a>
+        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a>
+        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a>
+        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a>
+        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a>
+        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>
