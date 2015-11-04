@@ -9,9 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="1 将VIM脚本写在一个文本文件中，扩展名任意，一般就用txt，例如保存在f盘根目录下：f:\ex.txt；
-2 在VIM中用:so（:source的简写）命令运行之：:so f:\ex.txt。 脚本文件中的注释以英文的双引号（"）起始。
-">
+  <meta name="description" content="实现托盘程序的快捷键激活要用到 Hoekey 的两个功能：显示窗口类名和 Show 命令。 1 、取得目标窗口的类名 在 Hoekey 中定义： ~@T= MsgBox|%t: %l|show window name and class|10 在目标窗口为活动窗口的情况下按 win+alt+T ， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +65,206 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/07/16/144147/">用Hoekey实现托盘程序的快捷键激活</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-07-16T14:41:47+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:41 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>实现托盘程序的快捷键激活要用到 Hoekey 的两个功能：显示窗口类名和 Show 命令。
+ 1 、取得目标窗口的类名
+ 在 Hoekey 中定义：
+ ~@T= MsgBox|%t: %l|show window name and class|10
+ 在目标窗口为活动窗口的情况下按 win+alt+T ，显示出窗口的类名（ %l ），记下来；
+ 2 、用 Show 命令显示这个窗口
+ 在 Hoekey 中定义：
+ 快捷键 = Show| 目标窗口类名，例如下面的是用 ctrl+shift+t 激活 MSN 程序：
+ _^T = Show|MSBLWindowClass
+ Show 命令只能显示被 Hoekey 的 Hide 命令隐藏的窗口，因此还要再定义：
+ ~right=Hide||1  ; 当前窗口隐藏到系统托盘
+ 对于 MSN 、 Outlook 这个的程序本身就会在托盘区显示图标，再显示一个不好看，因此可以将 Hide 命令的第二个参数设为 2 ，这个被隐藏的程序就彻底消失了，只能用 Hoekey 的Show命令激活。
+ 另： Hoekey 的详细使用文档是 Hoekey 安装文件目录的 hoekey.htm 文件。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/07/16/144025/">用VIM修改《红太阳是怎样升起的》</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-07-16T14:40:25+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:40 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>高华的大作：《红太阳是怎样升起的：延安整风运动的来龙去脉》原始文本是从 PDF  文件导出的 TXT  文件，需要改为手机上阅读比较方便的格式，下面是修改过程。<br/>
+ 提取处理文本
+ 从全文（见附件）中提取一节，篇幅不宜超过十页，否则处理它用的时间太长，例如第一章第一节“一、「农民党」、「军党」和毛泽东的「书记独裁」问题”。拷贝到 VIM  中。
+ 删除脚注
+ 删除每页下面的脚注，找到行首的“①”后手工删除相关段落，用 /^  ①查找目标；
+ 删除页码
+ 目标文本：
+ 人闻名于中共，其活动基本上也是围绕军事武装……
+           10
+ &mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash; Page 11&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;
+ 的一个侧面。中共中央认为毛的理论观点仍……
+ 步骤 1  ：寻找前面至少 38  个空格，后面是数字的行删除之： :g/^\s{38,}\d*/d
+ 步骤 2  ：寻找 23  个连字符后面一个空格接 Page  的行删除之： :g/^-{23}\sPage/d
+ 标出标题
+ 手工寻找标题所在行，在标题头插入 <P>  ，用宏可提高效率；
+ qa  （大写 i  插入行首） <P>  （ ESC  ），以后找到标题行后 @a  即可；
+ 标出段落
+ 前面有 4  个空格的行，将 4  个空格替换为 <P>  ： :%s/^\s{4}/<P>/g
+ 合并行
+ 将所有文本合为一行： nJ  ，命令中 n  是总行数 -1
+ 清除所有空格
+ :%s/\s+//g
+ 将段落标志 <P>  替换为回车
+ :%s/<P>/\r/g</p>
+
+<p> 至此文本的处理就完毕了，用博文“第一行为文件名保存的文件的实现方法（ VIM 版）”中介绍的方法定义一个快捷键，将处理好的文本存为一个单独的文件，用 notepad++ 转为 UTF-8 格式（带 BOM ）后放入手机中。</p>
+
+<p> 附：处理脚本1
+ &ldquo;标出脚注，在脚注文本前面加<P>
+%s/^[①②③④⑤⑥⑦⑧⑨]\s\S+/<P>&amp;/g
+"删除页码
+g/^\s{10,}\d<em>\s</em>/d
+"将页开始行替换为<P>
+%s/^-{23}\sPage.<em>$/<P>/g
+"标出各种标题，在标题文本前面加<P>
+%s/^\s</em>第.{1,2}章/<P>&amp;、/g
+%s/^\s<em>[一二三四五六七八九十]\s/<P>&amp;，/g
+%s/^\s</em>[一二三四五六七八九十]、/<P>&amp;/g
+%s/^\s<em>\d、/<P>&amp;/g
+"标出段落
+%s/^\s{4}/<P>/g
+"将所有文本合为一行
+1,$j!
+"清除所有空格
+%s/\s+//g
+"将段落标志替换为回车
+%s/<P>/\r/g
+ 处理脚本2（脚本1在手机上看效果欠佳，且脚本运行需要比较长的时间）
+ "delete all blank lines
+g/^\s</em>$/d
+"标出脚注，在脚注文本前面加空行
+%s/^[①②③④⑤⑥⑦⑧⑨]\s\S+/\r&amp;/g
+"删除页码
+g/^\s{10,}\d<em>\s</em>/d
+"将页开始行替换为空行
+%s/^-{23}\sPage.<em>$/\r/g
+"标出各种标题，在标题文本前面加空行
+%s/^\s</em>第.{1,2}章/\r\r&amp;、/g
+%s/^\s<em>[一二三四五六七八九十]\s/\r&amp;，/g
+%s/^\s</em>[一二三四五六七八九十]、/\r&amp;/g
+%s/^\s*\d、/\r&amp;/g
+"标出段落
+%s/^\s{4}/\r/g
+ 将以上内容保存到F:\toMobile.txt中，用:so f:\toMobile.txt运行之。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/07/16/142741/">VIM正则表达式的懒惰模式</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-07-16T14:27:41+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>例如有如下一段话：
+Another whale sighting occurred on <January 26>, <2004>. <B>AK</B> and <B>HI</B>
+要匹配每一个&lt;&hellip;>，如果用&lt;.<em>>匹配，则匹配到的目标是<January 26>, <2004>，也就是尽量大的匹配范围，要将匹配模式改为尽量小（即懒惰模式），需要用{-}代替</em>，即写成&lt;.{-}>，就可以达到目标了。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/07/15/141959/">远程连接Unix服务器的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-07-15T14:19:59+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:19 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在 SecureCRT 中“快速连接”下：【协议】： SSH2 ，【主机名】： 10.0.2.47 ，【端口】： 22 ，【防火墙】：无，【用户名】： boco ，密码： bocogodu ；
+ 服务器上常用的 Unix 命令
+ uname –a ：显示当前操作系统信息；
+ ls ：显示当前路径下文件；
+ pwd ：显示当前路径；
+ ps –ef|grep godu ：搜索所有包含 godu 的活动进程；
+ clear ：清空屏幕；
+ kill：终止进程；</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -597,300 +795,6 @@ From UML 2.0 Superstructure Final Adopted Specification:
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/06/13/114321/">Hoekey使用笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-06-13T11:43:21+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:43 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>非常好的一款系统快捷键定制软件（名字是Hoekey而不是Hotkey），压缩包只有20多KB，功能却很强大。 所有的快捷键定义在hoekey.ini文件中，以下是几个常用的例子： =Rem|&ndash; 我的定义 &ndash;
-~P = Run|e:\MyDoc\PKM2\PKManager.exe ;启动某一程序
-~Z = Wait|1000
- = Msg|Progman|274|61808|2 ; 关闭显示器
-~3 = Transparency ; Set current window to be
-~4 = AlwaysOnTop ; transparent and on top 从上面的例子可以看出，如果要快捷键执行一系列动作，顺次写在等号后面即可。关闭显示器之所以要先有一个等待的动作，是因为如果不等待，快捷键本身会使屏幕重新启动。Hoekey定义了很多“关键字”，这些关键字的含义见[1]，完整的说明文档见Hoekey软件文档（安装目录下的hoekey.htm文件）或者网站（ <a href="http://www.bcheck.net/apps/hoekey.htm">http://www.bcheck.net/apps/hoekey.htm</a> ）。 注意不要使用~R、~D、~E这些windows默认的快捷键，否则Hoekey会报错。 参考文献[1]： <a href="http://hi.baidu.com/ly055442/blog/item/e69ebacec3b4453db600c885.html">http://hi.baidu.com/ly055442/blog/item/e69ebacec3b4453db600c885.html</a>
- Hoekey文档中文译文 标准格式：
-键位=动作|选项1|选项2|选项3|选项4|选项5 ; 功能描述 辅助键代号：
-~ = WIN键
-_ = Shift键
-^ = Ctrl键
-@ = Alt键 例如： ~@G = win + Alt +G 动作列及参数：
-新建窗口动作：Run, RunDialog, MsgBox, Input, Apps</p>
-
-<p> Run
-格式：Run|程序路径|窗口运行方式|等待|运行目录
-·程序路径后的参数（路径[空格]参数）：
-%s = 当前选中的文本内容.
-%S = 当前选中的文本内容(URL)
-%c = 当前所在目录, %d = 当前盘符
-%i = hoekey ini 文件
-%t = 当前窗口标题</p>
-
-<p> %l = 当前窗口类 （这个参数在处理窗口的很多命令中都会用到，如Hide/Unhide/Show等，可用 ~@T = MsgBox|%t #!!# %l|show window name and class|10 获得当前窗口的类名）</p>
-
-<p>%u = 最近一次 Input 动作的结果
-%U = 最近一次 Input 动作的结果(URL)
-%f = 当前日期
-%g = 当前时间 (无秒)
-%h = 当前时间 (有秒)
-·窗口运行方式： 0 = 普通模式； 2 = 最小化； 3 = 最大化
-·等待： 1 = 退出后继续运行； 2 = 只运行一个实例
-·运行目录： 运行程序所在的目录环境, % 参数一样适用
-特殊举例：用记事本打开当前选中的文字，自动生成“选中文字.txt”，并且以窗口最大化方式打开记事本。</p>
-
-<p> ~N=Run|notepad.exe %s|3 RunDialog
-格式：RunDialog|运行目录
-打开Windows的运行对话框 MsgBox
-格式：MsgBox|文本|标题|延时
-特殊举例： 按一下快捷键，弹出窗口显示当前年月日时分秒，并在弹出5秒后自动关闭。 <em>^T=MsgBox|%f %h|现在时间|5 Input
-格式：Input|文本|标题|延时|参数
-特殊举例：打开一个输入框，输入关键字后，调用GreenBrowser的Google引擎搜索这个关键字，输入框文本是“Google
-搜索”，对话框标题是“wuchang测试Google搜索”，延时5秒后自动确定。 ~I=Input|Google 搜索:|wuchang测试Google搜索|5|%u
-=Run|”C:\GreenBrowser\GreenBrowser.exe” “ <a href="http://www.google.com/search?q=%u">http://www.google.com/search?q=%u</a> “ Apps
-格式：Apps|0=显示被隐藏的应用程序（默认）, 1=显示全部
-显示被hoekey隐藏的应用程序列表
-特殊举例：显示内存中所有应用程序的列表，双击某个应用程序名称后，立即显示该应用程序。 ~</em>F4=Apps|1 特殊举例：如果需要按下一组快捷键，同时打开多个应用程序，比如这样： <em>@R=Run|C:\APP\1.exe =Run|C:\APP\2.exe 当前窗口动作： Move, MoveRel, Center, AlwaysOnTop, Transparency, Hide, Unhide,
-UnhideAll, Show, Editify, Kill Move
-格式：Move|窗口类|左间距|上间距|宽度|高度
-按你设定的大小和桌面位置，放置当前的应用程序窗口
-特殊举例： 将当前程序窗口 靠左50 靠上50，宽度500，高度500的位置放置 ~</em>V=Move||50|50|500|500 MoveRel
-格式：MoveRel|窗口类|左|上|宽|高
-微调修改窗口大小和位置
-特殊举例：将当前窗口宽度+10像素，高度-10像素 ~^8=MoveRel||||10|-10 Center
-格式：Center|窗口类|无宽度或高度定义
-在桌面上置中当前窗口
-无宽度或高度定义: 1 = 垂直； 2 = 水平
-特殊举例：一般置中 ~^V=Center 特殊举例：垂直置中 ~^V=Center||1 AlwaysOnTop
-格式：AlwaysOnTop|窗口类
-将当前窗口强制总在最前面
-特殊举例：设定Win+T后当前窗口总在最前 ~T=AlwaysOnTop Transparency
-格式：Transparency|窗口类|透明度(0-100)
-设置窗口透明度
-特殊举例：将记事本窗口透明度调为50% @T=Transparency|记事本|50 Hide
-格式：Hide|窗口类|1 = 缩小到系统托盘； 2 = 完全隐藏
-特殊举例：将当前应用程序窗口缩小的系统托盘 ~H=Hide||1 Unhide
-格式：Unhide|窗口类
-特殊举例：显示最近通过hoekey隐藏的应用程序窗口 ~U=Unhide UnhideAll
-格式：UnhideAll
-特殊举例：显示所有被hoekey隐藏的应用程序 ~A=UnhideAll Show
-格式：Show|窗口类
-特殊举例：未知 Editify
-格式：Editify
-特殊举例：可让所有应用程序中的文本（标题栏、状态栏，输入框等位置）抓取下来并列表，方便你将他们复制到剪贴板，这个功能不错。 ~Y=Editify Kill
-格式：Kill
-特殊举例：不用多说，一个快捷键便可杀进程。 ~K=Kill 超能： Keys
-格式：Keys|按键|间隔时间
-\s:shift down
-\S:shift up
-\c:control down
-\C:control up
-\a:alt down
-\A:alt up
-\w:win down
-\W:win up \z:right mouse button/context menu
-\n:回车
-\t:tab
-\l:left
-\k:right
-\u:up
-\d:down
-\h:home
-\e:end
-\i:insert
-\x:delete
-\b:backspace
-\p:escape
-%s will be replaced with current selection.
-%c will be replaced with current directory, %d with current drive
-%i = hoekey ini file
-%t = current window title, %l = current window class
-%u = results of last Input function
-%f = current date
-%g = current time (no seconds)
-%h = current time (seconds)
-%% for a %
-Also environment strings will be expanded, e.g. %temp%, %path%, %os% ^~K=Keys|\x\d\h\h ^~K=Keys|\z\d\d\k\|3000 Volume
-格式：Volume|音量数值(0-100)
-特殊举例：设定音量为50% _~7=Volume||70 Wait
-格式：Wait|毫秒
-特殊举例：通过快捷键打开Becky（最大化），等待3秒后，自动启动FreePops。 ~B=Run|c:\becky\becky.exe|3 =Wait|3000 =Run|c:\FreePops\FreePopsd.exe Eject
-格式：Eject|驱动器盘符|锁定=0； 打开=1, 关闭=2
-特殊举例：弹出h:光驱 ~K=Eject|h: HoeKey 系统功能 Config
-弹出设置窗口（严格说是命令列表窗口） TrayIcon
-格式：TrayIcon|打开=1, 关闭=0|系统托盘图标上的浮动提示
-特殊举例：运行HoeKey之后自动显示托盘图标，提示为HoeKey Start=TrayIcon|1|HoeKey HotKeys
-格式：HotKeys|打开=1, 关闭=0
-特殊举例：关闭Hoekey的所有快捷键 ~0=HotKeys|0| Reload
-格式：Reload|文件路径|添加=1
-特殊举例：将另一个配置文件 user2.ini 的内容添加到当前配置文件中 ~R=Reload|user2.ini|1 Rem
-格式：Rem|命名描述
-特殊举例：这是在配置列表里添加一个类别名称，比如“我的快捷键”,可以将自己设定的快捷键放在这行下面。 =Rem|我的快捷键 特殊动作 Config
-格式：Config=动作|自定…
-特殊举例：在点击Hoekye的config按钮后，同时执行以上某一个动作 Start
-格式：Start=动作|自定…
-特殊举例：就像上面的打开Hoekey系统托盘图标一样，可以将一个命令放在Start行，那么Hoekey启动后会自动执行这个动作。比如弹出一个消息框，写“欢迎回来”，5秒后自动关闭消息。 Start=MsgBox|欢迎回来！||5 Load
-格式：Load=动作|自定…
-特殊举例：当设置功能打开后自动执行一个动作，比如弹出一个消息提示框提示自己。 还有一些针对特殊软件的功能键，或者一些键盘多媒体键等，HoeKey都有所考虑，并在其帮助文件中详细列出了，如果有特殊需要可以参考一下那里。
-HoeKey作为一个快捷键工具，简单的操作方式就是这样，只要设定好了，会带来很多的便利。
-学习使用，身体健康。 附1： Msg|Progman|793|0|655360 ; Volume +
-Msg|Progman|793|0|589824 ; Volume -
-Msg|Progman|793|0|524288 ; Volume mute
-Msg||274|61488 ; 最大化
-Msg||274|61472 ; 最小化
-Msg||274|61728 ; 还原
-Msg||274|61536 ; 关闭
-Msg|0|274|61760 ; 启动屏幕保护 ~F4=Wait|1000
-=Msg|Progman|274|61808|2 ; 关闭显示器 附2： Msg|Winamp v1.x|273|40044 ; Winamp: prev
-Msg|WMPlayerApp|793|0|786432 ; WMP - prev
-Msg|TTPlayer_PlayerWnd|273|32005 ; TTplayer - prev Msg|Winamp v1.x|273|40045; Winamp: play
-Msg|WMPlayerApp|793|0|851968; WMP - Stop
-Msg|TTPlayer_PlayerWnd|273|32002 ; TTplayer - stop Msg|Winamp v1.x|273|40046 ; Winamp: pause
-Msg|WMPlayerApp|793|0|917504; WMP - Pause
-Msg|TTPlayer_PlayerWnd|273|32001 ; TTplayer - Pause/play Msg|Winamp v1.x|273|40048 ; Winamp: next
-Msg|WMPlayerApp|793|0|720896 ; WMP - next
-Msg|TTPlayer_PlayerWnd|273|32006 ; TTplayer - next</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/06/04/110230/">Eclipse带参数调试的方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-06-04T11:02:30+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:02 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面是体现带参数调试的一个代码demo，首先输出参数的数量，然后依次输出每个参数。
-public class ArgsEx {
- public static void main(String[] args) {
- int argNum = args.length;
- System.out.println(&ldquo;args number is = &rdquo;+argNum);
- for (int i = 0; i &lt; args.length; i++) {
- System.out.println(args[i]);
- }
- }
-}
-在Eclipse主菜单【Run->Debug Configurations】下，首先根据自己的工程类型（一般是Java Application）新建一个"New Launch Configuration"，右边面板上首先设置这个configuration的名字（Name），【Main】标签页下设置要调试的工程和main函数的位置（一般就是默认给出的），【Arguments】标签页下的【Program Arguments】下写上参数，如果有多个参数，每行写一个。【Run】菜单下的【Debug Configurations】和【Run Configurations】是互相联系的，二者保持一致，即在Debug Configurations中修改会导致Run Configurations做同样的变化。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/05/31/114226/">更改默认的SVN用户</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-05-31T11:42:26+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2010</span></span> <span class='time'>11:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>删除C:\Documents and Settings[用户名]\Application Data\Subversion\auth\svn.simple下所有文件，再次登录后输入新的用户名密码即可。 SVN登录信息：lichao1, aba&hellip;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/05/28/110522/">Mina学习笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-05-28T11:05:22+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:05 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>1 Mina 在客户端和服务端的工作流程是什么？
- 1.1 客户端通信过程
- 1. 通过 SocketConnector 同服务器端建立连接
- 2. 链接建立之后 I/O 的读写交给了 I/O Processor 线程， I/O Processor 是多线程的
- 3. 通过 I/O Processor 读取的数据经过 IoFilterChain 里所有配置的 IoFilter ， IoFilter 进行消息的过滤，格式的转换，在这个层面可以制定一些自定义的协议
- 4. 最后 IoFilter 将数据交给 Handler 进行业务处理，完成了整个读取的过程
- 5. 写入过程也是类似，只是刚好倒过来，通过 IoSession.write 写出数据，然后 Handler 进行写入的业务处理，处理完成后交给 IoFilterChain ，进行消息过滤和协议的转换，最后通过 I/O Processor 将数据写出到 socket 通道
- 2 IoAcceptor 与 IoConnector 的区别是什么？
- 2.1 Acceptor
- 作为服务器端的连接接受者， SocketAcceptor 用来监听端口，同客户端建立连接，连接建立之后的 I/O 操作全部交给 IoProcessor 进行处理
- IoAcceptor acceptor = new NioSocketAcceptor();
- acceptor.bind( new InetSocketAddress(PORT) );
- 2.2 Connector
- 作为连接客户端， SocketConector 用来和服务器端建立连接，连接成功，创建 IoProcessor Thread （不能超过指定的 processorCount ）， Thread 由指定的线程池进行管理， IoProcessor 利用 NIO 框架对 IO 进行处理，同时创建 IoSession 。连接的建立是通过 Nio 的 SocketChannel 进行。
- NioSocketConnector connector = new NioSocketConnector(processorCount);
- ConnectFuture future = connector.connect(new InetSocketAddress(HOSTNAME, PORT)); 建立一个 I/O 通道
- 3 IoService 与 IoSession 的区别是什么？
- IoSession 是用来保持 IoService 的上下文，一个 IoService 在建立 Connect 之后建立一个 IoSession （一个连接一个 session ）， IoSession 的生命周期从 Connection 建立到断开为止。
- IoSession 做两件事情：
- 1. 通过 IoSession 可以获取 IoService 的所有相关配置对象 ( 持有对 IoService ， Processor 池， SocketChannel ， SessionConfig 和 IoService.IoHandler 的引用 )
- 2. 通过 IoSession.write 是数据写出的入口</p>
-
-<p> 详见： jjvv 在 javaeye 上的博文： MINA 原理
- <a href="http://www.javaeye.com/topic/599925">http://www.javaeye.com/topic/599925</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/113">&larr; Older</a>
@@ -908,23 +812,23 @@ public class ArgsEx {
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

@@ -9,9 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="参考 给表增加一个字段的SQL怎写？
-alter table add &lt;字段名> &lt;数据类型> default primary key
-">
+  <meta name="description" content="颜色控制符 现象 Telnet发送ls指令收到的目录名（此目录名为2.1，用粗体标出）： [00m[01;34m 2.1 [00m 对应的原始字节流是（16进制）： 1b 5b 30 30 6d 1b 5b 30 31 3b 33 34 6d 32 2e 31 1b 5b 30 30 6d 解释 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +65,322 @@ alter table add &lt;字段名> &lt;数据类型> default primary key
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/19/144550/">关于ansi转义序列控制符</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-19T14:45:50+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:45 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>颜色控制符</h1>
+
+<h2>现象</h2>
+
+<p>Telnet发送ls指令收到的目录名（此目录名为2.1，用粗体标出）：</p>
+
+<p> <ESC>[00m<ESC>[01;34m 2.1 <ESC>[00m</p>
+
+<p>对应的原始字节流是（16进制）：</p>
+
+<p> 1b 5b 30 30 6d 1b 5b 30 31 3b 33 34 6d 32 2e 31 1b 5b 30 30 6d</p>
+
+<h2>解释</h2>
+
+<p>这些正文前后奇怪的字符序列是 ANSI escape sequence ，也就是为了在 字符终端 （俗语所云的“命令行窗口”）上显示控制格式、字体颜色等东西，由 ANSI 制定的，服务器发送给 终端 的字符序列定义，例如下图中为了区别文件和目录，服务器将文件名的颜色设为白色，而将目录名（Desktop）设为蓝色，</p>
+
+<p> 终端收到原始报文</p>
+
+<p> anaconda-ks.cfg<SPACE><SPACE><ESC>[00m<ESC>[01;34mDesktop<ESC>[00m<SPACE><SPACE>install.log</p>
+
+<p>后，按照ANSI标准解释其中的转义序列，再形成我们看到的不同颜色。这个标准中关于字体颜色定义部分叫做SGR( Select Graphic Rendition )，格式是：</p>
+
+<p> CSI code_num m</p>
+
+<p>其中CSI( Control Sequence Introducer ，这里是 <ESC>[ )是控制符起始标志，code_num是字体颜色代号（详见ansi escape code的 SGR parameters 一节中对代码30~37的说明），可以是单一代码，也可以是用分号分隔的多个代码，其中00表示关闭所有颜色选项（可以理解为“复位”），01表示“亮色”，34表示“蓝色”，所以上图的原始报文可以翻译为：</p>
+
+<p> anaconda-ks.cfg &lt;颜色初始化>&lt;亮色、蓝色>Desktop&lt;颜色初始化> install.log</p>
+
+<p>下面是一个"ls -l"命令的结果截图和对应的原始ASCII码，其中字体颜色有：蓝色（30+4），红色（30+1），绿色（30+2）以及绿色背景（40+2）；</p>
+
+<p> drwxr-xr-x 2 godu boco  4096 2011-04-15 <ESC>[01;34maaa111<ESC>[00m
+drwxr-xr-x 4 godu boco  4096 2011-03-03 <ESC>[01;34maatest<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco  4899 2011-06-14 <ESC>[00mcrc32.c<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco  579 2011-06-14 <ESC>[00mcrc32 oracle.txt<ESC>[00m
+drwxr-xr-x 4 godu boco  4096 2011-05-11 <ESC>[01;34mGoduDb_test<ESC>[00m
+-rw&mdash;&mdash;- 1 godu boco 2836280 2011-05-11 <ESC>[01;31mGoduDb_test.zip<ESC>[00m
+drwxr-xr-x 7 godu boco  4096 2011-04-28 <ESC>[01;34mGODU-platform<ESC>[00m
+drwxr-xr-x 7 godu boco  4096 2010-12-20 <ESC>[01;34mGODU-platform_bak5-6<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 56420261 2011-05-06 <ESC>[01;31mGODU-platform-V2.1_P2_20110506.tar.gz<ESC>[00m
+-rwxr-xr-x 1 godu boco  7652 2011-06-14 <ESC>[01;32mlibcrc32.so<ESC>[00m
+drwxr-xr-x 60 godu boco  4096 2011-05-06 <ESC>[01;34mterracotta<ESC>[00m
+drwxrwxrwx 13 godu boco  4096 2011-02-16 <ESC>[34;42mterracotta-2.7.2<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 58982400 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar<ESC>[00m
+-rw-r&ndash;r&ndash; 1 godu boco 49970439 2011-02-16 <ESC>[01;31mterracotta-2.7.2.tar.gz<ESC>[00m</p>
+
+<h1>光标定位和擦除屏幕</h1>
+
+<p>屏幕绘制方面的主要有“指定光标位置”（CSI n;m H）和“擦除显示”两类，后者包括“擦除屏幕”（CSI n J）和“擦除行”（CSI n K）两小类，参数用法见 wiki对CSI Codes的说明 ，其中“擦除行”被用于用户输入退格键（Backspace）的处理，当用户（client）向server发送退格键（0x08）时，server返回的是"08 1b 5b 4b"，也就是"Backspace <ESC>[K"，其中Backspace使光标向前一个字符，"<ESC>[&ldquo;是转义字符起始标志（CSI），"CSI K"表示擦除光标到行尾的所有内容。</p>
+
+<p>下面是一个mina server的handler的sessionOpened方法，使用了CSI5;5H和CSI2J，客户端连入这个server的效果如下图：</p>
+
+<p>  @Override
+ public void sessionOpened(IoSession session) {
+  byte[] aes = { 0x1b, 0x5b, 0x35, 0x3b, 0x35, 0x48, 0x1b, 0x5b, 0x32,
+   0x4a, 0x1b, 0x5b, 0x30, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x34,
+   0x3b, 0x34, 0x32, 0x6d, 0x32, 0x2e, 0x31, 0x1b, 0x5b, 0x30,
+   0x30, 0x6d };
+  String aesStr = new String(aes);
+  session.write(aesStr);
+  System.out.println(aesStr);
+ }</p>
+
+<p><ESC>(B: Set to US ASCII character set(see &ldquo; VT100 ESC sequences "for detail);</p>
+
+<h1>设置窗口标题（Set Window Title）</h1>
+
+<p>用putty登录10.0.2.47的23端口，收到的原始报文如下（用Wireshark抓包）：</p>
+
+<p>\033]0;godu@goduserver:~\007[godu@goduserver ~]$</p>
+
+<p>可以看到登录成功后窗体标题变了，原因就是上面的“\033]0;&hellip;\007”造成的；</p>
+
+<p>参考：<a href="https://wiki.archlinux.org/index.php/Color_Bash_Prompt">Color Bash Prompt</a></p>
+
+<h1>切换屏幕</h1>
+
+<p>&ldquo;\033[?1049h"和&rdquo;\033[?1049l"分别是切换到新屏幕和切换回来，演示程序见笔记 演示切换屏幕控制序列的程序 。</p>
+
+<p>参考：<a href="https://groups.google.com/forum/?fromgroups=#!topic/vim_use/8NorwlYFHVQ">Alternate screen buffer in Xterm/FreeBSD </a>和<a href="http://www.digipedia.pl/usenet/thread/16656/2297/">DECSC in tmux vs xterm</a></p>
+
+<h1>光标显示/隐藏</h1>
+
+<p>&ldquo;\033[?25h"和&rdquo;\033[?25l"分别是显示和隐藏光标；</p>
+
+<h1>模式</h1>
+
+<p>Normal和Application模式的区别见<a href="http://ttssh2.sourceforge.jp/manual/en/usage/tips/appkeypad.html">Cursor key mode</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/15/093417/">用Wireshark分析Telnet交互过程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-15T09:34:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:34 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Windows系统下
+用XShell作为Telnet客户端连接47服务器，整个过程可以用Wireshark（验证版本：1.6.5）完整地记录下来。</p>
+
+<p>Wireshark->Capture->Interface中设置要监视的网卡；</p>
+
+<p>Wireshark->Capture->Options->Capture Filter后写要监控的目标主机IP地址，这里写： host 10.0.2.47 ；</p>
+
+<p>Wireshark->Capture->Start；</p>
+
+<p>启动XShell连接47：Xshell:> telnet 10.0.2.47 ；</p>
+
+<p>Wireshark将显示整个交互过程（见下图），可以看到主界面分为3部分，上面按时间顺序列出了每次交互的数据包（packet）；中间是这个数据包的详细内容，第一层Frame 14（xx层？）是xxx，第二层Ethernet II（链路层）主要由源和目标主机的网卡（Mac）地址组成，用ifconfig -a(Linux)或者ipconfig /all(windows)可以验证，第3层（网络层）是IP协议报头，主要包括源和目标的IP地址等，第4层（传输层）是TCP协议报头，主要包括源和目标的端口号、包序列号等，第5层（应用层）是Telnet数据；主界面的下部是此数据包的具体内容，以16进制显示。</p>
+
+<p>连接后首先进行选项协商，然后传输数据，下面以“是否回显”为例详细说明协商过程，图中10.0.2.47是Telnet Server，10.32.1.56是Client。</p>
+
+<p>第14步S要求C回显：ff fd 01，即IAC DO ECHO（见上图）；</p>
+
+<p>第17步C回答S客户端不回显：ff fc 01，即IAC WONT ECHO；</p>
+
+<p>第19步S通知C服务端将回显：ff fb 01，即IAC WILL ECHO；</p>
+
+<p>第20步C同意服务端回显：ff fd 01，即IAC DO ECHO；</p>
+
+<p>选项协商中各种搭配的具体含义参见“ The Telnet Protocol ”；</p>
+
+<p>更改XSehll窗口尺寸引起的window size negotiation：</p>
+
+<p>ff fa 1f 00 62 00 1b ff f0，即IAC SB 31(Options: Window Size) 98 27 IAC SE</p>
+
+<p>转换为Telnet语句：</p>
+
+<p>Suboption Begin: Negotiate About window size</p>
+
+<p>Width: 98 Height: 27</p>
+
+<p>Command: Suboption End</p>
+
+<p>命令行用法</p>
+
+<p>C:\Program Files\Wireshark>tshark -D
+1. \Device\NPF<em>{4DF0B9FD-57A8-43FC-9EC9-354B454E475D} (VMware Virtual Ethernet Adapter)
+2. \Device\NPF</em>{CA8CAD23-7ADD-4F2B-8A77-1E9E6810FE38} (Broadcom NetLink &trade; Gigabit Ethernet Driver)
+3. \Device\NPF_{53720D33-0B96-48DB-A977-07A0EC43F65B} (VMware Virtual Ethernet Adapter)</p>
+
+<p>tshark -f &ldquo;host 10.0.2.47&rdquo; -i 2 -c 20 -w myfile</p>
+
+<p>用wireshark打开myfile</p>
+
+<p>用tshark -F可以看到snoop好像是可以在solaris上打开的输入监控文件格式
+ Linux下
+47上目前的操作系统是Red Hat Enterprise Linux Server release 5.4，安装tshark需要 libsmi-0.4.5-2.el5.x86_64.rpm 和 wireshark-1.0.15-1.el5_6.4.x86_64.rpm 两个包，安装过程很简单，首先将这个包上传到47上，然后执行：</p>
+
+<p> rpm -ivh libsmi-0.4.5-2.el5.x86_64.rpm</p>
+
+<p> rpm -ivh wireshark-1.0.15-1.el5_6.4.x86_64.rpm</p>
+
+<p> verify:</p>
+
+<p> [root@goduserver tool]# whereis tshark
+tshark: /usr/sbin/tshark /usr/share/man/man1/tshark.1.gz</p>
+
+<p> rpm包下载站点： pkgs.org ，备用站点： <a href="http://rpm.pbone.net/">http://rpm.pbone.net/</a></p>
+
+<p>获取网卡列表：</p>
+
+<p>[root@goduserver tool]# tshark -D
+1. eth3
+2. &hellip;</p>
+
+<p> 获取监测数据：</p>
+
+<p>[root@goduserver help]# tshark -i eth3 -w myoutput host 10.32.1.59</p>
+
+<p>普通用户权限不够无法进行监测：</p>
+
+<p>[godu@goduserver ~]$ tshark -i eth3 host 10.32.1.59</p>
+
+<p>Capturing on eth3</p>
+
+<p>tshark: The capture session could not be initiated (socket: Operation not permitted)&hellip;</p>
+
+<p>读取监测数据：</p>
+
+<p>[root@goduserver tool]# tshark -r myoutput -x -V</p>
+
+<p>将监测数据保存为文本：</p>
+
+<p>[root@goduserver tool]# tshark -r myoutput -x -V > mytxt</p>
+
+<p>或者将myoutput下载到PC上用Wireshark分析；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/12/162305/">Red Hat Enterprise上安装Telnet服务</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-12T16:23:05+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:23 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Red Hat Enterprise默认只提供ssh和sftp服务，没有提供telnet和ftp服务，安装过程是：</p>
+
+<ol>
+<li><p>用sftp上传telnet server安装包：telnet-server-0.17-39.el5.x86_64.rpm；</p></li>
+<li><p>使用root用户运行： rpm -ivh telnet*.rpm （普通用户安装会出现"can’t create transaction lock on&hellip;&ldquo;错误）-ivh中，i=install, v=Print verbose information, h=print hash marks；</p></li>
+</ol>
+
+
+<p>2.1 安装前可以用 rpm -qpi telnet*.rpm 查看安装包的内容，参数含义：q=query, p=query an (uninstalled) package,i=display package information；</p>
+
+<ol>
+<li><p>修改/etc/xinetd.d/telnet，将"disable=yes"改为"disable=no"；</p></li>
+<li><p>重启xinetd： service xinetd restart （telnet服务进程由xinetd管理）。</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/12/111312/">Win7中开启Telnet Server</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-03-12T11:13:12+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:13 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>控制面板->程序->打开或关闭Windows功能，勾选【Telnet服务器】；运行【服务】（开始搜索框中输入services.msc）中将"Telnet"设为手工启动；</p></li>
+<li><p>（此步似乎可不做？）【登录】标签页中选【此账户】，然后键入 NT AUTHORITY\LocalService，密码置空；</p></li>
+<li><p>创建一个新的标准用户client（控制面板->用户账户和家庭安全->用户账户->管理账户->创建一个新账户），密码telnetclient；</p></li>
+<li>运行secpol.msc（本地安全策略）; 打开本地策略->安全选项，找到网络访问&ndash;本地账户的共享和安全模型，右击属性，选择【经典】；</li>
+<li>本地用户和组（运行lusrmgr.msc）管理界面中，【组 -> TelnetClients】（如果没有TelnetClients组则创建之），将client用户加入到此组中：
+验证：用XShell/SecureCRT运行： telnet localhost ，看是否能连上；
+以后需要使用Telnet服务时运行services.msc找到Telnet服务启动即可。</li>
+</ol>
+
+
+<p>参考： win7环境下telnet完整配置与测试</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -311,234 +625,6 @@ alter table <table_name> add &lt;字段名> &lt;数据类型> default <default_v
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/23/192521/">移动窗口的ahk脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-23T19:25:21+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>7:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>有的程序启动后标题栏在桌面之外，造成程序窗口显示不全，而且无法拖动窗口改变位置，这时候无敌的autohotkey又可以大显身手了：</p>
-
-<p>首先看任务栏得到这个窗口的标题（这里假设为 YTubePlayer ），然后写如下脚本：</p>
-
-<p> SetTitleMatchMode, 2</p>
-
-<p> WinMove, YTubePlayer, , 20, 20</p>
-
-<p>这样窗口就移动到能够拖拽和更改大小的位置了。运行脚本的方法有两种，一是存为.ahk文件后双击运行（前提是已经将ahk与autohotkey进行了后缀关联），而是安装 SciTE4AutoHotkey ，在这个编辑器里写好脚本后直接F5运行即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/23/144902/">Ldap服务器配置记录</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-23T14:49:02+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>1 Server</p>
-
-<p>使用OpenDS-2.2.1.zip。</p>
-
-<p>1.1 on Windows</p>
-
-<p>解压后运行$LDAP_HOME/setup.bat，会出现一个图形安装界面，使用默认值即可。</p>
-
-<p>管理工具在$LDAP_HOME/bat/control-panel.bat，也是图形界面，可以开启或者停止ldap服务；</p>
-
-<p>1.2 Server on Linux</p>
-
-<p>由root用户解压后运行$LDAP_HOME/setup（因为ldap默认绑定389端口，而linux/unix要求小于1024的端口只能由管理员使用）。</p>
-
-<p>2 Client</p>
-
-<p>Windows客户端是LdapBrowser，解压后运行其中的lbe.bat即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/22/170003/">MIT/GNU Scheme 笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-22T17:00:03+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Edwin是MIT/GNU Scheme安装包附带的一个文本编辑器，似乎是Emacs的一个变体；</p>
-
-<p>Evaluate a expression in Edwin: c-x, c-e;
-Quit Edwin: c-x, c-c;</p>
-
-<p>挂起Edwin返回到Scheme REPL模式：c-x, z（松开ctrl之后按z）</p>
-
-<p>Quit MIT/GNU Scheme: (exit)</p>
-
-<p>启动MIT/GNU Scheme REPL模式的ahk快捷键定义：</p>
-
-<p>^!s:: Run, &ldquo;C:\Program Files\MIT-GNU Scheme\bin\mit-scheme.exe&rdquo; &ndash;library &ldquo;C:\Program Files\MIT-GNU Scheme\lib&rdquo; ; Start MIT/GNU Scheme</p>
-
-<p>注：c-x表示同时按住ctrl和x键；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/09/140940/">GODU连接SSH网元的日志分析</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-09T14:09:40+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以下比较了登录密码正确和错误时日志的相同和不同之处。正常连接过程的日志：</p>
-
-<p> [INFO] [2012-02-09 13:56:39,067] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 管理模式，下发命令:cn id=1830753227]
-[DEBUG] [2012-02-09 13:56:39,071] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 13:56:39,074] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,075] [com.boco.godu.framework.command.CommandOpenne,984] - [NEID:1830753227;Channels:[channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]]
-[INFO] [2012-02-09 13:56:39,075] [com.boco.godu.framework.command.CommandOpenne,759] - [get channelid:52318885]
-[INFO] [2012-02-09 13:56:39,076] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] FOUND ID:52318885]
-[DEBUG] [2012-02-09 13:56:39,077] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 13:56:39,079] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] ==================PreOccupy the NE=================]
-[DEBUG] [2012-02-09 13:56:39,079] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] NEID:1830753227;;channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]
-[INFO] [2012-02-09 13:56:39,080] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 没有配置登录脚本]
-[INFO] [2012-02-09 13:56:39,080] [com.boco.godu.framework.ConnectorFactory,44] - [connecting ne with protocal:SSH]
-[INFO] [2012-02-09 13:56:39,081] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] Begin to Connection NE,10.0.2.47:22&hellip;&hellip;&hellip;&hellip;..]
-[INFO] [2012-02-09 13:56:39,081] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 开始连接网元awaitUninterruptibly127.0.0.1:8900]
-[DEBUG] [2012-02-09 13:56:39,082] [com.boco.godu.adapter.telnet.TelnetConnectorHandler,150] - [create session:10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;76]
-[INFO] [2012-02-09 13:56:39,083] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] SessionOpen,add 10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;76to sessionMap]
-[DEBUG] [2012-02-09 13:56:39,086] [org.apache.velocity.runtime.log.Log4JLogChute,168] - [ResourceManager : found com/boco/godu/adapter/proxy/internalPojo.vm with loader org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader]
-[INFO] [2012-02-09 13:56:39,093] [com.boco.godu.adapter.proxy.ssh.SshProxy,116] - [ssh client try to connect:10.0.2.47@22]
-[INFO] [2012-02-09 13:56:39,238] [com.boco.godu.adapter.proxy.ssh.SshProxy,136] - [SSH-2.0-OpenSSH_4.3&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-]
-[INFO] [2012-02-09 13:56:39,242] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] [OpenNe] Connect 10.0.2.47:22 completed!]
-[DEBUG] [2012-02-09 13:56:39,244] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step1, get NE Name]
-[DEBUG] [2012-02-09 13:56:39,244] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 2,Configure timeout]
-[INFO] [2012-02-09 13:56:39,245] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] [OpenNe] step 3, Terminal status fine]
-[DEBUG] [2012-02-09 13:56:39,245] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,247] [com.boco.godu.adapter.manager.ManagerMap,105] - [event:CONNECTION]
-[INFO] [2012-02-09 13:56:39,248] [com.boco.godu.common.util.GlobalUtil,430] - [get current platform:10_0_2_47&amp;&amp;1234&amp;&amp;0&amp;&amp;73]
-[DEBUG] [2012-02-09 13:56:39,248] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,249] [com.boco.godu.common.util.GlobalUtil,441] - [delete local or preoccupied ne:10_0_2_47&amp;&amp;1234&amp;&amp;0&amp;&amp;73]
-[DEBUG] [2012-02-09 13:56:39,250] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 4, remove the preoccupied ne]
-[DEBUG] [2012-02-09 13:56:39,250] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 5, config command status]
-[DEBUG] [2012-02-09 13:56:39,251] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 6,Config timeout]
-[INFO] [2012-02-09 13:56:39,251] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter LOGIN_ENDFLAG_FILTER; Class =com.boco.godu.adapter.filter.LoginEndFlagFilter]
-[INFO] [2012-02-09 13:56:39,252] [com.boco.godu.framework.command.CommandOpenne,1175] - [add connector EndFlag :>|&lt;|#|\$|%]
-[DEBUG] [2012-02-09 13:56:39,252] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 7,Config login_endflag_filter]
-[INFO] [2012-02-09 13:56:39,253] [com.boco.godu.adapter.manager.ManagerMap,105] - [event:NESUBSCRIBE]
-[DEBUG] [2012-02-09 13:56:39,253] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 8, establish pub/sub relation]
-[DEBUG] [2012-02-09 13:56:39,253] [com.boco.godu.common.util.IoSessionHelper,72] - [(0x0000004C: nio socket, client, /127.0.0.1:58043 => /127.0.0.1:8900) send 0 to messageReceive for cached bufferas buffer:2Last login: Thu Feb 9 13:55:24 2012 from goduserver
-]
-[INFO] [2012-02-09 13:56:39,254] [com.boco.godu.framework.command.CommandSetEndFlag,137] - [设置命令结束:vendor_id=1;ne_type=200;version=07B]
-[INFO] [2012-02-09 13:56:39,255] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter ChineseByteFilter; Class =com.boco.godu.adapter.filter.ChineseByteFilter]
-[INFO] [2012-02-09 13:56:39,255] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter ENDFLAGFILTER; Class =com.boco.godu.adapter.filter.CmdOverFilter]
-[DEBUG] [2012-02-09 13:56:39,255] [com.boco.godu.framework.commandover.CommandOverUtils,118] - [begin verify cmdover status by ne_type=200;version=07B;vendor_id=1]
-[DEBUG] [2012-02-09 13:56:39,256] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=1]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=1 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=2]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=2 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=3]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=3 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=4]
-[DEBUG] [2012-02-09 13:56:39,259] [com.boco.godu.framework.commandover.CommandOverUtils,129] - [END COMMAND OVER STATUS=4]
-[DEBUG] [2012-02-09 13:56:39,259] [com.boco.godu.framework.command.CommandSetEndFlag,202] - [命令结束表达式：{}]
-[DEBUG] [2012-02-09 13:56:39,279] [com.boco.godu.adapter.proxy.ssh.GODUSSHChannelEventListener,34] - [ssh channel receive:[91, 103, 111, 100, 117, 64, 103, 111, 100, 117, 115, 101, 114, 118, 101, 114, 32, 126, 93, 36, 32]as String:[godu@goduserver ~]$ ]
-[INFO] [2012-02-09 13:56:39,284] [com.boco.godu.adapter.filter.LoginEndFlagFilter,50] - [found login mark]
-登录密码错误时连接过程的日志： [INFO] [2012-02-09 14:00:08,073] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 管理模式，下发命令:cn id=1830753227]
-[DEBUG] [2012-02-09 14:00:08,077] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 14:00:08,078] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 14:00:08,078] [com.boco.godu.framework.command.CommandOpenne,984] - [NEID:1830753227;Channels:[channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]]
-[INFO] [2012-02-09 14:00:08,079] [com.boco.godu.framework.command.CommandOpenne,759] - [get channelid:52318885]
-[INFO] [2012-02-09 14:00:08,079] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] FOUND ID:52318885]
-[DEBUG] [2012-02-09 14:00:08,080] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 14:00:08,081] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] ==================PreOccupy the NE=================]
-[DEBUG] [2012-02-09 14:00:08,082] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] NEID:1830753227;;channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]
-[INFO] [2012-02-09 14:00:08,082] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 没有配置登录脚本]
-[INFO] [2012-02-09 14:00:08,083] [com.boco.godu.framework.ConnectorFactory,44] - [connecting ne with protocal:SSH]
-[INFO] [2012-02-09 14:00:08,083] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] Begin to Connection NE,10.0.2.47:22&hellip;&hellip;&hellip;&hellip;..]
-[INFO] [2012-02-09 14:00:08,084] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 开始连接网元awaitUninterruptibly127.0.0.1:8900]
-[DEBUG] [2012-02-09 14:00:08,085] [com.boco.godu.adapter.telnet.TelnetConnectorHandler,150] - [create session:10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79]
-[INFO] [2012-02-09 14:00:08,086] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] SessionOpen,add 10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79to sessionMap]
-[DEBUG] [2012-02-09 14:00:08,088] [org.apache.velocity.runtime.log.Log4JLogChute,168] - [ResourceManager : found com/boco/godu/adapter/proxy/internalPojo.vm with loader org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader]
-[INFO] [2012-02-09 14:00:08,098] [com.boco.godu.adapter.proxy.ssh.SshProxy,116] - [ssh client try to connect:10.0.2.47@22]
-[INFO] [2012-02-09 14:00:09,863] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] 关闭与网元的连接,返回到命令模式]
-[INFO] [2012-02-09 14:00:09,863] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] ====================Close NE routing information=======================10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79]
-[DEBUG] [2012-02-09 14:00:09,863] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[WARN] [2012-02-09 14:00:15,595] [com.boco.godu.adapter.proxy.facade.ConnectorMonitorThread,25] - [proxy id=5d1d1a0b-aa1c-4a94-8a1d-3aade8327313 is not alive,destroy it]
-二者比较可知，不同之处主要发生在“ ssh client try to connect:10.0.2.47@22 ” 这行日志后，正常的连接过程后面是：“ SSH-2.0-OpenSSH_4.3&mdash;&mdash;&mdash;&mdash;- ”，如果密码错误则后面的日志是“ 关闭与网元的连接,返回到命令模式 ”。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/86">&larr; Older</a>
@@ -556,23 +642,23 @@ Quit Edwin: c-x, c-c;</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

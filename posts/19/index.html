@@ -9,9 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Add repository: &lsquo;sudo apt-add-repository ppa:kernel-ppa/ppa`
-List all repositories: ls /etc/apt/sources.list.d
-Remove repository: sudo apt-add &hellip;">
+  <meta name="description" content="Today I bought a new hard disk, and tried to install xen on it. Install Base ArchLinux Start computer with USB key, choose x86_64, NBD;
+This is not &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +66,592 @@ Remove repository: sudo apt-add &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/17/215227/">Xen on ArchLinux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-17T21:52:27+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Today I bought a new hard disk, and tried to install xen on it.</p>
+
+<h1>Install Base ArchLinux</h1>
+
+<ol>
+<li><p>Start computer with USB key, choose x86_64, NBD;</p></li>
+<li><p>This is not UEFI boot: an error raised when <code>efivar -l</code>;</p></li>
+<li><p>Install system:</p>
+
+<p> # rmmod tg3
+ # modprobe broadcom
+ # modprobe tg3
+ # systemctl stop dhcpcd.service
+ # dhcpcd enp2s0
+ # sgdisk &ndash;zap-all /dev/sda
+ # cgdisk /dev/sda
+ // choose GPT partitions type, /dev/sda1: 50G, /dev/sda2: 300G, 581G free
+ # mkfs.ext4 /dev/sda1
+ # mkfs.ext4 /dev/sda2
+ # mount /dev/sda1 /mnt
+ # mkdir /mnt/home
+ # mount /dev/sda2 /mnt/home
+ # vi /etc/pacman.d/mirrorlist
+ # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>   // add the ip into &ldquo;allow&rdquo; list tinyproxy.conf
+ # pacstrap -i /mnt base base-devel
+ # genfstab -U -p /mnt >> /mnt/etc/fstab
+ # vi /etc/locale.gen
+ # locale-gen
+ # echo LANG=en_US.UTF-8 > /etc/locale.conf
+ # export LANG=en_US.UTF-8
+ # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime
+ # hwclock &ndash;systohc &ndash;utc
+ # echo xenserver > /etc/hostname
+ # vi /etc/hosts
+ # systemctl enable <a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#111;&#x3a;&#100;&#x68;&#x63;&#x70;&#x63;&#x64;&#x40;&#101;&#110;&#x70;&#x32;&#115;&#48;&#x2e;&#x73;&#101;&#x72;&#x76;&#105;&#x63;&#101;">&#100;&#104;&#99;&#x70;&#99;&#100;&#64;&#101;&#110;&#x70;&#50;&#115;&#48;&#x2e;&#x73;&#101;&#x72;&#x76;&#105;&#99;&#101;</a>
+ # passwd
+ # export http_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # export https_proxy=<a href="http://10.32.1.154:8888">http://10.32.1.154:8888</a>
+ # pacman -S openssh
+ # systemctl enable sshd.service
+ # pacman -S gptfdisk            // use syslinux boot loader for GPT installed previously
+ # pacman -S syslinux
+ # syslinux-install_update -iam
+ # vi /boot/syslinux/syslinux.cfg    // modify sda3 to sda1 in &ldquo;APPEND root=/dev/sda3&rdquo;
+ # exit
+ # reboot</p></li>
+</ol>
+
+
+<h1>Customize System</h1>
+
+<p>After reboot, login as root and run:</p>
+
+<pre><code># useradd -m chad
+# passwd chad
+# passwd -l root     // disable root login, use can remove this by `sudo passwd -u root`
+# export http_proxy=http://10.32.1.154:8888
+# export https_proxy=http://10.32.1.154:8888
+# pacman -Syu
+# pacman -S xorg-server xorg-server-utils xorg-xinit i3 dmenu xf86-video-intel terminator ttf-dejavu firefox
+# su - chad
+$ echo exec i3 &gt; ~/.xinitrc
+$ startx
+</code></pre>
+
+<h1>Install Xen</h1>
+
+<p>First make sure the host can access internet, then enable multilib repository, uncomment following lines in /etc/pacman.conf:</p>
+
+<pre><code>[multilib]
+Include = /etc/pacman.d/mirrorlist
+</code></pre>
+
+<p>Install yaourt, see note &ldquo;Yaourt Notes&rdquo; for details. Then run <code>yaourt -S xen</code>. If failed, install it manually:</p>
+
+<p>Download xen.tar.gz, and run:</p>
+
+<pre><code>tar xf xen.tar.gz
+cd xen
+makepkg
+sudo pacman -U xen-4.4.1-1-x86_64.pkg.tar.xz
+</code></pre>
+
+<p>Config network:</p>
+
+<pre><code># cd /etc/netctl
+# cp examples/bridge xenbridge-dhcp
+# vi xenbridge-dhcp
+# netctl start xenbridge-dhcp
+# brctl show
+# netctl enable xenbridge-dhcp
+</code></pre>
+
+<p>Config services:</p>
+
+<pre><code>sudo systemctl enable xenstored.service
+sudo systemctl enable xenconsoled.service
+sudo systemctl enable xendomains.service
+</code></pre>
+
+<p>Config boot loader. Add following stanza to /boot/syslinux/syslinux.cfg:</p>
+
+<pre><code>LABEL xen
+    MENU LABEL Xen
+    KERNEL mboot.c32
+    APPEND ../xen-4.4.1.gz --- ../vmlinuz-linux console=tty0 root=/dev/sda1 ro --- ../initramfs-linux.img
+</code></pre>
+
+<p>And make sure there is a &ldquo;mboot.c32&rdquo; file in folder /boot/syslinux, or you have to copy it:
+<code>cp /usr/lib/syslinux/bios/mboot.c32 /boot/syslinux/</code>.</p>
+
+<p>Note: If there is file conflicting errors, use <code>sudo pacman -U --force xen-4.4.1-1-x86_64.pkg.tar.xz</code> to install it.</p>
+
+<p>Reboot, choose &ldquo;Xen&rdquo; at boot screen, then run <code>sudo xl list</code> (list all xen domains), you can see a &ldquo;Domain-0&rdquo; item.
+If you boot with ArchLinux, run <code>sudo xl list</code> will report an error.</p>
+
+<h1>Install Guest OS on Xen</h1>
+
+<p>See <a href="http://wiki.xen.org/wiki/Xen_Configuration_File_Options#Disk_Devices">Xen Configuration File Options</a> for full syntax of xen domU config files.</p>
+
+<h2>CentOS 6.5 minimal</h2>
+
+<h3>PV</h3>
+
+<p>Not succeed yet. Maybe we should use CentOS as dom0 system.</p>
+
+<pre><code>$ mkdir ~/docs/cloud60
+$ cd ~/docs/cloud60
+$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
+$ mkfs.ext4 cloud60.img
+$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
+$ cat cloud60.conf      // ???
+$ sudo xl create -c cloud60.conf
+</code></pre>
+
+<h3>HVM</h3>
+
+<pre><code>$ sudo pacman -S mesa-libgl bluez-libs tigervnc
+$ mkdir ~/docs/cloud60
+$ cd ~/docs/cloud60
+$ dd if=/dev/zero of=cloud60.img bs=1M count=10240
+$ mkfs.ext4 cloud60.img
+$ sudo mount -o loop CentOS-6.5-x86_64-minimal.iso /mnt
+$ cat cloud60.conf
+name = "hvmcentos"
+builder = "hvm"
+memory = 1024
+disk = [ "file:/home/chad/docs/cloud60/cloud60.img,xvda,w", "file:/home/chad/warez/CentOS-6.5-x86_64-minimal.iso,xvdb:cdrom,r" ]
+vif = ["bridge=xenbr0"]
+vnc = 1
+vnclisten = "0.0.0.0"
+vncdisplay = 1
+
+$ sudo xl create cloud60.conf
+$ sudo xl vncviewer hvmcentos
+</code></pre>
+
+<p>Or you can use <code>vncviewer localhost:5901</code> to connect to the guest OS, here the &ldquo;1&rdquo; in &ldquo;5901&rdquo; is determined by the value of &ldquo;vncdisplay&rdquo; in guest OS config file.
+After connecting to the guest OS, install system, then reboot and connect it with vncviewer again.
+You can use xl&rsquo;s subcommands &ldquo;list&rdquo;, &ldquo;top&rdquo; and &ldquo;info&rdquo; to probe domU systems.</p>
+
+<h1>Using Xen</h1>
+
+<p>Based on <a href="https://wiki.archlinux.org/index.php/Xen">Xen on Arch Wiki</a>.</p>
+
+<p>Use Debian as dom0: <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide#Installing_the_Xen_Project_Software">Xen Project Beginners Guide</a>;</p>
+
+<p>Use CentOS as dom0: <a href="http://wiki.centos.org/HowTos/Xen/Xen4QuickStart">Xen4 CentOS6 QuickStart</a>;</p>
+
+<p>Use Ubuntu as dom0: <a href="https://help.ubuntu.com/community/Xen">Xen in Ubuntu Community</a>;</p>
+
+<p>Other patterns see <a href="http://wiki.xenproject.org/wiki/Category:Guest_Install">Guest Install</a>;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/17/094859/">在Linux上播放带中文字幕的电影</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-17T09:48:59+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:48 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天从<a href="https://kickass.to/">Kickass</a>上下载了黄秋生1996年主演的电影“伊波拉病毒”(Ebola Syndrome)，粤语版听不懂，于是想下载中文字幕，Windows上的射手播放器可以自动下载字幕，Linux上貌似没有这么好用的播放器，于是从<a href="http://shooter.cn/">射手网</a>上下载了字幕文件，用<code>iconv -f gbk -t utf8 ebola_chs.srt</code>将编码转为utf8，然后<code>sudo aptitude install mplayer</code>安装了MPlayer，发现无法正常播放中文字幕，按照网络上的介绍将默认编码设为UTF-8仍然是乱码，于是<code>sudo aptitude install smplayer</code>，然后<code>smplayer</code>启动，在[Preferences -> Subtitles -> Subtitles -> Encodings]中，将"Default subtitle encoding"设为为"UTF-8 (UTF-8)&ldquo;，将"Autoload -> Autoload subtitle files"设置为"All subs containing movie names"，并勾选"Select first available subtitle"，现在视频文件名是Ebola_LKRG.avi，字幕是Ebola_LKRG_chs.srt，播放视频文件时能够自动加载中文字幕，无乱码，另外[Preferences -> Subtitles -> Subtitles -> Font and colors -> Font]默认值为Arial，在MPlayer中同样设为Arial，中文字幕仍为乱码，可见造成乱码的原因很可能是程序本身不支持UTF8编码的多字节字符。</p>
+
+<p>调整字幕延时：
+如果某句对白在字幕文件中的时间标记是13s，但在影片中应该在第32s出现，则在[SMPlayer -> Subtitles -> Set delay&hellip;]中的值应设为-19000，即字幕向后推迟19秒。</p>
+
+<p>搜索字幕：
+[SMPlayer -> Subtitles -> Find subtitles on Opensubtitles.org].
+或者安装subdownloader: <code>sudo aptitude install subdownloader</code>，但这样软件连接服务器速度很慢，不是很好用。</p>
+
+<p>使用amule(<code>sudo aptitude install amule</code>)也可以搜索到这部影片，但下载速度很慢。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/15/110702/">Run Spark Tasks on ArchLinux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-15T11:07:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:07 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<ol>
+<li><p>Install JDK: <code>sudo pacman -S jdk7-openjdk</code>;</p></li>
+<li><p>Download pre-build package (spark-1.1.0-bin-hadoop2.4.tgz) from <a href="http://spark.apache.org/">Apache Spark website</a>;</p></li>
+<li><p>Extract and add path: <code>tar xf spark-1.1.0-bin-hadoop2.4.tgz</code>;</p></li>
+</ol>
+
+
+<h1>Run Spark script</h1>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/09/12/103608/">Two Java Building Tools</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-09-12T10:36:08+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:36 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I need build a java project to compare performance of <a href="http://logging.apache.org/log4j/2.x/">apache log4j</a> and <a href="http://logback.qos.ch/">Logback</a>. The following codes are the building procedures based on [Gradle]<a href="http://www.gradle.org/">http://www.gradle.org/</a>) and <a href="http://www.scala-sbt.org/">sbt</a>.</p>
+
+<h1>sbt</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>mkdir myproject
+</span><span class='line'>cd myproject
+</span><span class='line'>cat &lt;&lt;EOF &gt; build.sbt
+</span><span class='line'>name := "MyProject"
+</span><span class='line'>
+</span><span class='line'>version := "0.1"
+</span><span class='line'>EOF
+</span><span class='line'>mkdir project
+</span><span class='line'>echo 'addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")' &gt; project/plugins.sbt
+</span><span class='line'>sbt eclipse</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that the blank line between &ldquo;name&rdquo; &amp; &ldquo;version&rdquo; in build.sbt is mandatory for Scala syntax.
+Now start eclipse, import this proect, create new packages (com.boco.logb) and Java files (LoggerOneThread.java) in &ldquo;src/main/java&rdquo; folder, and config files (log4j.properties and logback.xml) in src/resources folder.
+slf4j looks for log implementations based on jars in classpath instead of conifg files, so we add both 2 config files into resource folder.</p>
+
+<p>The LoggerOneThread.java file:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>package com.boco.logb;
+</span><span class='line'>
+</span><span class='line'>import java.util.concurrent.TimeUnit;
+</span><span class='line'>
+</span><span class='line'>import org.slf4j.Logger;
+</span><span class='line'>import org.slf4j.LoggerFactory;
+</span><span class='line'>
+</span><span class='line'>public class LoggerOneThread {
+</span><span class='line'>    public static final long TOTAL_TIMES = 4000 * 1000;
+</span><span class='line'>    private static final Logger logger = LoggerFactory
+</span><span class='line'>            .getLogger(LoggerOneThread.class);
+</span><span class='line'>
+</span><span class='line'>    public static void main(String[] args) {
+</span><span class='line'>        long start = System.nanoTime();
+</span><span class='line'>        for (int i = 1; i &lt; TOTAL_TIMES; i++) {
+</span><span class='line'>            logger.debug("This is a test message. This is another test message.");
+</span><span class='line'>        }
+</span><span class='line'>        long estimatedTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime()
+</span><span class='line'>                - start);
+</span><span class='line'>        System.out.println("Write " + TOTAL_TIMES + " logs takes time "
+</span><span class='line'>                + estimatedTime + " s.");
+</span><span class='line'>    }
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Log4j config file log4j.properties:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>log4j.rootLogger = DEBUG, FILE
+</span><span class='line'>
+</span><span class='line'>log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+</span><span class='line'>log4j.appender.FILE.File=log4j.log
+</span><span class='line'>log4j.appender.FILE.Append=true
+</span><span class='line'>log4j.appender.FILE.MaxFileSize=50MB
+</span><span class='line'>log4j.appender.FILE.MaxBackupIndex=10
+</span><span class='line'>log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+</span><span class='line'>log4j.appender.FILE.layout.ConversionPattern=%d{MM-dd HH:mm:ss.SSS} [%t] %p %c - %m%n</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Logback config file logback.xml:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+</span><span class='line'>&lt;configuration&gt;
+</span><span class='line'>
+</span><span class='line'>    &lt;appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
+</span><span class='line'>        &lt;file&gt;logback.log&lt;/file&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy"&gt;
+</span><span class='line'>            &lt;fileNamePattern&gt;logback.log.%i&lt;/fileNamePattern&gt;
+</span><span class='line'>            &lt;minIndex&gt;1&lt;/minIndex&gt;
+</span><span class='line'>            &lt;maxIndex&gt;11&lt;/maxIndex&gt;
+</span><span class='line'>        &lt;/rollingPolicy&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy"&gt;
+</span><span class='line'>            &lt;maxFileSize&gt;50MB&lt;/maxFileSize&gt;
+</span><span class='line'>        &lt;/triggeringPolicy&gt;
+</span><span class='line'>
+</span><span class='line'>        &lt;encoder&gt;
+</span><span class='line'>            &lt;pattern&gt;%date{MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n&lt;/pattern&gt;
+</span><span class='line'>        &lt;/encoder&gt;
+</span><span class='line'>    &lt;/appender&gt;
+</span><span class='line'>
+</span><span class='line'>    &lt;root level="DEBUG"&gt;
+</span><span class='line'>        &lt;appender-ref ref="FILE" /&gt;
+</span><span class='line'>    &lt;/root&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Add following dependencies into build.sbt.log4j:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
+</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
+</span><span class='line'>  "org.slf4j" % "slf4j-log4j12" % "1.7.7",
+</span><span class='line'>  "log4j" % "log4j" % "1.2.17"
+</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And the following into build.sbt.logback:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>libraryDependencies ++= Seq(
+</span><span class='line'>  "org.slf4j" % "slf4j-api" % "1.7.7",
+</span><span class='line'>  "ch.qos.logback" % "logback-classic" % "1.1.2",
+</span><span class='line'>  "ch.qos.logback" % "logback-core" % "1.1.2"
+</span><span class='line'>)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now delete .classpath file under project home folder, run <code>sbt eclipse</code> again to refresh classpath.</p>
+
+<p>When coding completed, copy build.sbt.log4j (or build.sbt.logback) as build.sbt, run <code>sbt run</code> to run this project. Run <code>sbt package</code> to create jar file under target folder.</p>
+
+<p>Some other settings in build.sbt:</p>
+
+<pre><code>organization := "org.leechau"
+</code></pre>
+
+<h1>Gradle</h1>
+
+<ol>
+<li><p>Install gradle plugin for Eclipse, and create a Gradle Project &ldquo;MyProject&rdquo; in Eclipse, choose &ldquo;Java Quickstart&rdquo; as Sample project;</p></li>
+<li><p>Add following lines into auto-created build.gradle file for log4j test:</p>
+
+<pre><code> apply plugin: 'application'
+ dependencies {
+     compile 'org.slf4j:slf4j-api:1.7.7', 'log4j:log4j:1.2.17', 'org.slf4j:slf4j-log4j12:1.7.7'
+ }
+ mainClassName = "com.boco.logb.LoggerOneThread"
+</code></pre></li>
+<li><p>Refresh dependencies: [Gradle -> Refresh Dependencies] in context menu;</p></li>
+<li><p>Run log4j test:</p>
+
+<pre><code> cp build.gradle build.gradle.log4j
+ gradle clean run
+</code></pre></li>
+<li><p>For logback test, create a new file build.gradle.logback based on build.gradle.log4j, but use the following dependencies:</p></li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>compile 'org.slf4j:slf4j-api:1.7.7', 'ch.qos.logback:logback-classic:1.1.2', 'ch.qos.logback:logback-core:1.1.2'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The config files log4j.properties and logback.xml, and Java file LoggerOneThread.java are identical to that in sbt section.</p>
+
+<ol>
+<li><p>Run logback test:</p>
+
+<pre><code> cp build.gradle.logback build.gradle
+ gradle clean run
+</code></pre></li>
+</ol>
+
+
+<h1>Eclipse Interface</h1>
+
+<p>How to creat Eclipse setting files (.classpath and .project) so that we can import this project into Eclipse, editing and debuging in it.</p>
+
+<p>For gradle, add <code>apply plugin: 'eclipse'</code> into build.gradle and run <code>gradle cleanEclipse eclipse</code>;</p>
+
+<p>For sbt, add <code>addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.5.0")</code> (for sbt 0.13) into $PROJECT_HOME/project/plugins.sbt, and run <code>sbt eclipse</code>;</p>
+
+<h1>Run Program</h1>
+
+<h2>gradle</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
+</span><span class='line'>cp build.gradle.log4j build.gradle
+</span><span class='line'>gradle clean run
+</span><span class='line'>// run logback test
+</span><span class='line'>cp build.gradle.logback build.gradle
+</span><span class='line'>gradle clean run</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>sbt</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>// run log4j test
+</span><span class='line'>cp build.sbt.log4j build.sbt
+</span><span class='line'>sbt clean run
+</span><span class='line'>// run logback test
+</span><span class='line'>cp build.sbt.logback build.sbt
+</span><span class='line'>sbt clean run</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you have multiple main entry in source files, you can use &lsquo;runMain com.boco.logb.LoggerOneThread&rsquo; instead of &ldquo;run&rdquo; to run a specific program.</p>
+
+<h1>Conclusion</h1>
+
+<p>Gradle is mainly for building of Groovy and Java project, while sbt is mainly for building of Scala and Java project. So far Gradle has better support for building Java project.
+For example, it&rsquo;s very convenient to build production zip or tar files with Gradle&rsquo;s application plugin (via the &ldquo;distZip&rdquo; task), while there&rsquo;s no corresponding plugin in sbt.
+It&rsquo;s convenient to add or remove dependencies within Eclipse with the Gradle plugin of Eclipse (not the eclipse plugin of Gradle), while there&rsquo;s no sbt plugin of Eclipse (sbteclipse of typesafehub is a eclipse plugin of sbt). So we have to refresh build path of dependencies manually when developing a project in Eclipse created by sbt.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -491,609 +1076,6 @@ log4j.appender.filelog.layout.ConversionPattern=%d{yy/MM/dd HH:mm:ss} %p %c{1}: 
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/24/110909/">Build Working Environment With I3 and Mint</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-24T11:09:09+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:09 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Base System</h1>
-
-<p>Install Linux Mint 17 Xfce with Live DVD (USB key created by YUMI 2.0.5) on Asus X84H laptop. The &ldquo;/&rdquo; partition is 30GB, while the &ldquo;/home&rdquo; partition is 50GB.</p>
-
-<p>No need to install any hardware drivers. It simply works!</p>
-
-<h1>Window Manager</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>sudo aptitude install i3-wm dmenu i3status i3lock</span></code></pre></td></tr></table></div></figure>
-
-
-<h2>Startup Configurations</h2>
-
-<h3>MDM</h3>
-
-<p>Mint&rsquo;s default graphical login manager is MDM,
-see <a href="http://linuxmint.com/rel_qiana_xfce_whatsnew.php">New features in Linux Mint 17 Xfce</a>.
-Logout of Xfce desktop. In login manager, you can find &ldquo;i3&rdquo;, choose it, and login i3 environment.
-Its user level auto startup script is ~/.xsessionrc. It should be the same with .xinitrc.
-So make a link from it with <code>ln -s ~/.xinitrc ~/.xsessionrc</code>.
-See /etc/mdm/Xsession for variable definitions, such as USERXSESSION, USERXSESSIONRC, etc.
-See <a href="https://wiki.ubuntu.com/CustomXSession">CustomXSession</a> for more.</p>
-
-<h3>xinit</h3>
-
-<p>See note &ldquo;Run Linux Without Desktop Environment&rdquo;.
-Its user level auto startup script is ~/.xinitrc.</p>
-
-<h2>Input Method</h2>
-
-<p>Add the following lines into ~/.xinitrc before &ldquo;exec i3&rdquo;:</p>
-
-<pre><code>export GTK_IM_MODULE=xim
-export QT_IM_MODULE=xim
-export XMODIFIERS="@im=fcitx"
-fcitx &amp;
-</code></pre>
-
-<h2>Power Management in i3</h2>
-
-<p>Check if &ldquo;pm-utils&rdquo; has been installed via <code>dpkg -l|grep pm-utils</code>. If not, install it with <code>sudo aptitude install pm-utils</code>;</p>
-
-<p>Add the following line into /etc/sudoers:</p>
-
-<pre><code>%sudo   ALL=(ALL) NOPASSWD: /sbin/poweroff, /sbin/reboot, /sbin/shutdown, /usr/sbin/pm-suspend, /usr/sbin/pm-suspend-hybrid
-</code></pre>
-
-<p>Add file /usr/local/bin/pm and <code>chmod 755 /usr/local/bin/pm</code>:</p>
-
-<pre><code>#!/bin/sh
-lock() {
-    i3lock -c 000000
-}
-
-case "$1" in
-    lk)
-        lock
-        ;;
-    logout)
-        i3-msg exit
-        ;;
-    ssd)
-        lock &amp;&amp; sudo pm-suspend-hybrid
-        ;;
-    hibernate)
-        lock &amp;&amp; sudo pm-hibernate
-        ;;
-    rbt)
-        sudo reboot
-        ;;
-    shd)
-        sudo poweroff
-        ;;
-    *)
-        echo "Usage: $0 {lk|logout|ssd|hibernate|rbt|shd}"
-        exit 2
-esac
-exit 0
-</code></pre>
-
-<p>The &ldquo;-c&rdquo; option of i3lock command specifies the screen color, where &ldquo;000000&rdquo; is black.</p>
-
-<p>Now any user belonging to sudo group can run <code>pm lk|ssd|rbt|shd</code> to lock, suspend, reboot or shutdown computer without input password.
-If the user is not a sudoer, run <code>usermod -aG sudo username</code> with root.
-Verify user&rsquo;s group with <code>id</code>, <code>groups</code> or <code>groups username</code>.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://askubuntu.com/questions/168879/shutdown-from-terminal-without-entering-password">http://askubuntu.com/questions/168879/shutdown-from-terminal-without-entering-password</a></p>
-
-<p><a href="http://askubuntu.com/questions/159007/how-do-i-run-specific-sudo-commands-without-a-password">http://askubuntu.com/questions/159007/how-do-i-run-specific-sudo-commands-without-a-password</a></p>
-
-<p><a href="http://askubuntu.com/questions/2214/how-do-i-add-a-user-to-the-sudo-group">http://askubuntu.com/questions/2214/how-do-i-add-a-user-to-the-sudo-group</a></p>
-
-<p><a href="http://www.cyberciti.biz/faq/howto-linux-add-user-to-group/">http://www.cyberciti.biz/faq/howto-linux-add-user-to-group/</a></p>
-
-<p><a href="http://linuxers.org/article/difference-between-primary-and-secondary-groups-linux">http://linuxers.org/article/difference-between-primary-and-secondary-groups-linux</a></p>
-
-<h2>Config System Font</h2>
-
-<ol>
-<li><p>List all available fonts installed: <code>fc-list</code>. For example, when run <code>fc-list|grep wqy</code>, we got the name of this pre-installed Chinese font: &ldquo;WenQuanYi Micro Hei&rdquo;.</p></li>
-<li><p>Edit config file ~/.i3/config: replace &ldquo;font -misc-fixed-medium-r-normal&ndash;13-120-75-75-C-70-iso10646-1&rdquo; with &ldquo;font pango:WenQuanYi Micro Hei 11&rdquo;.</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/24/103023/">Install New Locale on Linux Mint</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-24T10:30:23+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:30 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>After installing a new Linux (Mint 17, xfce), I need to install Chinese input method, so I have to install Chinese locale at first.</p>
-
-<ol>
-<li><p>List all installed locales: <code>locale -a</code>;</p></li>
-<li><p>View all supported locales on your system: <code>less /usr/share/i18n/SUPPORTED</code>, and &ldquo;zh_CN.UTF-8 UTF-8&rdquo; is what I want to install;</p></li>
-<li><p>Add this locale into locale list file: <code>echo "zh_CN.UTF-8 UTF-8" &gt;&gt; /var/lib/locales/supported.d/local</code>;</p></li>
-<li><p>Regenerate locale list: <code>sudo dpkg-reconfigure locales</code>;</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="http://askubuntu.com/questions/76013/how-do-i-add-locale-to-ubuntu-server">How do I add locale to ubuntu server?</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/21/113949/">Qtile on ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-21T11:39:49+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:39 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Install</h1>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>// Before install qtile, you need download python2-setuptools manually, and install it:
-</span><span class='line'>$ sudo pacman -U python2-setuptools-1_5.7-1-any.pkg.tar.xz
-</span><span class='line'>$ yaourt -S qtile-git
-</span><span class='line'>$ mkdir ~/.config/qtile
-</span><span class='line'>$ cp /usr/share/doc/qtile-git/default_config.py ~/.config/qtile/config.py
-</span><span class='line'>$ echo "exec qtile" &gt; ~/.xinitrc
-</span><span class='line'>$ python2 -m py_compile ~/.config/qtile/config.py    // check syntax for config.py
-</span><span class='line'>$ qsh
-</span><span class='line'>&gt; restart
-</span><span class='line'>&gt; quit
-</span><span class='line'>$ </span></code></pre></td></tr></table></div></figure>
-
-
-<h1>Configuration</h1>
-
-<p>Something import in config.py:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>mod = "mod4"    # the Win key as mod key
-</span><span class='line'>Key([mod], "Return", lazy.spawn("xterm")),   # start a shell, you can modify it as another virtual terminal, such as "xfce4-terminal"
-</span><span class='line'>Key([mod], "w", lazy.window.kill()),         # close a application
-</span><span class='line'>Key([mod, "control"], "r", lazy.restart()),  # reload Qtile after modify config.py
-</span><span class='line'>Key([mod, "control"], "q", lazy.shutdown()), # quit Qtile</span></code></pre></td></tr></table></div></figure>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/08/20/104236/">Closure in Different Languages</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-08-20T10:42:36+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following code snippets compare closures in several languages.</p>
-
-<p>First is closure in javascript. Here I use <a href="https://github.com/creationix/nvm">nvm</a> to run javascript code.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ cat closure.js
-</span><span class='line'>function extent() {
-</span><span class='line'>    var n = 0;
-</span><span class='line'>    return function() {
-</span><span class='line'>        n++;
-</span><span class='line'>        console.log("n=" + n);
-</span><span class='line'>    }
-</span><span class='line'>}
-</span><span class='line'>
-</span><span class='line'>extent()();
-</span><span class='line'>extent()();
-</span><span class='line'>f = extent();
-</span><span class='line'>console.log("-----");
-</span><span class='line'>//console.log(extent.uniqueId());
-</span><span class='line'>f();
-</span><span class='line'>f();
-</span><span class='line'>
-</span><span class='line'>$ nvm alias default 0.10
-</span><span class='line'>$ nvm run closure.js
-</span><span class='line'>Running node v0.10.30
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>-----
-</span><span class='line'>n=1
-</span><span class='line'>n=2</span></code></pre></td></tr></table></div></figure>
-
-
-<p>In above example, the closure is <code>function() { n++; console.log... }</code>. It&rsquo;s bound to variable &ldquo;f&rdquo;. The local variable &ldquo;n&rdquo; is &ldquo;closed&rdquo; into closure. Its lifetime is the same with &ldquo;f&rdquo;. So after the first execution of f, its inner state is saved.</p>
-
-<p>For Python, nested function can only access variables in outer scope, but can&rsquo;t reassign (modify) them. So I use list as a workaround. In Python 3, there is a new keyword &ldquo;nonlocal&rdquo; to remove this restriction.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ cat closure.py2.py
-</span><span class='line'>def extent():
-</span><span class='line'>    n = [0]
-</span><span class='line'>    def afun():
-</span><span class='line'>        n[0] += 1
-</span><span class='line'>        print('n=' + str(n[0]))
-</span><span class='line'>    return afun
-</span><span class='line'>
-</span><span class='line'>extent()()
-</span><span class='line'>extent()()
-</span><span class='line'>print('-----')
-</span><span class='line'>f = extent()
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>print("type of f is %s, its id is %d" % (type(f), id(f)))
-</span><span class='line'>
-</span><span class='line'>$ python closure.py2.py 
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>-----
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>type of f is &lt;type 'function'&gt;, its id is 140403684898408
-</span><span class='line'>
-</span><span class='line'>$ cat closure.py3.py
-</span><span class='line'>def extent():
-</span><span class='line'>    n = 0
-</span><span class='line'>    def afun():
-</span><span class='line'>        nonlocal n
-</span><span class='line'>        n += 1
-</span><span class='line'>        print('n=' + str(n))
-</span><span class='line'>    return afun
-</span><span class='line'>
-</span><span class='line'>extent()()
-</span><span class='line'>extent()()
-</span><span class='line'>f = extent()
-</span><span class='line'>print('----')
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>print("type of f is %s, its id is %d" % (type(f), id(f)))
-</span><span class='line'>
-</span><span class='line'>[0] python3 closure.py3.py
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>----
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>type of f is &lt;class 'function'&gt;, its id is 139914425096528</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The Ruby environment used here is <a href="http://rvm.io/">RVM</a>. Ruby version is 2.1.2.</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ rvm use 2.1.2 --default
-</span><span class='line'>$ cat closure.rb
-</span><span class='line'>def extent
-</span><span class='line'>    n = 0
-</span><span class='line'>    lambda {
-</span><span class='line'>        n += 1
-</span><span class='line'>        printf "n=%d\n", n
-</span><span class='line'>    }
-</span><span class='line'>end
-</span><span class='line'>
-</span><span class='line'>extent().call()
-</span><span class='line'>extent().call()
-</span><span class='line'>f = extent()
-</span><span class='line'>puts '------'
-</span><span class='line'>f.call()
-</span><span class='line'>f.call()
-</span><span class='line'>puts "class of f is #{f.class.name}, its id is #{f.object_id}"
-</span><span class='line'>
-</span><span class='line'>$ ruby closure.rb
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>------
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>class of f is Proc, its id is 6724520</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Two versions of Scala, define functions via &ldquo;def&rdquo; and &ldquo;val&rdquo; give different results:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>$ diff *.scala
-</span><span class='line'>1c1
-</span><span class='line'>&lt; def extent = {
-</span><span class='line'>---
-</span><span class='line'>&gt; val extent = {
-</span><span class='line'>
-</span><span class='line'>$ cat closure-def.scala
-</span><span class='line'>def extent = {
-</span><span class='line'>    var n = 0
-</span><span class='line'>    () =&gt; {
-</span><span class='line'>        n += 1
-</span><span class='line'>        println("n=" + n)
-</span><span class='line'>    }
-</span><span class='line'>}
-</span><span class='line'>
-</span><span class='line'>extent()
-</span><span class='line'>extent()
-</span><span class='line'>val f = extent
-</span><span class='line'>println("------")
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
-</span><span class='line'>
-</span><span class='line'>$ scala closure-def.scala
-</span><span class='line'>n=1
-</span><span class='line'>n=1
-</span><span class='line'>------
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>Class of f is class Main$$anon$1$$anonfun$extent$1, its id is 8970973
-</span><span class='line'>
-</span><span class='line'>$ cat closure-val.scala 
-</span><span class='line'>val extent = {
-</span><span class='line'>    var n = 0
-</span><span class='line'>    () =&gt; {
-</span><span class='line'>        n += 1
-</span><span class='line'>        println("n=" + n)
-</span><span class='line'>    }
-</span><span class='line'>}
-</span><span class='line'>
-</span><span class='line'>extent()
-</span><span class='line'>extent()
-</span><span class='line'>val f = extent
-</span><span class='line'>println("------")
-</span><span class='line'>f()
-</span><span class='line'>f()
-</span><span class='line'>println(s"Class of f is ${f.getClass}, its id is ${f.hashCode}")
-</span><span class='line'>$ scala closure-val.scala 
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>------
-</span><span class='line'>$ scala closure-val.scala 
-</span><span class='line'>n=1
-</span><span class='line'>n=2
-</span><span class='line'>------
-</span><span class='line'>n=3
-</span><span class='line'>n=4
-</span><span class='line'>Class of f is class Main$$anon$1$$anonfun$1, its id is 8970973</span></code></pre></td></tr></table></div></figure>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/20">&larr; Older</a>
@@ -1111,23 +1093,23 @@ Verify user&rsquo;s group with <code>id</code>, <code>groups</code> or <code>gro
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

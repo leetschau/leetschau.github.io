@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Install Install stack and start a demo yesod web server: wget -q -O- https://s3.amazonaws.com/download.fpcomplete.com/ubuntu/fpco.key | sudo apt-key &hellip;">
+  <meta name="description" content="Generating Test Data with Meteor Factory and Fake The following tests set up with meteor-factory. First create Meteor app, install packages, define &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,413 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/03/095227/">A Meteor Package Test Demo</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-03T09:52:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>9:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Generating Test Data with Meteor Factory and Fake</h1>
+
+<p>The following tests set up with <a href="https://github.com/percolatestudio/meteor-factory/">meteor-factory</a>.</p>
+
+<p>First create Meteor app, install packages, define collections and start server:</p>
+
+<pre><code>meteor create testApp
+cd testApp
+meteor add dburles:factory
+meteor add babrahams:constellation
+cat &lt;&lt; EOF &gt; collections.js
+Authors = new Meteor.Collection('authors');
+Books = new Meteor.Collection('books');
+EOF
+# Authors and Books must be defined in both servers and client
+# or `Factory.create("books");` will fail.
+# So they can't be defined in browser console
+MONGO_URL="mongodb://localhost:27017/test" meteor
+</code></pre>
+
+<p>Then open <a href="http://localhost:3000/">http://localhost:3000/</a> in browser,
+Open <a href="https://github.com/JackAdams/constellation">constellation console</a> with Ctrl-C.
+Open browser console (with F12), run codes below:</p>
+
+<pre><code>Factory.define('author', Authors, {
+  name: 'John Smith'
+});
+// all authors created through Factory have the same "name"
+
+Factory.define('book', Books, {
+  authorId: Factory.get('author'),
+  name: 'A book',
+  year: function() { return _.random(1900, 2014); }
+});
+</code></pre>
+
+<p>Now each time you run <code>Factory.create('author');</code>,
+a new document is inserted into the collection &ldquo;authors&rdquo;.
+You can see it on the constellation console under &ldquo;authors&rdquo; section.</p>
+
+<p>If you want create user with different names,
+add a new package <a href="https://github.com/anticoders/meteor-fake/">meteor-fake</a>
+with <code>meteor add anti:fake</code>, and modify above definitions as follows:</p>
+
+<pre><code>Factory.define('author', Authors, {
+  name: function() { return Fake.user({fields: ['name']}).name; }
+});
+
+Factory.define('book', Books, {
+  authorId: Factory.get('author'),
+  name: function() { return Fake.sentence(4); },
+  year: function() { return _.random(1900, 2014); }
+});
+</code></pre>
+
+<p>When enable the &ldquo;Autopublish&rdquo; tab, you can see all the collections
+even after the autopublish package removed from Meteor app.</p>
+
+<h1>Used in Package</h1>
+
+<p>The container app is named &ldquo;mininf&rdquo;, which has a package named &ldquo;nfcore&rdquo;.</p>
+
+<p>There will be 3 roles of user in this scenario, Add, Sub and Multi.
+Users with Add role can only ask addition questions,
+with Sub can only ask substraction questions,
+with Multi can only ask multiplication questions.</p>
+
+<p>A user without a role can&rsquo;t ask any questions.</p>
+
+<p>The users and their roles will be created with <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
+
+<p>There are 2 collections, accounts and questions,
+whose schemas are defined with <a href="https://github.com/aldeed/meteor-simple-schema">simple-schema</a>.</p>
+
+<p>Target:</p>
+
+<p>Run the container app, use constellation to watch it&rsquo;s data;
+Define data schema with simple-schema;
+Use factory to insert user and question to collections;
+Run test on container app, see the result.</p>
+
+<p>The implementation steps:</p>
+
+<ol>
+<li><p>Create mininf and nfcore;</p></li>
+<li><p>Add simple-schema and roles in the package definition of mininf;</p></li>
+<li><p>Add jasmine and velocity in the package test definition of mininf;</p></li>
+<li><p>Create schemas of users and questions in package;</p></li>
+<li><p>Create collections in package and attach schemas on them;</p></li>
+<li><p>Create tests;</p>
+
+<p> meteor create mininf
+ cd mininf
+ meteor create &ndash;package leo:nfcore
+ cat &lt;&lt; EOF > packages/nfcore/package.js
+ Package.describe({
+   name: &lsquo;leo:nfcore&rsquo;,
+   version: &lsquo;0.0.1&rsquo;,
+   summary: &lsquo;&rsquo;,
+   git: &lsquo;&rsquo;,
+   documentation: &lsquo;README.md&rsquo;
+ });
+ Package.onUse(function(api) {
+   api.versionsFrom(&lsquo;1.2.0.2&rsquo;);
+   api.use(&lsquo;ecmascript&rsquo;);
+   // this makes nfcore itself can use variable &ldquo;SimpleSchema&rdquo; in the source code
+   api.use(&ldquo;aldeed:<a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#115;&#x69;&#109;&#112;&#108;&#x65;&#x2d;&#115;&#x63;&#104;&#x65;&#x6d;&#x61;&#x40;&#49;&#x2e;&#51;&#46;&#x33;">&#115;&#x69;&#109;&#112;&#108;&#101;&#x2d;&#x73;&#99;&#104;&#101;&#x6d;&#97;&#x40;&#49;&#46;&#x33;&#x2e;&#x33;</a>&rdquo;);
+   api.use(&ldquo;alanning:roles&rdquo;);
+   // this makes any packages using nfcore can use &ldquo;SimpleSchema&rdquo;
+   api.imply(&ldquo;aldeed:simple-schema&rdquo;);
+   api.imply(&ldquo;alanning:roles&rdquo;);
+   api.addFiles(&lsquo;nfcore.js&rsquo;);
+   api.export(&ldquo;NFCore&rdquo;);
+ });
+ Package.onTest(function(api) {
+   api.use(&lsquo;ecmascript&rsquo;);
+   api.use(&lsquo;sanjo:<a href="&#x6d;&#97;&#x69;&#108;&#x74;&#111;&#x3a;&#x6a;&#x61;&#115;&#x6d;&#x69;&#110;&#101;&#x40;&#48;&#x2e;&#x31;&#x39;&#46;&#48;">&#x6a;&#97;&#x73;&#x6d;&#x69;&#x6e;&#x65;&#64;&#x30;&#46;&#49;&#x39;&#x2e;&#48;</a>&rsquo;);
+   api.use(&lsquo;anti:fake&rsquo;);
+   api.use(&lsquo;underscore&rsquo;);
+   api.use(&ldquo;dburles:<a href="&#x6d;&#97;&#105;&#108;&#x74;&#111;&#58;&#102;&#97;&#99;&#x74;&#x6f;&#x72;&#x79;&#64;&#48;&#x2e;&#51;&#46;&#49;&#x30;">&#102;&#97;&#x63;&#116;&#x6f;&#x72;&#121;&#64;&#x30;&#x2e;&#x33;&#x2e;&#x31;&#48;</a>&rdquo;);
+   api.use(&lsquo;velocity:<a href="&#109;&#x61;&#105;&#x6c;&#x74;&#111;&#58;&#104;&#116;&#x6d;&#x6c;&#45;&#114;&#x65;&#112;&#x6f;&#114;&#116;&#x65;&#x72;&#x40;&#48;&#x2e;&#x39;&#46;&#48;">&#104;&#116;&#x6d;&#x6c;&#45;&#x72;&#101;&#112;&#111;&#114;&#116;&#x65;&#114;&#64;&#48;&#x2e;&#57;&#x2e;&#48;</a>&rsquo;);
+   api.use(&lsquo;velocity:<a href="&#x6d;&#97;&#x69;&#x6c;&#x74;&#111;&#58;&#x63;&#x6f;&#110;&#x73;&#x6f;&#108;&#x65;&#45;&#114;&#x65;&#112;&#111;&#x72;&#116;&#101;&#114;&#x40;&#x30;&#46;&#49;&#46;&#x33;">&#x63;&#x6f;&#110;&#x73;&#111;&#x6c;&#101;&#45;&#114;&#x65;&#112;&#111;&#114;&#x74;&#101;&#114;&#64;&#48;&#x2e;&#49;&#x2e;&#x33;</a>&rsquo;);
+   api.use(&lsquo;leo:nfcore&rsquo;);
+   api.addFiles(&lsquo;nfcore-tests.js&rsquo;);
+ });
+ EOF</p>
+
+<p> mkdir -p {common/{schemas,collections},tests,client,server}
+ cat &lt;&lt; EOF > common/globals.js
+ NFCore = {};
+ NFCore.Schemas = {};
+ NFCore.Collections = {};
+ EOF</p>
+
+<p> cat &lt;&lt; EOF > common/schemas/accounts.js
+ NFCore.Schemas.Accounts = new SimpleSchema({
+   name: {
+     type: String
+   }
+ });
+ EOF</p>
+
+<p> cat &lt;&lt; EOF > common/schemas/accounts.js
+ NFCore.Schemas.Questions = new SimpleSchema({
+   owner: {
+     type: Meteor.Collection.ObjectID
+   },
+   content: {
+     type: String
+   }
+ });
+ EOF</p>
+
+<p> cat &lt;&lt; EOF > common/collections/collections.js
+ NFCore.Collections.Accounts = new Mongo.Collection(&ldquo;accounts&rdquo;);
+ NFCore.Collections.Accounts.attachSchema(NFCore.Schemas.Accounts);</p>
+
+<p> NFCore.Collections.Questions = new Mongo.Collection(&ldquo;questions&rdquo;);
+ NFCore.Collections.Questions.attachSchema(NFCore.Schemas.Questions);
+ EOF</p></li>
+</ol>
+
+
+<h1>Errors, Questions and Solutions</h1>
+
+<p>E: meteor object [object object] has no method &lsquo;attach schema&rsquo;.</p>
+
+<p>S: Add <code>api.use("aldeed:collection2@2.5.0");</code> and <code>api.imply("aldeed:collection2@2.5.0");</code> into Package.onUse() of package.js.</p>
+
+<p>E: insert failed: Access denied. No allow validators set on restricted collection for method &lsquo;insert&rsquo;.</p>
+
+<p>S: Add &ldquo;server&rdquo; as the 2nd parameter in package.js -> Package.onTest -> api.addFiles(<the-test-file-name>):
+<code>api.addFiles('tests/accounts.js', 'server');</code>.</p>
+
+<p>Q: In package I use Factory.create() to insert a doc into a collection, but I can&rsquo;t find the collection.</p>
+
+<p>S: Add environment &ldquo;MONGO_URL&rdquo; into the test command:
+<code>VELOCITY_TEST_PACKAGES=1 MONGO_URL="mongodb://localhost:27017/test" meteor test-packages --driver-package velocity:html-reporter leo:nfcore</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/01/202107/">Notes of Learn You a Haskell for Great Good</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-01T20:21:07+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>8:21 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Notes for <a href="http://learnyouahaskell.com/">Learn You a Haskell for Great Good</a>.</p>
+
+<h1>Modules</h1>
+
+<p>The following code snippet demonstrate how to import and use Haskell submodule.
+Save the following codes into a shell script and run it.</p>
+
+<pre><code>#!/bin/bash
+mkdir Geometry
+cat &lt;&lt; EOF &gt; Geometry/Sphere.hs
+module Geometry.Sphere
+( volume
+, area
+) where
+
+volume :: Float -&gt; Float
+volume radius = (4.0 / 3.0) * pi * (radius ^ 3)
+
+area :: Float -&gt; Float
+area radius = 4 * pi * (radius ^ 2)
+EOF
+
+cat &lt;&lt; EOF &gt; app.hs
+import Geometry.Sphere
+main = print $ volume 3
+EOF
+
+runghc app.hs
+</code></pre>
+
+<p>The result should be &ldquo;113.097336&rdquo;.</p>
+
+<h1>Making Our Own Types and Typeclasses</h1>
+
+<p>Value constructor is also called &ldquo;data constructor&rdquo;.</p>
+
+<p>Ref:</p>
+
+<p><a href="https://wiki.haskell.org/Constructor">Constructor</a></p>
+
+<p><a href="http://stackoverflow.com/questions/18204308/haskell-type-vs-data-constructor">Haskell Type vs Data Constructor</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/29/121847/">Meteor Test With Velocity and Jasmine</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-29T12:18:47+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:18 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Create jasmine tests and run them as the following codes:</p>
+
+<pre><code>$ meteor create jasmineEx
+$ cd jasmineEx
+$ meteor create --package newfairscommerce:add-number
+$ rm packages/add-number/add-number-tests.js
+$ mkdir -p packages/add-number/tests/{server,client}
+$ cat &lt;&lt; EOF &gt; packages/add-number/tests/example-spec.js
+describe('sanjo:jasmine on client and server', function() {
+  it('works', function() {
+    expect(it).toBeDefined();
+  })
+})
+EOF
+$ cat &lt;&lt; EOF &gt; packages/add-number/tests/client/example-spec.js
+describe('sanjo:jasmine on client', function() {
+  it('works', function() {
+    expect(it).toBeDefined();
+  })
+})
+EOF
+$ cat &lt;&lt; EOF &gt; packages/add-number/tests/server/example-spec.js
+describe('sanjo:jasmine on server', function() {
+  it('works', function() {
+    expect(it).toBeDefined();
+  })
+})
+EOF
+</code></pre>
+
+<p>And replace <code>Package.onTest</code> in packages/add-number/package.js with the following codes:</p>
+
+<pre><code>Package.onTest(function(api) {
+  api.use('sanjo:jasmine@0.18.0');
+  api.use('velocity:html-reporter@0.9.0');
+  api.use('velocity:console-reporter@0.1.3');
+
+  api.addFiles('tests/server/example-spec.js', 'server');
+  api.addFiles('tests/client/example-spec.js', 'client');
+  api.addFiles('tests/example-spec.js', ['server', 'client']);
+});
+</code></pre>
+
+<p>Now run <code>VELOCITY_TEST_PACKAGES=1 meteor test-packages --driver-package velocity:html-reporter newfairscommerce:add-number</code>
+under the root directory of jasmineEx project,
+you can get the following output:</p>
+
+<pre><code>...
+=&gt; App running at: http://localhost:3000/
+I20151003-18:23:56.465(8)? jasmine-server-integration: 2 tests passed (11ms)
+I20151003-18:24:07.849(8)? jasmine-client-integration: 2 tests passed (3ms)
+</code></pre>
+
+<p>And you can get the test results in browser with url &ldquo;<a href="http://localhost:3000">http://localhost:3000</a>&rdquo;.</p>
+
+<p>Questions:</p>
+
+<p>When running the following codes, it runs into a interactive shell:</p>
+
+<pre><code>npm install -g velocity-cli
+velocity test-package newfairscommerce:add-number
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/24/185036/">Add a Local Meteor Package From a Existing Repo</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-09-24T18:50:36+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:50 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>newfairs-v3 is the container project. newfairs-core is a package.</p>
+
+<pre><code>meteor create newfairs-v3
+cd newfairs-v3
+meteor create --package newfairscommerce:core
+cp -r ../newfairs-core packages
+mv packages/core/{package.js,README.md} packages/newfairs-core/
+rm -rf package/core
+meteor add newfairscommerce:core
+</code></pre>
+
+<p>Then you have to define dependencies for this package with adding some
+<code>api.use()</code> and loading order by adding some <code>api.addFiles(...)</code>
+in packages/newfairs-core/package.js.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -503,235 +910,6 @@ inc1不受影响，执行时依然从上次的2开始增加变成3，
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/15/122519/">JSDoc Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-15T12:25:19+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>JSDoc is a documentation generator similar to JavaDoc or PHPDoc.</p>
-
-<h1>JSDoc</h1>
-
-<p>Install <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> with <code>npm install -g jsdoc</code>.
-Generate docs with <code>jsdoc **/*.js</code>.</p>
-
-<h1>YUIDoc</h1>
-
-<p><a href="http://yui.github.io/yuidoc/">YUIDoc</a> is suitable for generate documentation for <a href="http://yuilibrary.com/">YUI</a>,
-a JavaScript library, and no longer actively maintained.</p>
-
-<p>It can only list modules and classes on the homepage,
-which is not very suitable for general purpose jsdoc.</p>
-
-<p>Install it with <code>npm install -g yuidocjs</code>.
-Run it with <code>yuidoc .</code>.
-It creates a folder named &ldquo;out&rdquo; by default in the current directory.
-Open the index.html in &ldquo;out&rdquo; folder to see the doc.</p>
-
-<h1>Editor</h1>
-
-<p>vim with <a href="https://github.com/scrooloose/nerdcommenter">scrooloose/nerdcommenter</a>.
-Use <code>&lt;leader&gt;cs</code> to add block comment.
-But note that the block generated by this plugin is started by <code>/*</code>, which is invalid for jsdoc and yuidoc.
-You have to add an asterisk behind it as <code>/**</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-12T23:36:09+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:36 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I want push to github repository without input username and password.</p>
-
-<ol>
-<li><p>Add pub key to github account [profile -> settings -> SSH keys];</p></li>
-<li><p>Set up git default user name and email address with <code>git config --global user.name</code>
-and <code>git config --global user.email</code>;</p></li>
-<li><p>Test ssh connection: <code>ssh -T git@github.com</code>;</p></li>
-<li><p>Modify remote repo address: from <code>https://github.com/USERNAME/OTHERREPOSITORY.git</code> to
-<code>git@github.com:USERNAME/OTHERREPOSITORY.git</code>, where first replace <code>https://</code> with <code>git@</code>,
-then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
-</ol>
-
-
-<p>Now you can push to github repo (<code>git push origin master</code>) without input username and password.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/6565357/git-push-requires-username-and-password">Git push requires username and password</a></p>
-
-<p><a href="https://help.github.com/articles/set-up-git/#next-steps-authenticating-to-github-from-git">Set Up Git</a></p>
-
-<p><a href="https://help.github.com/articles/generating-ssh-keys/">Generating SSH keys</a></p>
-
-<p><a href="https://help.github.com/articles/changing-a-remote-s-url/">Changing a remote&rsquo;s URL</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-12T09:37:54+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:37 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Modify /etc/ssh/sshd_config:</p>
-
-<ul>
-<li><p>Port 22 -> 222</p></li>
-<li><p>PermitRootLogin yes -> no</p></li>
-<li><p>PasswordAuthentication yes -> no</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/12/085417/">Auto Translate English Words With dict.cn in Firefox</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-12T08:54:17+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:54 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Everytime I want to get the meaning of a english word,
-I have to copy the word, open dict.cn,
-paste the word into the box and get the meaning, which is boring.</p>
-
-<p>While there&rsquo;re some google translate extensions of firefox,
-but they are slow and not very complete.
-For example: the word meaning of &ldquo;spoiler&rdquo; in &ldquo;This synopsis may contain spoilers.&rdquo; on
-page <a href="http://www.imdb.com/title/tt0209144/synopsis">Synopsis for Memento</a>.
-So I have to build my own translate extension based on dict.cn.</p>
-
-<h1>Steps</h1>
-
-<ol>
-<li><p>Install Greasemonkey extension in Firefox.</p></li>
-<li><p>Build a new script with the following codes.</p></li>
-<li><p>Select some text and press &ldquo;\&rdquo; key.</p>
-
-<p> // ==UserScript==
- // @name        TranslateIt
- // @namespace   LeoScript
- // @include     *
- // @version     1
- // @grant       none
- // ==/UserScript==</p>
-
-<p> // document.addEventListener(&lsquo;mouseup&rsquo;, getSel, false);
- document.addEventListener(&lsquo;keypress&rsquo;, transIt, false);</p>
-
-<p> function transIt(e) {
-   // console.log(e.key);
-   if (e.key !== &lsquo;\&rsquo;){ return; }
-   var sel = document.getSelection().toString();
-   if (sel) { window.open(&lsquo;<a href="http://dict.cn/">http://dict.cn/</a>&rsquo; + sel); }
- }</p></li>
-</ol>
-
-
-<p>Sometimes the popuped windows will be blocked by the browser.
-Add the website into the whitelist of the blocked sites.</p>
-
-<p>To debug the script, modify and save the script, reload the web page, and test the script.</p>
-
-<h1>References:</h1>
-
-<p><a href="http://hayageek.com/greasemonkey-tutorial/#install-greasemonkey">Greasemonkey Tutorial for Beginners</a></p>
-
-<p>Get selected text:</p>
-
-<p><a href="http://stackoverflow.com/questions/3260926/greasemonkey-addeventlistener-questions">greasemonkey: addEventListener questions</a></p>
-
-<p><a href="http://www.w3schools.com/jsref/met_document_addeventlistener.asp">HTML DOM addEventListener() Method</a></p>
-
-<p>Test if ctrl or alt key is pressed on clicking:</p>
-
-<p><a href="http://stackoverflow.com/questions/6806271/javascript-check-if-ctrl-button-was-pressed">JavaScript: Check if CTRL button was pressed</a></p>
-
-<p>search &lsquo;altKey&rsquo; in <a href="http://www.w3schools.com/jsref/dom_obj_event.asp">HTML DOM Events</a></p>
-
-<p><a href="http://stackoverflow.com/questions/4907843/open-a-url-in-a-new-tab-using-javascript">Open a URL in a new tab using JavaScript</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -749,23 +927,23 @@ Add the website into the whitelist of the blocked sites.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

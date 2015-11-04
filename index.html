@@ -9,11 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="当前版本的mup不支持Meteor 1.2，对1.1支持很好。
-一位开发者用meteor update升级了Meteor,然后push到代码库中，
-其他开发者同步代码后发现无法使用mup部署，
-这个问题不能简单地使用meteor --releae 1.1处理，
-因为从1.1到1.2， &hellip;">
+  <meta name="description" content="When developing in terminal you often have to open several Tmux windows
+at the same time: server: mongod, Meteor, Elasticsearch, etc&hellip;
+client: &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +67,250 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-11-02T09:35:47+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>9:35 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When developing in terminal you often have to open several Tmux windows
+at the same time:</p>
+
+<ul>
+<li><p>server: mongod, Meteor, Elasticsearch, etc&hellip;</p></li>
+<li><p>client: mongo, elasticsearch, etc&hellip;</p></li>
+<li><p>editor: template.html, template.js, router.js, server.js, etc&hellip;</p></li>
+</ul>
+
+
+<p>In most cases, you edit in editor window, save the file,
+switch to server window to see the result,
+switch back to editor window for editing again&hellip;</p>
+
+<p>Now you have the second screen, say, a Windows laptop,
+ssh to your Linux machine via MobaXterm or Kitty.
+It will be more efficient if you can put the server window on the screen
+of the Windows machine, and keep editing on your Linux machine screen,
+for saving you from so many annoying switching between the screens.</p>
+
+<p>It&rsquo;s easy for Tmux to achieve this.
+Start a new session on your Linux machine, named as you like, for now, &ldquo;search&rdquo;.
+Start a new session in the terminal of the second screen named <code>v</code> (&ldquo;viewer for short).
+If you want to see the server and editor windows at the same time,
+switch to the server window and run <code>link-window -t v</code> (see note 1 below for details).
+Now you can switch back to the editor window,
+while keep server window on the other screen.</p>
+
+<p>To cancel the link between the sessions,
+switch to server window and run <code>unlink-window -t v</code>.</p>
+
+<p>Note 1:</p>
+
+<p>If you define a &ldquo;command-prompt&rdquo; shortcut in ~/.tmux.conf:
+<code>bind -n M-a command-prompt</code>,
+run tmux command <code>linkw -t v</code> means:
+press &ldquo;M-a&rdquo;, input <code>lin&lt;Tab&gt; -t v</code> then press <Enter>.</p>
+
+<p>Note 2:</p>
+
+<p><code>link-window</code> <em>shares</em> a window between multiple sessions.
+To <em>move</em> a window to another session,
+switch to the server window and run tmux command <code>move-window -t v</code>.
+To move it back, run <code>move-window -s v:shell</code>,
+where <code>v</code> is the target session name defined by <code>tmux new -s v</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-31T01:12:00+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>1:12 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Your mongo replica set and elasticsearch are hosted on 2 servers.
+The mongo server is on &ldquo;mip:mport&rdquo;.
+The ES server is on &ldquo;esip:esport&rdquo;.</p>
+
+<p>On another server, install <a href="https://github.com/mongodb-labs/mongo-connector">mongo-connector</a>
+with <code>pip install mongo-connector</code>.
+If there are some errors, it may be caused by absence of gcc.
+On Ubuntu, install them with <code>sudo apt-get install build-essential python-dev</code>.</p>
+
+<pre><code>mongo-connector -m mip:mport -t esip:esport -d elastic_doc_manager --admin-username root --password rootPwd
+</code></pre>
+
+<p>That&rsquo;s it!
+Now when you insert documents into MongoDB,
+you can see it on elasticsearch.</p>
+
+<p>We&rsquo;ve studied Mongo River and Mongoosatic, neither is better than this.</p>
+
+<p>Note:</p>
+
+<p>Use root to sync is unsafe.
+We create an user with &ldquo;clusterManager&rdquo; role to do this work.
+Login with root, and run:</p>
+
+<pre><code>use admin
+db.createUser(
+    {
+      user: "clustermgr",
+      pwd: "cmpwd",
+      roles: [ "clusterManager" ]
+    }
+)
+</code></pre>
+
+<p>But run the command
+<code>mongo-connector -m 119.254.211.28:15515 -t localhost:9200 -d elastic_doc_manager --admin-username clustermgr --password cmpwd</code>
+will be the error <code>OperationFailure: database error: not authorized for query on local.oplog.rs</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-30T13:17:06+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>1:17 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>According to <a href="https://www.elastic.co/blog/deprecating-rivers">Deprecating Rivers</a>,
+river is not supported any more.</p>
+
+<h1>Mongo River</h1>
+
+<p><a href="http://backslash451.github.io/articles/Running-ElasticSearch-with-MongoDB-and-Kibana/">http://backslash451.github.io/articles/Running-ElasticSearch-with-MongoDB-and-Kibana/</a></p>
+
+<p>Buy a mongodb on <a href="https://www.qingcloud.com/">QingCloud</a>.
+Connect to database with
+<code>mongo 119.254.211.28:15515 --authenticationDatabase admin -u root -p nodeJS@2015</code>.
+and run <code>rs.status()</code> to verify the replica set is working.</p>
+
+<h2>Setup Elasticsearch</h2>
+
+<p>See note &ldquo;Elasticsearch Notes&rdquo;.</p>
+
+<h2>Setup Kibana</h2>
+
+<p>See note &ldquo;Kibana Notes&rdquo;.</p>
+
+<h2>Install River Plugin</h2>
+
+<p>Follow <a href="https://github.com/richardwilly98/elasticsearch-river-mongodb">ichardwilly98/elasticsearch-river-mongodb</a>.</p>
+
+<p>Run <code>bin/plugin install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.9</code>
+at $ES_HOME.</p>
+
+<p>List plugins: <code>bin/plugin list</code>.
+Get help: <code>bin/plugin -h</code>.</p>
+
+<p>When install in 2.0.0, there is an error:
+<code>ERROR: Could not find plugin descriptor 'plugin-descriptor.properties' in plugin zip</code>.
+For now, use elasticsearch 1.7.3 with river.</p>
+
+<p>List plugins in v1.7.3: <code>sudo /usr/share/elasticsearch/bin/plugin --list</code>.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-29T20:47:39+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Session is a group of tabs, which is relevant to a specific problem,
+for example: how to use ElasticSearch with MongoDB,
+or background information about TV show &ldquo;The Wire&rdquo;.</p>
+
+<h1>Firefox</h1>
+
+<p>Save: right click on the tab bar and select &ldquo;Bookmark All Tabs&rdquo; (Shift + Ctrl + D);</p>
+
+<p>Restore: click &ldquo;Show your bookmarks&rdquo; button on toolbar,
+navigate to the folder and click &ldquo;Open all Tabs&rdquo; at the bottom.</p>
+
+<h1>Chrome</h1>
+
+<p>Install extension &ldquo;Session Buddy&rdquo;.
+It will help you to save and restore all open tabs as a &ldquo;Session&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -141,6 +383,15 @@
 
 
   <div class="entry-content"><p>Following <a href="https://www.elastic.co/guide/en/kibana/current/getting-started.html">Getting Started with Kibana</a>.</p>
+
+<h1>Setup Kibana</h1>
+
+<p>Download kibana tar package file (kibana-4.2.0-linux-x64.tar.gz) and extract to $KIBANA_HOME.
+Modify $KIBANA_HOME/config/kibana.yml, uncomment
+<code>elasticsearch.url: "http://localhost:9200"</code> (if elasticsearch server is on localhost).
+Start server with <code>bin/kibana</code>.</p>
+
+<h1>Import Data</h1>
 
 <p>Import accounts with <code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json</code>
 instead of <code>curl -XPOST 'localhost:9200/bank/_bulk?pretty' --data-binary @accounts.json</code>.</p>
@@ -332,244 +583,6 @@ When I run <code>xev</code>, I got an error:
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/25/212008/">Git Submodule</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-10-25T21:20:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:20 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>We have a parent (container) Meteor application &ldquo;niufour&rdquo;,
-now we want to add a new package &ldquo;nf-search&rdquo; to niufour.</p>
-
-<p>Check out if <code>packages/</code> has been added into .gitignore.</p>
-
-<p>Push the nf-search (outside of niufour folder) to remote repo,
-here we use a Phabricator server, with address <remote-repo-url>.</p>
-
-<p>Under the root of niufour, run:</p>
-
-<pre><code>git submodule add &lt;remote-repo-url&gt; packages/nf-search
-</code></pre>
-
-<p>The common form is: <code>git submodule add &lt;remote-repo-url&gt; &lt;local-path&gt;</code>,
-where the <local-path> is where you want to put your submodule.</p>
-
-<p>To add it into the niufour package list,
-add <code>nfcommerce:nf-search</code> into file <niufour-project-root>/.meteor/packages.</p>
-
-<p>After your partner push new codes into the repo,
-run commands below to synchronize:</p>
-
-<pre><code>git pull origin develop
-git submodule init
-git submodule update
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/24/115416/">Elasticsearch Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-10-24T11:54:16+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:54 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Download deb package of <a href="https://www.elastic.co/products/elasticsearch">ealsticSearch</a>
-and install:</p>
-
-<pre><code>aptitude update
-aptitude install openjdk-7-jdk
-wget https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.0.0/elasticsearch-2.0.0.tar.gz
-tar zxf elasticsearch-2.0.0.tar.gz
-cd elasticsearch-2.0.0
-bin/elasticsearch
-</code></pre>
-
-<p>Or you can install it as a service with deb package</p>
-
-<pre><code>wget https://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.7.3.deb
-sudo dpkg -i elasticsearch-1.7.3.deb
-sudo /etc/init.d/elasticsearch restart
-</code></pre>
-
-<p>Start in foreground:
-<code>sudo /usr/share/elasticsearch/bin/elasticsearch --default.path.conf=/etc/elasticsearch/</code>.
-If you omit the option &ldquo;&ndash;default.path.conf&rdquo;,
-you&rsquo;ll get an error:
-<code>org.elasticsearch.ElasticsearchException: Failed to load logging configuration</code>.</p>
-
-<p>When you want start the 2nd node in the same machine,
-always start it this way with the same command above.</p>
-
-<p>Or run it in background:
-<code>/usr/share/elasticsearch/bin/elasticsearch -d --default.path.conf=/etc/elasticsearch/</code>;</p>
-
-<p>Put the result as well-formatted json:</p>
-
-<pre><code>npm install -g json
-curl 'localhost:9200/megacorp/employee/_search?pretty' | json
-</code></pre>
-
-<p>Create a new index:</p>
-
-<pre><code>curl -XPUT 'localhost:9200/blogs' -d '
-{
-   "settings" : {
-      "number_of_shards" : 3,
-      "number_of_replicas" : 1
-   }
-}'
-</code></pre>
-
-<p>Format json in vim: <code>:%!json</code>.</p>
-
-<p>Note:</p>
-
-<p>You can use
-<code>curl 'localhost:9200/megacorp/employee/_search?pretty' | python -m json.tool</code>
-in command line or <code>:%!python -m json.tool</code> in vim to format json string.
-But it will sort your keys, and maybe not friendly to Unicode characters.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json">http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json</a></p>
-
-<p><a href="https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/">https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/</a></p>
-
-<p><code>?petty</code> sometimes will be invalid url.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/21/133324/">Use Google Font Locally</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-10-21T13:33:24+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>1:33 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>For example, we want use Open Sans locally.
-On <a href="https://www.google.com/fonts">Google Fonts</a>,
-in &ldquo;Open Sans&rdquo;, click &ldquo;Add to Collection&rdquo;.
-and click &ldquo;use&rdquo;.</p>
-
-<p>Under &ldquo;Choose the styles you want:&rdquo;, check all items,
-under &ldquo;Choose the character sets you want:&rdquo;, check &ldquo;Latin&rdquo; and &ldquo;Latin Extended&rdquo;.</p>
-
-<p>Open the url in the 3rd step, here it is:
-<code>https://fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic</code>.</p>
-
-<p>Now you get a css file, save it into $WEBSITE_HOME/client/stylesheets/font/opensans.less,
-delete all sections other than &ldquo;latin&rdquo; and &ldquo;latin-ext&rdquo;,
-download</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/19/090450/">JavaScript Code Folding</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-10-19T09:04:50+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:04 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Add codes below to ~/.vimrc
-and run <code>vim +PluginClean +PluginInstall +qa</code>:</p>
-
-<pre><code>" JavaScript code folding
-set foldmethod=syntax
-set foldlevelstart=3
-let javaScript_fold=1
-
-Plugin 'pangloss/vim-javascript'
-</code></pre>
-
-<p>Frequently used folding shortcuts:</p>
-
-<p>zr/zm: decrease/increase the foldlevel by one;</p>
-
-<p>zo/zc: open/close fold at cursor;</p>
-
-<p>zO/zM: open/close all folds;</p>
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/4789605/how-do-i-enable-automatic-folds-in-vim">http://stackoverflow.com/questions/4789605/how-do-i-enable-automatic-folds-in-vim</a>
-<a href="https://www.linux.com/learn/tutorials/442438-vim-tips-folding-fun">https://www.linux.com/learn/tutorials/442438-vim-tips-folding-fun</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/2">&larr; Older</a>
@@ -585,23 +598,23 @@ Plugin 'pangloss/vim-javascript'
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

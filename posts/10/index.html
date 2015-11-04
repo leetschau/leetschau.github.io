@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="For a given fair A, it&rsquo;s major category are a set of its cat.major subdocuments. For example, for the fair: { cat: [ { major: "abc", minor: [ 1 &hellip;">
+  <meta name="description" content="For version 3.0. Install On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract: wget https://fastdl.mongodb.org/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,304 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/06/090609/">Setup MongoDB Server on Aliyun</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-06T09:06:09+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:06 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>For version 3.0.</p>
+
+<h1>Install</h1>
+
+<p>On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract:</p>
+
+<pre><code>wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+cd /opt
+tar zxf ~/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+mkdir -p /data/db
+</code></pre>
+
+<h1>Authentication Management</h1>
+
+<p>Start mongod without auth on VPS (ip: 123.56.18.18): <code>mongod</code>;</p>
+
+<p>Connect to server with <code>mongo 123.56.18.18</code>;
+Create system user administrator:</p>
+
+<pre><code>use admin
+db.createUser(
+    {
+      user: "superuser",
+      pwd: "12345678",
+      roles: [ "root" ]
+    }
+)
+</code></pre>
+
+<p>Create user in current database:</p>
+
+<pre><code>use products
+db.createUser({user: "niufair", pwd: "nfsecret", roles: ["readWrite"]})
+show users
+</code></pre>
+
+<p>Create a production config file mongo.conf:</p>
+
+<pre><code>net:
+  #bindIp: 10.251.212.248
+  port: 15515
+systemLog:
+  destination: file
+  path: "mongo.log"
+  logAppend: true
+security:
+  authorization: enabled
+</code></pre>
+
+<p>Stop and restart mongod with <code>nohup mongod --config mongo.conf &amp;</code>;</p>
+
+<p>Connect to server as a database user: <code>mongo 123.56.18.18:15515/products -u niufair -p nfsecret</code>.
+You can <code>show collections</code>, <code>db.doc.insert()</code>, etc.</p>
+
+<p>Start Meteor app with <code>MONGO_URL="mongodb://niufair:nfsecret@123.56.18.18:15515/products" meteor</code>.</p>
+
+<p>Connect to server as administrator: <code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin</code>.</p>
+
+<p>Use <code>db.removeUser("username")</code> to remove user.</p>
+
+<h2>Create a new database under authentication</h2>
+
+<p>Say we want to create a new database named &ldquo;bakdb&rdquo;:</p>
+
+<pre><code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin
+use bakdb
+db.createUser({user: "niufair", pwd: "nfsecret", roles: ["readWrite"]})
+</code></pre>
+
+<p>Verify: <code>mongo -u niufair -p nfsecret 123.56.18.18:15515/bakdb</code>;</p>
+
+<p>Ref:</p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication-without-bypass/">Enable Authentication after Creating the User Administrator</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-user-to-database/">Add a User to a Database</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-admin-user/">Create an Administrative User with Unrestricted Access</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication/">Enable Client Access Control</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/reference/built-in-roles/">Built-In Roles</a></p>
+
+<p><a href="http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb">http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb</a></p>
+
+<h1>MMS</h1>
+
+<p>Connect mongodb server without authentication: <code>mongo &lt;ip&gt;:&lt;port&gt;</code>;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/03/05/095056/">Manage Website Remotely</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-03-05T09:50:56+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Prerequisite</h1>
+
+<h2>Managing Node</h2>
+
+<p>// Install Fabric with <code>sudo pip install fabric</code>.</p>
+
+<p>Install ansible with <code>sudo pip install ansible</code>.</p>
+
+<h2>Provision of remote host</h2>
+
+<p>Create user with <code>sudo useradd -m chad</code>,
+then add ssh-auto-login with <code>ssh-copy-id ...</code>.</p>
+
+<p>// Install Node.js, MongoDB,</p>
+
+<h1>Backup MongoDB</h1>
+
+<h1>Import new data</h1>
+
+<h1>Update website codes</h1>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/28/152115/">Website Monitor for Meteor Application</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-28T15:21:15+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:21 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Google Analytics</h1>
+
+<p>Add tracking code (<script>&hellip;</script>) into the &ldquo;<head>&hellip;</head>&rdquo; (commonly in head.html) of your meteor app.</p>
+
+<p>You can find your tracking codes at Admin -> User Management -> Tracking Info -> Tracking Code.</p>
+
+<p>Get real-time data (such as on-site user number) at Reporting -> Real-Time -> Overview.</p>
+
+<h1>Kadira</h1>
+
+<pre><code>meteor add meteorhacks:kadira
+</code></pre>
+
+<p>Add the following codes into server/kadira.js:</p>
+
+<pre><code>Kadira.connect('&lt;App ID&gt;', '&lt;App Secret&gt;');
+</code></pre>
+
+<p>get your AppID and App secret at <a href="https://kadira.io/">Kadira</a> -> [Your App] -> Settings.</p>
+
+<p>Then see read-time statistics on its dashboard.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/28/114611/">System Monitor Tools for Linux Server</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-28T11:46:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>sar</h1>
+
+<p>On CentOS 6.5, install sysstat with <code>yum install sysstat</code>.
+And the cron jobs will be created in /etc/cron.d/sysstat.
+The default routines defined in this file is running system activity accounting every 10 minutes,
+and generating a daily summary of process accounting at 23:53 each day.</p>
+
+<p>Now you can see system memory usage hisory with <code>sar -r 2 5</code>,
+which means display memory usage every 2 seconds, 5 times totally.</p>
+
+<p>To see the memory history: <code>sar -r -f /var/log/sa/sa28</code>,
+the total free memory is the sum of 3 items: kbmemfree, kbbuffers, kbcached.</p>
+
+<p>Refs:</p>
+
+<ul>
+<li><p><a href="https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar">https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar</a></p></li>
+<li><p><a href="http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.">http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.</a></p></li>
+</ul>
+
+
+<h1>dstat</h1>
+
+<p>On CentOS 6.5, install dstat with <code>yum install dstat</code>.</p>
+
+<p>Log the memory usage with <code>dstat --output memlog.csv -t -m 600 500</code>,
+which will log totally 500 times, with a 10-minute interval.</p>
+
+<h1>Glances</h1>
+
+<p>Install it with <code>curl -L http://bit.ly/glances | /bin/bash</code>.
+This only works on Linode node.
+It failed on my loptop with message &ldquo;connection reset by peer&rdquo;.
+On the Linode node, the installation failed with &ldquo;yum&rdquo; and &ldquo;pip&rdquo;.
+It seems the reason is the dependencies are not met.</p>
+
+<p>Use it with <code>glances</code> with root, or <code>glances -w</code> as a web server.
+Then you can see the status of your server with url &ldquo;<a href="http://104.237.135.143:61208">http://104.237.135.143:61208</a>&rdquo;.</p>
+
+<p>For keep a system log, use <code>glances -t 600 --export-csv /tmp/glances.csv</code>,
+which means write a csv-format log every 10 minutes (3 seconds by default) to /tmp/glances.csv.</p>
+
+<p>P.S.: There&rsquo;s also a <a href="http://munin-monitoring.org/">Munin</a>.
+It seems the installation is complex, so I gave up.</p>
+
+<h1>collectl</h1>
+
+<p>Install with <code>yum install collectl</code>.</p>
+
+<p>Print memeory usage with <code>collectl -i 2 -c 5 -sm</code>.</p>
+
+<p>Print all subsystems with <code>collectl --showsubsys</code>.</p>
+
+<p>Log output information with &ldquo;-f&rdquo; options: <code>collectl -sm -i 2 -c 5 -f mylog</code>.
+It creates a gz file, which you have to extract with <code>gzip -d mylog...</code>.</p>
+
+<p>Ref: <a href="http://lintut.com/best-command-line-tools-for-linux-performance-monitring/">http://lintut.com/best-command-line-tools-for-linux-performance-monitring/</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -649,529 +947,6 @@ Template.UserComments.helpers({
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/04/152524/">A Meteor Modal Window</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-04T15:25:24+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>modal login</h1>
-
-<p><template name="LoginModal">
-  <button type="button" class="btn btn-link" data-toggle="modal" data-target="#loginForm">登录</button>
-  <div class="modal fade" id="loginForm" tabindex="-1" role="dialog" aria-labelledby="mymodallabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="mymodallabel">登录</h4>
-        </div>
-        <div class="modal-body">
-          <form id="userLogin" class="form-horizontal">
-            <div class="form-group">
-              <label for="inputEmail" class="col-sm-2 control-label">Email</label>
-              <div class="col-sm-10">
-                <input type="email" class="form-control" id="inputEmail" placeholder="Email">
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="inputPassword" class="col-sm-2 control-label">密码</label>
-              <div class="col-sm-10">
-                <input type="password" class="form-control" id="inputPassword" placeholder="Password">
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="col-sm-offset-2 col-sm-10">
-                <div class="checkbox">
-                  <label> <input type="checkbox">记住我</label>
-                </div>
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="col-sm-offset-2 col-sm-10">
-                还没有帐号？<a href="/register" data-toggle="modal">注册新帐号</a>
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary">登录</button>
-          <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template></p>
-
-<h1>user login control</h1>
-
-<p>if (Meteor.isServer) {
-  Meteor.startup(function () {
-    Accounts.onLogin(function(userObj) {
-      Router.go(&ldquo;/&rdquo;);
-    });</p>
-
-<pre><code>Accounts.onLoginFailure(function(userObj) {
-  console.log("wrong pwd for " + userObj.user.profile.nickname);
-});
-</code></pre>
-
-<p>  });
-}</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/03/174123/">几款开源文本编辑器比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-03T17:41:23+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>5:41 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Brackets</h1>
-
-<p><a href="http://brackets.io/">Brackets</a>是一款面向Web开发的文本编辑器；</p>
-
-<p>通过插件管理器实现vim模式支持，效果好；</p>
-
-<p>修改字号方便：ctrl + =/-;</p>
-
-<p>不修改项根目录；</p>
-
-<p>不能像atom那样在命令行中将工作目录作为参数传入，比如在启动后设置；</p>
-
-<p>打开文件夹快捷键：ctrl-alt-o;
-打开文件快捷键：ctrl-shift-o, 在当前目录中模糊匹配；</p>
-
-<p>分割窗口只有“不分割”，“横向分割”，“纵向分割”3种方式，且只能用鼠标操作，不方便；</p>
-
-<p>在html中实时修改css文件：ctrl-e;</p>
-
-<p>推荐插件：</p>
-
-<ul>
-<li><p>Brackets Vim: vim模式插件，可以使用ex命令（冒号开头的命令，如:w,:q等），需要与外界粘贴/拷贝文本，需要先在[File -> Enable Vim]中关闭vim模式，再用鼠标选择文本，再ctrl-c/v;</p></li>
-<li><p>Command line shortcuts: 可以将命令行定义成快捷键；</p></li>
-<li><p>Brackets Key Remapper: 目录[Debug -> Open Preferences File]，打开配置文件，修改默认快捷键，"view.hideSidebar"改为ctrl-alt-m；</p></li>
-<li><p>Theme: 增加暗色方案；</p></li>
-<li><p>Display Shortcuts: 显示可用的所有快捷键，可以搜索，很方便, ctrl-alt-/;</p></li>
-</ul>
-
-
-<h1>Atom</h1>
-
-<p><a href="https://atom.io/">Atom</a>由Github出品，未来可能不完全开源;</p>
-
-<p>启动速度慢；</p>
-
-<p>对窗口分割、窗口尺寸切换的支持不太好；</p>
-
-<p>全局搜索快捷键：Ctrl-Shift-P;
-打开文件快捷键：Ctrl-P;</p>
-
-<p>vi模式不能使用ex命令，操作不流畅；</p>
-
-<h1>Zed</h1>
-
-<p>体积比atom小一半，解压后直接运行，但其暗色主题都是灰色的，对比度不够；</p>
-
-<p>会在项目根目录下创建一个.zeddata文件，如果使用git做项目管理的话，需要把这个文件加入到ignore列表中；</p>
-
-<p>没有tab，可以水平分割为1～3个窗口，可以方便地在窗口间转移，这一点比atom强很多；</p>
-
-<p>自动保存功能使得:w不再需要，但最Meteor这样自动更新的环境，自动保持会使应用频繁更新；</p>
-
-<p>自带Vim模式，可以方便地使用vi快捷键；</p>
-
-<h1>LightTable</h1>
-
-<p>LightTable是一个Clojure开发环境，但也能作为一款通用文本编辑器；</p>
-
-<p>打开命令自动搜索：ctrl-space;</p>
-
-<p>安装vim插件：ctrl-space -> show plugin manager -> 输入vim，安装之，ex命令可用；与外部copy/paste需要在插入模式中用鼠标完成；</p>
-
-<p>打开文件：ctrl-o;</p>
-
-<p>总体而言无法替代vim；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/01/134829/">Full Text Search for Meteor App</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-02-01T13:48:29+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>1:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>For Meteor 1.0.3, the built-in database is mongodb 2.4, which is not support full text search by default.
-So we need install a stand-alone MongoDB 2.6, create a &ldquo;meteor&rdquo; database, and let Meteor to use it as backend database:</p>
-
-<p>First start MongoDB server: <code>mongod --dbpath ~/docs/mongodb-repo</code>;</p>
-
-<p>Then create a new database &ldquo;meteor&rdquo; for Meteor app backend:</p>
-
-<pre><code>$ mongo
-&gt; show dbs
-&gt; use meteor
-</code></pre>
-
-<p>Next start Meteor server and connect it with the Mongodb server:</p>
-
-<pre><code>$ MONGO_URL="mongodb://localhost:27017/meteor" meteor
-&gt; db.zips.getIndexes()
-&gt; db.zips.dropIndex("forsearch_text")
-&gt; db.zips.ensureIndex( {city: "text", state: "text"} )
-&gt; db.zips.find( {$text: {$search: "lee ma"}} ).count()
-488
-</code></pre>
-
-<p>Here <code>use meteor</code> create a new database in MongoDB (if it doesn&rsquo;t exists yet)
-and use it as the current database.
-Use <code>db</code> to get the current database name.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://docs.mongodb.org/manual/tutorial/getting-started/">Getting Started with MongoDB</a></p>
-
-<p><a href="http://docs.mongodb.org/manual/administration/indexes-text/">Text Search Tutorials of MongoDB 2.6.7</a>;</p>
-
-<p><a href="http://docs.mongodb.org/manual/reference/operator/query/text/">$text query operator of MongoDB 2.6.7</a></p>
-
-<p><a href="http://stackoverflow.com/questions/10610131/checking-if-a-field-contains-a-string">Checking if a field contains a string</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/30/183509/">Meteor应用中简单查询的实现方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-01-30T18:35:09+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:35 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>简单搜索要求多个检索词能够以任意顺序出现在多个字段中，目前的解决方法有两种思路：</p>
-
-<p>一是创建一个额外的检索项，把所有要检索的字段用字符串方式组合起来放在检索项中，然后用正则表达式匹配；
-这种方式实际上有信息冗余，所以原始数据变化后一定要及时更新检索项；</p>
-
-<p>二是用第三方包实现这种功能。</p>
-
-<h1>自定义搜索：检索词放在单独Collection中</h1>
-
-<p>优点是检索词单独存放，需要去掉或者更新检索词时，只要简单地drop掉检索词Collection即可，
-适于存储大量记录；</p>
-
-<p>缺点有两个：
-首先显示查询结果比较麻烦，需要先在检索项集合中搜出命中目标的_id，然后再查询原始数据表显示完整信息；
-其次这种数据结构对组合查询支持不好，比如要查询"名称"字段中含有"abc"，并且"类别"字段中含有"xyz"的展会，
-由于"类别"字段是一个复杂对象，需要事先组合成一个字符串，这一项如果放在单独的collection中，
-需要查询两个不同的集合，然后取它们的并集。</p>
-
-<p>首先在MongoDB中，创建用于简单搜索的新collection &ldquo;simpleSearch&rdquo;:</p>
-
-<pre><code>db.fairs.find().forEach(function(elem) {
-    var searchStr = elem.chnName + elem.engName + elem.position;
-    db.simpleSearch.save({ _id: elem._id, searchBody: searchStr });
-})
-</code></pre>
-
-<p>然后定义路由处理函数：</p>
-
-<pre><code>Fairs = new Mongo.Collection("fairs");
-SimpleSearch = new Mongo.Collection("simpleSearch");
-
-Router.route('/results/:inp', function() {
-  // basic search url: /results/abc?type=basic
-  // complex search url: /results/?type=complex?name=xxx?time=xxx?position=xxx?category=xxx
-  var fullStr = this.params.inp;
-  var searchType = this.params.query.type;
-  if (searchType === "basic") {
-    var parts = fullStr.trim().split(" ");
-    for (i=0; i&lt;parts.length; ++i) {
-      parts[i] = "(?=.*" + parts[i] + ")";
-    }
-    var queryPtn = new RegExp("(" + parts.join("") + ")", "i");
-    var ids = [];
-    SimpleSearch.find( { searchBody: queryPtn }, { fields: { searchBody:0 }} ).forEach(
-      function(elem) {
-        ids.push(elem._id);
-      });
-    this.render('SearchResults', {
-      data: function() {
-        return Fairs.find( { _id: { $in: ids } } );
-      }
-    });
-  } else if (searchType === "complex") {
-    ...
-  }
-});
-</code></pre>
-
-<p>这里首先查询SimpleSearch集合，然后将查询得到的展会<em>id存入临时容器ids数组中，然后在Fairs集合中通过"$in"操作符取得所有ids数组中</em>id对应的展会对象。</p>
-
-<h1>自定义搜索：检索词放在原始信息文档中</h1>
-
-<p>这个方法把原始信息和检索项放在同一个集合中，几个检索项放在集合的一个key下面，
-集合会比较臃肿，但查询和显示都方便，适用于尺寸不大的数据库。</p>
-
-<p>控制器定义：</p>
-
-<pre><code>Fairs = new Mongo.Collection("fairs");
-Router.route('/results/:inp', function() {
-  // basic search url: /results/abc?type=basic
-  // complex search url: /results/?type=complex?name=xxx?time=xxx?position=xxx?category=xxx
-  var fullStr = this.params.inp;
-  var searchType = this.params.query.type;
-  if (searchType === "basic") {
-    var parts = fullStr.trim().split(" ");
-    for (i=0; i&lt;parts.length; ++i) {
-      parts[i] = "(?=.*" + parts[i] + ")";
-    }
-    var queryPtn = new RegExp("(" + parts.join("") + ")", "i");
-    this.render('SearchResults', {
-      data: function() {
-        return Fairs.find( { "indexStr.simpleSearch": queryPtn } );
-      }
-    });
-  } else if (searchType === "complex") {
-    ...
-  }
-});
-</code></pre>
-
-<h1>基于Search Source的实现方法</h1>
-
-<p>这个搜索基于<a href="https://github.com/meteorhacks/search-source/">search-source</a>.
-通过<code>meteor add meteorhacks:search-source</code>添加到meteor中，
-代码参照了<a href="https://github.com/meteorhacks-samples/meteor-instant-search-demo">meteor-instant-search-demo</a>.</p>
-
-<h2>准备数据源</h2>
-
-<h3>导入数据</h3>
-
-<ol>
-<li><p>下载<a href="http://media.mongodb.org/zips.json">zips.json</a>；
-参考<a href="http://stackoverflow.com/questions/5723896/is-there-a-sample-mongodb-database-along-the-lines-of-world-for-mysql">Is there a sample MongoDB Database along the lines of world for MySql?</a>.</p></li>
-<li><p>导入Meteor数据库中：启动meteor服务，然后在另一个shell里运行：
-<code>~/apps/mongodb-linux-x86_64-2.6.5/bin/mongoimport -h localhost:3001 --db meteor --collection zips --type json --file zips.json</code>;</p></li>
-<li><p>增加搜索字段：由于简单搜索要求输入可能匹配任意字段，
-能达到这个要求的唯一方法就是将被查询的字段连接成一个完整的“搜索”字符串，
-输入的各项可以以任何顺序出现在这个搜索字符串（这里这一项名为"forsearch"）中，下面增加这一项：</p>
-
-<pre><code> db.zips.find().forEach(function(elem) {
-     db.zips.update(
-       {_id: elem._id},
-       { $set: {forsearch: elem.city + ' ' + elem.state}}
-     );
- });
-
- db.fairs.find().forEach(function(elem) {
-     var cat_minor = _.reduce(elem.category.minor
-     db.fairs.update(
-       {_id: elem._id},
-       { $set: {forsearch: elem.chnName + ' ' + elem.engName + ' ' + elem.time + ' ' + elem.position + catStr}}
-     );
- });
-</code></pre>
-
-<p> 参考<a href="http://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field">Update MongoDB field using value of another field</a>.</p></li>
-</ol>
-
-
-<h2>搜索逻辑</h2>
-
-<p>下面"/&ldquo;都指项目根目录。</p>
-
-<h3>数据集定义</h3>
-
-<p>在/collections.js中定义数据集和索引：</p>
-
-<pre><code>Zips = new Mongo.Collection('zips');
-if(Meteor.isServer) {
-  Zips._ensureIndex({city: 1, state: 1});
-}
-</code></pre>
-
-<h3>服务端</h3>
-
-<p>在/server/server.js中定义：</p>
-
-<pre><code>SearchSource.defineSource('zips', function(searchText, options) {
-  var options = {sort: {isoScore: -1}, limit: 20};
-
-  if(searchText) {
-    var regExp = buildRegExp(searchText);
-    var selector =  {forsearch: regExp};
-    return Zips.find(selector, options).fetch();
-  } else {
-    return Zips.find({}, options).fetch();
-  }
-});
-
-function buildRegExp(searchText) {
-  var parts = searchText.trim().split(/[ \-\:]+/);
-  for (i=0; i&lt;parts.length; ++i) {
-    parts[i] = "(?=.*" + parts[i] + ")";
-  }
-  var res = new RegExp("(" + parts.join("") + ")", "i");
-  return res;
-}
-</code></pre>
-
-<p>buildRegExp函数中的正则表达式<code>(?=.*A)(?=.*B)</code>可以实现对A和B任意顺序的匹配，
-即既能匹配A.<em>B，又能匹配B.</em>A，
-参考<a href="http://stackoverflow.com/questions/19896324/match-string-in-any-word-order-regex">match string in any word order regex</a>.</p>
-
-<h3>客户端：搜索输入框框即时响应</h3>
-
-<p>搜索框是通用控件，所以定义在了/client/comTemp.js中，定义了对框中keyup事件的响应：</p>
-
-<pre><code>Template.Header.events({
-  "keyup #search-input": _.throttle(function(e) {
-    var text = $(e.target).val().trim();
-    ZipSearch.search(text);
-  }, 200)
-});
-</code></pre>
-
-<h3>客户端：搜索结果展示页面</h3>
-
-<p>定义在/client/results.html中。</p>
-
-<pre><code>&lt;template name="SearchResults"&gt;
-  &lt;div id="search-result" class="container content"&gt;
-    &lt;div id="search-meta"&gt;
-
-        searching ...
-
-    &lt;/div&gt;
-
-
-      &lt;div class="package"&gt;
-        &lt;h4 class="name"&gt;
-          }
-        &lt;/h4&gt;
-        &lt;div class="description"&gt;
-          }, }
-        &lt;/div&gt;
-      &lt;/div&gt;
-
-  &lt;/div&gt;
-&lt;/template&gt;
-</code></pre>
-
-<h3>客户端：搜索结果的数据控制</h3>
-
-<p>定义在/client/results.js中。</p>
-
-<pre><code>var options = {
-  keepHistory: 1000 * 60 * 5,
-  localSearch: true
-};
-var fields = ['forsearch'];     // 这里定义要搜索的字段
-
-ZipSearch = new SearchSource('zips', fields, options);
-// 这里的zips要与服务端SearchSource.defineSource中定义的名字一致
-
-Template.SearchResults.helpers({
-  getZips: function() {
-    return ZipSearch.getData({
-      transform: function(matchText, regExp) {
-        console.log("matchText: " + matchText);
-        console.log("regExp: " + regExp);
-        var res = matchText.replace(regExp, "&lt;b&gt;$&amp;&lt;/b&gt;");
-        console.log("res is: " + res);
-        return res;
-      },
-      sort: {isoScore: -1}
-    });
-  },
-
-  isLoading: function() {
-    return ZipSearch.getStatus().loading;
-  }
-});
-
-Template.SearchResults.rendered = function() {
-  ZipSearch.search('');
-};
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/11">&larr; Older</a>
@@ -1189,23 +964,23 @@ Template.SearchResults.rendered = function() {
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

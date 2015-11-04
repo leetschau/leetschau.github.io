@@ -9,13 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="user=&lsquo;bvt&rsquo;
-host=&lsquo;10.0.2.47&rsquo;
-ssh $user@$host &lsquo;bash&rsquo; &lt;&lt;EOF
-source /etc/profile
-java -version
-hostname
-EOF You &hellip;">
+  <meta name="description" content="Generate ssh keys on source host with ssh-keygen;
+Disable known_hosts prompt(optional): add &ldquo;StrictHostKeyChecking no&rdquo; into ~/.ssh/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,6 +66,324 @@ EOF You &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/31/115253/">Distribute SSH Pubkey to Multiple Hosts With Fabric</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-31T11:52:53+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:52 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Generate ssh keys on source host with <code>ssh-keygen</code>;</p></li>
+<li><p>Disable known_hosts prompt(optional): add &ldquo;StrictHostKeyChecking no&rdquo; into ~/.ssh/config;</p></li>
+<li><p>Run fabric script to distribute pubkey, you have to input password manually: <code>fab distkey</code>;</p></li>
+</ol>
+
+
+<p>$ cat fabfile.py
+from fabric.api import local, task
+env.hosts = [&lsquo;10.0.2.48&rsquo;, &lsquo;10.0.2.49&rsquo;, &lsquo;10.0.7.141&rsquo;, &lsquo;10.0.7.142&rsquo;, &lsquo;10.0.7.143&rsquo;]
+@task
+def distkey():
+    env.user = &lsquo;gcp&rsquo;
+    local(&lsquo;ssh-copy-id %(user)s@%(host)s&rsquo; % env)</p>
+
+<p>You have to input password for every host. So try to use uniform password for all hosts. It will save you lots of times.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/28/182817/">Task Management in Fabric</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T18:28:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:28 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. So there are 2 strategies:</p>
+
+<ul>
+<li><p>Define global hosts, when detections over, modify the hosts to none, so report and send email will only run once;</p></li>
+<li><p>Use &ldquo;report&rdquo; as entrance, invoke detection within &ldquo;report&rdquo; task.</p></li>
+</ul>
+
+
+<h1>Global hosts style</h1>
+
+<p>fabfile.py:</p>
+
+<pre><code>from fabric.api import run, env, hosts
+import re
+
+env.hosts = ['Chad@10.0.2.47', 'chad@10.0.2.49']
+env.password = 'abaqus67'
+env['report'] = {}
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    env['report'][env.host] = host_report
+    env.hosts = []    # make following tasks run once
+
+def report():
+    print('Test Report:')
+    print(env.report)
+
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab --hide=everything detect report sendmail
+Test Report:
+{'10.0.2.49': {'os': 'Linux', 'jdk': True}, '10.0.2.47': {'os': 'Linux', 'jdk': False}}
+send mail...
+</code></pre>
+
+<h1>&ldquo;execute&rdquo; style</h1>
+
+<p>fab2.py:</p>
+
+<pre><code>from fabric.api import run, env, task, execute
+import re
+
+def checkJDK():
+    res = run('java -version')
+    cre = 'java version .*1.6.0.*Java\(TM\)'
+    return len(re.findall(cre, res, re.S)) &gt; 0
+
+def checkMem(str):
+    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
+
+def checkOS():
+    res = run('uname -a')
+    return res.split()[0]
+
+def detect():
+    env.password = env.loginfo[env.host_string]
+    host_report = {}
+    host_report['os'] = checkOS()
+    host_report['jdk'] = checkJDK()
+    return host_report
+
+@task
+def report():
+    env.hosts= ['gcp@10.0.2.48', 'gcp@10.0.2.49', 'gcp@10.0.7.141', 'gcp@10.0.7.142', 'gcp@10.0.7.143:22']
+    pwds = ['gcp', 'gcp', 'gcp@123', 'gcp@123', 'gcp@123']
+    env.loginfo = dict(zip(env.hosts, pwds))
+    res = execute(detect, hosts=host_list)
+    print('Test Report:')
+    print(res)
+
+@task
+def sendmail():
+    print('send mail...')
+</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>$ fab -f fab2.py --hide=everything report sendmail
+Test Report:
+{'gcp@10.0.2.47': {'os': 'Linux', 'jdk': False}, 'gcp@10.0.2.49': {'os': 'Linux', 'jdk': True}, ... }
+send mail...
+</code></pre>
+
+<p>You can see there is no definition and modification of global hosts, no need to maintain global variable env[&lsquo;report&rsquo;] manually in &ldquo;report&rdquo; style, and the &ldquo;detect&rdquo; function is hide from &ldquo;fab&rdquo; command line with the help of &ldquo;@task&rdquo; decorator. If you run &ldquo;fab detect&rdquo;, it will complain &ldquo;Command(s) not found&rdquo;, which provides more accurate visibility control. So I think it&rsquo;s better than the &ldquo;global hosts&rdquo; style.</p>
+
+<p>Notes:</p>
+
+<ol>
+<li><p>Yuo can add attributes to &ldquo;env&rdquo; directly like &ldquo;env.loginfo = &hellip;&rdquo; above. And use this attribute with &ldquo;env.loginfo[&hellip;]&rdquo;;</p></li>
+<li><p>The format of host string is &ldquo;user@ip:port&rdquo;, or &ldquo;user@ip&rdquo; if port is 22;</p></li>
+<li><p>The function &ldquo;execute&rdquo; returns a dict, the key is the host_string, the value is the return value of the function executed (&ldquo;detect&rdquo; in this case). The return value of &ldquo;detect&rdquo; is a dict, so the &ldquo;execute&rdquo; function returns a nested dict.</p></li>
+<li><p>the return value of &ldquo;run&rdquo; is the stdout and stderr of the remote command.</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/28/085154/">System Memory Cost of Several Linux Distros</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-28T08:51:54+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:51 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The 3 numbers after the distro name is: used memory, free memory and used percent(= used/(used + free)).</p>
+
+<p>Scientific Linux Gnome 64bit:   286 1560 15.49
+CentOS 6.4 Gnome 64bit:         281 1565 15.22
+Mint 14 Xfce 64bit:             249 1596 13.50
+openSUSE13 Gnome 64bit :        454 1392 24.59
+openSUSE12 KDE 64bit:           404 1442 21.89</p>
+
+<p>You can see Mint Xfce has smallest memory cost, while openSUSE has biggest.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/27/120107/">A Python Environment Detector</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-03-27T12:01:07+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The user provide the method to get result(command on remote host), the check standard(a callback function), and information about target host(ip and username), and a timeout of execution time optional, with the envdet module, you can get the result: if the command output obey the check standard.</p>
+
+<p>The application module, detapp.py:</p>
+
+<pre><code>import logging
+from envdet import rcmd
+
+logger = logging.getLogger('DetectApp')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('detect.log')
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+logger.addHandler(ch)
+logger.addHandler(fh)
+
+
+def isOracleJDK(str):
+    return 'Java(TM)' in str
+
+res = rcmd('bvt', '10.0.2.47', 'java -version', isOracleJDK)
+logger.info('Check result:%s' % res)
+</code></pre>
+
+<p>The environment detection module, envdet.py:</p>
+
+<pre><code>from subprocess import Popen, PIPE, STDOUT
+import signal
+import logging
+
+logger = logging.getLogger('DetectApp.envdet')
+
+def handler(signum, frame):
+    logger.error('Signal handler called with signal: %d' % signum)
+    raise IOError("Command execution timeout!")
+
+def rcmd(user, host, cmd, check_handler, timeout=10):
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+
+    cmdstr = "ssh %s@%s 'source /etc/profile;%s'" % (user, host, cmd)
+
+    p = Popen(cmdstr, close_fds=True, shell=True, stdout=PIPE, stderr=STDOUT)
+
+    fullres = line = ''
+    while p.poll() is None:
+        out = p.stdout.read(1)
+        fullres = fullres + out
+        if out=='\n':
+            logger.debug(line)
+            line = ''
+        else:
+            line = line + out
+    logger.debug('----ret of cmd %s is: %d----' % (cmd, p.returncode))
+    return check_handler(fullres)
+</code></pre>
+
+<p>The technical points here are:</p>
+
+<ul>
+<li><p>Run shell command in Python and retrieve output and return code;</p></li>
+<li><p>Use signal to limit the overall running time of commands on remote host over SSH;</p></li>
+<li><p>The logging utility across multiple modules, notice the naming rules: <app-logger-name>.<imported-module-name>. So if you rename the module name, rename it&rsquo;s logger accordingly.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -380,301 +693,6 @@ TY-HD-01-010-fa_cg_nb_d_001563</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/19/171117/">Text Expansion in Vim</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-19T17:11:17+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>You have 2 options: imap and abbr. Use &ldquo;pt&rdquo; for abbreviation of &ldquo;Puppet&rdquo; for example, first open your vim or gVim:</p>
-
-<ul>
-<li><p>imap: &ldquo;:imap pt Puppet&rdquo;;</p></li>
-<li><p>abbr: &ldquo;:ab pt Puppet&rdquo;;</p></li>
-</ul>
-
-
-<p>The difference is, imap will expand text right after you press &ldquo;t&rdquo;,
-while for abbr, you have to type a space or tab or enter after the &ldquo;t&rdquo; to perform text expansion.
-So when writing English, use &ldquo;abbr&rdquo; for it&rsquo;s the &ldquo;normal&rdquo; way.
-If you write Chinese with English, imap is the better way,
-because there is probably no space after the expanded words.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/18/162706/">Build Puppet Clusters With Vagrant</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-18T16:27:06+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:27 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ cd ~/docs/propuppetex/chapter3
-$ cat Vagrantfile
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|</p>
-
-<p>  config.vm.box = &ldquo;centos64&rdquo;</p>
-
-<p>  config.vm.define &ldquo;ppt&rdquo; do |ppt|
-    ppt.vm.hostname = &ldquo;puppet.boco.com.cn&rdquo;
-    ppt.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.3&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    ppt.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    ppt.vm.provision :shell, path: &ldquo;master.sh&rdquo;
-  end</p>
-
-<p>  config.vm.define &ldquo;web&rdquo; do |web|
-    web.vm.hostname = &ldquo;web.boco.com.cn&rdquo;
-    web.vm.network &ldquo;private_network&rdquo;, ip: &ldquo;192.168.50.4&rdquo;,
-        virtualbox__intnet: &ldquo;gcptest-network&rdquo;
-    web.vm.provider :virtualbox do |vbox|
-      vbox.customize [&ldquo;modifyvm&rdquo;, :id, &ldquo;&ndash;natnet1&rdquo;, &ldquo;10.3/16&rdquo;]
-    end
-    web.vm.provision :shell, path: &ldquo;web.sh&rdquo;
-  end
-end</p>
-
-<p>$ cat master.sh
-echo &lsquo;<em>&rsquo; > /etc/puppet/autosign.conf
-sed -i &lsquo;/[.</em>]/ a \    autosign = true&rsquo; /etc/puppet/puppet.conf # add &ldquo;autosign = true&rdquo; in [main] and [agent]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-mkdir /etc/puppet/manifests
-cat > /etc/puppet/manifests/site.pp &lt;<-EOF
-node 'web' {
-  file { '/home/vagrant/aaa.conf':
-    content => &lsquo;this is made by puppet master!&rsquo;,
-  }
-}
-EOF
-service iptables stop</p>
-
-<p>$ cat web.sh
-sed -i &lsquo;1 a \    master = puppet&rsquo; /etc/puppet/puppet.conf # add &ldquo;master = puppet&rdquo; after the line [main]
-echo &ldquo;192.168.50.3  puppet.boco.com.cn puppet&rdquo; >> /etc/hosts
-echo &ldquo;192.168.50.4  web.boco.com.cn web&rdquo; >> /etc/hosts
-echo &ldquo;proxy=<a href="http://10.21.3.31:8888">http://10.21.3.31:8888</a>&rdquo; >> /etc/yum.conf
-service iptables stop</p>
-
-<p>Now run &ldquo;puppet master &ndash;no-daemonize &ndash;verbose&rdquo; on ppt, run &ldquo;puppet agent &ndash;test&rdquo; on web, you can file the file &ldquo;aaa.conf&rdquo; at /home/vagrant.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/18/085501/">Publish Blogs on Cnblogs.com</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-18T08:55:01+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:55 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Some frequently used action about post on cnblogs:</p>
-
-<pre><code>import xmlrpclib
-
-serviceUrl, appKey = 'http://www.cnblogs.com/yourusername/services/metaweblog.aspx', 'yourusername'
-username, password = 'yourusername', 'yourpassword'
-server = xmlrpclib.ServerProxy(serviceUrl)
-
-res = server.metaWeblog.getRecentPosts('', username, password, 10)
-print('no of posts: %d' % len(res))
-print('list posts: %s' %res)
-
-cat = server.metaWeblog.getCategories('', username, password)
-print('no of categories: %d' %len(cat))
-print('list categories: %s' %cat)
-
-post = {'title':'My 4th Post', 'description':'some test text here\na new line', 'mt_keywords': 'test, demo'}
-postid = server.metaWeblog.newPost('', username, password, post, True)
-print('postid is: %s' % postid)
-
-post = server.metaWeblog.getPost('3604635', username, password)
-print('Get Post: %s' % post)
-</code></pre>
-
-<p>When publish new post, we often meet this error:</p>
-
-<pre><code>Traceback (most recent call last):
-  File "config.py", line 18, in &lt;module&gt;
-    postid = server.metaWeblog.newPost('', usr, passwd, post, True)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1224, in __call__
-    return self.__send(self.__name, args)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1578, in __request
-    verbose=self.__verbose
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1264, in request
-    return self.single_request(host, handler, request_body, verbose)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1297, in single_request
-    return self.parse_response(response)
-  File "/usr/lib/python2.7/xmlrpclib.py", line 1473, in parse_response
-    return u.close()
-  File "/usr/lib/python2.7/xmlrpclib.py", line 793, in close
-    raise Fault(**self._stack[0])
-xmlrpclib.Fault: &lt;Fault 500: u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01'&gt;
-</code></pre>
-
-<p>To see the error information, open a python shell, run following code</p>
-
-<pre><code>print(u'\u62b1\u6b49\uff01\u5df2\u8d85\u8fc7\u5f53\u65e5\u535a\u6587\u53d1\u5e03\u6570\u91cf100\u7bc7\u9650\u5236\uff01\u4eca\u5929\u65e0\u6cd5\u7ee7\u7eed\u53d1\u5e03\uff01')
-</code></pre>
-
-<p>Output:</p>
-
-<pre><code>抱歉！已超过当日博文发布数量100篇限制！今天无法继续发布！
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/17/163640/">基于gVim的暗色调Puppet书籍翻译写作环境</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-03-17T16:36:40+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:36 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>翻译环境包括两个部分，写作部分和电子书，前者用gVim，后者Windows上用SumatraPDF，Linux Mint就用自带的evince。</p>
-
-<h1>Linux</h1>
-
-<p>配置gVim字体和颜色：</p>
-
-<p>$ cat ~/.gvimrc
-set go=
-set guifont=Monospace\ 12
-colo koehler
-set et
-set ts=2
-set sw=2
-set cc=0
-set wrap</p>
-
-<p>开始写作：gvim <filename></p>
-
-<p>gVim比vim好的地方是按<ESC>切换到标准状态下时，输入法会自动关闭。</p>
-
-<p>evince用Ctrl-i即可切换到黑底白字，用F11切换全屏。</p>
-
-<p>注：不写"set keymap=pinyin"，也能在<ESC>时自动退出中文输入法。</p>
-
-<h1>Windows</h1>
-
-<h2>gVim</h2>
-
-<p>全屏需要使用一个叫做<a href="http://www.vim.org/scripts/script.php?script_id=2596">gvimfullscreen_win32</a>的工具，下载安装包，把gvimfullscreen.dll解压到gvim.exe所在目录下（d:\Apps\Vim\vim72\），然后在_vimrc中加一行：</p>
-
-<p>map <F11> <Esc>:call libcallnr(&ldquo;gvimfullscreen.dll&rdquo;, &ldquo;ToggleFullScreen&rdquo;, 0)<CR></p>
-
-<p>试用后发现全屏状态下输入法和其他提示窗口都不能显示，基本不可用。</p>
-
-<p>最终$MYVIMRC（d:\Apps\Vim_vimrc）的设置是：</p>
-
-<pre><code>set encoding=utf-8
-language messages zh_CN.utf-8
-map &lt;Right&gt; :bn&lt;CR&gt;
-map &lt;F2&gt; :set wrap!&lt;CR&gt;
-set go=
-colo evening
-set noswapfile
-set nobackup
-set ts=2
-set sw=2
-set et
-set ai
-set nu
-set clipboard+=unnamed
-set guifont=Consolas:h13
-cd e:/docs/translate/propuppet
-</code></pre>
-
-<p>其中"set encoding"解决打开UTF-8 without BOM格式编码文件时中文字符乱码问题；</p>
-
-<p>language解决提示信息中的中文乱码问题；</p>
-
-<p>set ts=2是专门为Puppet代码格式设置的。</p>
-
-<p>Windows上的gVim不论插入模式和标志模式默认都支持C-s保存文件。</p>
-
-<h2>SumatraPDF</h2>
-
-<p>主菜单 -> 设置 -> 高级选项，在打开的配置文件里将FixedPageUI中TextColor值和BackgroundColor值互换，就实现了黑底白字的效果。</p>
-
-<p>全屏用 [查看 -> 全屏]，快捷键C-S-l。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/33">&larr; Older</a>
@@ -692,23 +710,23 @@ cd e:/docs/translate/propuppet
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

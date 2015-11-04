@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Write a property file: /home/bvt/docs/jenkinsEnv.properties: gcp.job.type=deliver gcp.deliver.ip=10.0.7.142 gcp.deliver.user=gcp gcp.deliver.home=/ &hellip;">
+  <meta name="description" content="Install pip sudo apt-get python-pip Install package with pip sudo pip install fabric List all installed packages pip freeze List some packages pip &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,221 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/04/101920/">Manage Python Packages With Pip</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-04T10:19:20+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:19 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install pip</h1>
+
+<pre><code>sudo apt-get python-pip
+</code></pre>
+
+<h1>Install package with pip</h1>
+
+<pre><code>sudo pip install fabric
+</code></pre>
+
+<h1>List all installed packages</h1>
+
+<pre><code>pip freeze
+</code></pre>
+
+<h2>List some packages</h2>
+
+<pre><code>pip freeze | grep "[F|f]abric"
+</code></pre>
+
+<p>Note: Double quotes after grep is necessary;</p>
+
+<h1>Uninstall packages with pip</h1>
+
+<pre><code>sudo pip uninstall Fabric
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/02/161537/">Get Coverage Data for Standalone Server With Cobertura</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-02T16:15:37+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:15 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Prerequisites</h1>
+
+<p>Copy cobertura.jar (1.9.1), asm-3.0.jar, asm-tree-3.0.jar, jakarta-oro-2.0.8.jar, log4j-1.2.15.jar totally 5 jars to a folder (in this case it is: &ldquo;/home/lichao/apps/coberturaLib&rdquo;).</p>
+
+<p>If using cobertura-2.0.3, copy cobertura.jar and all jars in folder &ldquo;lib&rdquo; to &ldquo;coberturaLib&rdquo;.</p>
+
+<p>The current working directory is project home folder, under which there are 3 folders: cmd, conf, lib.</p>
+
+<h1>Instrument</h1>
+
+<p>Now we need instrument class files under &ldquo;class&rdquo; folder to &ldquo;instru&rdquo; folder:</p>
+
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.instrument.Main --destination instru class
+</code></pre>
+
+<p>Note the double quotes of &ldquo;/home&hellip;/coberturaLib/*&rdquo; is necessary.</p>
+
+<p>If you use cobertura-2.0.3, add project dependencies ($PROJ_HOME/lib), too:</p>
+
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*:../lib/*" net.sourceforge.cobertura.instrument.Main --destination CalcServer --datafile CalcServer/cobertura.ser CalcServer.jar 
+</code></pre>
+
+<p>Synopsis:</p>
+
+<pre><code>java -cp &lt;Cobertura_lib&gt; net.sourceforge.cobertura.instrument.Main --destination &lt;dest_folder&gt; --datafile &lt;datafile_path&gt; &lt;target&gt;
+</code></pre>
+
+<p>If <target> is a folder containing class files, instrumented class files will be created under <dest_folder>.
+If <target> is a jar file, instrumented jar file will be created under <dest_folder>.
+If &ldquo;&ndash;destination <dest_folder> is not specified, the instrumented one will overwrite the origin.</p>
+
+<h1>Start Server</h1>
+
+<p>This step equals to &ldquo;unit test&rdquo; in junit-cobertura scenario. The start.sh is:</p>
+
+<pre><code>#!/bin/sh 
+CoberturaJar="/home/lichao/apps/coberturaLib/cobertura-2.0.3.jar" 
+JARS="$CoberturaJar:conf:./*:lib/*" 
+java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deploy.Main 
+</code></pre>
+
+<p>Note: The instrumented jar must be add <strong>before</strong> uninstrumented jar in classpath.</p>
+
+<p>Synopsis:</p>
+
+<pre><code>java -cp &lt;cobertura.jar_path&gt;:&lt;other_dependencies&gt; -Dnet.sourceforge.cobertura.datafile=&lt;datafile_path&gt; Server.Main.Class.Name
+</code></pre>
+
+<h1>Merge Datafile</h1>
+
+<pre><code>java -cp "coberturaLib-2.0.3/*" net.sourceforge.cobertura.merge.Main --datafile GcpCollector/cmd/cobertura.ser GcpServerCore/cmd/cobertura.ser cobertura.ser
+</code></pre>
+
+<h1>Get Report</h1>
+
+<pre><code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.reporting.Main --datafile cobertura.ser --destination ../report ../../src
+</code></pre>
+
+<p>The report data will not be written to report files until the server process is down.</p>
+
+<p>Synopsis:</p>
+
+<pre><code>java -cp &lt;cobertura_lib&gt; net.sourceforge.cobertura.reporting.Main --datafile &lt;datafile_path&gt; --destination &lt;report_path&gt; &lt;source_folder&gt;
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/31/223240/">Network Promgramming in Clojure</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-31T22:32:40+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>10:32 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>TCP echo server: <a href="http://stackoverflow.com/questions/1223352/writing-a-multiplexing-server-in-clojure">http://stackoverflow.com/questions/1223352/writing-a-multiplexing-server-in-clojure</a></p></li>
+<li><p>Asynchronous communication framework based on Netty: <a href="https://github.com/ztellman/aleph/wiki">aleph</a></p></li>
+<li><p>System admin and deployment tool: <a href="https://github.com/killme2008/clojure-control">clojure-control</a></p></li>
+<li><p>Cloud Automation Tool (build Hadoop cluster on Amazon EC2): <a href="http://palletops.com/">Pallet</a></p></li>
+<li><p>SSH client based on jsch: <a href="https://github.com/hugoduncan/clj-ssh">clj-ssh</a></p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/30/180938/">Copy, Tag and Branch of Subversion</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-30T18:09:38+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:09 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Tag and branch are the same from the point of view of svn server. They are both the &ldquo;copy&rdquo; operation (this is why they use the same menu item in TortoiseSVN, they are actually the &ldquo;svn copy&rdquo; command). Copy operation of svn server will create a link to original revision. So create tag or branch will not double the disk space usage. The disk space usage is actually related with how many files are modified based on a specific revision.</p>
+
+<p>What is the difference of tag and branch? When you create a &ldquo;tag&rdquo;, you mean you will save this link at a &ldquo;baseline area&rdquo; where it&rsquo;s prohibited to do checkout-modify-checkin operation. On the contrary, if you create a &ldquo;branch&rdquo;, you will do checkout-modify-checkin operation in the future for new feature development or bug fix.</p>
+
+<p>Use &ldquo;svn help copy&rdquo; for explanations.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -158,7 +373,7 @@
   </header>
 
 
-  <div class="entry-content"><p>You frequently visit host 10.0.7.141 for example. It&rsquo;s a waste to type &ldquo;ssh <a href="&#109;&#97;&#105;&#x6c;&#116;&#x6f;&#58;&#103;&#x63;&#x70;&#64;&#x31;&#48;&#46;&#48;&#46;&#x37;&#x2e;&#49;&#52;&#x31;">&#103;&#x63;&#x70;&#64;&#x31;&#x30;&#46;&#x30;&#x2e;&#x37;&#x2e;&#x31;&#x34;&#x31;</a>&rdquo; every time you connect it. So you can create a file ~/.ssh/config, and add follow lines to it:</p>
+  <div class="entry-content"><p>You frequently visit host 10.0.7.141 for example. It&rsquo;s a waste to type &ldquo;ssh <a href="&#109;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#x67;&#99;&#x70;&#64;&#49;&#x30;&#x2e;&#x30;&#x2e;&#x37;&#46;&#49;&#x34;&#49;">&#103;&#x63;&#x70;&#x40;&#x31;&#48;&#x2e;&#x30;&#x2e;&#55;&#x2e;&#x31;&#x34;&#49;</a>&rdquo; every time you connect it. So you can create a file ~/.ssh/config, and add follow lines to it:</p>
 
 <pre><code>Host 141 
 Hostname 10.0.7.141 
@@ -359,182 +574,6 @@ Or use &ldquo;scp user@141:/home/user/&rdquo; to copy files.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/26/104022/">A Telnet Client Using Expect</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-26T10:40:22+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:40 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following expect script achieves a simple telnet client: login -> send command -> exit. The point is the form of prompt in regular expression. You have to add 3 backslash before &ldquo;[&rdquo;, &ldquo;]&rdquo; and &ldquo;$&rdquo;, and add &ldquo;-re&rdquo; option after expect command in &ldquo;expect $prompt&rdquo;.</p>
-
-<p> #!/usr/bin/expect
- set prompt &ldquo;\[hadoop@49server\s.*\]\\$\s&rdquo;
- spawn telnet 10.0.2.49
- expect &ldquo;login:&rdquo;
- send &ldquo;hadoop\r&rdquo;
- expect &ldquo;Password:&rdquo;
- send &ldquo;h\r&rdquo;
- expect -re $prompt
- send &ldquo;df -h\r&rdquo;
- expect -re $prompt
- send &ldquo;ls -l\r&rdquo;
- expect -re $prompt
- send &ldquo;exit\r&rdquo;
- expect eof</p>
-
-<p>The following script achieves auto-login and auto-logout. Save it as autoTelnet.exp:</p>
-
-<p> #!/usr/bin/expect
- set ip [lindex $argv 0]
- set username [lindex $argv 1]
- set password [lindex $argv 2]
- spawn telnet $ip
- expect &ldquo;login:&rdquo;
- send &ldquo;$username\r&rdquo;
- expect &ldquo;Password:&rdquo;
- send &ldquo;$password\r&rdquo;
- interact +++ return
- send &ldquo;exit\r&rdquo;
- expect eof</p>
-
-<p>then run it:</p>
-
-<p> $ ./autoTelnet.exp 10.0.2.49 hadoop h</p>
-
-<p>After auto-login, you can send any commands as if you communicates with host directly. When you want to quit, type &ldquo;+++&rdquo; and then the script exits from interact mode and runs logout routine.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/26/084605/">Use Laptop as Wifi Hotspot</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-26T08:46:05+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:46 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Your laptop used as wifi hotspot have to connect with internet with <strong>wired connection</strong>. see <a href="http://www.howtogeek.com/116409/how-to-turn-your-ubuntu-laptop-into-a-wireless-access-point/">http://www.howtogeek.com/116409/how-to-turn-your-ubuntu-laptop-into-a-wireless-access-point/</a> for details.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/23/104927/">Wildcards in Spawn Command</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-23T10:49:27+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:49 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following script works fine.</p>
-
-<p> #!/usr/bin/expect
- spawn bash -c &ldquo;ls -l *.exp&rdquo;
- expect eof</p>
-
-<p>Questions</p>
-
-<ol>
-<li><p>Why I can&rsquo;t remove &ldquo;expect eof&rdquo;?</p></li>
-<li><p>Why I can&rsquo;t remove &ldquo;bash -c&rdquo;?</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/23/102651/">Spawn and Expect</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-23T10:26:51+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:26 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Run this script:</p>
-
-<p> #!/usr/bin/expect
- spawn ls -l
- expect &ldquo;aaa&rdquo;
- puts &ldquo;bbb&rdquo;
- expect &ldquo;bbb&rdquo;</p>
-
-<p>you will get a</p>
-
-<p>spawn_id?</p>
-
-<p>When &ldquo;ls -l&rdquo; ends, it send a eof to expect script process, this signal canceled &ldquo;expect aaa&rdquo;?</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/51">&larr; Older</a>
@@ -552,23 +591,23 @@ Or use &ldquo;scp user@141:/home/user/&rdquo; to copy files.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>

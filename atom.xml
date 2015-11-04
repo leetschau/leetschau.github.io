@@ -4,7 +4,7 @@
   <title><![CDATA[Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-10-29T20:11:07+08:00</updated>
+  <updated>2015-11-04T11:47:14+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,170 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Move Window Between Multiple Screens via Tmux]]></title>
+    <link href="http://leetschau.github.io/blog/2015/11/02/093547/"/>
+    <updated>2015-11-02T09:35:47+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/11/02/093547</id>
+    <content type="html"><![CDATA[<p>When developing in terminal you often have to open several Tmux windows
+at the same time:</p>
+
+<ul>
+<li><p>server: mongod, Meteor, Elasticsearch, etc&hellip;</p></li>
+<li><p>client: mongo, elasticsearch, etc&hellip;</p></li>
+<li><p>editor: template.html, template.js, router.js, server.js, etc&hellip;</p></li>
+</ul>
+
+
+<p>In most cases, you edit in editor window, save the file,
+switch to server window to see the result,
+switch back to editor window for editing again&hellip;</p>
+
+<p>Now you have the second screen, say, a Windows laptop,
+ssh to your Linux machine via MobaXterm or Kitty.
+It will be more efficient if you can put the server window on the screen
+of the Windows machine, and keep editing on your Linux machine screen,
+for saving you from so many annoying switching between the screens.</p>
+
+<p>It&rsquo;s easy for Tmux to achieve this.
+Start a new session on your Linux machine, named as you like, for now, &ldquo;search&rdquo;.
+Start a new session in the terminal of the second screen named <code>v</code> (&ldquo;viewer for short).
+If you want to see the server and editor windows at the same time,
+switch to the server window and run <code>link-window -t v</code> (see note 1 below for details).
+Now you can switch back to the editor window,
+while keep server window on the other screen.</p>
+
+<p>To cancel the link between the sessions,
+switch to server window and run <code>unlink-window -t v</code>.</p>
+
+<p>Note 1:</p>
+
+<p>If you define a &ldquo;command-prompt&rdquo; shortcut in ~/.tmux.conf:
+<code>bind -n M-a command-prompt</code>,
+run tmux command <code>linkw -t v</code> means:
+press &ldquo;M-a&rdquo;, input <code>lin&lt;Tab&gt; -t v</code> then press <Enter>.</p>
+
+<p>Note 2:</p>
+
+<p><code>link-window</code> <em>shares</em> a window between multiple sessions.
+To <em>move</em> a window to another session,
+switch to the server window and run tmux command <code>move-window -t v</code>.
+To move it back, run <code>move-window -s v:shell</code>,
+where <code>v</code> is the target session name defined by <code>tmux new -s v</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Synchronize Data From MongoDB to Elasticsearch]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/31/011200/"/>
+    <updated>2015-10-31T01:12:00+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/31/011200</id>
+    <content type="html"><![CDATA[<p>Your mongo replica set and elasticsearch are hosted on 2 servers.
+The mongo server is on &ldquo;mip:mport&rdquo;.
+The ES server is on &ldquo;esip:esport&rdquo;.</p>
+
+<p>On another server, install <a href="https://github.com/mongodb-labs/mongo-connector">mongo-connector</a>
+with <code>pip install mongo-connector</code>.
+If there are some errors, it may be caused by absence of gcc.
+On Ubuntu, install them with <code>sudo apt-get install build-essential python-dev</code>.</p>
+
+<pre><code>mongo-connector -m mip:mport -t esip:esport -d elastic_doc_manager --admin-username root --password rootPwd
+</code></pre>
+
+<p>That&rsquo;s it!
+Now when you insert documents into MongoDB,
+you can see it on elasticsearch.</p>
+
+<p>We&rsquo;ve studied Mongo River and Mongoosatic, neither is better than this.</p>
+
+<p>Note:</p>
+
+<p>Use root to sync is unsafe.
+We create an user with &ldquo;clusterManager&rdquo; role to do this work.
+Login with root, and run:</p>
+
+<pre><code>use admin
+db.createUser(
+    {
+      user: "clustermgr",
+      pwd: "cmpwd",
+      roles: [ "clusterManager" ]
+    }
+)
+</code></pre>
+
+<p>But run the command
+<code>mongo-connector -m 119.254.211.28:15515 -t localhost:9200 -d elastic_doc_manager --admin-username clustermgr --password cmpwd</code>
+will be the error <code>OperationFailure: database error: not authorized for query on local.oplog.rs</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Elasticsearch River for MongoDB]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/30/131706/"/>
+    <updated>2015-10-30T13:17:06+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/30/131706</id>
+    <content type="html"><![CDATA[<p>According to <a href="https://www.elastic.co/blog/deprecating-rivers">Deprecating Rivers</a>,
+river is not supported any more.</p>
+
+<h1>Mongo River</h1>
+
+<p><a href="http://backslash451.github.io/articles/Running-ElasticSearch-with-MongoDB-and-Kibana/">http://backslash451.github.io/articles/Running-ElasticSearch-with-MongoDB-and-Kibana/</a></p>
+
+<p>Buy a mongodb on <a href="https://www.qingcloud.com/">QingCloud</a>.
+Connect to database with
+<code>mongo 119.254.211.28:15515 --authenticationDatabase admin -u root -p nodeJS@2015</code>.
+and run <code>rs.status()</code> to verify the replica set is working.</p>
+
+<h2>Setup Elasticsearch</h2>
+
+<p>See note &ldquo;Elasticsearch Notes&rdquo;.</p>
+
+<h2>Setup Kibana</h2>
+
+<p>See note &ldquo;Kibana Notes&rdquo;.</p>
+
+<h2>Install River Plugin</h2>
+
+<p>Follow <a href="https://github.com/richardwilly98/elasticsearch-river-mongodb">ichardwilly98/elasticsearch-river-mongodb</a>.</p>
+
+<p>Run <code>bin/plugin install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.9</code>
+at $ES_HOME.</p>
+
+<p>List plugins: <code>bin/plugin list</code>.
+Get help: <code>bin/plugin -h</code>.</p>
+
+<p>When install in 2.0.0, there is an error:
+<code>ERROR: Could not find plugin descriptor 'plugin-descriptor.properties' in plugin zip</code>.
+For now, use elasticsearch 1.7.3 with river.</p>
+
+<p>List plugins in v1.7.3: <code>sudo /usr/share/elasticsearch/bin/plugin --list</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Session Management in Web Browser]]></title>
+    <link href="http://leetschau.github.io/blog/2015/10/29/204739/"/>
+    <updated>2015-10-29T20:47:39+08:00</updated>
+    <id>http://leetschau.github.io/blog/2015/10/29/204739</id>
+    <content type="html"><![CDATA[<p>Session is a group of tabs, which is relevant to a specific problem,
+for example: how to use ElasticSearch with MongoDB,
+or background information about TV show &ldquo;The Wire&rdquo;.</p>
+
+<h1>Firefox</h1>
+
+<p>Save: right click on the tab bar and select &ldquo;Bookmark All Tabs&rdquo; (Shift + Ctrl + D);</p>
+
+<p>Restore: click &ldquo;Show your bookmarks&rdquo; button on toolbar,
+navigate to the folder and click &ldquo;Open all Tabs&rdquo; at the bottom.</p>
+
+<h1>Chrome</h1>
+
+<p>Install extension &ldquo;Session Buddy&rdquo;.
+It will help you to save and restore all open tabs as a &ldquo;Session&rdquo;.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[将Meteor应用完整从1.2版本降级到1.1版本]]></title>
@@ -48,6 +212,15 @@
     <updated>2015-10-29T11:22:48+08:00</updated>
     <id>http://leetschau.github.io/blog/2015/10/29/112248</id>
     <content type="html"><![CDATA[<p>Following <a href="https://www.elastic.co/guide/en/kibana/current/getting-started.html">Getting Started with Kibana</a>.</p>
+
+<h1>Setup Kibana</h1>
+
+<p>Download kibana tar package file (kibana-4.2.0-linux-x64.tar.gz) and extract to $KIBANA_HOME.
+Modify $KIBANA_HOME/config/kibana.yml, uncomment
+<code>elasticsearch.url: "http://localhost:9200"</code> (if elasticsearch server is on localhost).
+Start server with <code>bin/kibana</code>.</p>
+
+<h1>Import Data</h1>
 
 <p>Import accounts with <code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json</code>
 instead of <code>curl -XPOST 'localhost:9200/bank/_bulk?pretty' --data-binary @accounts.json</code>.</p>
@@ -160,10 +333,12 @@ When I run <code>xev</code>, I got an error:
     <link href="http://leetschau.github.io/blog/2015/10/25/212008/"/>
     <updated>2015-10-25T21:20:08+08:00</updated>
     <id>http://leetschau.github.io/blog/2015/10/25/212008</id>
-    <content type="html"><![CDATA[<p>We have a parent (container) Meteor application &ldquo;niufour&rdquo;,
+    <content type="html"><![CDATA[<h1>Git submodule as Meteor package</h1>
+
+<p>We have a parent (container) Meteor application &ldquo;niufour&rdquo;,
 now we want to add a new package &ldquo;nf-search&rdquo; to niufour.</p>
 
-<p>Check out if <code>packages/</code> has been added into .gitignore.</p>
+<p>Make sure if <code>packages/</code> has been added into .gitignore.</p>
 
 <p>Push the nf-search (outside of niufour folder) to remote repo,
 here we use a Phabricator server, with address <remote-repo-url>.</p>
@@ -186,6 +361,41 @@ run commands below to synchronize:</p>
 git submodule init
 git submodule update
 </code></pre>
+
+<h1>Keep demo state in parent project</h1>
+
+<p>A demo need both codes and data at the exact state of the verified time.
+So if your project has not submodules, use commit and tag to record the demo state.</p>
+
+<p>Otherwise, you can use commits in parent project to record demo state.
+In the example above, suppose niufour has another submodule &ldquo;nf-core&rdquo;.
+In the development process, commit on &ldquo;develop&rdquo; branch in each submodule,
+without commit on niufour.
+Only when PM (project manager) verified the demo,
+and all developers have committed and pushed in each submodule,
+PM commits, tags and pushes <strong>in parent project</strong> by himself:</p>
+
+<pre><code>cd /path/to/niufour
+git add -A
+git commit -m "this is for demo of 2015.11.04"
+git tag "demo-2015.11.04"
+git push origin develop
+</code></pre>
+
+<p>Then pm dump the database (<code>mongodump</code> for MongoDB) to a folder
+with the same name of the tag name (here it&rsquo;s &ldquo;demo-2015.11.04&rdquo;).</p>
+
+<p>At the demo day, the PM restore the data into a new database (<code>mongorestore</code> for example),
+then run commands below to restore the codes for demo:</p>
+
+<pre><code>git clone &lt;url-of-niufour&gt;
+git checkout demo-2015.11.04
+git submodule init
+git submodule update
+</code></pre>
+
+<p>Note: To demonstrate the usage of git submodule,
+use example in &ldquo;Git权威指南&rdquo;, 23.1 ~ 23.3, by 蒋鑫.</p>
 ]]></content>
   </entry>
   
@@ -194,7 +404,7 @@ git submodule update
     <link href="http://leetschau.github.io/blog/2015/10/24/115416/"/>
     <updated>2015-10-24T11:54:16+08:00</updated>
     <id>http://leetschau.github.io/blog/2015/10/24/115416</id>
-    <content type="html"><![CDATA[<p>Download deb package of <a href="https://www.elastic.co/products/elasticsearch">ealsticSearch</a>
+    <content type="html"><![CDATA[<p>Download tar package of <a href="https://www.elastic.co/products/elasticsearch">ealsticSearch</a>
 and install:</p>
 
 <pre><code>aptitude update
@@ -697,333 +907,6 @@ and run <code>vim +PluginClean +PluginInstall +qa</code>.</p>
 use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available actions.</p>
 
 <p>To see the file changes history: <code>:Git log --stat</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[A Meteor Package Test Demo]]></title>
-    <link href="http://leetschau.github.io/blog/2015/10/03/095227/"/>
-    <updated>2015-10-03T09:52:27+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/10/03/095227</id>
-    <content type="html"><![CDATA[<h1>Generating Test Data with Meteor Factory and Fake</h1>
-
-<p>The following tests set up with <a href="https://github.com/percolatestudio/meteor-factory/">meteor-factory</a>.</p>
-
-<p>First create Meteor app, install packages, define collections and start server:</p>
-
-<pre><code>meteor create testApp
-cd testApp
-meteor add dburles:factory
-meteor add babrahams:constellation
-cat &lt;&lt; EOF &gt; collections.js
-Authors = new Meteor.Collection('authors');
-Books = new Meteor.Collection('books');
-EOF
-# Authors and Books must be defined in both servers and client
-# or `Factory.create("books");` will fail.
-# So they can't be defined in browser console
-MONGO_URL="mongodb://localhost:27017/test" meteor
-</code></pre>
-
-<p>Then open <a href="http://localhost:3000/">http://localhost:3000/</a> in browser,
-Open <a href="https://github.com/JackAdams/constellation">constellation console</a> with Ctrl-C.
-Open browser console (with F12), run codes below:</p>
-
-<pre><code>Factory.define('author', Authors, {
-  name: 'John Smith'
-});
-// all authors created through Factory have the same "name"
-
-Factory.define('book', Books, {
-  authorId: Factory.get('author'),
-  name: 'A book',
-  year: function() { return _.random(1900, 2014); }
-});
-</code></pre>
-
-<p>Now each time you run <code>Factory.create('author');</code>,
-a new document is inserted into the collection &ldquo;authors&rdquo;.
-You can see it on the constellation console under &ldquo;authors&rdquo; section.</p>
-
-<p>If you want create user with different names,
-add a new package <a href="https://github.com/anticoders/meteor-fake/">meteor-fake</a>
-with <code>meteor add anti:fake</code>, and modify above definitions as follows:</p>
-
-<pre><code>Factory.define('author', Authors, {
-  name: function() { return Fake.user({fields: ['name']}).name; }
-});
-
-Factory.define('book', Books, {
-  authorId: Factory.get('author'),
-  name: function() { return Fake.sentence(4); },
-  year: function() { return _.random(1900, 2014); }
-});
-</code></pre>
-
-<p>When enable the &ldquo;Autopublish&rdquo; tab, you can see all the collections
-even after the autopublish package removed from Meteor app.</p>
-
-<h1>Used in Package</h1>
-
-<p>The container app is named &ldquo;mininf&rdquo;, which has a package named &ldquo;nfcore&rdquo;.</p>
-
-<p>There will be 3 roles of user in this scenario, Add, Sub and Multi.
-Users with Add role can only ask addition questions,
-with Sub can only ask substraction questions,
-with Multi can only ask multiplication questions.</p>
-
-<p>A user without a role can&rsquo;t ask any questions.</p>
-
-<p>The users and their roles will be created with <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
-
-<p>There are 2 collections, accounts and questions,
-whose schemas are defined with <a href="https://github.com/aldeed/meteor-simple-schema">simple-schema</a>.</p>
-
-<p>Target:</p>
-
-<p>Run the container app, use constellation to watch it&rsquo;s data;
-Define data schema with simple-schema;
-Use factory to insert user and question to collections;
-Run test on container app, see the result.</p>
-
-<p>The implementation steps:</p>
-
-<ol>
-<li><p>Create mininf and nfcore;</p></li>
-<li><p>Add simple-schema and roles in the package definition of mininf;</p></li>
-<li><p>Add jasmine and velocity in the package test definition of mininf;</p></li>
-<li><p>Create schemas of users and questions in package;</p></li>
-<li><p>Create collections in package and attach schemas on them;</p></li>
-<li><p>Create tests;</p>
-
-<p> meteor create mininf
- cd mininf
- meteor create &ndash;package leo:nfcore
- cat &lt;&lt; EOF > packages/nfcore/package.js
- Package.describe({
-   name: &lsquo;leo:nfcore&rsquo;,
-   version: &lsquo;0.0.1&rsquo;,
-   summary: &lsquo;&rsquo;,
-   git: &lsquo;&rsquo;,
-   documentation: &lsquo;README.md&rsquo;
- });
- Package.onUse(function(api) {
-   api.versionsFrom(&lsquo;1.2.0.2&rsquo;);
-   api.use(&lsquo;ecmascript&rsquo;);
-   // this makes nfcore itself can use variable &ldquo;SimpleSchema&rdquo; in the source code
-   api.use(&ldquo;aldeed:<a href="&#x6d;&#x61;&#x69;&#108;&#116;&#111;&#58;&#115;&#105;&#x6d;&#x70;&#108;&#x65;&#45;&#115;&#x63;&#104;&#x65;&#109;&#x61;&#x40;&#x31;&#46;&#x33;&#46;&#x33;">&#x73;&#x69;&#x6d;&#x70;&#x6c;&#101;&#45;&#115;&#x63;&#x68;&#101;&#x6d;&#x61;&#64;&#x31;&#x2e;&#51;&#46;&#x33;</a>&rdquo;);
-   api.use(&ldquo;alanning:roles&rdquo;);
-   // this makes any packages using nfcore can use &ldquo;SimpleSchema&rdquo;
-   api.imply(&ldquo;aldeed:simple-schema&rdquo;);
-   api.imply(&ldquo;alanning:roles&rdquo;);
-   api.addFiles(&lsquo;nfcore.js&rsquo;);
-   api.export(&ldquo;NFCore&rdquo;);
- });
- Package.onTest(function(api) {
-   api.use(&lsquo;ecmascript&rsquo;);
-   api.use(&lsquo;sanjo:<a href="&#109;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#x6a;&#x61;&#x73;&#x6d;&#105;&#110;&#101;&#x40;&#x30;&#x2e;&#49;&#57;&#x2e;&#x30;">&#x6a;&#x61;&#115;&#109;&#x69;&#x6e;&#x65;&#64;&#x30;&#x2e;&#49;&#x39;&#46;&#48;</a>&rsquo;);
-   api.use(&lsquo;anti:fake&rsquo;);
-   api.use(&lsquo;underscore&rsquo;);
-   api.use(&ldquo;dburles:<a href="&#x6d;&#x61;&#105;&#108;&#116;&#x6f;&#x3a;&#x66;&#x61;&#x63;&#116;&#x6f;&#114;&#121;&#x40;&#x30;&#x2e;&#51;&#46;&#49;&#48;">&#x66;&#x61;&#99;&#x74;&#x6f;&#x72;&#121;&#64;&#x30;&#46;&#x33;&#x2e;&#49;&#x30;</a>&rdquo;);
-   api.use(&lsquo;velocity:<a href="&#x6d;&#x61;&#105;&#108;&#x74;&#x6f;&#x3a;&#104;&#x74;&#x6d;&#x6c;&#45;&#x72;&#x65;&#112;&#x6f;&#x72;&#x74;&#101;&#x72;&#x40;&#x30;&#46;&#x39;&#x2e;&#48;">&#x68;&#116;&#x6d;&#108;&#x2d;&#114;&#x65;&#x70;&#x6f;&#114;&#116;&#101;&#114;&#x40;&#x30;&#x2e;&#x39;&#46;&#48;</a>&rsquo;);
-   api.use(&lsquo;velocity:<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#x6f;&#58;&#x63;&#111;&#x6e;&#x73;&#111;&#108;&#x65;&#x2d;&#114;&#x65;&#x70;&#111;&#114;&#116;&#101;&#x72;&#64;&#x30;&#46;&#49;&#46;&#51;">&#99;&#x6f;&#x6e;&#115;&#x6f;&#108;&#101;&#45;&#114;&#x65;&#112;&#x6f;&#114;&#116;&#101;&#114;&#x40;&#48;&#x2e;&#x31;&#46;&#x33;</a>&rsquo;);
-   api.use(&lsquo;leo:nfcore&rsquo;);
-   api.addFiles(&lsquo;nfcore-tests.js&rsquo;);
- });
- EOF</p>
-
-<p> mkdir -p {common/{schemas,collections},tests,client,server}
- cat &lt;&lt; EOF > common/globals.js
- NFCore = {};
- NFCore.Schemas = {};
- NFCore.Collections = {};
- EOF</p>
-
-<p> cat &lt;&lt; EOF > common/schemas/accounts.js
- NFCore.Schemas.Accounts = new SimpleSchema({
-   name: {
-     type: String
-   }
- });
- EOF</p>
-
-<p> cat &lt;&lt; EOF > common/schemas/accounts.js
- NFCore.Schemas.Questions = new SimpleSchema({
-   owner: {
-     type: Meteor.Collection.ObjectID
-   },
-   content: {
-     type: String
-   }
- });
- EOF</p>
-
-<p> cat &lt;&lt; EOF > common/collections/collections.js
- NFCore.Collections.Accounts = new Mongo.Collection(&ldquo;accounts&rdquo;);
- NFCore.Collections.Accounts.attachSchema(NFCore.Schemas.Accounts);</p>
-
-<p> NFCore.Collections.Questions = new Mongo.Collection(&ldquo;questions&rdquo;);
- NFCore.Collections.Questions.attachSchema(NFCore.Schemas.Questions);
- EOF</p></li>
-</ol>
-
-
-<h1>Errors, Questions and Solutions</h1>
-
-<p>E: meteor object [object object] has no method &lsquo;attach schema&rsquo;.</p>
-
-<p>S: Add <code>api.use("aldeed:collection2@2.5.0");</code> and <code>api.imply("aldeed:collection2@2.5.0");</code> into Package.onUse() of package.js.</p>
-
-<p>E: insert failed: Access denied. No allow validators set on restricted collection for method &lsquo;insert&rsquo;.</p>
-
-<p>S: Add &ldquo;server&rdquo; as the 2nd parameter in package.js -> Package.onTest -> api.addFiles(<the-test-file-name>):
-<code>api.addFiles('tests/accounts.js', 'server');</code>.</p>
-
-<p>Q: In package I use Factory.create() to insert a doc into a collection, but I can&rsquo;t find the collection.</p>
-
-<p>S: Add environment &ldquo;MONGO_URL&rdquo; into the test command:
-<code>VELOCITY_TEST_PACKAGES=1 MONGO_URL="mongodb://localhost:27017/test" meteor test-packages --driver-package velocity:html-reporter leo:nfcore</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Notes of Learn You a Haskell for Great Good]]></title>
-    <link href="http://leetschau.github.io/blog/2015/10/01/202107/"/>
-    <updated>2015-10-01T20:21:07+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/10/01/202107</id>
-    <content type="html"><![CDATA[<p>Notes for <a href="http://learnyouahaskell.com/">Learn You a Haskell for Great Good</a>.</p>
-
-<h1>Modules</h1>
-
-<p>The following code snippet demonstrate how to import and use Haskell submodule.
-Save the following codes into a shell script and run it.</p>
-
-<pre><code>#!/bin/bash
-mkdir Geometry
-cat &lt;&lt; EOF &gt; Geometry/Sphere.hs
-module Geometry.Sphere
-( volume
-, area
-) where
-
-volume :: Float -&gt; Float
-volume radius = (4.0 / 3.0) * pi * (radius ^ 3)
-
-area :: Float -&gt; Float
-area radius = 4 * pi * (radius ^ 2)
-EOF
-
-cat &lt;&lt; EOF &gt; app.hs
-import Geometry.Sphere
-main = print $ volume 3
-EOF
-
-runghc app.hs
-</code></pre>
-
-<p>The result should be &ldquo;113.097336&rdquo;.</p>
-
-<h1>Making Our Own Types and Typeclasses</h1>
-
-<p>Value constructor is also called &ldquo;data constructor&rdquo;.</p>
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.haskell.org/Constructor">Constructor</a></p>
-
-<p><a href="http://stackoverflow.com/questions/18204308/haskell-type-vs-data-constructor">Haskell Type vs Data Constructor</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Meteor Test With Velocity and Jasmine]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/29/121847/"/>
-    <updated>2015-09-29T12:18:47+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/29/121847</id>
-    <content type="html"><![CDATA[<p>Create jasmine tests and run them as the following codes:</p>
-
-<pre><code>$ meteor create jasmineEx
-$ cd jasmineEx
-$ meteor create --package newfairscommerce:add-number
-$ rm packages/add-number/add-number-tests.js
-$ mkdir -p packages/add-number/tests/{server,client}
-$ cat &lt;&lt; EOF &gt; packages/add-number/tests/example-spec.js
-describe('sanjo:jasmine on client and server', function() {
-  it('works', function() {
-    expect(it).toBeDefined();
-  })
-})
-EOF
-$ cat &lt;&lt; EOF &gt; packages/add-number/tests/client/example-spec.js
-describe('sanjo:jasmine on client', function() {
-  it('works', function() {
-    expect(it).toBeDefined();
-  })
-})
-EOF
-$ cat &lt;&lt; EOF &gt; packages/add-number/tests/server/example-spec.js
-describe('sanjo:jasmine on server', function() {
-  it('works', function() {
-    expect(it).toBeDefined();
-  })
-})
-EOF
-</code></pre>
-
-<p>And replace <code>Package.onTest</code> in packages/add-number/package.js with the following codes:</p>
-
-<pre><code>Package.onTest(function(api) {
-  api.use('sanjo:jasmine@0.18.0');
-  api.use('velocity:html-reporter@0.9.0');
-  api.use('velocity:console-reporter@0.1.3');
-
-  api.addFiles('tests/server/example-spec.js', 'server');
-  api.addFiles('tests/client/example-spec.js', 'client');
-  api.addFiles('tests/example-spec.js', ['server', 'client']);
-});
-</code></pre>
-
-<p>Now run <code>VELOCITY_TEST_PACKAGES=1 meteor test-packages --driver-package velocity:html-reporter newfairscommerce:add-number</code>
-under the root directory of jasmineEx project,
-you can get the following output:</p>
-
-<pre><code>...
-=&gt; App running at: http://localhost:3000/
-I20151003-18:23:56.465(8)? jasmine-server-integration: 2 tests passed (11ms)
-I20151003-18:24:07.849(8)? jasmine-client-integration: 2 tests passed (3ms)
-</code></pre>
-
-<p>And you can get the test results in browser with url &ldquo;<a href="http://localhost:3000">http://localhost:3000</a>&rdquo;.</p>
-
-<p>Questions:</p>
-
-<p>When running the following codes, it runs into a interactive shell:</p>
-
-<pre><code>npm install -g velocity-cli
-velocity test-package newfairscommerce:add-number
-</code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Add a Local Meteor Package From a Existing Repo]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/24/185036/"/>
-    <updated>2015-09-24T18:50:36+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/24/185036</id>
-    <content type="html"><![CDATA[<p>newfairs-v3 is the container project. newfairs-core is a package.</p>
-
-<pre><code>meteor create newfairs-v3
-cd newfairs-v3
-meteor create --package newfairscommerce:core
-cp -r ../newfairs-core packages
-mv packages/core/{package.js,README.md} packages/newfairs-core/
-rm -rf package/core
-meteor add newfairscommerce:core
-</code></pre>
-
-<p>Then you have to define dependencies for this package with adding some
-<code>api.use()</code> and loading order by adding some <code>api.addFiles(...)</code>
-in packages/newfairs-core/package.js.</p>
 ]]></content>
   </entry>
   

@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="安装libevent; 安装greenlet: sudo easy_install gevent (need net access) bingo! -> python-dev -> libpython2.7 deb包下载网站 ； sudo dpkg -i libpython2.7_2.7.2- &hellip;">
+  <meta name="description" content="Java程序的快照（dump）分为两种：thread dump, heap dump。前者记录了进程（process）中各线程（Thread）（在CPU中的）运行状态主要用来解决死锁（deadlock）问题，后者记录了Java堆的情况，主要用来分析内存泄露问题。 生成堆dump（heapdump） &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,289 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/19/144904/">通过dump文件分析Java程序运行状态</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-19T14:49:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java程序的快照（dump）分为两种：thread dump, heap dump。前者记录了进程（process）中各线程（Thread）（在CPU中的）运行状态主要用来解决死锁（deadlock）问题，后者记录了Java堆的情况，主要用来分析内存泄露问题。</p>
+
+<p> 生成堆dump（heapdump）文件方法
+1. 在启动Java程序时添加参数：-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=<my_dump_path>，完整示例见文末；</p>
+
+<ol>
+<li><p>启动程序；</p></li>
+<li><p>用jps或者ps指令找到此程序pid，例如17992；</p></li>
+<li><p>运行kill -3 <pid>；</p></li>
+<li><p>在my_dump_path下可以找到生成的dump文件，文件名为java_pid<pid>.hprof.&lt;date.time>，例如：java_pid17992.hprof.20120519.141323</p></li>
+</ol>
+
+
+<p>启动程序的完整脚本：</p>
+
+<h1>!/bin/sh</h1>
+
+<p>JARS=&ldquo;&rdquo;
+for i in ./*.jar; do
+ JARS=&ldquo;$JARS&rdquo;:$i
+done
+JAVA_OPTS=&ldquo;-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=$HOME/backup&rdquo;
+exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina.echoServer.EchoServer
+ 分析dump文件</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/19/105840/">在Linux系统上查找文件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-19T10:58:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:58 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Find命令</h1>
+
+<p>格式：find &lt;指定搜索范围> &lt;指定条件> &lt;指定动作></p>
+
+<p>其中搜索范围是一个目录名，指定条件包括文件名、文件属性（修改时间所属用户等）、所在位置特点（如目录深度等）等；指定动作包括打印（-print）等；</p>
+
+<p>例如：find $HOME -name &ldquo;*.sh"，查找用户根目录下所有以.sh结尾的文件，除了按文件名查找，find还可以按文件大小、类型、所属用户、用户组、修改时间、是否为空等，还可以指定找到文件后要执行的动作， 例如下面第一个指令是找到文件后运行ls命令，第3个指令是查找文件名中有echo且不属于root的文件（可以用!表示取反）：</p>
+
+<pre><code>[godu@goduserver ~]$ find ./backup/nep -name "*echo*" -ls
+124059671 8 -rwxr-xr-x 1 godu  godu   192 5月 19 10:59 ./backup/nep/echoServerStart.sh
+[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user godu 
+[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user root 
+./backup/nep/echoServerStart.sh
+find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-type l可知此目录下所有文件都为link文件。 
+</code></pre>
+
+<p>详见：<a href="http://blog.csdn.net/ydfok/article/details/1486451">linux查找文件命令find</a></p>
+
+<h2>引号问题</h2>
+
+<p>（2013-9-4更新）</p>
+
+<p>find <dest_path> -name <name_pattern>中<name_pattern>是glob格式，而且只匹配文件名，如果想用正则表达式匹配，则需要匹配完整路径名。</p>
+
+<p>例如有这样一个文件：./CalcServer/src/com/boco/deploy/ConfigLoader.java，用<code>find . -name "Co*.java"</code>可以匹配上，但<code>find . -regex "Co.*java"</code>匹配不上，因为它只匹配了文件名，而不是包括路径的完整路径名，改为<code>find . -regex ".*Co.*java"</code>就ok了。</p>
+
+<p>参考：<a href="http://bbs.chinaunix.net/thread-612012-1-1.html">http://bbs.chinaunix.net/thread-612012-1-1.html</a></p>
+
+<h2>查找条件</h2>
+
+<p>（2013-10-17更新）</p>
+
+<h3>按时间特性查找</h3>
+
+<ul>
+<li><p>find <dest_path> -newerXY <time-expr>: 查找在某个时间点之后修改（更新，生成）的文件，例如：</p>
+
+<p>  find . -newermt &lsquo;2014-01-16 00:00&rsquo; -name &lsquo;*.py&rsquo;</p>
+
+<p>查找所有修改时间晚于1月16日0点的扩展名为py的文件。</p></li>
+<li><p>find <dest_path> -mtime -1: 查找最近一天内被更改过的文件；</p></li>
+<li><p>mtime是按天查询，"-mtime -7" 查询修改时间在7天前到现在这段时间内的文件；</p></li>
+<li><p>mmin是按分钟查询，其他与mtime一样；</p></li>
+<li><p>atime, ctime分别是access time和change time（mtime是modification time），其他与mtime一样；</p></li>
+<li><p>find <dest_path> -newer <file_name> 列出所有修改时间晚于<file_name>修改时间的文件；</p></li>
+</ul>
+
+
+<h3>查找深度限制</h3>
+
+<ul>
+<li>-maxdepth <n> 用来指定查询的目录深度，一般作为find的第一个参数；</li>
+</ul>
+
+
+<h3>查找类型限制</h3>
+
+<ul>
+<li>&ldquo;-type f&rdquo; 表示只显示文件，"-type d" 表示只查询目录；另外还有l（链接），s(socket)等类型可选；</li>
+</ul>
+
+
+<h2>指定动作</h2>
+
+<ul>
+<li><p>&ldquo;-exec&rdquo;: 格式:</p>
+
+<ul>
+<li><p>find <path> <criterion> -exec <command> {} \;
+上面{}代表被查出来的项目，<command>命令以分号结尾，但为了避免分号在不同系统中的歧义，前面加反斜杠对分号进行转义；</p></li>
+<li><p>find <path> <criterion> -exec <command> {} +
+将所有find找到的条目放在一起，由<command>一次性执行，效率比"find &hellip; \;&ldquo;版本高很多；</p></li>
+</ul>
+</li>
+<li><p>&ldquo;-print&rdquo;: 主要用来在管道命令中为其他命令传值；</p></li>
+</ul>
+
+
+<h1>Locate命令</h1>
+
+<p> 相当于find -name，但速度远快于find，因为Linux维护了一个文件列表数据库（在Ubuntu上，这个数据库文件是/var/lib/mlocate/mlocate.db），locate命令查询这个数据库给出结果。由于数据库每天更新，所以如果查询最近的更改，需要手工更新数据库：</p>
+
+<pre><code>sudo updatedb
+</code></pre>
+
+<p>注意locate的搜索结果是包含路径的，所以用locate &lsquo;abc<em>'是搜不到文件名以abc开头的文件的，必须写为"</em>abc*&ldquo;;</p>
+
+<ul>
+<li>文件名部分普通匹配：locate strom；对应Emacs中M-x locate;</li>
+</ul>
+
+
+<p>只有在这种最简形式下，可以将locate &lsquo;<em>strom</em>'简写为locate storm;</p>
+
+<ul>
+<li><p>glob匹配：locate &lsquo;<em>strom</em>.gz'，搜索所有storm*.gz文件;</p></li>
+<li><p>正则匹配：locate -r &lsquo;.<em>Storm.</em>java'，或者：locate -r &rsquo;.<em>[Gg]roovy.</em>&lsquo;;</p>
+
+<p>  在特定路径下搜索指定扩展名文件：locate -r &lsquo;.<em>warez.</em>[Vv]irtual[Bb]ox.*[rpm|deb]&rsquo;</p>
+
+<p>  用正则指定文件扩展名：locate -r &lsquo;Storm.*.java&rsquo;</p></li>
+<li><p>locate+grep效果很好，先用locate进行粗选，然后在grep中细化，如查抄版本号为2.2.0的一个Hadoop安装包：locate 2.2.0|grep hadoop，或者查找所有文件名为Groovy或者groovy的文件：locate -r &lsquo;[Gg]roovy&rsquo;|grep &lsquo;[Gg]roovy&rsquo;</p></li>
+</ul>
+
+
+<p>Ref:</p>
+
+<p><a href="http://www.kuqin.com/linux/20091009/70532.html">Linux的五个查找命令</a></p>
+
+<p><a href="http://www.linuxhaxor.net/5-ways-to-search-for-files-using-the-terminal-in-linux/">5 Ways To Search For Files Using The Terminal</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/10/112349/">Logback笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-10T11:23:49+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:23 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>打印logback调试信息：<configuration debug="true"></p></li>
+<li><p>自动感知文件变化：<configuration scan="true" scanPeriod="30 seconds" >，不加scanPeriod的话，默认值是1分钟，一般用默认值就行；</p></li>
+<li><p>不打印第一行格式信息：</p></li>
+<li><p>不打印调试信息：将ch.qos.logback.core.ConsoleAppender包含的<layout>改为<encoder></p></li>
+<li><p>appender的级别设置：在appender里加filter，在filter上附加level；</p></li>
+<li><p>日志中的日期格式：</p>
+
+<p>  %date{yyyy-MMM-dd;HH:mm:ss.SSS} 2012-五月-14;16:05:44.667 &hellip;
+  %date{yyyy-MM-dd;HH:mm:ss}   2012-05-14;16:05:44</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/10/100140/">Java程序的两种参数设置方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-10T10:01:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:01 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java程序有两种参数传递方式，分别是虚拟机参数和程序参数，前者用java命令行参数-D设置，用System.getProperty()方法获取；后者在主类声明后面添加，用main()方法里的args[]获取。下面是演示程序。</p>
+
+<p> ServiceNameDemo.java</p>
+
+<p> public class ServiceNameDemo {</p>
+
+<p>  public static void main(String[] args) {</p>
+
+<p>   System.out.println(&ldquo;vm param is: &rdquo; + System.getProperty(&ldquo;service_name&rdquo;)</p>
+
+<pre><code> + "\r\nprogram param is: " + args[0] + " and " + args[1]); 
+</code></pre>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p>下面是编译运行结果。</p>
+
+<p>F:> javac ServiceNameDemo.java
+F:> java -cp . -Dservice_name=banana ServiceNameDemo apple melon
+vm param is: banana
+program param is: apple and melon</p>
+
+<p>对应于Eclipse中的设置方法如下：</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -510,236 +793,6 @@ HelloServer.RegistryServerName=10.31.1.71</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/20/094834/">动态和静态类型语言中实现回调的方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-20T09:48:34+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:48 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>静态语言实现回调的方法有待后续补充；</p>
-
-<p> Twisted Introduction from KRONDO by Dave Peticolas, Part6中使用的源代码twisted-client-3\get-poetry.py很好的阐述了python中实现回调（call back）的方法，下面是get-poetry.py的简化版：
- from twisted.internet.protocol import Protocol, ClientFactory</p>
-
-<p> class PoetryProtocol(Protocol):
-  poem = &lsquo;&rsquo;
-  def dataReceived(self, data):
-   self.poem += data
-  def connectionLost(self, reason):
-   self.poemReceived(self.poem)
-  def poemReceived(self, poem):
-   self.factory.poem_finished(poem)</p>
-
-<p> class PoetryClientFactory(ClientFactory):
-  protocol = PoetryProtocol</p>
-
-<p>  def <strong>init</strong>(self, callback):
-   self.callback = callback  # 将回调函数作为属性写入facotry对象中</p>
-
-<p>  def poem_finished(self, poem):
-   self. callback (poem)   # 神奇的是这个“属性”可以当方法用，只要在后面直接加括号和参数就OK了
- def get_poetry(host, port, callback ):
-  from twisted.internet import reactor
-  factory = PoetryClientFactory(callback)
-  reactor.connectTCP(host, port, factory)</p>
-
-<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:
-  def got_poem (poem):
-   poems.append(poem)
-   if len(poems) == len(addresses):
-    reactor.stop()
-  for address in addresses:
-   host, port = address
-   get_poetry(host, port, got_poem ) # 将回调方法方法作为参数传给factory对象</p>
-
-<p> 回调方法的本质是：从服务器下载诗句，当下载完成时做某件事，如何做这件事（做这件事的步骤）就定义在回调函数get_poem中。同步方式下，下载完成等同于下载诗句的函数返回，异步方式下不能这么办，只能由感知到事件发生的对象运行回调函数这种方法达到目的。本例中，服务器在诗句下载完成后关闭与客户端的连接，所以客户端的protocol对象的 connectionLost方法（也是一个call back函数）首先感知到下载完成，然后调用自己对应的factory对象的poem_finished方法，在poem_finished方法中使用get_poem方法处理下载完的poem。这里的关键是我们用写入属性的方法将回调函数赋给factory对象，factory就可以在接到（来自于protocol对象的）通知的时候运行这个“属性方法”。Part 6的Figure 11很好的图示了上述过程。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/20/083747/">Bat脚本的非阻塞调用</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-20T08:37:47+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:37 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>例如现在要启动3个Server，每个都监听一个端口，因此需要在调用脚本之外的进程里运行，这就需要start命令：</p>
-
-<p> start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10000 poetry/ecstasy.txt &ndash;num-bytes 30
-start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10001 poetry/fascination.txt
-start F:\Software\Python27\python.exe blocking-server/slowpoetry.py &ndash;port 10002 poetry/science.txt</p>
-
-<p>如果用call取代start，脚本会阻塞在第一个调用中，直到第一个调用返回才启动第二个。</p>
-
-<p>使用set为变量赋值时，注意等号左右不要留空格，否则变量名和变量值会包括这些空格。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/18/161616/">为什么Python不需要接口</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-18T16:16:16+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:16 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>尽管为Python增加接口的呼声一直存在，zope也为实现python的“面向协议编程”提供了接口（详见 zope文档 ），但Java中为了实现多态性而提供的接口对于Python而言是不需要的。首先看一个简单例子的Java版：</p>
-
-<p> InterfaceFunc.java</p>
-
-<p>  public class InterfaceFunc {
-  public static void main(String[] args) {
-   MyInterface a = new CA();
-   MyInterface b = new CB();
-   deal(a);
-   deal(b);
-  }
-  private static void deal(MyInterface instance) {
-   instance.func();
-  }
- }</p>
-
-<p>MyInterface.java</p>
-
-<p>  public interface MyInterface {
-  void func();
- }</p>
-
-<p>CA.java</p>
-
-<p>  public class CA implements MyInterface {
-  public void func() {
-   System.out.println(&ldquo;I am A&rdquo;);
-  }
- }</p>
-
-<p>CB.java</p>
-
-<p>  public class CB implements MyInterface {
-  public void func() {
-   System.out.println(&ldquo;I am B&rdquo;);
-  }
- }</p>
-
-<p>对应的Python代码：</p>
-
-<p>  class A:
-  def func(self):
-   print &lsquo;I am A&rsquo;
- class B:
-  def func(self):
-   print &lsquo;I am B&rsquo;
- def deal(obj):
-  obj.func()
- a = A()
- b = B()
- deal(a)
- deal(b)</p>
-
-<p>可以看到Python不需要接口的原因是其函数参数无需声明类型，只要参数能够完成函数要求其执行的操作就行，这就是 duck typing （中文叫“ 鸭子类型 ”）。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/04/18/102624/">Egg包使用方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-04-18T10:26:24+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:26 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Python的egg文件相当于java的jar文件（实际上二者都是zip文件），Java中可以通过设置classpath（设置环境变量 $CLASSPATH或者java命令的 -cp参数）的方法引用jar包，python中则是通过设置$PYTHONPATH环境变量或者sys.path的方法引用egg文件，如果需要引用多个egg，在 $PYTHONPATH中以分号隔开。下面以 zope egg 为例说明引用egg文件的方法，首先下载egg文件：d:\Apps\SharedLibs\zope.interface-3.8.0-py2.7-win32.egg。</p>
-
-<p> 命令行使用方法</p>
-
-<p> F:\ghost\tempFiles\twisted-intro> set PYTHONPATH=d:\Apps\SharedLibs\zope.interface-3.8.0-py2.7-win32.egg
-F:\ghost\tempFiles\twisted-intro> python twisted-deferred/defer-1.py
-Your poem is served:
-This poem is short.
-Finished</p>
-
-<p> 运行trial测试：</p>
-
-<p> F:\ghost\tempFiles\twisted-intro\tests> set PYTHONPATH=d:\Apps\SharedLibs\zope.interface-3.8.0-py2.7-win32.egg
-F:\ghost\tempFiles\twisted-intro\tests> python d:\Apps\Python27\Scripts\trial.py test_poetry.py
- Eclipse中引用egg
-Eclipse->Window->Preference->PyDev->Interpreter - Python->System PYTHONPATH中添加这个文件即可；</p>
-
-<p> 制作egg包方法 setuptools安装方法</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/83">&larr; Older</a>
@@ -757,23 +810,23 @@ Eclipse->Window->Preference->PyDev->Interpreter - Python->System PYTHONPATH中�
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/112248/">Kibana Notes</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a>
       </li>
     
   </ul>
