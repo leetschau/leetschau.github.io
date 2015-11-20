@@ -9,10 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="
-(type (range 5)): clojure.lang.LazySeq
-(type (apply list (range 5))): clojure.lang.PersistentList *
-">
+  <meta name="description" content="swap-pairs, p86 user=> (apply list (range 10))
+(0 1 2 3 4 5 6 7 8 9) user=> (drop 1 (apply list (range 10)))
+(1 2 3 4 5 6 7 8 9) user=> (take-nth 2 ( &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +67,229 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/17/112520/">Notes of `Clojure Programming`</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-17T11:25:20+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:25 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>swap-pairs, p86</h1>
+
+<p>user=> (apply list (range 10))
+(0 1 2 3 4 5 6 7 8 9)</p>
+
+<p>user=> (drop 1 (apply list (range 10)))
+(1 2 3 4 5 6 7 8 9)</p>
+
+<p>user=> (take-nth 2 (drop 1 (apply list (range 10))))
+(1 3 5 7 9)</p>
+
+<p>user=> (take-nth 2 (apply list (range 10)))
+(0 2 4 6 8)</p>
+
+<p>user=> (interleave &lsquo;(1 3 5 7 9) &rsquo;(0 2 4 6 8))
+(1 0 3 2 5 4 7 6 9 8)</p>
+
+<p>user=> (def list1 (take-nth 2 (drop 1 (apply list (range 10)))))</p>
+
+<h1>&lsquo;user/list1</h1>
+
+<p>user=> (def list2 (take-nth 2 (apply list (range 10))))</p>
+
+<h1>&lsquo;user/list2</h1>
+
+<p>user=> (def empty-list (empty (apply list (range 10))))</p>
+
+<h1>&lsquo;user/empty-list</h1>
+
+<p>user=> (def total-list (interleave list1 list2))</p>
+
+<h1>&lsquo;user/total-list</h1>
+
+<p>user=> (into empty-list total-list)
+(8 9 6 7 4 5 2 3 0 1)</p>
+
+<h1>map-map, p86</h1>
+
+<p>hash-map is unsorted collections, while sorted-map is sorted. So you can see the output of the hash-map is unsorted, while that of sorted-map is sorted.</p>
+
+<p>The synopsis of &ldquo;for&rdquo; is &ldquo;(for [k1 v1 k2 v2 &hellip;] (return-value))&rdquo;. So when f is inc, m is (hash-map :z 5 :c 6 :a 0), to &ldquo;(for [[k v] m] [k (f v)])&rdquo;, [k v] is [:z 5], [:c 6] and [&ldquo;:a&rdquo; 0], and the return value is &ldquo;[k (f v)]&rdquo;, thus [:z (inc 5)], [:c (inc 6)] and [:a (inc 0)].</p>
+
+<h1>seq function, p87</h1>
+
+<p>&ldquo;seq&rdquo; function produces a sequence over its argument. But the exact type is different based on the type of its arguments:</p>
+
+<p>user=> (type (seq &lsquo;(1 3 2)))
+clojure.lang.PersistentList</p>
+
+<p>user=> (type (seq [1 3 2]))
+clojure.lang.PersistentVector$ChunkedSeq
+user=> (type (seq {:a 1 :b 2}))
+clojure.lang.PersistentArrayMap$Seq</p>
+
+<p>user=> (type (seq #{1 3 2}))
+clojure.lang.APersistentMap$KeySeq</p>
+
+<p>user=> (type (seq nil))
+nil</p>
+
+<h1>destructuring a lazy seq, p95</h1>
+
+<p> (let [[x &amp; rest] (random-ints 50)] (str (str x) &ldquo; - &rdquo; (str (first rest)) &ldquo; - &rdquo; (second rest)))</p>
+
+<p>realizing random number
+realizing random number
+realizing random number
+&ldquo;23 - 37 - 10&rdquo;</p>
+
+<h1>reduce-by, p118</h1>
+
+<p>See Notes of &ldquo;reduce-by&rdquo; in &ldquo;Clojure Programming&rdquo; ;</p>
+
+<p>pprint can be used directly in clojure repl. If you want use it in a script, write your namespace declaration like this:</p>
+
+<p> (ns startclojure.core (:require clojure.pprint))</p>
+
+<p>Then you can use it as (clojure.pprint/pprint val);</p>
+
+<h1>assoc-in, get-in vs assoc, get, p120</h1>
+
+<p>=> (assoc-in {} [:a :b] 321)</p>
+
+<p>{:a {:b 321}}</p>
+
+<p>=> (assoc {} [:a :b] 321)</p>
+
+<p>{[:a :b] 321}</p>
+
+<p>=> (get-in {:a {:b 321}} [:a :b])</p>
+
+<p>321</p>
+
+<p>=> (get {:a {:b 321}} [:a :b])</p>
+
+<p>nil</p>
+
+<p>=> (get {[:a :b] 321} [:a :b])</p>
+
+<p>321</p>
+
+<p>=> ({[:a :b] 321} [:a :b])</p>
+
+<p>321</p>
+
+<p>=> (get-in {[:a :b] 321} [:a :b])</p>
+
+<p>nil</p>
+
+<p>=> (get-in {:a 23} :a)</p>
+
+<p>IllegalArgumentException &hellip;</p>
+
+<p>=> (get {:a 23} :a)</p>
+
+<p>23</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/17/105045/">Frequent Used Functions in Clojure</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-17T10:50:45+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>(type &hellip;): get the data type of &hellip;;</p></li>
+<li><p>(apply + [1 2 3]) &lt;=> (+ 1 2 3), but not equals to (+ [1 2 3]), p65;</p></li>
+<li><p>(map f [a b c]) &lt;=> ((f a) (f b) (f c));</p></li>
+</ul>
+
+
+<p> (map f [a b c] [x y z]) &lt;=> ((f a x) (f b y) (f c z));</p>
+
+<p> (type (map + [1 2 3] [10 20 30])) => clojure.lang.LazySeq, p61;</p>
+
+<ul>
+<li>(conj [1 2] 3) => [1 2 3];</li>
+</ul>
+
+
+<p> (conj [1 2] [3 4]) => [1 2 [3 4]];</p>
+
+<p> (conj [1 2] [3 4] [5 6]) => [1 2 [3 4] [5 6]];</p>
+
+<ul>
+<li>(into [1 2] 3) => exception;</li>
+</ul>
+
+
+<p> (into [1 2] [3]) => [1 2 3];</p>
+
+<p> (into [1 2] [3 4] [5]) => exception;</p>
+
+<ul>
+<li>(drop 1 [1 2 3]) => (2 3);</li>
+</ul>
+
+
+<p> (drop 2 [1 2 3]) => (3);</p>
+
+<p> (type (drop 2 [1 2 3])) => clojure.lang.LazySeq;</p>
+
+<ul>
+<li>(take-nth 2 (range 10)) => (0 2 4 6 8)</li>
+</ul>
+
+
+<p> (take-nth 3 (range 10)) => (0 3 6 9)
+ (take-nth 7 (range 10)) => (0 7)
+ (take-nth 9 (range 10)) => (0 9)</p>
+
+<p> (take-nth 2 #{3 5 7 9}) => (3 7)
+ (take-nth 2 {:a 3 :b 5 :c 7 :d 9}) => ([:a 3] [:c 7])</p>
+
+<p> (type (take-nth 2 {:a 3 :b 5 :c 7 :d 9})) => clojure.lang.LazySeq</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -217,7 +439,7 @@ alias -g 59="http://10.0.2.59:8118/svn/gcp"
 
 <p>Now &ldquo;sl gcp&rdquo; equals to &ldquo;svn sl <a href="http://10.0.2.59:8118/svn/gcp">http://10.0.2.59:8118/svn/gcp</a>&rdquo;.</p>
 
-<p>The restriction of zsh alias is that there must be a blank between aliases, regular or global. So if you want to define a shortcut &ldquo;sshec&rdquo; for saving keyboard input of &ldquo;ssh -i /home/lichao/Documents/lichao-key-pair-us-west-1.pem <a href="&#x6d;&#x61;&#x69;&#108;&#116;&#111;&#58;&#x65;&#x63;&#x32;&#x2d;&#x75;&#115;&#101;&#x72;&#64;&#49;&#48;&#46;&#x30;&#x2e;&#50;&#46;&#51;&#51;">&#x65;&#99;&#50;&#45;&#117;&#x73;&#x65;&#x72;&#64;&#x31;&#x30;&#x2e;&#x30;&#x2e;&#50;&#x2e;&#51;&#x33;</a>&rdquo;, you can&rsquo;t define &ldquo;alias sshec=&lsquo;ssh -i /home/lichao/Documents/lichao-key-pair-us-west-1.pem ec2-user@&rsquo;&rdquo;, because there is no blank between &ldquo;@&rdquo; and &ldquo;10.0.2.33&rdquo;. When you input &ldquo;sshec10.0.2.33&rdquo;, you get a unknown command error. You can use [Application Finder -> Custom Actions] in Mint to define this kind of shortcuts.</p>
+<p>The restriction of zsh alias is that there must be a blank between aliases, regular or global. So if you want to define a shortcut &ldquo;sshec&rdquo; for saving keyboard input of &ldquo;ssh -i /home/lichao/Documents/lichao-key-pair-us-west-1.pem <a href="&#109;&#97;&#x69;&#x6c;&#x74;&#x6f;&#58;&#x65;&#x63;&#50;&#x2d;&#x75;&#115;&#101;&#x72;&#x40;&#49;&#48;&#46;&#x30;&#x2e;&#50;&#46;&#x33;&#51;">&#101;&#x63;&#50;&#45;&#x75;&#x73;&#101;&#114;&#64;&#49;&#x30;&#x2e;&#48;&#46;&#50;&#46;&#51;&#51;</a>&rdquo;, you can&rsquo;t define &ldquo;alias sshec=&lsquo;ssh -i /home/lichao/Documents/lichao-key-pair-us-west-1.pem ec2-user@&rsquo;&rdquo;, because there is no blank between &ldquo;@&rdquo; and &ldquo;10.0.2.33&rdquo;. When you input &ldquo;sshec10.0.2.33&rdquo;, you get a unknown command error. You can use [Application Finder -> Custom Actions] in Mint to define this kind of shortcuts.</p>
 
 <p>Ref: <a href="http://www.acm.uiuc.edu/workshops/zsh/alias.html">zsh aliases</a></p>
 </div>
@@ -555,106 +777,6 @@ ok 3
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/04/172538/">Fabric Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-09-04T17:25:38+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Installation</h1>
-
-<ul>
-<li><p>sudo pip install fabric (verified on Mint 14, 2013-9-4)</p></li>
-<li><p>sudo apt-get install fabric (verified on Ubuntu Server 12.04 with goagent, 2013-9-7)</p></li>
-</ul>
-
-
-<h1>Test &ldquo;With&rdquo; Statement of Fabric</h1>
-
-<p>When running fabric command on remote host, if the current directory after &ldquo;with cd(&hellip;)&rdquo; will return to original one? Let&rsquo;s test it.</p>
-
-<p>fabfile.py</p>
-
-<pre><code>from __future__ import with_statement 
-from fabric.api import local, settings, abort, run, cd 
-def testcd(path): 
-    run("pwd") 
-    run("ls -l") 
-    with cd(path): 
-        run("pwd") 
-        run("ls -l") 
-    run("pwd") 
-    run("ls -l") 
-</code></pre>
-
-<p>Now run <code>fab -H 10.0.7.142 -u gcp -p gcp@123 testcd:path="zdjk"</code>. The &ldquo;pwd&rdquo; and &ldquo;ls&rdquo; before and after &ldquo;with&rdquo; statement give the same result, which means &ldquo;cd&rdquo; in &ldquo;with&rdquo; statement only take effect in &ldquo;with&rdquo; block. It&rsquo;s cool.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/04/104222/">Continous Delivery Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-09-04T10:42:22+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>From <a href="http://doc36.controltier.org/wiki/ControlTier">ControlTier</a>.</p>
-
-<p>Tools comparison: <a href="https://en.wikipedia.org/wiki/Comparison_of_open-source_configuration_management_software">https://en.wikipedia.org/wiki/Comparison_of_open-source_configuration_management_software</a></p>
-
-<p>Now ControlTier is replaced by rundeck.org.</p>
-
-<p>Fabic is another good tool based on Python. It has a fexpect component to do expect-like automation tasks. Fabric is &ldquo;push&rdquo; model, see <a href="http://mattcallanan.blogspot.com/2013/03/puppet-vs-fabric-for-deploys.html">Puppet vs Fabric for deploys</a>;</p>
-
-<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/RunDeck+Plugin">RunDeck Plugin of Jenkins</a> give a good example of &ldquo;0-click&rdquo; deployment.</p>
-
-<p><a href="http://www.debian-administration.org/articles/671">A simple introduction to fabric</a> give a good explanation of how to use fabric to do deploying jobs.</p>
-
-<p><a href="https://fedorahosted.org/func/">Func</a> is &ldquo;Fedora Unified Network Controller&rdquo;, so it&rsquo;s suited on rpm-based Linux.</p>
-
-<p><a href="http://www.smartfrog.org/">SmartFrog</a> is a Java-based tool, we can use it with Fabric.</p>
-
-<p><a href="http://saltstack.com/">Salt Stack</a> is also a candidate, support push and pull models(<a href="http://serverfault.com/questions/415713/what-advantages-features-does-puppet-or-chef-offer-over-salt-or-vice-versa">http://serverfault.com/questions/415713/what-advantages-features-does-puppet-or-chef-offer-over-salt-or-vice-versa</a>). It has nice Chinese support, see <a href="http://wiki.saltstack.cn/">Salt介绍</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/50">&larr; Older</a>
@@ -672,6 +794,14 @@ def testcd(path):
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
       </li>
     
@@ -681,14 +811,6 @@ def testcd(path):
     
       <li class="post">
         <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
   </ul>

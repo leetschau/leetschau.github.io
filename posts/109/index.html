@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="安装 首先下载jar包，然后命令行执行：java -jar jeditInstall.jar 安装完毕后，在安装目录下执行：java -jar jedit.jar 修改字体 Options -> Global Options: Text Area: Editor字体； Appearence: 列表 &hellip;">
+  <meta name="description" content="通过修改源文件中包名和手工编译源文件的方法，说明使用Java引用的方法是：
+JAR文件实际上是zip格式压缩包，假设包结构为dir_a/dir_b/c.class（dir_a目录下是dir_b目录，dir_b目录下是c.class文件），将该JAR包的绝对路径加入到classpath中， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +66,111 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/09/04/085500/">Java中classpath与包名关系的一个试验</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-09-04T08:55:00+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>通过修改源文件中包名和手工编译源文件的方法，说明使用Java引用的方法是：
+JAR文件实际上是zip格式压缩包，假设包结构为dir_a/dir_b/c.class（dir_a目录下是dir_b目录，dir_b目录下是c.class文件），将该JAR包的绝对路径加入到classpath中，然后在源文件里用import a.b.c的方法使用c类。下面分别用手工编译、运行不同包名源文件的方法证明以上论述。
+方案1：类文件中不写包名： DOS命令为： cd e:\ex\leechau
+set CLASSPATH=e:\MyDoc\JEx\MinaServer\lib\slf4j-jdk14-1.3.0.jar;e:\MyDoc\JEx\MinaServer\lib\slf4j-api-1.3.0.jar;e:\MyDoc\JEx\MinaServer\lib\mina-core-2.0.0-RC1.jar;.
+javac SamplMinaServerHandler.java
+javac MyMinaServer.java
+java MyMinaServer  SamplMinaServerHandler.java文件内容为：  // package ex.leechau;  import org.apache.mina.core.service.IoHandlerAdapter;  import org.apache.mina.core.session.IoSession;   public class SamplMinaServerHandler extends IoHandlerAdapter{   private int count=0;   //当一个客端端连结进入时   @Override   public void sessionOpened(IoSession session) throws Exception {   System.out.println(&ldquo;incomming client : &rdquo;+session.getRemoteAddress());   }   //当一个客户端关闭时   @Override   public void sessionClosed(IoSession session) {    System.out.println(&ldquo;one Clinet Disconnect !&rdquo;);   }   @Override   public void messageReceived(IoSession session, Object message)     throws Exception {    //我们己设定了服务器解析消息的规则是一行一行读取,这里就可转为String:    String s=(String)message;    // Write the received data back to remote peer    System.out.println(&ldquo;收到客户机发来的消息: &rdquo;+s);    //测试将消息回送给客户端    session.write(s+count);    count++;   }  }  MyMinaServer.java文件内容为：  // package ex.leechau;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+public class MyMinaServer {
+  public static void main(String[] args) throws IOException {
+   //创建一个非阻塞的Server端Socket,用NIO
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  //创建接收数据的过滤器
+  DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
+  //设定这个过滤器将一行一行(/r/n)的读取数据
+  chain.addLast(&ldquo;myChin&rdquo;, new ProtocolCodecFilter(new TextLineCodecFactory()));
+  //设定服务器端的消息处理器:一个SamplMinaServerHandler对象,
+  acceptor.setHandler(new SamplMinaServerHandler());
+  // 服务器端绑定的端口
+  int bindPort=9988;
+  //绑定端口,启动服务器
+  acceptor.bind(new InetSocketAddress(bindPort));
+  System.out.println(&ldquo;Mina server is listening on port: &rdquo; + bindPort);
+  }
+}  方案2：类文件中写包名，在源文件目录下编译： cd e:\ex\leechau
+set CLASSPATH=e:\MyDoc\JEx\MinaServer\lib\slf4j-jdk14-1.3.0.jar;e:\MyDoc\JEx\MinaServer\lib\slf4j-api-1.3.0.jar;e:\MyDoc\JEx\MinaServer\lib\mina-core-2.0.0-RC1.jar;e:\
+javac SamplMinaServerHandler.java
+javac MyMinaServer.java
+java MyMinaServer  SamplMinaServerHandler.java和MyMinaServer.java文件取消方案1中包名上的注释。
+方案3：类文件中写包名，在项目根目录下编译： cd e:\
+set CLASSPATH=e:\MyDoc\JEx\MinaServer\lib\slf4j-jdk14-1.3.0.jar;e:\MyDoc\JEx\MinaServer\lib\slf4j-api-1.3.0.jar;e:\MyDoc\JEx\MinaServer\lib\mina-core-2.0.0-RC1.jar;.
+javac ex/leechau/SamplMinaServerHandler.java
+javac ex/leechau/MyMinaServer.java
+java ex/leechau/MyMinaServer SamplMinaServerHandler.java和MyMinaServer.java文件与方案2一样。
+以上3中方案都可以是Mina Server正常运行，但如果在有包名的情况下使用方案1的方法定义classpath，则编译MyMinaServer.java时会出现“无法识别SamplMinaServerHandler”错误。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2010/09/04/085015/">用UltraEdit Color Scheme Manager修改UE的配色主题</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2010-09-04T08:50:15+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>UltraEdit的各种配置信息都保存在一个叫UEdit32.ini的文件中，配色主题是其中的一部分，UltraEdit Color Scheme Manager为修改此部分提供了一个便捷的工具，用户可首先生成自己的配色文件（或者使用别人制作的配色文件），然后用它导入到UEdit32.ini中，就实现了添加配色主题的目的。具体步骤是：
+ 下载压缩包uecolors_v1.2.1.1006.zip，解压，运行其中的uecolors.exe；
+ 为UltraEdit Color Scheme Manager指定UE的ini文件位置【Settings->Set INI File Location】，根据版本不同，ini文件可能出现在两处：c:\Documents and Settings\Administrator\Application Data\IDMComp\UltraEdit\UEdit32.ini或者UE的安装目录下；
+ 【File->Open Scheme】将做好的配色主题文件导入（例如压缩包里自带的Borland.ueTheme），【File->Export Theme to UE】；
+ 运行UE，【View->Set Colors->Save】保存配色主题；
+ 关闭UE，打开UEdit32.ini，将默认的配色主题名字user scheme 1 改为自己定义的名字；</p>
+
+<p>That&rsquo;s it.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -682,94 +788,6 @@ Java架构师之路
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/20/145352/">镜像文件制作/装载软件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-20T14:53:52+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:53 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>镜像文件制作</h1>
-
-<p>ultraISO、winISO和Nero就不说了，以下比较几款免费镜像制作/装载软件。
-Folder2iso：绿色软件，免安装，将文件夹做成ISO文件，其中【Charset】一般设为cp936或者EUC-CN（有中文路径和文件）或者默认（无中文），UltraISO的替代品；
-isoDisk：能装载iso文件到虚拟光驱中（类似Daemon，其虚拟光驱盘符从A开始，最多可加载20个），不能装载其他镜像文件（如img、bin、nrg等），还能将CD中的光盘做成ISO文件；
-ImgBurn：功能很全的一个freeware，但是没有装载ISO文件的功能。
-ISORecorder：光盘刻录软件（取代Nero），似乎也能将文件夹做成ISO文件；
-TotalISO：这个是一个TotalCmd的插件，仅是一个界面，要光盘刻录功能还要借助其他软件；
-总结：以目前的硬盘容量，基本无需刻录光盘，因此用Folder2iso制作ISO文件，然后用Daemon或者isoDisk装载使用即可。</p>
-
-<h1>镜像文件加载工具</h1>
-
-<ul>
-<li><a href="http://www.pismotechnic.com/">Pismo File Mount Audit Package</a>：freewaregenius推荐，需要安装，安装后右键需要mount的文件，选择mount或者quick mount加载，前者是传统的加载方式，可以指定一个驱动器盘符，后者更方便，直接把镜像文件变成一个文件夹，双击进入文件夹运行程序，卸载是在文件夹上右键，选择unmount，就还原成原始的镜像文件了；</li>
-</ul>
-
-
-<p>这个软件支持装载iso和zip文件，不支持cue, ape, rar等格式，也不支持linux格式的bin文件；</p>
-
-<ul>
-<li><a href="http://www.winarchiver.com/">WinArchiver Virtual Drive</a>：貌似属于免费试用+加收费软件，需要安装；</li>
-</ul>
-
-
-<p>参考："<a href="http://www.freewaregenius.com/another-forty-three-of-the-best-free-windows-enhancements-that-you-should-know-about-part-2/">http://www.freewaregenius.com/another-forty-three-of-the-best-free-windows-enhancements-that-you-should-know-about-part-2/</a>&ldquo;第11、12项</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/08/20/085649/">使用输入流读取数据时的阻塞问题</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-08-20T08:56:49+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:56 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用java.io.BufferedInputStream.read(byte[])方法读取Socket中传过来的数据时，如果需要超时退出判断机制，一定要注意B ufferedInputStream.available()的使用。下面的代码片段是一个很标准的读取过程，其中第5行的判断很重要，因为read( byte[] )方法本身是阻塞的，如果自始至终is没有收到任何数据，就会一直阻塞在read()方法上（第6行），导致整个超时判断机制失去作用，而 available()方法的使用避免了这种可能性。</p>
-
-<p> 示例程序代码：</p>
-
-<p> 01      try {   02           long startTime = System.currentTimeMillis();   03           while (someCriteria) {   04                byte[] cache = new byte[1024];   05                if (is.available() > 0) {   06                     int count = is.read(cache);   07                     if (count &lt;= 0) {   08                          if (System.currentTimeMillis() - startTime >= timeout) {   09                               throw new GapiException(&ldquo;Connection Time Out!&rdquo;);   10                          }   11                          continue;   12                     }   13                     // 后续处理   14                }   15                if (System.currentTimeMillis() - startTime >= timeout) {   16                     throw new GapiException(&ldquo;Connection Time Out!&rdquo;);   17                }   18                Thread.sleep(10);   19           }   20      } catch (Exception e) {   21           logger.error(&ldquo;ERROR: &rdquo;, e);   22      }</p>
-
-<p> 程序流程图：</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/110">&larr; Older</a>
@@ -787,6 +805,14 @@ TotalISO：这个是一个TotalCmd的插件，仅是一个界面，要光盘刻�
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
       </li>
     
@@ -796,14 +822,6 @@ TotalISO：这个是一个TotalCmd的插件，仅是一个界面，要光盘刻�
     
       <li class="post">
         <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
   </ul>

@@ -9,7 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Generating Test Data with Meteor Factory and Fake The following tests set up with meteor-factory. First create Meteor app, install packages, define &hellip;">
+  <meta name="description" content="If you want develop Meteor on Windows machine,
+it&rsquo;s inconvenient to install meteor, mongodb, vim, etc. on Windows.
+My choice is use VM as &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +67,212 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/05/131004/">Meteor Development Environment on Windows</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-05T13:10:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>1:10 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>If you want develop Meteor on Windows machine,
+it&rsquo;s inconvenient to install meteor, mongodb, vim, etc. on Windows.
+My choice is use VM as develop environment.</p>
+
+<p>First install <a href="https://www.virtualbox.org/">VirtualBox</a>, <a href="https://www.vagrantup.com/">Vagrant</a>,
+<a href="http://executor.dk/">Executor</a>.</p>
+
+<p>Add the Meteor Dev vagrant box to system <code>vagrant box add meteorBox mybox.box</code>.
+The box is based on Ubuntu 14.04 LTS (Trusty), with provisioned Meteor, MongoDB, git, tmux,
+vim and its plugins.</p>
+
+<p>Create the VM: <code>vagrant init meteorBox</code>;</p>
+
+<p>There are different SSH clients:</p>
+
+<h1>MobaXterm</h1>
+
+<p>Download <a href="http://mobaxterm.mobatek.net/">MobaXterm</a> and extract it to app folder,
+say d:\Apps\MobaXterm_v7.7.</p>
+
+<p>Create a new session in MobaXterm named &ldquo;localvm&rdquo;, with username &ldquo;vagrant&rdquo; and port 2222;</p>
+
+<p>In Executor, add the following keywords:</p>
+
+<pre><code>keyword: vmStart
+Command: vagrant
+Parameters: up
+Start in: e:\Docs\MeteorBox\sysClone\vm
+
+keyword: vmSuspend
+Command: vagrant
+Parameters: suspend
+Start in: e:\Docs\MeteorBox\sysClone\vm
+
+Keyword: vmLogin
+Command: MobaXterm_Personal_7.7.exe
+Parameters: -bookmark localvm -exitwhendone
+Start in: d:\Apps\MobaXterm_v7.7
+
+Keyword: vmStart&amp;Login
+Command: vmStart||vmLogin
+</code></pre>
+
+<p>Now you can use [win-z, vmStart&amp;Login] to start VM and login.
+Before you shutdown Windows machine, remember use [win-z, vmSuspend] to suspend VM
+(which is always impossible).</p>
+
+<p>Below is the procedure of getting a project into the VM:</p>
+
+<pre><code>win-z: vmstart
+win-z: vmlogin
+# in the VM
+ssh-keygen
+# copy $(cat .ssh/id_rsa.pub) to http://phab.yourdomain.com/settings/panel/ssh
+mkdir docs;cd docs
+git clone ssh://git@phab.yourdomain.com/diffusion/YOURREPO/yourRepo.git 
+cd yourRepo
+git submodule init
+git submodule update
+</code></pre>
+
+<p>Note: to add or edit keywords in Executor, use shortcut [win-z, Ctrl-k],
+see Executor documents for details.</p>
+
+<h1>Kitty</h1>
+
+<p>If you prefer Kitty (portable version of Putty) to MobaXterm,</p>
+
+<p>Add a new Session &ldquo;localvm&rdquo; in Kitty:</p>
+
+<pre><code>Host name: localhost
+Port: 2222
+Connection -&gt; Data -&gt; Auto-login username &amp; password: vagrant
+Window -&gt; Behavior: check "Full screen on Alt-Enter"
+</code></pre>
+
+<p>The corresponding &ldquo;vmLogin&rdquo; will be:</p>
+
+<pre><code>Keyword: vmLogin
+Command: kitty.exe
+Parameters: -load localvm
+Start in: d:\Apps\Kitty
+</code></pre>
+
+<h1>ConEmu + Kitty</h1>
+
+<p>You can even wrap Kitty into <a href="https://github.com/Maximus5/ConEmu">ConEmu</a>,
+which is a good Windows console alternative.</p>
+
+<p>In ConEmu, add a task in Settings -> Startup -> Tasks:</p>
+
+<pre><code>Name: Kitty
+Hotkey: Win + Alt + X
+Task parameters: blank
+Commands: d:\Apps\Kitty\kitty.exe -new_console -load "VagrantLinux"
+</code></pre>
+
+<p>And set Kitty as the auto startup task:
+Set <code>Settings -&gt; Startup -&gt; Startup options -&gt; Specified named task</code> to &ldquo;Kitty&rdquo;.</p>
+
+<p>Add a new Executor keyword for ConEmu:</p>
+
+<pre><code>Keyword: vmLogin
+Command: d:\Apps\ConEmu\ConEmu.exe
+</code></pre>
+
+<p>(or use [Win + Alt + X] to login to VM manually in ConEmu).</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/05/110947/">Use Git in Vim With Fugitive</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-05T11:09:47+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:09 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<p>Add <code>Plugin 'tpope/vim-fugitive'</code> into ~/.vimrc
+and run <code>vim +PluginClean +PluginInstall +qa</code>.</p>
+
+<h1>Get Help</h1>
+
+<p>:help fugitive</p>
+
+<h1>Frequently Use Commands</h1>
+
+<table>
+<thead>
+<tr>
+<th>Action Name </th>
+<th> Meaning                </th>
+<th> Close Window with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>:Gblame     </td>
+<td> show info of each line </td>
+<td> q</td>
+</tr>
+<tr>
+<td>:Gdiff      </td>
+<td> show diff in vim       </td>
+<td> :q</td>
+</tr>
+<tr>
+<td>:Gstatus    </td>
+<td> show git status        </td>
+<td> q</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>In &ldquo;:Gstatus&rdquo; window, you can use &ldquo;-&rdquo; to add a file in/out stage area,
+use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available actions.</p>
+
+<p>To see the file changes history: <code>:Git log --stat</code>.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -193,7 +401,7 @@ Run test on container app, see the result.</p>
    api.versionsFrom(&lsquo;1.2.0.2&rsquo;);
    api.use(&lsquo;ecmascript&rsquo;);
    // this makes nfcore itself can use variable &ldquo;SimpleSchema&rdquo; in the source code
-   api.use(&ldquo;aldeed:<a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#115;&#x69;&#109;&#112;&#108;&#x65;&#x2d;&#115;&#x63;&#104;&#x65;&#x6d;&#x61;&#x40;&#49;&#x2e;&#51;&#46;&#x33;">&#115;&#x69;&#109;&#112;&#108;&#101;&#x2d;&#x73;&#99;&#104;&#101;&#x6d;&#97;&#x40;&#49;&#46;&#x33;&#x2e;&#x33;</a>&rdquo;);
+   api.use(&ldquo;aldeed:<a href="&#109;&#97;&#105;&#108;&#x74;&#111;&#58;&#x73;&#x69;&#x6d;&#112;&#x6c;&#101;&#45;&#115;&#99;&#x68;&#101;&#x6d;&#x61;&#64;&#x31;&#x2e;&#51;&#46;&#x33;">&#x73;&#105;&#109;&#112;&#x6c;&#x65;&#45;&#x73;&#x63;&#x68;&#101;&#109;&#97;&#x40;&#x31;&#46;&#x33;&#x2e;&#51;</a>&rdquo;);
    api.use(&ldquo;alanning:roles&rdquo;);
    // this makes any packages using nfcore can use &ldquo;SimpleSchema&rdquo;
    api.imply(&ldquo;aldeed:simple-schema&rdquo;);
@@ -203,12 +411,12 @@ Run test on container app, see the result.</p>
  });
  Package.onTest(function(api) {
    api.use(&lsquo;ecmascript&rsquo;);
-   api.use(&lsquo;sanjo:<a href="&#x6d;&#97;&#x69;&#108;&#x74;&#111;&#x3a;&#x6a;&#x61;&#115;&#x6d;&#x69;&#110;&#101;&#x40;&#48;&#x2e;&#x31;&#x39;&#46;&#48;">&#x6a;&#97;&#x73;&#x6d;&#x69;&#x6e;&#x65;&#64;&#x30;&#46;&#49;&#x39;&#x2e;&#48;</a>&rsquo;);
+   api.use(&lsquo;sanjo:<a href="&#x6d;&#x61;&#x69;&#x6c;&#x74;&#111;&#58;&#106;&#97;&#115;&#109;&#x69;&#x6e;&#x65;&#x40;&#x30;&#46;&#49;&#x39;&#x2e;&#48;">&#106;&#x61;&#115;&#x6d;&#x69;&#x6e;&#x65;&#64;&#48;&#46;&#x31;&#57;&#x2e;&#48;</a>&rsquo;);
    api.use(&lsquo;anti:fake&rsquo;);
    api.use(&lsquo;underscore&rsquo;);
-   api.use(&ldquo;dburles:<a href="&#x6d;&#97;&#105;&#108;&#x74;&#111;&#58;&#102;&#97;&#99;&#x74;&#x6f;&#x72;&#x79;&#64;&#48;&#x2e;&#51;&#46;&#49;&#x30;">&#102;&#97;&#x63;&#116;&#x6f;&#x72;&#121;&#64;&#x30;&#x2e;&#x33;&#x2e;&#x31;&#48;</a>&rdquo;);
-   api.use(&lsquo;velocity:<a href="&#109;&#x61;&#105;&#x6c;&#x74;&#111;&#58;&#104;&#116;&#x6d;&#x6c;&#45;&#114;&#x65;&#112;&#x6f;&#114;&#116;&#x65;&#x72;&#x40;&#48;&#x2e;&#x39;&#46;&#48;">&#104;&#116;&#x6d;&#x6c;&#45;&#x72;&#101;&#112;&#111;&#114;&#116;&#x65;&#114;&#64;&#48;&#x2e;&#57;&#x2e;&#48;</a>&rsquo;);
-   api.use(&lsquo;velocity:<a href="&#x6d;&#97;&#x69;&#x6c;&#x74;&#111;&#58;&#x63;&#x6f;&#110;&#x73;&#x6f;&#108;&#x65;&#45;&#114;&#x65;&#112;&#111;&#x72;&#116;&#101;&#114;&#x40;&#x30;&#46;&#49;&#46;&#x33;">&#x63;&#x6f;&#110;&#x73;&#111;&#x6c;&#101;&#45;&#114;&#x65;&#112;&#111;&#114;&#x74;&#101;&#114;&#64;&#48;&#x2e;&#49;&#x2e;&#x33;</a>&rsquo;);
+   api.use(&ldquo;dburles:<a href="&#x6d;&#97;&#105;&#x6c;&#116;&#111;&#58;&#x66;&#97;&#x63;&#116;&#x6f;&#x72;&#x79;&#x40;&#48;&#x2e;&#x33;&#46;&#x31;&#48;">&#x66;&#97;&#99;&#x74;&#111;&#114;&#121;&#64;&#x30;&#46;&#x33;&#x2e;&#x31;&#x30;</a>&rdquo;);
+   api.use(&lsquo;velocity:<a href="&#x6d;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#x68;&#x74;&#109;&#108;&#x2d;&#x72;&#x65;&#x70;&#111;&#114;&#116;&#101;&#114;&#x40;&#48;&#46;&#x39;&#x2e;&#x30;">&#104;&#116;&#x6d;&#x6c;&#x2d;&#114;&#101;&#112;&#x6f;&#114;&#116;&#101;&#x72;&#x40;&#48;&#x2e;&#x39;&#x2e;&#48;</a>&rsquo;);
+   api.use(&lsquo;velocity:<a href="&#109;&#x61;&#105;&#x6c;&#x74;&#111;&#58;&#x63;&#111;&#110;&#115;&#111;&#108;&#x65;&#x2d;&#x72;&#101;&#x70;&#x6f;&#x72;&#116;&#x65;&#x72;&#64;&#48;&#x2e;&#49;&#x2e;&#51;">&#x63;&#111;&#110;&#115;&#111;&#x6c;&#x65;&#x2d;&#114;&#x65;&#x70;&#111;&#x72;&#x74;&#101;&#114;&#64;&#x30;&#x2e;&#49;&#46;&#51;</a>&rsquo;);
    api.use(&lsquo;leo:nfcore&rsquo;);
    api.addFiles(&lsquo;nfcore-tests.js&rsquo;);
  });
@@ -334,6 +542,79 @@ runghc app.hs
 <p><a href="https://wiki.haskell.org/Constructor">Constructor</a></p>
 
 <p><a href="http://stackoverflow.com/questions/18204308/haskell-type-vs-data-constructor">Haskell Type vs Data Constructor</a></p>
+
+<h1>Applicative Functors</h1>
+
+<p>下面的代码，转换<code>[1,2,3,4]</code>时，可以用<code>map</code>代替<code>fmap</code>，转换<code>Just 4</code>就不行：</p>
+
+<pre><code>Prelude&gt; fmap (replicate 3) [1,2,3,4]
+[[1,1,1],[2,2,2],[3,3,3],[4,4,4]]
+
+Prelude&gt; map (replicate 3) [1,2,3,4]
+[[1,1,1],[2,2,2],[3,3,3],[4,4,4]]
+
+Prelude&gt; fmap (replicate 3) (Just 4)
+Just [4,4,4]
+
+Prelude&gt; map (replicate 3) (Just 4)
+&lt;interactive&gt;:45:20:
+    Couldn't match expected type ‘[a]’ with actual type ‘Maybe Integer’
+    Relevant bindings include it :: [[a]] (bound at &lt;interactive&gt;:45:1)
+    In the second argument of ‘map’, namely ‘(Just 4)’
+    In the expression: map (replicate 3) (Just 4)
+</code></pre>
+
+<p>map是一个函数，通过一个将a类型变为b类型的函数，
+将元素类型为a类型的数组转换为元素类型为b的数组；</p>
+
+<pre><code>Prelude&gt; :t map
+map :: (a -&gt; b) -&gt; [a] -&gt; [b]
+</code></pre>
+
+<p>fmap是一个函数，通过一个将a类型变为b类型的函数，
+将一个类型为"f a"的值，变为一个类型为"f b"的值。</p>
+
+<pre><code>Prelude&gt; :t fmap
+fmap :: Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</code></pre>
+
+<p><code>Maybe</code>是一个实现了(instance)函子(Functor)类型类(class)的类型构造器(type constructor)。
+类型构造器类似于Java的泛型，例如“数组” <code>[]</code>就是类型构造器，
+“元素为整数的数组” <code>[Int]</code>是一个具体类型，这里的整型 Int就充当了数组类型构造器的参数，
+用函数做类比，数组是个“类型函数”，参数是具体类型 Int，返回具体类型 [Int]。</p>
+
+<pre><code>Prelude&gt; :k []
+[] :: * -&gt; *
+</code></pre>
+
+<p>这里<code>:k</code>表示取数组的kind值，kind可以理解为是类型构造器的类型。
+<code>*</code>表示某个具体类型（而不是类型构造器）。</p>
+
+<p><code>Just</code>是一个函数，将a类型值转换为<code>Maybe a</code>类型值，
+例如<code>Just 4</code>将Int类型值 (4)，转换为<code>Maybe Int</code>，
+或者更准确地表述为：将Num类型值转为<code>Num a =&gt; Maybe a</code>类型。</p>
+
+<pre><code>Prelude&gt; :k Maybe
+Maybe :: * -&gt; *
+Prelude&gt; :t Just
+Just :: a -&gt; Maybe a
+Prelude&gt; :t Just 4
+Just 4 :: Num a =&gt; Maybe a
+</code></pre>
+
+<p>由于<code>Just 4</code>的类型<code>Maybe Integer</code>不符合<code>map</code>第二个参数类型<code>[a]</code>的要求，所以报错。</p>
+
+<pre><code>Prelude&gt; :t replicate 3
+replicate 3 :: a -&gt; [a]
+Prelude&gt; :t fmap (replicate 3) (Just 4)
+fmap (replicate 3) (Just 4) :: Num a =&gt; Maybe [a]
+</code></pre>
+
+<p>在上面的计算过程中，<code>(replicate 3)</code>是<code>fmap</code>的第一个参数<code>(a -&gt; b)</code>，
+这里由于<code>(replicate 3)</code>类型是<code>(a -&gt; [a])</code>，所以<code>b</code>就是<code>[a]</code>。
+<code>(Just 4)</code>是第二个参数<code>f a</code>，代入<code>Just 4</code>的类型<code>Maybe a</code>，
+可知<code>Functor f</code>就是<code>Maybe</code>.
+所以最终<code>f b</code>就是<code>Maybe [a]</code>。</p>
 </div>
   
   
@@ -510,6 +791,22 @@ stack exec -- yesod devel
 
 <p>Now open &ldquo;<a href="http://localhost:3000/">http://localhost:3000/</a>&rdquo;.</p>
 
+<p>On Windows:</p>
+
+<p>下载stack Windows包stack-0.1.4.0-i386-windows.zip，解压，
+在解压目录中运行Git Bash（通过msysGit安装），</p>
+
+<pre><code>cd /f/ghost/tempFiles
+stack steup
+/d/Apps/stack/stack.exe new myHaskellProj yesod-sqlite
+/d/Apps/stack/stack.exe templates
+/d/Apps/stack/stack.exe install yesod-bin cabal-install --install-ghc
+/d/Apps/stack/stack.exe build
+/d/Apps/stack/stack.exe exec -- yesod devel
+</code></pre>
+
+<p>stack setup比较慢，大约需要10分钟，安装后运行不正常，放弃。</p>
+
 <h1>Run Haskell Code</h1>
 
 <p>To start a ghci, in any folder, run:</p>
@@ -523,6 +820,14 @@ Prelude&gt; putStrLn "hello world"
 <pre><code>$ cat hello.hs
 main = putStrLn "hello world"
 $ stack runghc hello.hs
+</code></pre>
+
+<h1>Install New Library</h1>
+
+<p>For example install library &ldquo;random&rdquo;:</p>
+
+<pre><code>cabal update
+cabal install random
 </code></pre>
 
 <h1>Editor Setup</h1>
@@ -737,179 +1042,6 @@ it&rsquo;s been a Meteor app already.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-20T21:21:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:21 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The following codes can display a random date within a month after the specified fair date.</p>
-
-<pre><code>$ meteor create randomDate
-$ cd randomDate
-$ meteor add momentjs:moment
-$ cat randomDate.html
-&lt;head&gt;
-  &lt;title&gt;Random Date&lt;/title&gt;
-&lt;/head&gt;
-
-&lt;body&gt;
-  在 展会日期 输入框中输入日期，例如：2015-05-25，然后点击 评论 按钮。
-  &lt;hr&gt;
-
-&lt;/body&gt;
-
-&lt;template name="DatePanel"&gt;
-  &lt;label&gt;展会日期：&lt;/label&gt;
-  &lt;input type="text" id="fairDate"&gt;
-  &lt;button&gt;评论&lt;/button&gt;
-  &lt;p&gt;评论添加日期：&lt;/p&gt;
-&lt;/template&gt;
-
-$ cat randomDate.js
-if (Meteor.isClient) {
-  Template.DatePanel.helpers({
-    commentDate: function () {
-      return Session.get('commentDate');
-    }
-  });
-
-  Template.DatePanel.events({
-    'click button': function (e, t) {
-      var dateStr = t.find("#fairDate").value;
-      var fairDate = moment(dateStr);
-      var randomDays = Math.floor((Math.random() * 30) + 1);
-      var commentDate = fairDate.add(randomDays, 'days');
-      var commStr = commentDate.format("YYYY-MM-DD");
-      Session.set('commentDate', commStr);
-    }
-  });
-}
-
-$ meteor
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-16T10:15:29+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:15 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面的代码演示了JavaScript中的闭包：</p>
-
-<pre><code>$ cat test.js
-x = 100;
-inc = function(){
-  var x = 0;
-  return function(){
-    console.log(x++);
-  };
-};
-inc1 = inc();
-inc2 = inc();
-
-$ node
-&gt; require('./test.js')
-{}
-&gt; x
-100
-&gt; inc
-[Function]
-&gt; inc1
-[Function]
-&gt; inc2
-[Function]
-&gt; inc1()
-0
-undefined
-&gt; inc1()
-1
-undefined
-&gt; inc1()
-2
-undefined
-&gt; inc2()
-0
-&gt; inc2()
-1
-undefined
-&gt; inc2()
-2
-undefined
-&gt; inc2()
-3
-undefined
-&gt; inc2()
-4
-undefined
-&gt; inc1()
-3
-undefined
-&gt; inc()
-[Function]
-&gt; inc()()
-0
-undefined
-&gt; inc()()
-0
-undefined
-</code></pre>
-
-<p>可以看到inc2()最后一次执行时内部x值为4，
-inc1不受影响，执行时依然从上次的2开始增加变成3，
-所以，不同的闭包（这里是inc1和inc2）保存了自己单独的内部变量x，
-其中一个变化不会影响另一个的值。</p>
-
-<p>由于每次执行inc()返回一个新的function，所以每次执行<code>inc()()</code>都打印0。</p>
-
-<p>参考：</p>
-
-<p><a href="http://www.zhihu.com/question/35060711/answer/62641357?group_id=627257263421976576#comment-94699289">javascript的闭包的概念和ruby的闭包的概念有何异同？</a>.</p>
-
-<p>&ldquo;Load and execute external js file in node.js with access to local variables?&rdquo; on StackOverflow.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/4">&larr; Older</a>
@@ -927,6 +1059,14 @@ inc1不受影响，执行时依然从上次的2开始增加变成3，
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
       </li>
     
@@ -936,14 +1076,6 @@ inc1不受影响，执行时依然从上次的2开始增加变成3，
     
       <li class="post">
         <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
   </ul>

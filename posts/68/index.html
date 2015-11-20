@@ -9,9 +9,11 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="装好Ubuntu Server 12.04后，用apt-get安装telnetd报"E: Unable to locate package telnetd"，解决方法如下： 虚拟机采用NAT方式与主机连接；
-sudo apt-get update（更新apt-get的软件源）
-sudo apt- &hellip;">
+  <meta name="description" content="下载libevent-2.0.21-stable.tar.gz
+tar -xzvf libevent-2.0.21-stable.tar.gz
+查看README文件，运行第一步./configure
+报错，原因是没有找到C编译器；
+安装C编译器；sudo apt-get install gcc &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +69,128 @@ sudo apt- &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/10/135439/">Libevent安装过程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-10T13:54:39+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>1:54 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>下载<a href="https://github.com/downloads/libevent/libevent/libevent-2.0.21-stable.tar.gz">libevent-2.0.21-stable.tar.gz</a></p></li>
+<li><p>tar -xzvf libevent-2.0.21-stable.tar.gz</p></li>
+<li><p>查看README文件，运行第一步./configure</p></li>
+<li><p>报错，原因是没有找到C编译器；</p></li>
+<li><p>安装C编译器；sudo apt-get install gcc</p></li>
+<li><p>重新运行./configure，配置完成；</p></li>
+<li><p>运行make，报make未安装，安装后再次执行；</p></li>
+<li><p>$ make verify</p></li>
+<li><p>sudo make install</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/10/114625/">Multi-thread Echo Server: Python Version</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-02-10T11:46:25+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>源代码（mulThrServ.py）：</p>
+
+<p> import socket
+ import threading
+ import SocketServer
+ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
+  def handle(self):
+   data = self.request.recv(1024)
+   cur_thread = threading.current_thread()
+   print &ldquo;cur_thread: &rdquo; + cur_thread.name
+   print &ldquo;data: &rdquo; + data
+   response = &ldquo;{}: {}&rdquo;.format(cur_thread.name, data)
+   self.request.sendall(response)
+ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+  pass
+ def client(ip, port, message):
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  sock.connect((ip, port))
+  try:
+   sock.sendall(message)
+   response = sock.recv(1024)
+   print &ldquo;Received: {}&rdquo;.format(response)
+  finally:
+   sock.close()
+ if <strong>name</strong> == &ldquo;<strong>main</strong>&rdquo;:
+  # Port 0 means to select an arbitrary unused port
+  HOST, PORT = &ldquo;localhost&rdquo;, 0
+  server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+  ip, port = server.server_address
+ # Start a thread with the server &ndash; that thread will then start one
+  # more thread for each request
+  server_thread = threading.Thread(target=server.serve_forever)
+  # Exit the server thread when the main thread terminates
+  server_thread.daemon = True
+  server_thread.start()
+  print &ldquo;Server loop running in thread:&rdquo;, server_thread.name
+  client(ip, port, &ldquo;Hello World 1&rdquo;)
+  client(ip, port, &ldquo;Hello World 2&rdquo;)
+  client(ip, port, &ldquo;Hello World 3&rdquo;)
+  server.shutdown()</p>
+
+<p>运行（Ubuntu Server 12.04）：</p>
+
+<p>$ python mulThrServ.py</p>
+
+<p>Server loop running in thread: Thread-1</p>
+
+<p>Received: Thread-2: Hello World 1</p>
+
+<p>Received: Thread-3: Hello World 2</p>
+
+<p>Received: Thread-4: Hello World 3</p>
+
+<p>可以看到对客户端的每次连接，服务端都启动了新的线程进行处理。此程序在python 2.7上运行完成，在python 2.6上运行时字符串的format函数写法与2.7不同，需要修改。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -562,151 +686,6 @@ check &ldquo;Close ConEmu window&rdquo;;</p></li>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/26/231249/">BinarySearchST计算成本的测试代码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-26T23:12:49+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面是在原有BinarySearchST类上的修改，增加了两个成员（visitTimes与visitTime）和一个方法（getComparisionTimes），查找的成本主要体现在rank方法中的“cmp=key.compareTo(keys[m])”，在这一句后面加上visitTime++来标记访问次数增加了一次；写入的成本体现在put方法的两个位置，当key已经在keys中时，本次put的总成本是visitTime+1，当key不在keys数组中时（增加一个新元素），每移动一个元素，visitTime要加1，注意每次put操作记录结束后，除了要将次数存入visitTimes数组，还要将visitTime清零。</p>
-
-<p>另外下面的代码省略了与原BinarySearchST类相同的成员和方法。</p>
-
-<p> public class BinarySearchST<Key extends Comparable<Key>, Value> {
-  private final List<Integer> visitTimes = new ArrayList<Integer>(); // 每次put访问数组的次数的集合
-  int visitTime = 0; // 一次put操作中访问数组的次数计数器
-  public Value get(Key key) {
-   if (isEmpty())
-    return null;
-   int i = rank(key);
-   visitTime++;
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0)
-    return vals[i];
-   return null;
-  }
-  public int rank(Key key) {
-   int lo = 0, hi = N - 1;
-   while (lo &lt;= hi) {
-    int m = lo + (hi - lo) / 2;
-    int cmp = key.compareTo(keys[m]);
-    visitTime++;
-    if (cmp &lt; 0)
-     hi = m - 1;
-    else if (cmp > 0)
-     lo = m + 1;
-    else {
-     return m;
-    }
-   }
-   return lo;
-  }
-  public void put(Key key, Value val) {
-   if (val == null) {
-    delete(key);
-    return;
-   }
-   int i = rank(key);
-   if (i &lt; N &amp;&amp; keys[i].compareTo(key) == 0) {
-    vals[i] = val;
-    visitTimes.add(visitTime + 1); // 查找了visitTime次，写入的成本是1
-    visitTime = 0;
-    return;
-   }
-   if (N == keys.length)
-    resize(2 * keys.length);
-   for (int j = N; j > i; j&ndash;) {
-    keys[j] = keys[j - 1];
-    vals[j] = vals[j - 1];
-    visitTime++;
-   }
-   keys[i] = key;
-   vals[i] = val;
-   N++;
-   visitTimes.add(visitTime);
-   visitTime = 0;
-   assert check();
-  }
-  public List<Integer> getComparisionTimes() {
-   return visitTimes;
-  }
- }</p>
-
-<p>计算成本的图像演示代码FrequencyCounter类见笔记 SequentialSearchST算法成本的图形演示 。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/01/25/072710/">键盘插拔对用户登录的影响实验</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-01-25T07:27:10+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>7:27 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>实验服务器：Ubuntu Server 12.04；</p>
-
-<p>实验过程：</p>
-
-<ol>
-<li><p>在服务器本机上以用户user1登录服务器；</p></li>
-<li><p>在另一台终端上以SSH方式登录服务器，用who命令查看当前登录用户有两个：</p></li>
-</ol>
-
-
-<p> root@guserver:~# who -H
- NAME  LINE   TIME    COMMENT
- user1 tty1   2013-01-25 07:21
- user1 pts/0  2013-01-25 07:22 (10.31.1.32)
-由IP地址可知，上面的tty1是服务器本机登录用户，pts/0是SSH登录用户；</p>
-
-<ol>
-<li><p>拔出服务器上的USB键盘插头，终端上再执行who命令，与上面的结果相同；</p></li>
-<li><p>再插上服务器上的USB键盘，不论是否插入原插槽，都可以继续输入指令，完全不受键盘插拔的影响；</p></li>
-</ol>
-
-
-<p>结论：</p>
-
-<p>键盘登录服务器的方式下，USB键盘的插拔和改变USB插口不会影响用户的登录状态。进一步，键盘作为操作系统的standard input，不受其物理状态（是否连接）的影响。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/69">&larr; Older</a>
@@ -724,6 +703,14 @@ check &ldquo;Close ConEmu window&rdquo;;</p></li>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
       </li>
     
@@ -733,14 +720,6 @@ check &ldquo;Close ConEmu window&rdquo;;</p></li>
     
       <li class="post">
         <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
   </ul>

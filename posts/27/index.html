@@ -9,9 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="tmux is a terminal multiplexer.
-Its 3-level architecture &ldquo;session-window-pane&rdquo; is very flexible and powerful.
-Sessions are independent. &hellip;">
+  <meta name="description" content="Format the SD card with &ldquo;FAT' format;
+Download Noob.zip from raspi&rsquo;s website, unzip all files to the SD card, no need to &ldquo;dd&rdquo &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +66,147 @@ Sessions are independent. &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/27/193340/">Install Raspberry Pi</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-27T19:33:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ol>
+<li><p>Format the SD card with &ldquo;FAT' format;</p></li>
+<li><p>Download Noob.zip from raspi&rsquo;s website, unzip all files to the SD card, no need to &ldquo;dd&rdquo; or something else;</p></li>
+<li><p>Insert SD card, power line, keyboard, mouse and HDMI cable to TV;</p></li>
+<li><p>Open TV, switch to &ldquo;AIR-LINE&rdquo; mode, then it will be the Screen;</p></li>
+<li><p>Check the OS you want to install, Respbian in my case, and it will install it on the SD card;</p></li>
+<li><p>After the installation, the raspi-config interface appears, it&rsquo;s a TUI, use keyboard finish some settings, such as modify user password;</p></li>
+<li><p>After reboot, login with username &ldquo;pi&rdquo; and password &ldquo;raspberry&rdquo; if you didn&rsquo;t modify it at the previous step;</p></li>
+<li><p>Now you can start GUI with &ldquo;startx&rdquo;, the default desktop environment is LXDE; The ssh server is installed by default;</p></li>
+</ol>
+
+
+<p>That&rsquo;s it.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/23/171938/">Debug Binary File Reading C++ Codes With Gdb</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-05-23T17:19:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:19 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>We need debug a C++ file, which read and analyze a binary file. We use gdb and xxd in this case. In tmux, split a window horizontally, run gdb in the upper bigger pane, and list file content in lower smaller pane.</p>
+
+<pre><code>$ tmux new -s basic
+A-f,-   // split window, I define &lt;prefix&gt; of tmux as A-f in ~/.tmux.conf: set -g prefix M-f
+A-f,JJ  // make upper pane larger
+$ xxd -l 33 &lt;input-binary-file&gt;.dat   // print first 32 bytes of this file
+0000000: 202a 463b 862e d108 2100 ab55 8006 f407   *F;....!..U....
+0000010: 0000 0000 0a0e 0401 0102 1800 5201 0501  ............R...
+0000020: 15
+A-f,k   // jump to upper window
+$ cat readfile.cc
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+using namespace std;
+
+typedef unsigned char BYTE;
+
+BYTE *read_section(FILE *istream, int *length);
+
+int main() {
+    string filename = "/home/chad/docs/eclipsews/MrParser/doc/ns-output/1296_2014_04_25_10_00_MR.dat";
+    char *fn = const_cast&lt;char*&gt;(filename.c_str());
+    FILE *rstream = fopen(fn, "rb"); // 打开.dat文件
+    BYTE *buffer = NULL;
+    int length = 0;
+    buffer = read_section(rstream, &amp;length);
+    fclose(rstream);
+    printf("Read file length: %d\n", length);
+    return 0;
+}
+
+BYTE *read_section(FILE *istream, int *length) {
+    int count = 0;
+    size_t ret = 0;
+    BYTE buf[128];
+    BYTE *buffer = NULL;
+
+    ret = fread(buf, sizeof(char), 8, istream); if (8 != ret) return NULL;
+    ret = fread(buf, sizeof(char), 2, istream); if (2 != ret) return NULL;
+    *length = buf[1] * 256 + buf[0];
+    if ( 0 == *length) return NULL;
+    buffer = new BYTE[*length];
+    fseek(istream, -10, SEEK_CUR);
+    ret = fread(buffer, sizeof(char), *length, istream);
+    if (*length != ret) {
+        delete [] buffer;
+        return NULL;
+    }
+    return buffer;
+}
+$ g++ -g readfile.cc -o rr
+$ gdb rr
+l
+// list source code, we want to probe the content of variable "buffer" after the "fread" operation. So we add a breakpoint after that line
+b 37
+r
+(gdb) p/x *buffer@33
+$1 = {0x20, 0x2a, 0x46, 0x3b, 0x86, 0x2e, 0xd1, 0x8, 0x21, 0x0, 0xab, 0x55, 0x80, 0x6, 0xf4, 0x7, 0x0, 0x0, 0x0, 0x0, 0xa, 0xe, 0x4, 0x1, 0x1,
+  0x2, 0x18, 0x0, 0x52, 0x1, 0x5, 0x1, 0x15}
+p/x buffer[0]
+$2 = 0x20
+c
+q
+</code></pre>
+
+<p>where l=list, r=run, p/x means &ldquo;print value in hex format&rdquo;, c=continue, q=quit.
+You can see the bytes of &ldquo;buffer&rdquo; is exactly the same with the output of xxd command: 0x20, 0x2a, &hellip;, 0x15.</p>
+
+<p>The format of gdb&rsquo;s print see <a href="http://www.delorie.com/gnu/docs/gdb/gdb_55.html">8.4 Output formats</a> for details.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -229,7 +369,11 @@ install xsel, and add codes below into ~/.tmux.conf:</p>
 bind p run "xsel -o | tmux load-buffer - ; tmux paste-buffer"
 </code></pre>
 
-<p>Here &ldquo;bind&rdquo; is the alias of &ldquo;bind-key&rdquo;. &ldquo;-t&rdquo; specifies the type is &ldquo;vi-copy&rdquo; instead of &ldquo;emacs-copy&rdquo;.</p>
+<p>Here &ldquo;bind&rdquo; is the alias of &ldquo;bind-key&rdquo;.
+&ldquo;-t&rdquo; specifies the type is &ldquo;vi-copy&rdquo; instead of &ldquo;emacs-copy&rdquo;.
+In copy mode of tmux, use &ldquo;y&rdquo; to copy selected text into system clipboard,
+then paste the text with Ctrl-V in GUI application, or Shift-Ctrl-V in terminal,
+or &ldquo;p&rdquo; in vim.</p>
 
 <p>Ref:</p>
 
@@ -869,108 +1013,6 @@ ok
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/10/172302/">Bitstring in Erlang</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-10T17:23:02+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:23 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>bitstring is the bit sequence literals in Erlang. It&rsquo;s powerful and convenient due to the Erlang&rsquo;s telecom background.</p>
-
-<p>Now we have a bit sequence &ldquo;0110 0101 1000 1111 1010 0010&rdquo;, whose corresponding hex literal is: &ldquo;0x65 0x8f 0xa2&rdquo;. To express it with Erlang:</p>
-
-<pre><code>1&gt; Bin = &lt;&lt;16#65, 16#8f, 16#a2&gt;&gt;.
-&lt;&lt;101,143,162&gt;&gt;
-</code></pre>
-
-<p>Every segment divided by comma is called a &ldquo;segment&rdquo;, it&rsquo;s default size is 8.</p>
-
-<p>But we want divide this sequence in this way: &ldquo;011 0010 1100 011 1110 10 0010&rdquo;, which can be expressed as &ldquo;&lt;&lt;value1:length1, value2:length2, &hellip;>>&rdquo;:</p>
-
-<pre><code>2&gt; Bin2 = &lt;&lt;3:3, 2:4, 16#c:4, 3:3, 16#e:4, 2:2, 2:4&gt;&gt;.
-&lt;&lt;101,143,162&gt;&gt;
-</code></pre>
-
-<p>So that&rsquo;s why</p>
-
-<pre><code>3&gt; &lt;&lt;3, 17, 23:16&gt;&gt;.
-&lt;&lt;3,17,0,23&gt;&gt;
-4&gt; &lt;&lt;3, 17, 3323:16&gt;&gt;.
-&lt;&lt;3,17,12,251&gt;&gt;
-</code></pre>
-
-<p>The third segment &ldquo;<num>:16&rdquo; consists of 16 bits. So it&rsquo;s 8-bit &ldquo;normal&rdquo; literals is:</p>
-
-<pre><code>0 * 256 + 23 = 23
-12 * 256 + 251 = 3323
-</code></pre>
-
-<p>That&rsquo;s it.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/06/193841/">I3 Window Manager on CentOS 6</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-06T19:38:41+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:38 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li><p>Make a usb key with dd command and CentOS-6.5-i386-LiveDVD.iso;</p></li>
-<li><p>Install CentOS 6.5 on Dell PC;</p></li>
-<li><p>Run firefox and install H3C client to connect to internet;</p></li>
-<li><p>After installation, run <code>yum update</code> and install epel;</p></li>
-<li><p>Search i3 in CentOS repository: <code>yum list i3</code> => i3.i686</p></li>
-<li><p><code>yum install i3.i686</code>;</p></li>
-<li><p><code>yum install i3lock.i686</code>;</p></li>
-<li><p>modify /etc/inittab, set the runlevel to 3;</p></li>
-<li><p>create ~/.xinitrc for user chad: <code>echo "exec i3" &gt; ~/.xinitrc</code>;</p></li>
-<li><p>reboot;</p></li>
-<li><p>Login as user chad;</p></li>
-<li><p><code>startx</code>;</p></li>
-</ol>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/28">&larr; Older</a>
@@ -988,6 +1030,14 @@ ok
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
       </li>
     
@@ -997,14 +1047,6 @@ ok
     
       <li class="post">
         <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
   </ul>

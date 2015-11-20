@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="安装Mercurial(Hg) 在 Mercurial官网 下载Mercurial（mercurial-1.8.0-x86.msi），装完后就可以通过命令行使用Hg了，然后下载安装图形界面（tortoisehg-2.0.0-hg-1.8-x86.msi）； 将文件编码设为中文 &hellip;">
+  <meta name="description" content="java.io包里有两个关于管道传输的类，PipedInputStream和PipedOutputStream，它们可以看做是一个传输管道的两端，PipedOutputStream是发送端（入口），用write和flush方法向管道中“推”数据，PipedInputStream是接收端（出口）， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -65,6 +65,210 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/09/161610/">Java的管道流</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-09T16:16:10+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:16 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>java.io包里有两个关于管道传输的类，PipedInputStream和PipedOutputStream，它们可以看做是一个传输管道的两端，PipedOutputStream是发送端（入口），用write和flush方法向管道中“推”数据，PipedInputStream是接收端（出口），用read方法接收数据，构造这样一个管道的通常做法是：</p>
+
+<p> PipedOutputStream out = new PipedOutputStream();</p>
+
+<p> PipedInputStream in = new PipedInputStream(out);</p>
+
+<p>站在管道的角度看，将入口叫做"output"是一件很诡异的事，因此我估计java的开发者是站在管道使用者的角度命名，向管道里送数据是output，从管道里读数据是input吧。</p>
+
+<p>如果这个管道只传输字符，还可以用java.io里的PipedReader和PipedWriter，使用方法与上述stream类相似。</p>
+
+<p>apache sshd的ClientChannel类的setIn方法需要一个InputStream参数，而PipedInputStream是InputStream的子类，这样我们就可以用下面的方法向SshClient发送数据了：</p>
+
+<p> SshClient client = SshClient.setUpDefaultClient();</p>
+
+<p> client.start();</p>
+
+<p> ClientSession session = client.connect(&ldquo;10.0.2.47&rdquo;, 22).await().getSession();</p>
+
+<p> session.authPassword(&ldquo;user&rdquo;, &ldquo;password&rdquo;).await().isSuccess();</p>
+
+<p> ClientChannel channel = session.createChannel(ClientChannel.CHANNEL_SHELL);</p>
+
+<p> // 到这里ssh client完成了登录动作</p>
+
+<p> PipedOutputStream out = new PipedOutputStream();</p>
+
+<p> channel.setIn(new PipedInputStream(out));</p>
+
+<p> // 这两句建立了一个 pipedOut -> pipedIn -> ssh client的数据管道，下面就可以用write方法给client发数据了</p>
+
+<p> ByteArrayOutputStream output = new ByteArrayOutputStream();</p>
+
+<p> ByteArrayOutputStream err = new ByteArrayOutputStream();</p>
+
+<p> channel.setOut(output);</p>
+
+<p> channel.setErr(err);</p>
+
+<p> channel.open();</p>
+
+<p> // 到此连接通道已打开，可以接收指令了</p>
+
+<p> pipedIn.write(&ldquo;pwd\n&rdquo;.getBytes());</p>
+
+<p> pipedIn.flush();</p>
+
+<p> // 向client发送指令</p>
+
+<p> String res = output.toString(&ldquo;UTF-8&rdquo;);</p>
+
+<p> // 获取client收到的报文</p>
+
+<p> output.reset();</p>
+
+<p> // 清空接收缓存</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/05/160720/">TextLineCodecFactory笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-05T16:07:20+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:07 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Mina的TextLineCodecFactory将字符串编码为字节流，将字节流解码为字符串，下面是使用中遇到的两个问题。 TextLineCodecFactory改变了message的类型
+acceptor上挂了textCodec后handler的messageReceived方法中的session是String型（用"message.getClass().getName()&ldquo;查看），</p>
+
+<p> [INFO] [2012-04-05 16:18:54,317] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : hi(java.lang.String)]</p>
+
+<p>否则是IoBuffer：</p>
+
+<p> [INFO] [2012-04-05 15:23:36,760] [com.leechau.mina.echoServer.EchoProtocolHandler] - [message type is: org.apache.mina.core.buffer.SimpleBufferAllocator$SimpleBuffer]</p>
+
+<p>因此挂上TextLineCodecFactory后在handler的messageReceived方法中message参数可直接强转为String；</p>
+
+<p> 不能正确解码换行符问题及解决办法
+连接Echo Server后有时会出现下面的现象：</p>
+
+<p> hi{enter}</p>
+
+<p>send:</p>
+
+<p>  hi</p>
+
+<p>造成这一现象的原因是下面的配置方法使TextLineCodecFactory使用了默认的编解码行分隔符（encoder/decoder line delimeter），即用Unix LineDelimeter(/n)作为编码行分隔符，用AUTO LineDelimeter（\r或者\n，详见Mina API doc对LineDelimeter类的说明）作为解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;))));</p>
+
+<p>解决这一问题的办法是指定编解码行分隔符：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.DEFAULT.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send:
+hi</p>
+
+<p>如果不希望每次session.write(msg)后编码器自动加上回车符，需要将编码行分隔符指定为NUL：</p>
+
+<p> acceptor.getFilterChain().addLast(&ldquo; textCodec&rdquo;,</p>
+
+<p>  new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),</p>
+
+<p>   LineDelimiter.NUL.getValue(), LineDelimiter.DEFAULT.getValue())));</p>
+
+<p>效果如下：</p>
+
+<p> hi{enter}
+send: hi</p>
+
+<p> 源代码
+Main.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
+import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+public class Main {
+ private static final int PORT = 8293;
+ public static void main(String[] args) throws Exception {
+  SocketAcceptor acceptor = new NioSocketAcceptor();
+  acceptor.getFilterChain().addLast(&ldquo;logger&rdquo;, new LoggingFilter());
+  acceptor.getFilterChain().addLast(&ldquo;textCodec&rdquo;,
+   new ProtocolCodecFilter(new TextLineCodecFactory(Charset.forName(&ldquo;UTF-8&rdquo;),
+     LineDelimiter.NUL.getValue() , LineDelimiter.DEFAULT.getValue())));
+  acceptor.setHandler(new EchoProtocolHandler());
+  acceptor.bind(new InetSocketAddress(PORT));
+  System.out.println(&ldquo;Listening on port &rdquo; + PORT);
+ }
+}</p>
+
+<p>EchoProtocolHandler.java</p>
+
+<p> package com.leechau.mina.echoServer;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IoSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+public class EchoProtocolHandler extends IoHandlerAdapter {
+ private static final Logger LOGGER = LoggerFactory
+ .getLogger(EchoProtocolHandler.class);
+ @Override
+ public void messageReceived(IoSession session, Object message) throws Exception {
+  LOGGER.info(&ldquo;Received : &rdquo; + message + &ldquo;(&rdquo; + message.getClass().getName() + &ldquo;)&rdquo;);
+  session.write(&ldquo;send: &rdquo;);
+  session.write(message);
+ }
+}</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -983,78 +1187,6 @@ Transmission Control Protocol, Src Port: 10811 (10811), Dst Port: 8394 (8394), S
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/23/082859/">Totalcmd解压插件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-23T08:28:59+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>8:28 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>bz2: BZIP2 ;</p>
-
-<p>7z: wcx_7zip_0.7.6.5.bin.zip;</p>
-
-<p>另有wcx_7z_plugin_1.0.1.0，需要额外找7zip4.x版exe文件，不好用；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/20/085110/">用autohotkey运行命令行指令</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-03-20T08:51:10+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:51 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>网卡识别错误导致无法上网，需要在命令行中输入ipconfig /release和ipconfig /renew两个命令，执行这个动作的ahk脚本是：</p>
-
-<p> RunWait, %comspec% /c ipconfig /release &amp;&amp; ipconfig /renew</p>
-
-<p>其中RunWait的意思是以同步方式执行本条指令，即当ipconfig执行完毕后ahk脚本才执行（RunWait）后面的脚本，Run是异步方式；</p>
-
-<p> %comspec% /c ipconfig /release &amp;&amp; ipconfig /renew 是windows的命令行语法，可以用如下方法验证：</p>
-
-<p> C:\Users\chad> echo %comspec%
-C:\Windows\system32\cmd.exe
-C:\Users\chad> %comspec% /c dir /w &amp;&amp; dir /w &amp;&amp; pause</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/posts/85">&larr; Older</a>
@@ -1072,6 +1204,14 @@ C:\Users\chad> %comspec% /c dir /w &amp;&amp; dir /w &amp;&amp; pause</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
       </li>
     
@@ -1081,14 +1221,6 @@ C:\Users\chad> %comspec% /c dir /w &amp;&amp; dir /w &amp;&amp; pause</p>
     
       <li class="post">
         <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a>
       </li>
     
   </ul>
