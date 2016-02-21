@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Elasticsearch | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/elasticsearch/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-11-20T11:01:10+08:00</updated>
+  <updated>2016-02-21T11:06:40+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -41,7 +41,10 @@ you can see it on elasticsearch.</p>
 <p>阿里云服务器上，用普通用户es启动es服务(<code>bin/elasticsearch</code>)，同一用户启动mongo-connector后，报
 &ldquo;AttributeError: &lsquo;IndicesClient&rsquo; object has no attribute &lsquo;delete_mapping&rsquo;"错误，
 es版本为2.0，mongo-connector版本为2.1，将es版本改为1.7，mongo-connector改为1.3后，
-出现另一错误，最终解决方法是仍然用es启动es服务，但用root启动mongo-connector.</p>
+仍然出现这一错误，原因是MongoDB中删除了test库中的一个Collection，但ES中仍然有，就会出现这个错误，
+解决方法是清空ES的test重新同步一遍：
+<code>curl -XDELETE http://123.57.188.18:9322/test</code>.
+Ref: <a href="https://github.com/mongodb-labs/mongo-connector/issues/349">https://github.com/mongodb-labs/mongo-connector/issues/349</a></p>
 
 <p>Note 2:</p>
 
@@ -234,6 +237,32 @@ or you will get an error when starting <code>mongo-connector</code>:</p>
 <p><a href="http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json">http://stackoverflow.com/questions/352098/how-can-i-pretty-print-json</a></p>
 
 <p><a href="https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/">https://pascalprecht.github.io/2014/07/10/pretty-print-json-in-vim/</a></p>
+
+<h1>Security</h1>
+
+<p>Ref: <a href="https://www.elastic.co/downloads/shield">Security for Elasticsearch</a>.</p>
+
+<p>Under directory &ldquo;/home/es/apps/elasticsearch-2.0.0&rdquo;, run:</p>
+
+<pre><code>bin/plugin install elasticsearch/license/latest
+bin/plugin install elasticsearch/shield/latest
+bin/elasticsearch
+bin/shield/esusers useradd es_admin -r admin
+// input admin pwd: es@Newfairs2015
+</code></pre>
+
+<p>Elasticsearch authentication will affect kibana and mongo-connector,
+make things too complicated. So I decided to remove authentication.
+First stop elasticsearch server, then run:</p>
+
+<pre><code>bin/plugin --help
+bin/plugin list
+bin/plugin remove shield
+bin/plugin remove license
+bin/elasticsearch
+</code></pre>
+
+<p>Finally start mongo-connector and kibana.</p>
 ]]></content>
   </entry>
   

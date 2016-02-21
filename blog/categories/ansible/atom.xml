@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Ansible | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/ansible/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2016-02-21T11:06:40+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Ansible Notes]]></title>
+    <link href="http://leetschau.github.io/blog/2016/01/08/125827/"/>
+    <updated>2016-01-08T12:58:27+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/01/08/125827</id>
+    <content type="html"><![CDATA[<h1>使用源代码版本的ansible</h1>
+
+<p>按照<a href="http://docs.ansible.com/ansible/intro_installation.html#running-from-source">Running From Source</a>,
+首先安装依赖包 (<code>sudo pip install paramiko PyYAML Jinja2 httplib2 six</code>),
+clone ansible的github repo, 然后配置环境变量，就可以使用ansible的各个版本了。</p>
+
+<pre><code>git clone git://github.com/ansible/ansible.git --recursive $HOME/apps
+</code></pre>
+
+<p>需要使用ansible时，运行：</p>
+
+<pre><code>source $HOME/apps/ansible/hacking/env-setup
+</code></pre>
+
+<p>默认是devel分支，如果要切换到稳定版分支，首先列出所有分支：<code>git branch -ra</code>，
+然后切换到此分支上：</p>
+
+<pre><code>cd $HOME/apps/ansible
+git checkout origin/stable-2.0.1
+source $HOME/apps/ansible/hacking/env-setup
+</code></pre>
+
+<p>更新代码库：</p>
+
+<pre><code>cd $HOME/apps/ansible
+git pull --rebase
+git submodule update --init --recursive
+</code></pre>
+
+<h1>lookup ini plugin</h1>
+
+<p>通过pip安装的ansible是1.9.4版本，这一版没有lookup ini plugin.
+在<a href="http://docs.ansible.com/ansible/playbooks_lookups.html#the-ini-file-lookup">The INI File Lookup</a>
+下可以看到 &ldquo;New in version 2.0.&rdquo;.</p>
+
+<p>运行下面的task时，</p>
+
+<pre><code>- debug: msg="User in integration is "
+</code></pre>
+
+<p>会报错：</p>
+
+<blockquote><p>lookup plugin (ini) not found</p></blockquote>
+
+<p>用pip安装后，所有的lookup plugin的安装目录是
+/usr/local/lib/python2.7/dist-packages/ansible/runner/lookup_plugins
+下面没有ini.py.</p>
+
+<p>解决方法见上节使用源代码版本的ansible.</p>
+
+<p>有了ini lookup plugin, 可以在ansible的roles/<role-name>/tasks/main.yml中
+引用ansible变量和外部ini文件：</p>
+
+<pre><code>- name: download codes to laptop
+  local_action: &gt;
+    command
+    
+    
+</code></pre>
+
+<p>相关的文件：</p>
+
+<pre><code>cat $ANSIBLE_PRJ_HOME/roles/deploy/vars/main.yml 
+repo_base: "~/temp"
+timestamp: ""
+repo_name: "-"
+local_repo: "/"
+target_branch: "develop"
+ext_path: "/"
+nodejs_bin_path: ":/opt/node-v0.10.40-linux-x64/bin"
+app_settings: "~/docs/website/v3/settings.json"
+env_settings: "~/docs/website/v3/serverEnv.ini"
+
+cat ~/docs/website/v3/serverEnv.ini
+[common]
+PORT=3000
+
+[p21.newfairs-inc.com]
+MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/production
+ROOT_URL=http://www.newfairs.net
+GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/NEWFAIRS/newfairs.git
+
+[p22.newfairs-inc.com]
+MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/production
+ROOT_URL=http://www.newfairs.net
+GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/NEWFAIRS/newfairs.git
+
+[beta-app.newfairs-inc.com]
+MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/production
+ROOT_URL=http://beta.newfairs.com
+GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/NEWFAIRS/newfairs.git
+
+[console.newfairs-inc.com]
+MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/console
+ROOT_URL=http://console.newfairs-inc.com
+GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/CONSOLE/newfairs-console.git
+</code></pre>
+]]></content>
+  </entry>
+  
+</feed>

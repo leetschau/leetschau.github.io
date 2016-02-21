@@ -9,9 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Question: Working in vim, I want to search a string, say &ldquo;ord&rdquo;, in some files,
-say, all the .hs files,
-in current folder (and all its &hellip;">
+  <meta name="description" content="Based on Python FTP server library (pyftpdlib) Install Start a virtual environment;
+$ easy_install pyftpdlib (the version number is 1.3.0) or &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -73,7 +72,7 @@ in current folder (and all its &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/18/145606/">Search String in Files in Vim</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/01/24/095359/">Setup Lightweight Python FTP Server for Test</a></h1>
     
     
       <p class="meta">
@@ -82,97 +81,77 @@ in current folder (and all its &hellip;">
 
 
 
-<time class='entry-date' datetime='2013-12-18T14:56:06+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:56 pm</span></time>
+<time class='entry-date' datetime='2014-01-24T09:53:59+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:53 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Question: Working in vim, I want to search a string, say &ldquo;ord&rdquo;, in some files,
-say, all the .hs files,
-in current folder (and all its subfolders), while I don&rsquo;t want to leave vim.</p>
+  <div class="entry-content"><p>Based on <a href="http://code.google.com/p/pyftpdlib/">Python FTP server library (pyftpdlib)</a></p>
 
-<p>Answer:</p>
+<h1>Install</h1>
 
-<h1>ag.vim plugin</h1>
+<ol>
+<li><p>Start a virtual environment;</p></li>
+<li><p>$ easy_install pyftpdlib (the version number is 1.3.0)</p></li>
+</ol>
 
-<p>Install <a href="https://github.com/ggreer/the_silver_searcher">the_silver_searcher</a>
-with <code>sudo aptitude install silversearcher-ag</code>.</p>
 
-<p>Install <a href="https://github.com/rking/ag.vim">ag.vim</a> with adding codes below into
-~/.vimrc:</p>
+<p>or download pyftpdlib-1.3.0.tar.gz manually and &ldquo;python setup.py install&rdquo;.</p>
 
-<pre><code>let g:ag_highlight=1
-Plugin 'rking/ag.vim'
+<h1>Usage</h1>
+
+<p>Run the following script to startup server:</p>
+
+<pre><code>from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
+authorizer = DummyAuthorizer()
+authorizer.add_user("user", "12345", "/home/chad/tmp", perm="elradfmw")
+authorizer.add_anonymous("/home/chad/tmp2")
+# you have a named and an anonymous user to login
+handler = FTPHandler
+handler.authorizer = authorizer
+server = FTPServer(("0.0.0.0", 2121), handler)
+server.serve_forever()
 </code></pre>
 
-<p>Here &ldquo;g:ag_highlight=1&rdquo; make the preview function useful with <code>go</code> shortcut
-in quickfix window.</p>
+<p>If you set the port to &ldquo;21&rdquo;, a &ldquo;permission denied&rdquo; error raises. So I changed it to 2121.
+If you only accept local connection, modify server ip as &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.</p>
 
-<p>Search &lsquo;pattern" with <code>:Ag [options] pattern [path]</code>.
-&ldquo;path&rdquo; is optional with the default value <code>:pwd</code>.</p>
+<p>Use this server in command line:</p>
 
-<p>Search the word under cursor with <code>:Ag</code>.
-See <code>:h Ag</code> for all commands Ag provides.</p>
-
-<p>Frequently used options:</p>
-
-<p>&ldquo;-i&rdquo;: ignore case: <code>:Ag -i pattern</code>.
-&ldquo;-w&rdquo;: match whole word: <code>:Ag -w pattern</code>.
-&ldquo;-Q&rdquo;: match pattern literally, do not use regular expression.</p>
-
-<p>It&rsquo;s much faster than ack-grep below.
-You can use &ldquo;o&rdquo; to jump to the target file,
-use &ldquo;v&rdquo; to open target file in vertial split window,
-use &ldquo;e&rdquo; to open file and close the quickfix window,
-use &ldquo;q&rdquo; to close the quickfix window, etc.
-Search &ldquo;keyboard shortcuts&rdquo; in <code>:h Ag</code> to see the details.</p>
-
-<h1>easygrep plugin</h1>
-
-<p>Add <code>Plugin 'dkprice/vim-easygrep'</code> into ~/.vimrc.
-Search word &lsquo;vari&rsquo; with <code>:Grep vari</code>.</p>
-
-<p>Install <code>ack-grep</code> with aptitude.
-And use <code>:GrepProgram</code> to change search utility to <code>ack-grep</code>.</p>
-
-<p>Use <code>:cw</code>/<code>:ccl</code> to open/close search result window;
-<code>:cn</code>/<code>:cp</code> to jump to next/previous result;</p>
-
-<h1>Search List Version</h1>
-
-<pre><code>:vim /ord/ *.hs
+<pre><code>ftp 10.21.2.7 2121
+// user name and password
+pwd
+ls
+get file1.txt
+put file2.txt
 </code></pre>
 
-<p>You will auto jump to the first matched file.
-If you don&rsquo;t want this auto-jump, use <code>:vim /ord/j *.hs</code>.
-Now you can use &ldquo;:cn&rdquo; or &ldquo;:cp&rdquo; to traverse between all matched files,
-or use &ldquo;:cw&rdquo; to open search result window (use &ldquo;:clo&rdquo; to hide this window).</p>
+<p>And a groovy ftp client:</p>
 
-<h1>No Search List Version</h1>
-
-<pre><code>:lv ord *.hs
+<pre><code>import org.apache.commons.net.ftp.FTPClient
+println("About to connect....");
+new FTPClient().with {
+    connect "localhost", 2121
+    login "user", "123"
+    def names = listNames("/")
+    print names
+    logout()
+    disconnect()
+}
+println("Done.");
 </code></pre>
 
-<p>There is no search result window (quickfix window) for this &ldquo;lv&rdquo; command. And you can&rsquo;t use &ldquo;:cn&rdquo; and &ldquo;:cp&rdquo; also.</p>
+<p>Run this client:</p>
 
-<h1>Fast Search Version</h1>
-
-<pre><code>:grep ord *.hs
+<pre><code>groovy -cp .../commons-net-3.1.jar ftpclient.groovy
 </code></pre>
 
-<p>You will see a grep result in console.
-After pressing <Enter>, you come back to vim, &ldquo;:cn&rdquo;, &ldquo;:cp&rdquo; and &ldquo;:cw&rdquo;, etc,
-are the same with above. This version use system &ldquo;grep&rdquo; command, so it&rsquo;s faster than &ldquo;:vim&rdquo;.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://vim.wikia.com/wiki/Find_in_files_within_Vim">http://vim.wikia.com/wiki/Find_in_files_within_Vim</a></p>
-
-<p>google &ldquo;vim quickfix&rdquo;</p>
-
-<p>:h :vim, :h :grep, :h lv</p>
+<p>On my machine this path is:
+~/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar</p>
 </div>
   
   
@@ -185,7 +164,7 @@ are the same with above. This version use system &ldquo;grep&rdquo; command, so 
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/17/160802/">Function of Getting Factors in Different Languages</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/01/23/094631/">Manage Sshd Service on CentOS</a></h1>
     
     
       <p class="meta">
@@ -194,256 +173,45 @@ are the same with above. This version use system &ldquo;grep&rdquo; command, so 
 
 
 
-<time class='entry-date' datetime='2013-12-17T16:08:02+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:08 pm</span></time>
+<time class='entry-date' datetime='2014-01-23T09:46:31+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>9:46 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Haskell</h1>
+  <div class="entry-content"><ul>
+<li><p>Check the current sshd status:</p>
 
-<blockquote><p>factors n = [x | x &lt;- [1..n], n <code>mod</code> x == 0]</p>
+<p>  # service sshd status</p></li>
+<li><p>Start sshd service:</p>
 
-<p>factors 4800
- &hellip;</p>
+<p>  # service sshd start</p></li>
+<li><p>Set sshd autostart on system startup</p>
 
-<p>length $ factors 4800</p></blockquote>
+<p>  # chkconfig sshd on</p></li>
+<li><p>List the current autostart status</p>
 
-<p> 42</p>
-
-<p>Add &ldquo;let&rdquo; before function definition when running in GHCi.</p>
-
-<h1>Python</h1>
-
-<blockquote><blockquote><blockquote><p>factors = lambda n: [x for x in range(1,n+1) if n % x == 0]</p>
-
-<p>factors(4800)</p></blockquote></blockquote></blockquote>
-
-<p> &hellip;</p>
-
-<blockquote><blockquote><blockquote><p>len(factors(4800))</p></blockquote></blockquote></blockquote>
-
-<p> 42</p>
-
-<h1>Clojure</h1>
-
-<p> user=> (defn factors [n] (filter #(= (mod n %) 0) (vec (range 1 (+ 1 n)))))</p>
-
-<p> user=> (factors 4800)
- &hellip;
- user=> (count (factors 4800))</p>
-
-<p> 42</p>
-
-<h1>Ruby</h1>
-
-<blockquote><p>factors = lambda {|n| (1..n).to_a.collect {|x| x if n % x == 0}.compact}
-factors.call(4800)
- => &hellip;</p>
-
-<p>factors.call(4800).size</p></blockquote>
-
-<p> => 42</p>
-
-<p>Compare Ruby version with that of Python, Python&rsquo;s style is more &ldquo;functional&rdquo;, while Ruby&rsquo;s style is pure object-oriented &ldquo;object.message&rdquo; format.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/16/174627/">Note About `Programming in Haskell`</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-12-16T17:46:27+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>1.7 Exercises</h1>
-
-<ol>
-<li>How should the definition of the function qsort be modified so that it produces a reverse sorted version of a list?</li>
-</ol>
-
-
-<p> qsort :: Ord a => [a] -> [a]
- qsort [] = []
- qsort (x:xs) = qsort bigger ++ [x] ++ qsort smaller where
-     smaller = filter (&lt;=x) xs
-     bigger = filter (>x) xs</p>
-
-<h1>Type and Class</h1>
-
-<p>Recall that a type is a collection of related values. Building upon this notion, a class is a collection of types that support certain overloaded operations called methods. &ndash; Section 3.9: Basic Classes</p>
-
-<h1>Patterns Matching</h1>
-
-<p>Section 4.4, excellent explanation about tuple pattern, list pattern and integer pattern.</p>
-
-<p>Note that cons patterns must be parenthesised, because function application has higher priority than all other operators. (p34)</p>
-
-<h1>4.8 Exercises</h1>
-
-<ol>
-<li>Splits an even-lengthed list into two halves:</li>
-</ol>
-
-
-<p> halve :: [a] -> ([a], [a])</p>
-
-<p> halve x = splitAt (div (length x) 2) x</p>
-
-<ol>
-<li>safetail</li>
-</ol>
-
-
-<p> safetail :: [a] -> [a]</p>
-
-<p> &ndash; conditional expression</p>
-
-<p> safetail xs = if null xs then []</p>
-
-<pre><code>    else tail xs
-</code></pre>
-
-<p> &ndash; guarded equation</p>
-
-<p> safetail xs | null xs = []</p>
-
-<pre><code>| otherwise = tail xs
-</code></pre>
-
-<p> &ndash; pattern matching</p>
-
-<p> safetail [] = []</p>
-
-<p> safetail xs = tail xs</p>
-
-<h1>5.7 Exercies</h1>
-
-<ol>
-<li><p>sum [x**2|x&lt;-[1..100]]</p></li>
-<li><p>replicate n x = [x | t &lt;- [1..n]]</p></li>
-</ol>
-
-
-<p> (answer of textbook: replicate n x = [x|_&lt;-[1..n]]</p>
-
-<ol>
-<li>Find pythagorean triples:</li>
-</ol>
-
-
-<p> pyths n = [(x,y,z)|x&lt;-[1..n], y&lt;-[1..n], z&lt;-[1..n], x<strong>2+y</strong>2==z**2]</p>
-
-<ol>
-<li>Find perfects number:</li>
-</ol>
-
-
-<p> factors n = [x | x &lt;- [1..n-1], n <code>mod</code> x == 0]</p>
-
-<p> perfects n = [x|x&lt;-[1..n], x == sum (factors x)]</p>
-
-<h1>sat function in Chapter 8</h1>
-
-<p>The codes in section 8.1~8.3 and 8.6 doesn&rsquo;t work. The author explained it in chapter remarks(section 8.9) and the errata (Pages 74 to 78&hellip;). He also gave a monad version of &ldquo;Parser&rdquo; in his website: <a href="http://www.cs.nott.ac.uk/~gmh/Parsing.lhs">Code -> Parsing</a>. So I am afraid we have to learn some monads then come back to this interesting Haskell parser.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/2607498/programming-in-haskell-error-in-sat-function">http://stackoverflow.com/questions/2607498/programming-in-haskell-error-in-sat-function</a></p>
-
-<h1>Chapter 9</h1>
-
-<h2>Clear Screen</h2>
-
-<p>MyClr.hs:</p>
-
-<p> module Main where
- cls :: IO ()
- cls = putStr &ldquo;\ESC[2J&rdquo;
- bingo :: IO ()
- bingo = putStr &ldquo;bingo!\n&rdquo;
- main = do cls
-    bingo</p>
-
-<p>$ ghc MyClr.hs</p>
-
-<p>$ ./MyClr</p>
-
-<p>You have to remove the type declaration sentences.</p>
-
-<h2>StrLen</h2>
-
-<p> strLen :: IO ()
- strLen = do putStr &ldquo;Enter a string: &rdquo;
-    xs &lt;- getLine
-    putStr &ldquo;The string has &rdquo;
-    putStr (show (length xs))
-    putStrLn &ldquo; characters.&rdquo;</p>
-
-<p>Then load in ghci and run &ldquo;strLen&rdquo;.</p>
-
-<h2>goto (in ghci)</h2>
-
-<p> let goto (x,y) = putStr (&ldquo;\ESC[&rdquo; ++ show y ++ &ldquo;;&rdquo; ++ show x ++ &ldquo;H&rdquo;)</p>
-
-<p> goto (20,20)</p>
-
-<h1>Chapter 10</h1>
-
-<h2>Normal Functions and Constructor Function</h2>
-
-<p> data Shape = Circle Float | Rect Float Float</p>
-
-<p>The constructors Circle and Rect are actually constructor functions, which produce results of type Shape from arguments of type Float . The difference between normal functions and constructor functions is that the latter have no defining equations, and exist solely for the purpose of building pieces of data. The expression Circle 1.0 is just a piece of data, in the same way that 1.0 itself is just data.</p>
-
-<h2>Diferent Kinds of tree</h2>
-
-<p>The parameter type &ldquo;a&rdquo; represents the stored data.</p>
-
-<ul>
-<li><p>Store data only in leaves: data Tree a = Leaf a | Node (Tree a) (Tree a)</p></li>
-<li><p>Store data only in nodes:</p></li>
+<p>  # chkconfig &ndash;list |grep sshd</p></li>
 </ul>
 
 
-<p> data Tree a = Leaf | Node (Tree a) a (Tree a)</p>
+<p>Or use a simple interface:</p>
 
-<p>and:</p>
+<pre><code># ntsysv
+</code></pre>
 
-<p> data Tree a = Node a [Tree a ]</p>
+<p>Verified on CentOS 6.4 x86_64.</p>
 
-<ul>
-<li>Store data both in leaves (data type is &ldquo;a&rdquo;) and nodes (data type is &ldquo;b&rdquo;):</li>
-</ul>
+<hr />
 
+<p>2014-7-16:
+On CentOS 6.5 32bit:</p>
 
-<p> data Tree a b = Leaf a | Node (Tree a b) b (Tree a b)</p>
-
-<h1>Chapter 11</h1>
-
-<p> results ns = [res| (ls,rs) &lt;- split ns,
-      lx &lt;- results ls,
-      ry &lt;- results rs,
-      res &lt;- combine' lx ry]</p>
-
-<p>Above is a imperative-style calculation in list comprehension. The cost is you have to put your result in a list, while empty list means failure of calculation.</p>
+<pre><code># chkconfig NetworkManager off
+# chkconfig network on
+# chkconfig sshd on
+</code></pre>
 </div>
   
   
@@ -456,7 +224,7 @@ factors.call(4800)
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/16/113414/">Haskell Interactive Development in Emacs</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/01/22/094622/">Use Module and Function Instead of Class in Python</a></h1>
     
     
       <p class="meta">
@@ -465,7 +233,82 @@ factors.call(4800)
 
 
 
-<time class='entry-date' datetime='2013-12-16T11:34:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:34 am</span></time>
+<time class='entry-date' datetime='2014-01-22T09:46:22+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>9:46 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The following scripts run in ipython demonstrate the differences between instance method and static method.
+Generally OOP make things complicated for imperative style applications.
+So when developing this style application (such as command-line application) use functions inside modules, instead of &ldquo;module - class - method&rdquo;.
+The Python standard library is a good example that all utility functions are all common functions not wrapped in classes.</p>
+
+<pre><code>In [1]: cat utils.py
+class FileUtils:
+    def __init__(self):
+        print 'initialize', self
+
+    @staticmethod
+    def static_copy(src, dst):
+        print 'class copy from', src, 'to', dst
+
+    def instance_copy(self, src, dst):
+        print self, 'copy from', src, 'to', dst
+
+In [2]: import utils
+
+In [3]: myutil = utils.FileUtils()
+initialize &lt;utils.FileUtils instance at 0x8ab250c&gt;
+
+In [4]: myutil.instance_copy('aa', 'bb')
+&lt;utils.FileUtils instance at 0x8ab250c&gt; copy from aa to bb
+
+In [5]: utils.FileUtils().instance_copy('aa', 'bb')
+initialize &lt;utils.FileUtils instance at 0x8ab24ec&gt;
+&lt;utils.FileUtils instance at 0x8ab24ec&gt; copy from aa to bb
+
+In [6]: utils.FileUtils.static_copy('aa', 'bb')
+class copy from aa to bb
+
+In [7]: utils.FileUtils.instance_copy('aa', 'bb')
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+&lt;ipython-input-7-cce9f79fc45b&gt; in &lt;module&gt;()
+----&gt; 1 utils.FileUtils.instance_copy('aa', 'bb')
+
+TypeError: unbound method instance_copy() must be called with FileUtils instance as first argument (got str instance instead)
+
+In [8]: myutil.static_copy('aa', 'bb')
+class copy from aa to bb
+</code></pre>
+
+<p>Notice the subtle difference between [5] and [6], parenthesis followed the class name is a &ldquo;instance&rdquo;, while only class name without the following parenthesis is a &ldquo;class&rdquo;.</p>
+
+<p>Ref: <a href="http://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods">The definitive guide on how to use static, class or abstract methods in Python</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/16/093905/">RVM Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-16T09:39:05+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:39 am</span></time>
         
       </p>
     
@@ -474,38 +317,139 @@ factors.call(4800)
 
   <div class="entry-content"><h1>Installation</h1>
 
-<p>Following <a href="https://github.com/haskell/haskell-mode">haskell-mode</a>.</p>
+<pre><code>$ curl -sSL https://git.rvm.io | bash -s stable
+$ rvm list known
+$ rvm install 1.9.3
+</code></pre>
+
+<p>No root privilege needed.</p>
+
+<p>If you install it as root, it will be saved in /usr/local/rvm, and after installation all users can use rvm.</p>
+
+<h2>Install on Linux Mint 14 32bit</h2>
+
+<p>There&rsquo;s no compiled ruby package for Mint 14 32bit. So <code>rvm install 1.9.3</code> failed. This is a workaround:</p>
 
 <ol>
-<li>Use MELPA repository: add the following into ~/.emacs</li>
+<li><p>Download <a href="https://rvm.io/binaries/ubuntu/12.04/i386/ruby-2.1.0.tar.bz2">ruby-2.1.0.tar.bz2</a> for ubuntu 12.04;</p></li>
+<li><p>$ rvm mount -r /path/to/ruby-2.1.0.tar.bz2</p></li>
+<li><p>$ rvm alias create default ruby-2.1.0</p></li>
+<li><p>$ rvm use default</p></li>
 </ol>
 
 
-<p> (require &lsquo;package)
- (add-to-list 'package-archives
-    &rsquo;(&ldquo;melpa&rdquo; . &ldquo;<a href="http://melpa.milkbox.net/packages/">http://melpa.milkbox.net/packages/</a>&rdquo;) t)
- (package-initialize)</p>
+<h2>Enable Ruby</h2>
 
-<ol>
-<li><p>M-x package-refresh-contents</p></li>
-<li><p>M-x package-install [RET] haskell-mode</p></li>
-</ol>
+<p>Add rvm environments definition into ~/.zshrc or ~/.bashrc:</p>
 
+<pre><code>echo 'source ~/.rvm/scripts/rvm' &gt;&gt; ~/.zshrc
+</code></pre>
 
 <h1>Usage</h1>
 
+<p>Run &ldquo;irb&rdquo; or &ldquo;ruby <script-name>&rdquo; in console directly.</p>
+
+<p>List installed ruby: <code>rvm list</code></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/13/101242/">Use Nose as Unit Test Framework</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-13T10:12:42+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:12 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>[chad@chadpc527:~/docs/tmp/mytest]</p>
+
+<p>% workon test</p>
+
+<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
+% pip install nose
+&hellip;</p>
+
+<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
+% tree
+.
+|&ndash; mytest
+| |&ndash; <strong>init</strong>.py
+| |&ndash; mytest.py
+| <code>-- test
+|  |-- __init__.py
+| </code>&ndash; test_mytest.py
+`&ndash; setup.py
+2 directories, 5 files</p>
+
+<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
+% python setup.py nosetests
+running nosetests
+running egg_info
+creating mytest.egg-info
+writing mytest.egg-info/PKG-INFO
+writing top-level names to mytest.egg-info/top_level.txt
+writing dependency_links to mytest.egg-info/dependency_links.txt
+writing manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
+reading manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
+writing manifest file &lsquo;mytest.egg-info/SOURCES.txt&rsquo;
+running build_ext</p>
+
+<h2>. </h2>
+
+<p>Ran 1 test in 0.007s
+OK</p>
+
+<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
+% cat setup.py</p>
+
+<h1>import multiprocessing</h1>
+
+<p>from setuptools import setup
+setup(name=&lsquo;mytest&rsquo;,
+  version=&lsquo;0.1.0&rsquo;,
+  tests_require=[&lsquo;nose&rsquo;])</p>
+
+<p>(test)[chad@chadpc527:~/docs/tmp/mytest]
+% cat mytest/mytest.py
+def myadd(x,y):
+ return 10<em>x+y
+(test)[chad@chadpc527:~/docs/tmp/mytest]
+% cat mytest/test/test_mytest.py
+from unittest import TestCase
+from mytest.mytest import myadd
+class TestMyadd(TestCase):
+ def test_myadd(self):
+  actual = myadd(3,5)
+  self.assertTrue(actual==10</em>3+5)</p>
+
+<p>Or, you can use &ldquo;python setup.py test&rdquo; in this way:</p>
+
 <ol>
-<li><p>Open a haskell file in emacs;</p></li>
-<li><p>Use &ldquo;C-c C-z&rdquo; to open ghci (but there isn&rsquo;t a jump-back shortcut, you can use C-x o);</p></li>
-<li><p>Use &ldquo;C-c C-l&rdquo; to load file (same as &ldquo;:l <file_name>&rdquo;);</p></li>
+<li><p>Add &ldquo;import multiprocessing&rdquo; in setup.py;</p></li>
+<li><p>Add &ldquo;test_suite=&lsquo;nose.collector&rsquo;&rdquo; as a parameter in setup() function in setup.py;</p></li>
 </ol>
 
 
-<p>However, there isn&rsquo;t tab-completion in the ghci invoked by &ldquo;C-c C-z&rdquo;, so you can start a console to run ghci;</p>
+<p>If you run &ldquo;python setup.py test&rdquo; without &ldquo;import multiprocessing&rdquo;, you will get a &ldquo;Error in atexit._run_exitfuncs&rdquo; error with nose 1.3.0 and Python 2.7.3.</p>
 
-<h1>User Manual</h1>
-
-<p>M-x info-display-manual [RET] haskell-mode</p>
+<p>Ref: <a href="https://groups.google.com/forum/#!topic/nose-users/fnJ-kAUbYHQ">https://groups.google.com/forum/#!topic/nose-users/fnJ-kAUbYHQ</a></p>
 </div>
   
   
@@ -518,7 +462,7 @@ factors.call(4800)
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/15/212740/">Note About `Yet Another Haskell Tutorial`</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/01/10/102952/">Publish and Install Python Applications</a></h1>
     
     
       <p class="meta">
@@ -527,194 +471,254 @@ factors.call(4800)
 
 
 
-<time class='entry-date' datetime='2013-12-15T21:27:40+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:27 pm</span></time>
+<time class='entry-date' datetime='2014-01-10T10:29:52+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:29 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Exercises Solutions</h1>
+  <div class="entry-content"><h1>Publish to PyPI</h1>
 
-<p><a href="http://en.wikibooks.org/wiki/Haskell/YAHT">http://en.wikibooks.org/wiki/Haskell/YAHT</a></p>
+<p>Follow <a href="http://www.scotttorborg.com/python-packaging/index.html">How To Package Your Python Code</a>.</p>
 
-<h1>Exercise 3.10</h1>
+<h2>Register</h2>
 
-<p>Save the following scripts in SumInputs.hs:</p>
+<p>I ran &ldquo;python setup.py register&rdquo; twice. Firstly I use option 2 to register a new account, then ran it again and use option 1 to upload the &ldquo;funniest&rdquo; package. Then I saw this package in my account on PyPI. In the management page, there is a &ldquo;remove&rdquo; button for delete this package.</p>
 
-<p> module Main where
- main = do
-  inputNumbers &lt;- getNumber
-  putStrLn (&ldquo;The sum is &rdquo; ++ show (sum inputNumbers))
-  putStrLn (&ldquo;The product is &rdquo; ++ show (foldr (*) 1 inputNumbers))
-  printFactorials inputNumbers
- getNumber = do
-  putStrLn &ldquo;Give me a number (or 0 to stop): &rdquo;
-  number &lt;- getLine
-  let num = read number
-  if num == 0
-   then return []
-   else do
-    rest &lt;- getNumber
-    return (num : rest)
- printFactorials [] = putStrLn &ldquo;&rdquo;
- printFactorials (x:xs) = do
-  putStrLn (show x ++ &ldquo; factorial is: &rdquo; ++ show (factorial x))
-  printFactorials xs
- factorial 1 = 1
- factorial n = n * factorial (n-1)</p>
-
-<ul>
-<li><p>Run it in ghci: main</p></li>
-<li><p>Compile and run in console:</p></li>
-</ul>
-
-
-<p> ghc &ndash;make SumInputs.hs -o myfac</p>
-
-<p> ./myfac</p>
-
-<h1>Exercise 4.4 &amp; 4.5</h1>
-
-<p> data Pair a b = Pair a b
- pairFst (Pair x y) = x
- pairSnd (Pair x y) = y
- data Triple a b c = Triple a b c
- tripleFst :: Triple a b c -> a
- tripleFst (Triple a b c) = a
- tripleSnd (Triple a b c) = b
- tripleThr (Triple a b c) = c
- data Quadruple a b = Quadruple a a b b deriving (Show)
- firstTwo :: Quadruple a b -> [a]
- &ndash; you can&rsquo;t write it as: &hellip; -> [a, a]. This is not a valid type expression?
- firstTwo (Quadruple w x y z) = [w, x]</p>
-
-<p> lastTwo :: Quadruple a b -> [b]
- lastTwo (Quadruple w x y z) = [y, z]</p>
-
-<h1>Exercise 4.6</h1>
-
-<p> data Tuple a b c d = Tuple1 a
-      | Tuple2 a b
-      | Tuple3 a b c
-      | Tuple4 a b c d
-      deriving (Show)
- tuple1 :: Tuple a b c d -> a
- tuple1 (Tuple1 x) = x
- tuple1 (Tuple2 x y) = x
- tuple1 (Tuple3 x y z) = x
- tuple1 (Tuple4 x y z t) = x
- tuple2 :: Tuple a b c d -> Maybe b
- tuple2 (Tuple1 x) = Nothing
- tuple2 (Tuple2 x y) = Just y
- tuple2 (Tuple3 x y z) = Just y
- tuple2 (Tuple4 x y z t) = Just y
- tuple3 :: Tuple a b c d -> Maybe c
- tuple3 (Tuple1 x) = Nothing
- tuple3 (Tuple2 x y) = Nothing
- tuple3 (Tuple3 x y z) = Just z
- tuple3 (Tuple4 x y z t) = Just z
- tuple4 :: Tuple a b c d -> Maybe d
- tuple4 (Tuple1 x) = Nothing
- tuple4 (Tuple2 x y) = Nothing
- tuple4 (Tuple3 x y z) = Nothing
- tuple4 (Tuple4 x y z t) = Just t</p>
-
-<p>Pattern matching plays a big role in tuple-like data structure.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/15/122240/">Haskell Command-line Application Building</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-12-15T12:22:40+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>12:22 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Haskeline Package</h1>
-
-<p><a href="http://hackage.haskell.org/package/haskeline">Haskeline</a> provides a user interface for line input in command-line programs. This library is similar in purpose to readline, but since it is written in Haskell it is (hopefully) more easily used in other Haskell programs.</p>
-
-<p>A tab-completion solution based on haskeline: <a href="http://stackoverflow.com/questions/6147201/haskell-haskeline-word-completion">Haskell (haskeline) word completion</a></p>
-
-<h1>Command Suite Parse</h1>
-
-<p><a href="http://hackage.haskell.org/package/console-program">console-program</a> provides an infrastructure to build command line programs. It provides the following features:</p>
-
-<ul>
-<li><p>Declare any number of &ldquo;commands&rdquo; (modes of operation) of the program;</p></li>
-<li><p>Declare options of these commands;</p></li>
-<li><p>Collect options from a configuration file and the command line, and execute the proper command;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/13/173402/">Download Website With Wget</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-12-13T17:34:02+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:34 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I want to download the Chinese version of &ldquo;Learn you a Haskell for Great Good&rdquo; at <a href="http://learnyouahaskell-zh-tw.csie.org/,">http://learnyouahaskell-zh-tw.csie.org/,</a> use this command:</p>
-
-<pre><code>wget -U mozilla --limit-rate=200k --no-clobber --convert-links --random-wait -r -p -E -e robots=off http://learnyouahaskell-zh-tw.csie.org/
+<pre><code>$ python setup.py register
 </code></pre>
 
-<p>where:</p>
+<h2>Create a source distribution</h2>
 
-<p> -U mozilla: pretends to be just like a browser Mozilla is looking at a page;</p>
+<pre><code>$ python setup.py sdist
+</code></pre>
 
-<p> -r: recursive download all website, -p: download everything even pictures;</p>
+<p>This is create a tar.gz file under dist folder. If you like, copy that file to another host, unpacking it and install it with &ldquo;python setup.py install&rdquo;.</p>
 
-<p> -E: gets the right extension of the file, without most html and other files have no extension;</p>
+<h2>Upload source distribution</h2>
 
-<p> -e robots=off: act like we are not a robot;</p>
+<pre><code>$ python setup.py sdist upload
+</code></pre>
 
-<p>You can use &ldquo;-l&rdquo; option to specify the recursive depth. The default maximum depth is five layers.</p>
+<p>After modification of source codes and version number in setup.py (say, modify it to 0.2) run last command again to refresh distribution on PyPI. You can see it at &ldquo;<a href="https://pypi.python.org/simple/">https://pypi.python.org/simple/</a><app-name>/&rdquo;.</p>
+
+<p>On another host, use &ldquo;pip install <app-name>==0.2&rdquo; to install this app, for example: &ldquo;pip install funniestlc==0.2&rdquo;.</p>
+
+<h1>Publish in LAN</h1>
+
+<h2>On the develop host</h2>
+
+<ol>
+<li><p>Edit source code;</p></li>
+<li><p>Create new source code distribution package: <code>python setup.py install sdist</code>;</p></li>
+</ol>
+
+
+<h2>On the deploy host</h2>
+
+<ol>
+<li><p>Startup a virtual environment: <code>workon test</code>;</p></li>
+<li><p>Write a install script:</p>
+
+<p> #!/bin/bash
+ scp lichao@10.21.2.7:/home/lichao/docs/python_projects/donno/dist/donno-0.1.10.tar.gz .
+ tar zxvf donno-0.1.10.tar.gz
+ cd donno-0.1.10
+ python setup.py install
+ cd ..</p></li>
+</ol>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/09/183148/">Note About Virturalenvwrapper</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-09T18:31:48+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:31 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Installation</h1>
+
+<pre><code>$ sudo pip install virtualenvwrapper
+</code></pre>
+
+<p>Add following lines into ~/.zshrc:</p>
+
+<pre><code>source /usr/local/bin/virtualenvwrapper.sh
+
+export WORKON_HOME=~/apps/virenv_home
+
+export PROJECT_HOME=~/docs/python_projects
+</code></pre>
+
+<h1>Usage</h1>
+
+<p>There are two concepts in virturalenvwrapper. One is &ldquo;virtual environment&rdquo;, which has its own python executables. The other is &ldquo;project&rdquo;, where your source codes resides. They are n-to-n relationship.</p>
+
+<p>&ldquo;mkvirtualenv env1&rdquo; will create a new &ldquo;virtual environment&rdquo; in $WORKON_HOME, regardless your CWD.</p>
+
+<p>&ldquo;mkproject proj1&rdquo; will create both a &ldquo;virtual environment&rdquo; named &ldquo;proj1&rdquo; in $WORKON_HOME and a &ldquo;proj1&rdquo; folder in $PROJECT_HOME. Then go to $PROJECT_HOME/proj1, then activate the virtual environment proj1. So &ldquo;mkproject proj1&rdquo; equals to:</p>
+
+<pre><code>$ mkvirtualenv proj1
+
+$ mkdir $PROJECT_HOME/proj1
+
+$ cd $PROJECT_HOME/proj1
+
+$ workon proj1
+</code></pre>
+
+<p>Associate an existing virtualenv and an existing project with command</p>
+
+<pre><code>$ setvirtualenvproject virtualenv_path project_path
+</code></pre>
+
+<p>Under the hood, virturalenvwrapper create a &ldquo;.project&rdquo; file under the root of the virtualenv, in which is the project path.</p>
+
+<p>List site packages:</p>
+
+<pre><code>$ lssitepackages
+</code></pre>
+
+<p>Run a command in all virtualenvs under WORKON_HOME:</p>
+
+<pre><code>$ allvirtualenv command with arguments
+</code></pre>
+
+<p>Change the current working directory to the site-packages of current virtualenv($VIRTUAL_ENV):</p>
+
+<pre><code>$ cdsitepackages
+</code></pre>
+
+<p>Remove virtualenv:</p>
+
+<pre><code>$ rmvirtualenv &lt;env_name&gt;
+</code></pre>
+
+<h1>Verification</h1>
+
+<p>In a virtualenv, all python executables are in $WORKON_HOME.</p>
+
+<pre><code>[lichao@lichao480:~] 
+% workon 
+env1 
+env2 
+proj1 
+[lichao@lichao480:~] 
+% which python 
+/usr/bin/python 
+[lichao@lichao480:~] 
+% workon env1 
+(env1)[lichao@lichao480:~] 
+% which python 
+/home/lichao/apps/virenv_home/env1/bin/python 
+(env1)[lichao@lichao480:~] 
+% workon env2 
+(env2)[lichao@lichao480:~PROJECT_HOME/proj2] 
+% which python 
+/home/lichao/apps/virenv_home/env2/bin/python
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/09/164727/">Write Groovy Codes Instead of Java</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-01-09T16:47:27+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>4:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Writing Java codes in terminal is a pain for tons of boilerplate. But sometimes you have to. So we can write groovy instead.</p>
+
+<p>Origin Java codes (Convert.java):</p>
+
+<pre><code>import java.io.BufferedReader; 
+import java.io.FileReader; 
+import java.io.IOException; 
+import org.apache.commons.lang3.StringEscapeUtils; 
+public class Convert { 
+    public static void main(String[] args) throws IOException { 
+        BufferedReader reader = new BufferedReader(new FileReader("target")); 
+        String line = reader.readLine(); 
+        System.out.println("file content: "+line); 
+        String out = StringEscapeUtils.unescapeJava(line); 
+        System.out.println("from string to char: " + out); 
+        String out2 = StringEscapeUtils.escapeJava(out); 
+        System.out.println("from char to string : " + out2); 
+    } 
+} 
+</code></pre>
+
+<p>$ javac -cp commons-lang3-3.2.1.jar:. Convert.java</p>
+
+<p>$ java -cp commons-lang3-3.2.1.jar:. Convert</p>
+
+<p>Corresponding Groovy codes (convert.groovy):</p>
+
+<pre><code>import org.apache.commons.lang3.StringEscapeUtils 
+def reader = new BufferedReader(new FileReader("target")) 
+def line = reader.readLine() 
+println "file content: $line" 
+def out = StringEscapeUtils.unescapeJava(line) 
+println "from string to char: $out" 
+def out2 = StringEscapeUtils.escapeJava(out) 
+println "from char to string: $out2" 
+</code></pre>
+
+<p>Run it: groovy -cp commons-lang3-3.2.1.jar convert.groovy</p>
+
+<p>Key points to writing groovy codes:</p>
+
+<ol>
+<li><p>Dynamic type but with &ldquo;def&rdquo; (see &ldquo;<a href="http://stackoverflow.com/questions/184002/groovy-whats-the-purpose-of-def-in-def-x-0">http://stackoverflow.com/questions/184002/groovy-whats-the-purpose-of-def-in-def-x-0</a>&rdquo; for its reason);</p></li>
+<li><p>No need to import Java built-in library;</p></li>
+<li><p>No need to take care of the exceptions;</p></li>
+<li><p>semi-colon at the end of line is optional;</p></li>
+<li><p>Use &ldquo;println&rdquo; instead of &ldquo;System.out.println&hellip;&rdquo;;</p></li>
+</ol>
+
 
 <p>Ref:</p>
 
-<p><a href="http://www.kossboss.com/linux---wget-full-website">LINUX - wget full website - full site download</a></p>
-
-<p><a href="https://www.gnu.org/software/wget/manual/html_node/Recursive-Download.html">https://www.gnu.org/software/wget/manual/html_node/Recursive-Download.html</a></p>
+<p><a href="http://stackoverflow.com/questions/764416/why-would-one-use-groovy-over-java">http://stackoverflow.com/questions/764416/why-would-one-use-groovy-over-java</a></p>
 </div>
   
   
@@ -727,7 +731,7 @@ factors.call(4800)
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/12/182730/">Postgresql Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/01/09/105408/">Python Development Workflow</a></h1>
     
     
       <p class="meta">
@@ -736,20 +740,66 @@ factors.call(4800)
 
 
 
-<time class='entry-date' datetime='2013-12-12T18:27:30+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:27 pm</span></time>
+<time class='entry-date' datetime='2014-01-09T10:54:08+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:54 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Documentations</h1>
+  <div class="entry-content"><p>Based on <a href="http://www.jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/">http://www.jeffknupp.com/blog/2013/08/16/open-sourcing-a-python-project-the-right-way/</a></p>
 
-<p><a href="https://wiki.postgresql.org/wiki/Main_Page">PostgreSQL Wiki</a></p>
+<h1>Workflow</h1>
 
-<p><a href="https://wiki.postgresql.org/wiki/Chinese">中文PostgreSQL Wiki</a></p>
+<p>The first release(v0.1): see Publish and Install Applications via PyPI for how to commit to PyPI;</p>
 
-<p><a href="http://zh.wikipedia.org/wiki/PostgreSQL">中文维基百科上的PostgreSQL</a></p>
+<p>After uploading your first release to PyPI, the basic workflow is:</p>
+
+<ol>
+<li><p>Do some work on your package (i.e. fix bugs, add features, etc);</p></li>
+<li><p>Make sure the tests pass;</p></li>
+<li><p>&ldquo;Freeze&rdquo; your code by creating a release branch in git-flow;</p></li>
+<li><p>Update the <strong>version</strong> number in your package&rsquo;s <strong>init</strong>.py file;</p></li>
+<li><p>Run &ldquo;python setup.py sdist upload&rdquo; to upload the new version of your package to PyPI;</p></li>
+</ol>
+
+
+<p>For usage of git-flow, see note &ldquo;git-flow Notes&rdquo;.</p>
+
+<h1>virtualenv and virtualenvwrapper</h1>
+
+<p>See Note about virturalenvwrapper.</p>
+
+<h1>Publish a Python Application</h1>
+
+<p>Add a &ldquo;command_line.py&rdquo; in <project-name> module, and &ldquo;entry_points&rdquo; in setup.py. See the 4th step &ldquo;Command Line Scripts&rdquo; in <a href="http://www.scotttorborg.com/python-packaging/index.html">How To Package Your Python Code</a> for details.</p>
+
+<h2>Necessary Files</h2>
+
+<h3>setup.py</h3>
+
+<p>Some necessary parameters:</p>
+
+<ul>
+<li><p>entry_points: for defind executables;</p></li>
+<li><p>install_requires: for defining dependencies, get this from &ldquo;pip freeze&rdquo; command (exculde the application itself);</p></li>
+</ul>
+
+
+<h3>MANIFEST.in</h3>
+
+<p>  Add &ldquo;inculde README.md&rdquo; (and other necessary files for installation) in this file, or README.md will note be packaged into installer, and in installation a &ldquo;README.md not found&rdquo; error raises because you read this file in setup.py.
+  (see <a href="https://wiki.python.org/moin/Distutils/Tutorial">https://wiki.python.org/moin/Distutils/Tutorial</a> for explanation)</p>
+
+<h2>All available classifiers</h2>
+
+<pre><code>https://pypi.python.org/pypi?%3Aaction=list_classifiers
+</code></pre>
+
+<h2>Create requirements automatically</h2>
+
+<pre><code>$ pip freeze &gt; requirements.txt
+</code></pre>
 </div>
   
   
@@ -762,7 +812,7 @@ factors.call(4800)
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/12/171716/">Remove Gnome-keyring on Linux Mint Xfce</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/01/08/152300/">Create Executable Links in Linux</a></h1>
     
     
       <p class="meta">
@@ -771,60 +821,20 @@ factors.call(4800)
 
 
 
-<time class='entry-date' datetime='2013-12-12T17:17:16+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:17 pm</span></time>
+<time class='entry-date' datetime='2014-01-08T15:23:00+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:23 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>$ sudo aptitude remove gnome-keyring</p>
-</div>
-  
-  
+  <div class="entry-content"><p>For example, as a common user we want to use application &ldquo;pandoc&rdquo; installed by root. We can achieve this by copy a soft link to /usr/bin.</p>
 
+<pre><code># cd /usr/bin
+# ln -s ~/.cabal/bin/pandoc
+</code></pre>
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/11/174636/">TCO in Python</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-12-11T17:46:36+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>TCO (Tail Recursion Optimization) will probably never be supported by CPython because Guido believe TCO will make debugging difficult by messing up tracebacks.</p>
-
-<p>Try the following scripts:</p>
-
-<p> cnt = 1000</p>
-
-<p> def trisum(n, csum):
-  if n == 0:
-   return csum
-  else:
-   return trisum(n-1, csum+n)
- print trisum(cnt,0)</p>
-
-<p>It runs OK when cnt is 10 or 100, but when it&rsquo;s 1000 a runtime error raised: &ldquo;RuntimeError: maximum recursion depth exceeded&rdquo;.</p>
-
-<p>You can always use iteration to replace recursion like that in the following reference, but that is not FP.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/13591970/does-python-optimize-tail-recursion">http://stackoverflow.com/questions/13591970/does-python-optimize-tail-recursion</a></p>
+<p>Now we can use &ldquo;pandoc&rdquo;. If it complains &ldquo;Permission Denied&rdquo;, use it with &ldquo;sudo&rdquo;.</p>
 </div>
   
   
@@ -849,23 +859,23 @@ factors.call(4800)
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+        <a href="/blog/2016/02/21/110422/">3月6日演讲提纲</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+        <a href="/blog/2016/02/20/010838/">Merge Multiple PDF Files in Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+        <a href="/blog/2016/02/16/212514/">Debug Python Script</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+        <a href="/blog/2016/02/09/120142/">Golang Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+        <a href="/blog/2016/02/07/103930/">Cabal Notes</a>
       </li>
     
   </ul>
@@ -910,7 +920,7 @@ factors.call(4800)
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2015 - Li Chao -
+  Copyright &copy; 2016 - Li Chao -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

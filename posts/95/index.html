@@ -9,7 +9,14 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。 &hellip;">
+  <meta name="description" content="open: 连接远端服务器，例如open 10.0.2.47；
+pwd: 获取远端当前目录；
+put: 上传文件；
+get: 下载文件；get pwd.ldif
+bin: 进入binary传输模式；
+hash: 传输过程中显示打印#；
+lcd: 改变本地文件夹，例如：lcd d:\
+lpwd: &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +78,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/08/11/103433/">Log4j使用笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/16/181313/">Ftp常用命令</a></h1>
     
     
       <p class="meta">
@@ -80,513 +87,24 @@
 
 
 
-<time class='entry-date' datetime='2011-08-11T10:34:33+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:34 am</span></time>
+<time class='entry-date' datetime='2011-09-16T18:13:13+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>6:13 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Java程序最常用的日志系统大概就是apache的log4j了，它的功能简单说就是“记录日志”。 它主要由logger、appender和layout这3个对象构成，logger是一个具体的“记录器”，appender是记录器的“输出对象”，它可以是屏幕输出、文件、界面组件、socket等。layout是appender的属性，决定appender所代表的输出中，一条具体的记录由哪些信息组成，排列顺序等。</p>
-
-<p>每一个logger都有一个名字，名字是logger初始化时由getLogger的参数决定的，例如下面的logger的名字是com.foo：</p>
-
-<pre><code>Logger logger = Logger.getLogger("com.foo"); 
-</code></pre>
-
-<p>名字是logger的唯一标识符，例如下面的x和y两个logger实际上是同一个对象：</p>
-
-<pre><code>Logger x = Logger.getLogger("wombat"); 
-Logger y = Logger.getLogger("wombat"); 
-</code></pre>
-
-<p>名字还具有继承性，例如名为com.foo.bar的logger是com.foo这个logger的子logger，com.foo又是com的子logger，子logger会继承所有上级logger的appender。这种继承类似于java包的父目录和子目录的关系，详见[1]的"Named Hierarchy"部分。</p>
-
-<p>类似于根目录的概念，rootLogger是logger hierarchy的顶端，简单的log4j应用中，只定义rootLogger的appender，所有类中的logger就继承了rootLogger的特性。</p>
-
-<p>为一个logger指定appender是在log4j配置文件中定义的，格式是：</p>
-
-<pre><code>log4j.rootLogger=level_name, appender_name1, appender_name2, ... 
-</code></pre>
-
-<p>或： log4j.logger.logger_name=level_name, appender_name1, appender_name2, &hellip;</p>
-
-<p>前者为rootLogger指定appender，后者为某一个具体的logger指定appender。定义appender属性的方法是：</p>
-
-<pre><code>log4j.appender.appender_name=... 
-log4j.appender.appender_name.layout=... 
-</code></pre>
-
-<p>例如下面的代码为rootLogger指定了appender A1，并设置A1为界面输出，然后指定了输出的格式，最后一行指定了com.foo的输出级别为WARN，com.foo及其子logger低于WARN的日志将不记录，由于com.foo没有指定appender，所以继承rootLogger的A1作为其输出：</p>
-
-<pre><code>log4j.rootLogger=DEBUG, A1 
-log4j.appender.A1=org.apache.log4j.ConsoleAppender 
-log4j.appender.A1.layout=org.apache.log4j.PatternLayout 
-log4j.appender.A1.layout.ConversionPattern=%d [%t] %-5p %c - %m%n 
-log4j.logger.com.foo=WARN 
-</code></pre>
-
-<p>logger的级别常用的有debug, info, warn, error四种，详见“ log4j日志的输出级别设置 ”；appender常用的有 ConsoleAppender（控制台输出）、 DailyRollingFileAppender（按照一定的频率滚动输出日志，例如每月、每周、每天、每小时等）和 RollingFileAppender（到一定文件大小时滚动输出） 三种；layout常用的有SimpleLayout, PatternLayout, HTMLLayout, XMLLayout四种，后两种用来输出html和xml文本。不论哪种layout，都输出的是纯文本，因此各种appender与各种layout可以随意组合。</p>
-
-<p>如果对项目中一些类的日志进行特殊处理（例如更改输出级别、指定新的输出文件等），见笔记“ 在包一级定制log4j日志输出 ”。</p>
-
-<p>下面是一个完整的日志演示，首先是测试用例，只打一条日志：</p>
-
-<pre><code>package com.boco.godu.gapi.logger; 
-import org.apache.log4j.Logger; 
-import org.junit.Test; 
-public class Log4jDemo { 
-    private final Logger logger = Logger.getLogger(this.getClass()); 
-    @Test 
-    public void testGapiLogger() { 
-        logger.info(" Apache Logger "); 
-    } 
-} 
-</code></pre>
-
-<p>log4j.properties文件：</p>
-
-<pre><code>log4j.rootLogger=debug, console, ft, fh, fx 
-log4j.appender.console=org.apache.log4j.ConsoleAppender 
-log4j.appender.console.layout=org.apache.log4j.SimpleLayout 
-log4j.appender.ft=org.apache.log4j.RollingFileAppender 
-log4j.appender.ft.File=./log/debug.log 
-log4j.appender.ft.Append=false 
-log4j.appender.ft.MaxFileSize=2MB 
-log4j.appender.ft.MaxBackupIndex=10 
-log4j.appender.ft.layout=org.apache.log4j.PatternLayout 
-log4j.appender.ft.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n 
-log4j.appender.fh=org.apache.log4j.RollingFileAppender 
-log4j.appender.fh.File=./log/debug.html 
-log4j.appender.fh.Append=false 
-log4j.appender.fh.MaxFileSize=2MB 
-log4j.appender.fh.MaxBackupIndex=10 
-log4j.appender.fh.layout=org.apache.log4j.HTMLLayout 
-log4j.appender.fh.layout.LocationInfo=true 
-log4j.appender.fh.layout.Title=Test Log4j Layout 
-log4j.appender.fx=org.apache.log4j.RollingFileAppender 
-log4j.appender.fx.File=./log/debug.xml 
-log4j.appender.fx.Append=false 
-log4j.appender.fx.MaxFileSize=2MB 
-log4j.appender.fx.MaxBackupIndex=10 
-log4j.appender.fx.layout=org.apache.log4j.xml.XMLLayout 
-log4j.appender.fx.layout.LocationInfo=true 
-</code></pre>
-
-<p>rootLogger一共挂了4个appender，分别是一个控制台输出，一个纯文本格式日志，一个html格式日志，一个xml格式日志。</p>
-
-<p>运行测试用例后的效果如下（黑体字和红圈是源代码打出的日志）：</p>
-
-<p>控制台输出：</p>
-
-<pre><code>INFO - Apache Logger 
-</code></pre>
-
-<p>纯文本文件：</p>
-
-<p>08-11 16:04:03,343 main com.boco.godu.gapi.logger.Log4jDemo,11 INFO - Apache Logger</p>
-
-<p>html文件：</p>
-
-<p>xml文件：</p>
-
-<pre><code>&lt;log4j:event logger="com.boco.godu.gapi.logger.Log4jDemo" timestamp="1313049843343" level="INFO" thread="main"&gt; 
-    &lt;log4j:message&gt;&lt;![CDATA[ Apache Logger ]]&gt;&lt;/log4j:message&gt; 
-    &lt;log4j:locationInfo class="com.boco.godu.gapi.logger.Log4jDemo" method="testGapiLogger" file="Log4jDemo.java" line="11"/&gt; 
-&lt;/log4j:event&gt;
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/08/10/201926/">Mantis安装过程笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-08-10T20:19:26+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:19 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>安装平台：Windows Server 2003 R2 Enterprise x64 Edition</p>
-
-<p>软件：</p>
-
-<p>EasyPHP-5.3.6.1</p>
-
-<p> mantisbt-1.2.6</p>
-
-<p>安装过程：</p>
-
-<p>首先安装EasyPHP，一路next即可，安装到默认位置即可，路径中可以有空格；</p>
-
-<p>将 mantisbt-1.2.6解压到 EasyPHP的www目录下，具体过程可参考 EasyPHP 3 + Mantis 1.2 快速搭建安装免费开源的中文缺陷管理平台 ；</p>
-
-<p>配置：</p>
-
-<p>C:\Program Files (x86)\EasyPHP-5.3.6.1\conf_files中将“Listen 127.0.0.1:80”和“ServerName 127.0.0.1:80”改为本机的IP地址，否则只能在本机登录mantis，局域网的其他机器不能访问。这部分的配置可参考 一步到位安装 Mantis Bug 跟踪系统 ，但其中有些东西已经过时了，例如对EasyPHP版本的限制、路径不能有空格等。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/08/02/114314/">Convert Java Codes to UML Diagram</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-08-02T11:43:14+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>11:43 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Power Designer -> File -> Reverse Engineer -> Object Language
- Object Language: Java</p>
-
-<p> Reverse engineer: Java directories</p>
-
-<p> Add &hellip;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/08/01/111930/">Ivy配置文件编写规范</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-08-01T11:19:30+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>11:19 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li>各依赖条目按严格按字母顺序排列；</li>
-<li><p>对于平行开发的多个项目产品之间的依赖关系，要将changing参数设为true，否则可能造成缓存更新不及时导致编译错误；</p></li>
-<li><p>如果要避免依赖传递，使用 conf=&ldquo;compile->master"，如果要显式的打开依赖传递，则使用transitive="true"；</p></li>
-</ol>
-
-
-<p> 例如：</p>
-
-<p> <dependency org="com.boco.ty" name="gapi" rev="alpha" conf="compile->master" changing=&ldquo;true&rdquo;/></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/07/26/091657/">GAPI的同步返回实现方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-07-26T09:16:57+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:16 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。</p>
-
-<p>测试用例：</p>
-
-<p> public class SimpleExpScriptTest {</p>
-
-<p>   private IConnection conn;</p>
-
-<p>  @Test</p>
-
-<p>  public void testPWD() throws Exception {</p>
-
-<p>   conn = ConnFactory.getInstance().getConnection(Constants.PORT_CONNECT_GODU_DATA);</p>
-
-<p>   conn.setSyncType(Constants.TYPE_DATA_CMD_SYNC);</p>
-
-<p>   if (conn.getConnection(&ldquo;<aa><7001><administrator><autocmd>&rdquo;, &ldquo;goduapp&rdquo;, &ldquo;10.0.2.47&rdquo;, 1234, 100)) {</p>
-
-<pre><code>System.out.println("Connect GODU OK!"); 
-</code></pre>
-
-<p>   }</p>
-
-<p>   conn.sendGoduCmd(&ldquo;settelnetcodec switch=y&rdquo;);</p>
-
-<p>   conn.set_script_timeout(500);</p>
-
-<p>   Map&lt;String, Object> params = new HashMap&lt;String, Object>();</p>
-
-<p>   params.put(&ldquo;user_name&rdquo;, &ldquo;test&rdquo;);</p>
-
-<p>   params.put(&ldquo;old_pwd&rdquo;, &ldquo;godu123&rdquo;);</p>
-
-<p>   params.put(&ldquo;new_pwd&rdquo;, &ldquo;testgodu&rdquo;);</p>
-
-<p>   IResult result = conn. execScript (&ldquo;-1200187081&rdquo;, &ldquo;script/PWD&rdquo;, &ldquo;&rdquo;, params);</p>
-
-<p>   System.out.println(&ldquo;***result is:\n&rdquo; + result.getString());</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> execScript 方法：</p>
-
-<p> package com.boco.godu.gapi.conn;</p>
-
-<p> import &hellip;</p>
-
-<p> public class GoduDataConnection extends AbstractConnection {</p>
-
-<p>  private static final GapiLogger logger = LogUtils.getLogger(this.getClass().getName());</p>
-
-<p>  private final Object lock = new Object(); //对象锁</p>
-
-<p>  public IResult execScript(String ne_id, String scriptPath, String name, Map&lt;String, Object> params) throws &hellip; {</p>
-
-<p>   // check if connected GODU successfully</p>
-
-<p>   &hellip;</p>
-
-<p>   // parse script file</p>
-
-<p>   GoduScript gs = new GoduScript(scriptPath, script_buffer_size, params);</p>
-
-<p>   // add execute_script filter</p>
-
-<p>   session.getFilterChain().addBefore(&hellip;);</p>
-
-<p>   // open NE</p>
-
-<p>   &hellip;</p>
-
-<p>   // 在执行完脚本或者超时之前阻止代码继续运行，在ExecScriptFilter.messageReceived方法中解锁</p>
-
-<p>   GapiIosessionUtils. lockSession (session, lock , script_timeout );</p>
-
-<p>   GoduReturnResult res = new GoduReturnResult();</p>
-
-<p>   String script_result = (String) session.getAttribute(</p>
-
-<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RESULT, ""); 
-</code></pre>
-
-<p>   res.setArrays(script_result.getBytes());</p>
-
-<p>   int return_status = (Integer) session.getAttribute(</p>
-
-<pre><code>      ExecScriptFilter.EXEC_SCRIPT_RETURN_STATUS, 0); 
-</code></pre>
-
-<p>   res.setReturnStatus(return_status);</p>
-
-<p>   return res;</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> 这样代码运行到lockSession时暂停，直到超时时间到，或者被其他线程上持有同一个锁的“唤醒”方法唤醒，这实现了同步方式的前一半：下面是同步方式的后一半：filter执行脚本完毕后唤醒主线程继续运行：</p>
-
-<p> package com.boco.godu.gapi.mina.filter.data;</p>
-
-<p> import &hellip;</p>
-
-<p> public class ExecScriptFilter extends AGapiFilter {</p>
-
-<p>  @Override</p>
-
-<p>  public void messageReceived(NextFilter nextFilter, IoSession session,</p>
-
-<pre><code>     Object message) throws Exception { 
-</code></pre>
-
-<p>   &hellip;</p>
-
-<p>   if (&hellip;) { // 如果脚本执行完毕：</p>
-
-<pre><code>... 
-
-GapiIosessionUtils. unlockSession (session); 
-
-return; 
-</code></pre>
-
-<p>   }</p>
-
-<p>   &hellip;</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p>那么 lockSession 和 unlockSession 方法又是如何实现的呢，继续往下看：</p>
-
-<p> public class GapiIosessionUtils {</p>
-
-<p>  public static void lockSession(final IoSession session, final Object lock , final int timeout ) throws &hellip; {</p>
-
-<p>   try {</p>
-
-<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
-
- long beforeLockTime = System.currentTimeMillis(); 
-
- session.setAttribute(GoduFilterConstants. GODU_DATA_LOCK , lock ); 
-
- session.getConfig().setBothIdleTime(timeout); 
-
- ThreadUtil. waitIt ( lock , timeout * 1000 + 1000); 
-
- long afterLockTime = System.currentTimeMillis(); 
-
- logger.debug("lockTime=" + (afterLockTime - beforeLockTime) + "ms"); 
-
-} 
-</code></pre>
-
-<p>   } catch (Exception e) {</p>
-
-<pre><code>e.printStackTrace(); 
-
-logger.error("lockSession exception: ", e); 
-
-throw new GapiException(e); 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p>  public static void unlockSession(final IoSession session) throws &hellip; {</p>
-
-<p>   try {</p>
-
-<pre><code>if (session.isConnected() &amp;&amp; !session.isClosing()) { 
-
- Object status = session.getAttribute(GoduFilterConstants. GODU_DATA_LOCK ); 
-
- ThreadUtil.notifyIt(status); 
-
-} 
-</code></pre>
-
-<p>   } catch (Exception e) {</p>
-
-<pre><code>... 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> 可以看到加锁的时候将锁（lock对象）放在了session的一个attribute上，解锁的时候从这个attribute上取出这个锁，然后解锁。这里用到的 冻结线程的 waitIt 方法以及唤醒线程的 notifyIt 方法实现如下：</p>
-
-<p> package com.boco.godu.common.util;</p>
-
-<p> public class ThreadUtil {</p>
-
-<p>  public static void  waitIt  (final Object o, final long time) {</p>
-
-<p>   synchronized (o) {</p>
-
-<pre><code>try { 
-
- if (time == -1) { 
-
-  o.wait(); 
-
- } else { 
-
-  o.wait(time); 
-
- } 
-
-} catch (InterruptedException iex) { 
-
- iex.printStackTrace(); 
-
-} 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p>   public static void  notifyIt (final Object o) {</p>
-
-<p>   synchronized (o) {</p>
-
-<pre><code> o.notifyAll(); 
-</code></pre>
-
-<p>   }</p>
-
-<p>  }</p>
-
-<p> }</p>
-
-<p> 当代码到 o.wait(time); 时进入阻塞状态（停止运行，实际上是java.lang.Object.wait()方法），直到下列情况之一出现：</p>
-
-<ol>
-<li><p>超时时间time到；</p></li>
-<li><p>被唤醒，也就是调用同一个对象的notifyAll方法（即java.lang.Object.notifyAll()方法）。</p></li>
-</ol>
+  <div class="entry-content"><ul>
+<li><p>open: 连接远端服务器，例如open 10.0.2.47；</p></li>
+<li><p>pwd: 获取远端当前目录；</p></li>
+<li><p>put: 上传文件；</p></li>
+<li><p>get: 下载文件；get pwd.ldif</p></li>
+<li><p>bin: 进入binary传输模式；</p></li>
+<li><p>hash: 传输过程中显示打印#；</p></li>
+<li><p>lcd: 改变本地文件夹，例如：lcd d:\</p></li>
+<li><p>lpwd: 显示本地当前目录；</p></li>
+<li><p>bye: 与远端服务器断开连接；</p></li>
+</ul>
 
 </div>
   
@@ -600,7 +118,7 @@ throw new GapiException(e);
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/07/23/103345/">Groovy正则表达式复杂逻辑判断实例</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/16/160414/">打包与压缩</a></h1>
     
     
       <p class="meta">
@@ -609,159 +127,129 @@ throw new GapiException(e);
 
 
 
-<time class='entry-date' datetime='2011-07-23T10:33:45+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>10:33 am</span></time>
+<time class='entry-date' datetime='2011-09-16T16:04:14+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:04 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>下面的两个pattern（p1和p2）分别代表了(A or B) and (C or D)和(A and B) or (C and D)的跨行匹配结果，当然还可以用正则表达式构建更复杂的pattern，但这个实例证明了Groovy具备跨行匹配复杂逻辑表达式的能力。</p>
+  <div class="entry-content"><h1>zip and unzip</h1>
 
-<p> 值得注意的是，多行匹配文本时需要在匹配字符串前加“(?ms)”。</p>
+<ul>
+<li><p>压缩web文件夹到web.zip文件中，不包括web中所有.svn文件夹：zip web.zip -r web -x &lsquo;<em>.svn/</em>&rsquo;</p></li>
+<li><p>追加新目录到已有压缩文件中：zip web.zip -r newdir，如果需要在web.zip的dir1/subdir/subsubdir下增加一个文件new.xml，新建dir1/subdir/subsubdir，将new.xml拷贝过去形成dir1/subdir/subsubdir/new.xml，然后zip web.zip -r dir1，web.zip中dir1/subdir/subsubdir下的其他文件不受影响；</p></li>
+<li><p>解压缩到指定文件夹：unzip web.zip -d dst_extract_dir</p></li>
+<li><p>解压web.zip中的top/sub/aa.js文件到当前目录下，保留目录结构：</p>
 
-<p> 该实例同时演示了Groovy闭包的使用方法。
- 源代码</p>
+<p>  unzip web.zip top/sub/aa.js</p></li>
+<li><p>解压web.zip中的top/sub/aa.js文件到指定目录下，保留目录结构：</p>
 
-<p> msg1 = &lsquo;&rsquo;&lsquo;one two three four</p>
+<p>  unzip web.zip top/sub/aa.js -d dst_extract_dir</p></li>
+<li><p>解压web.zip中的top/sub/aa.js文件到指定目录下，不保留目录结构（文件直接放在指定目录下，没有top/sub文件夹）：</p>
 
-<p> five six'&lsquo;&rsquo;</p>
+<p>  unzip -j web.zip top/sub/aa.js -d dst_extract_dir</p>
 
-<p> msg2 = &lsquo;&rsquo;&lsquo;Jan Feb Mar</p>
+<p>  unzip -j build/GcpCollector.zip GcpCollector/lib/core/GcpServerCore.jar -d integral_test/lib</p></li>
+<li><p>读取jar包的meta info: unzip -p target.jar META-INF/MANIFEST.MF （-p选项将文件内容输出到stdout上）</p></li>
+</ul>
 
-<p> Apr May Jun'&lsquo;&rsquo;</p>
 
-<p> msg3 = &lsquo;&rsquo;&lsquo;one two three</p>
+<h1>压缩与解压命令：gzip/zip/gunzip/unzip</h1>
 
-<p> Apr May Jun'&lsquo;&rsquo;</p>
+<p>压缩/解压缩gz文件：gzip/gunzip filename</p>
 
-<p> msg4 = &lsquo;&rsquo;&lsquo;Jan Feb Mar</p>
+<p>二者默认在压缩/解压后删除原始文件，如果想要保留的话用-c选项：</p>
 
-<p> four five six'&lsquo;&rsquo;</p>
+<p>gzip -c myfile.txt > myfile.gz</p>
 
-<p> p1 = / (?ms) (two|Feb).*(five|May)/</p>
+<p>gunzip -c test.tar.gz > test.tar</p>
 
-<p> p2 = / (?ms) (two.<em>five)|(Feb.</em>May)/</p>
+<p>gzcat test.tar.gz > test.tar（gzcat&lt;=>gunzip -c，linux不支持此命令）；</p>
 
-<p> msgs = [msg1, msg2, msg3, msg4]</p>
+<h1>查看压缩包里文件清单的命令</h1>
 
-<p> patterns = [p1, p2]</p>
+<ul>
+<li><p>tar -t</p></li>
+<li><p>gzip -l</p></li>
+<li><p>unzip -l web.zip</p></li>
+<li><p>unzip -l web.zip | less 适用于文件内容比较多，且需要查看某一部分的情况</p></li>
+<li><p>less web.zip</p></li>
+</ul>
 
-<p> patterns.each { pattern-></p>
 
-<p> println &lsquo;pattern is: &rsquo;+pattern</p>
+<p>tar -tvf只能显示tar文件和tar文件打成的gz包中的内容，如果是 直接用gzip压缩文件，tar -t是无效的，要用：</p>
 
-<p> msgs.each { msg-></p>
+<p>gzip -l filename.gz</p>
 
-<p> println &lsquo;msg is: &rsquo;+msg</p>
+<p>来查看文件清单。</p>
 
-<p> println &lsquo;match result is:&rsquo;</p>
+<h1>打包和解包命令：tar</h1>
 
-<p> matcher = msg =~ pattern</p>
+<p>压缩当前目录里的所有文件到/home/test/kk.tar文件中：</p>
 
-<p> if (matcher)</p>
+<pre><code>tar -cvf /home/test/kk.tar * 
+</code></pre>
 
-<p> println &ldquo;true&rdquo;</p>
+<p>将当前目录里的aa和bb两个文件打包到kk.tar中：</p>
 
-<p> else</p>
+<pre><code>tar -cvf /home/test/kk.tar aa bb 
+</code></pre>
 
-<p> println &ldquo;false&rdquo;</p>
+<p>将s3目录下的所有文件打包到k3.tar.gz中（Solaris不支持-z选项）：</p>
 
-<p> println &lsquo;&mdash;&rsquo;</p>
+<pre><code>tar -zcvf k3.tar.gz s3/* 
+</code></pre>
 
-<p> }</p>
+<p>查看k3.tar.gz的内容：</p>
 
-<p> println &lsquo;===&rsquo;</p>
+<pre><code>tar -tvf k3.tar.gz 
+</code></pre>
 
-<p> }
- 运行结果
- pattern is: (?ms)(two|Feb).*(five|May)</p>
+<p>输出为：</p>
 
-<p> msg is: one two three four</p>
+<p>-rw-rw-r&ndash; test/test  10240 2011-10-14 03:05:15 s3/aa
+-rw-rw-r&ndash; test/test  11 2011-10-13 09:30:43 s3/bb</p>
 
-<p> five six</p>
+<p>即包括s3目录也打进了压缩包里；</p>
 
-<p> match result is:</p>
+<p>将/home/test/ss/tt.tar解压到/home/test/s3下（要求s3文件夹已存在）：</p>
 
-<p> true</p>
+<pre><code>tar -xvf /home/test/ss/tt.tar -C /home/test/s3 
+</code></pre>
 
-<hr />
+<p>若不用-C指定解压目录，则解压到当前目录下；</p>
 
-<p> msg is: Jan Feb Mar</p>
+<p>tar参数说明：</p>
 
-<p> Apr May Jun</p>
+<p>-c表示创建tar文件；-x表示解压文件；-v表示verbose，即显示处理过程；-f要求后面紧跟要处理的tar文件的文件名；-z表示用gzip压缩生成的tar文件；</p>
 
-<p> match result is:</p>
+<p>Solaris的tar命令没有-z选项，不能用tar -zxvf命令解压gz文件，必须先用：</p>
 
-<p> true</p>
+<p>gunzip filename.gz（或者gzip -d filename.gz）</p>
 
-<hr />
+<p>解压成tar包，然后用tar -xvf解包。</p>
 
-<p> msg is: one two three</p>
+<p>附：</p>
 
-<p> Apr May Jun</p>
+<p>下面是将terracotta-2.7.2目录下的所有内容打包后在tc272-2目录里解压的过程：</p>
 
-<p> match result is:</p>
+<p>[godu@goduserver terracotta-2.7.2]$ tar -cvf /home/godu/tc272.tar *</p>
 
-<p> true</p>
+<p>[godu@goduserver terracotta-2.7.2]$ cd
+[godu@goduserver ~]$ mkdir tc272-2
+[godu@goduserver ~]$ cd tc272-2
+[godu@goduserver tc272-2]$ tar -xvf /home/godu/tc272.tar</p>
 
-<hr />
+<p>这个过程除了生成一个tar文件外，等价于将terracotta-2.7.2目录下的所有内容拷贝到tc272-2目录里：</p>
 
-<p> msg is: Jan Feb Mar</p>
+<p>[godu@goduserver ~]$ mkdir tc272-2</p>
 
-<p> four five six</p>
+<p>[godu@goduserver ~]$ cp -r terracotta-2.7.2/* tc272-2/</p>
 
-<p> match result is:</p>
+<p>删除tc272-2目录：</p>
 
-<p> true</p>
-
-<hr />
-
-<hr />
-
-<p> pattern is: (?ms)(two.<em>five)|(Feb.</em>May)</p>
-
-<p> msg is: one two three four</p>
-
-<p> five six</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<p> msg is: Jan Feb Mar</p>
-
-<p> Apr May Jun</p>
-
-<p> match result is:</p>
-
-<p> true</p>
-
-<hr />
-
-<p> msg is: one two three</p>
-
-<p> Apr May Jun</p>
-
-<p> match result is:</p>
-
-<p> false</p>
-
-<hr />
-
-<p> msg is: Jan Feb Mar</p>
-
-<p> four five six</p>
-
-<p> match result is:</p>
-
-<p> false</p>
-
-<hr />
-
-<hr />
+<p>[godu@goduserver ~]$ rm -r tc272-2</p>
 </div>
   
   
@@ -774,7 +262,7 @@ throw new GapiException(e);
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/07/21/154602/">基于Tcc的C语言编译器</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/14/140127/">调整chm文件的字体大小</a></h1>
     
     
       <p class="meta">
@@ -783,73 +271,16 @@ throw new GapiException(e);
 
 
 
-<time class='entry-date' datetime='2011-07-21T15:46:02+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>3:46 pm</span></time>
+<time class='entry-date' datetime='2011-09-14T14:01:27+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:01 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p><a href="http://bellard.org/tcc">TCC: Tiny C Compiler</a>是一款Windows平台上的迷你型C编译器，适合于学习算法时编译、演示一些简单的C语言程序，下面分别是基于vim和Notepad++的两种开发环境搭建方法。</p>
+  <div class="entry-content"><p>例如要将chm文件中的字体调到最大，打开IE浏览器，页面->文字大小->最大。</p>
 
-<h1>安装TCC</h1>
-
-<p>TCC是绿色软件，下载软件包（tcc-0.9.25-win32-bin.zip）后解压即可运行，假设解压到"d:\apps\tcc"目录下。</p>
-
-<h1>vim</h1>
-
-<ol>
-<li>将以下程序保存到hello.c文件中。</li>
-</ol>
-
-
-<p> #include &lt;stdio.h>
- main()
- {
-  printf(&ldquo;hello, world!!!\n&rdquo;);
- }</p>
-
-<ol>
-<li>运行":!d:\Apps\tcc\tcc.exe -run %"</li>
-</ol>
-
-
-<h1>Notepad++</h1>
-
-<p>需要的软件：<a href="http://notepad-plus-plus.org/">Notepad++</a> v5.8.3 绿色版和它的NppExec插件；</p>
-
-<h2>编译器</h2>
-
-<p>下载tcc的windows压缩包后解压到一个目录下，例如”f:\Software\tcc“；</p>
-
-<h2>语法高亮</h2>
-
-<p>Notepad++内置了对C语言的语法高亮，如果在“语言”菜单下没有"C"语言项，在【设置->首选项->语言】下从”禁用项“列表中把C放到”启用项“列表中即可。</p>
-
-<h2>命令行输出</h2>
-
-<p>安装NppExec：下载NppExec后解压到npp安装目录的plugins文件夹下，例如我的npp绿色版路径是f:\Software\Notepad++583，则解压后目录结构为f:\Software\Notepad++583\plugins\NppExec.dll和f:\Software\Notepad++583\plugins\NppExec（下面是几个.h文件），压缩包doc目录下文件放在f:\Software\Notepad++583\plugins\doc下。启动Npp后可看到【插件->NppExec】菜单，【插件->NppExec->Show Console Dialog】打开命令输出窗口，可用【插件->NppExec->Change Console Font】修改输出窗口的字体和字号；</p>
-
-<h2>定义运行脚本</h2>
-
-<p> 【插件->NppExec->Execute】打开Execute窗口，输入</p>
-
-<p> NPP_SAVE
- &ldquo;f:\Software\tcc\tcc.exe&rdquo; &ldquo;$(FULL_CURRENT_PATH)&rdquo; -run</p>
-
-<p> 点Save保存此脚本为”Run C“；第一行脚本表示保存文件，第二行脚本使用了tcc.exe的-run参数，将编译、连接、运行一次性搞定；</p>
-
-<h2>定义菜单项</h2>
-
-<p> 【插件->NppExec->Advanced Options】中选择"Run C"，然后勾选"Place to the Macro submenu"；</p>
-
-<p> 绑定快捷键</p>
-
-<p> 【设置->管理快捷键】的"Macros"或者"Plugins commands"下面找到"Run C"，为其设置一个快捷键；</p>
-
-<h2>编译运行</h2>
-
-<p>Npp中打开前述hello.c文件，【宏->Run C】或者使用前面设置的快捷键启动Run C脚本，在Console窗口中可以看到程序的输出。</p>
+<p>在Win7上试验通过。</p>
 </div>
   
   
@@ -862,7 +293,7 @@ throw new GapiException(e);
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/07/19/164331/">日期格式转换的正则表达式实现</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/13/110504/">Eclipse中source Folder定义错误的解决方法</a></h1>
     
     
       <p class="meta">
@@ -871,74 +302,14 @@ throw new GapiException(e);
 
 
 
-<time class='entry-date' datetime='2011-07-19T16:43:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:43 pm</span></time>
+<time class='entry-date' datetime='2011-09-13T11:05:04+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:05 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>原始文本：</p>
-
-<blockquote><p>2011年7月18日：修改密码的核心功能开发完毕；
-2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
-
-<p>目标格式文本：</p>
-
-<blockquote><p>2011-7-18：修改密码的核心功能开发完毕；
-2011-7-19：上午换座位，下午提交了著作权文档的电子流程；</p></blockquote>
-
-<h1>vim实现</h1>
-
-<pre><code>:%s/\(\d\{4}\).\(\d\{1,2}\).\(\d\{1,2}\)./\1-\2-\3/g 
-</code></pre>
-
-<p>说明： 采用 :%s/old/new/g 命令进行替换，其中%表示对所有行进行替换操作，最后的g参数表明对一行中所有的new均替换为old。\d代表任意数字，old pattern中每个括号（即(&hellip;)）中的内容构成一个group member，new pattern中对group member的引用用\1、\2、\3&hellip;代表，即"BRE", back references.</p>
-
-<h1>Groovy实现</h1>
-
-<pre><code>oriStr = '''2011年7月18日：修改密码的核心功能开发完毕； 
-2011年7月19日：上午换座位，下午提交了著作权文档的电子流程；'''; 
-pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
-matcher = oriStr =~ pattern; 
-matcher.each { all,y,m,d-&gt; 
-    println 'Patten is: '+all; 
-    println 'Replaced by: '+y+'-'+m+'-'+d; 
-}; 
-println '*****'; 
-println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;}; 
-</code></pre>
-
-<p>运行结果：</p>
-
-<pre><code>Patten is: 2011年7月18日 
-Replaced by: 2011-7-18 
-Patten is: 2011年7月19日 
-Replaced by: 2011-7-19 
-***** 
-2011-7-18：修改密码的核心功能开发完毕； 
-2011-7-19：上午换座位，下午提交了著作权文档的电子流程； 
-</code></pre>
-
-<p>说明： 跨行字符串用三引号括起来；匹配模式用“ /&hellip;/” 括起来；用模式匹配字符串时，每一次成功匹配构成了matcher的一个元素（代码中用matcher.each得到），如果模式当中包含group（可以matcher.hasGroup()判断），则这个元素本身也是一个List，其中第一个元素是符合模式的substring（代码中的all），各个group member可以用下标引用，也可以分别起名字（代码中分别为y、m、d）。这部分内容可参见《Groovy in Action》（2007版）第3.5节“Working with regular expressions”。Groovy的String.replaceAll方法包括两个参数，第一个是要被代替的pattern，第二个是用来代替pattern的closure，该closure的返回结果是最后一行代码的值。</p>
-
-<p>例如：<code>println oriStr.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d;return 'Date'};</code> 的输出是：</p>
-
-<pre><code>Date：修改密码的核心功能开发完毕； 
-Date：上午换座位，下午提交了著作权文档的电子流程； 
-</code></pre>
-
-<h1>基于文件读写的Groovy实现</h1>
-
-<pre><code>pattern = /(\d{4})\W(\d{1,2})\W(\d{1,2})\W/; 
-convStr = ''; 
-new File('f:/Edit3.txt').eachLine{ 
-    convStr += (it.replaceAll (pattern) {all,y,m,d-&gt;y+'-'+m+'-'+d})+'\n' 
-} 
-new File('f:/conv.txt').write convStr; 
-</code></pre>
-
-<p>说明： 第4行的it表示此行文本（字符串）。</p>
+  <div class="entry-content"><p>在使用新的Eclipse打开旧的workspace时有时会出现source folder定义错误的情况，例如原本的定义是名为src的source folder下有包名为org.apache，现在被Eclipse解析为source folder（或者普通folder）为src/org，apache为包名，这样下面程序编译都会出错，解决方法是：直接打开该工程的.classpath文件，找到名为 src/org的 classpathentry条目 删除，然后在Eclipse中刷新工程，这时src会变为一个普通folder，右键之，选择Build Path->Use as Source Folder，OK。</p>
 </div>
   
   
@@ -951,7 +322,7 @@ new File('f:/conv.txt').write convStr;
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/07/18/112537/">Java Assert关键字的使用方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/09/102412/">Windows7下MSN和Outlook最小化解决办法</a></h1>
     
     
       <p class="meta">
@@ -960,48 +331,28 @@ new File('f:/conv.txt').write convStr;
 
 
 
-<time class='entry-date' datetime='2011-07-18T11:25:37+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:25 am</span></time>
+<time class='entry-date' datetime='2011-09-09T10:24:12+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:24 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>assert后面的表达式为假时会抛出AssertionError类对象，此类继承自Throwable类，可以用try..catch(AssertionError e)&hellip;语句捕获并处理，如果不处理，将会向其他Exception一样向上层调用抛出，导致线程运行中断。</p>
+  <div class="entry-content"><p>Windows7下outlook、msn这些软件最小化的默认行为行为都是最小化到任务栏，而不是托盘区，很占地方，下面的方法让它们隐藏到托盘区，且可以用快捷键恢复窗口。</p>
 
-<h2>使用assert的方法</h2>
+<h1>最小化到托盘区</h1>
 
-<p>assert适用于定义服务器的能力边界，如最大负载等，不适于对外部条件（例如检验用户输入格式）进行判断（参考<a href="http://stackoverflow.com/questions/1276308/exception-vs-assertion%EF%BC%89%EF%BC%8C%E5%9B%A0%E4%B8%BA%E5%A4%84%E7%90%86%E8%BF%99%E7%B1%BB%E9%97%AE%E9%A2%98%E7%9A%84%E6%96%B9%E6%B3%95%E6%98%AF%E7%BB%99%E5%87%BA%E4%B8%80%E4%B8%AA%E5%8F%8D%E9%A6%88%E4%BF%A1%E6%81%AF%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E4%B8%AD%E6%96%AD%E6%9C%8D%E5%8A%A1%E3%80%82%E5%9F%BA%E4%BA%8E%E6%AD%A4%EF%BC%8C%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%88%9D%E6%9C%9F%E5%8F%AF%E4%BB%A5%E7%94%A8assert%E5%B0%86%E6%B5%81%E7%A8%8B%E8%BF%90%E8%A1%8C%E7%9A%84%E5%89%8D%E6%8F%90%E6%9D%A1%E4%BB%B6%E5%86%99%E5%87%BA%E6%9D%A5%EF%BC%8C%E4%BD%86%E5%9C%A8%E4%BA%A7%E5%93%81%E5%8F%91%E5%B8%83%E5%89%8D%E5%BA%94%E5%B0%86%E8%BF%99%E4%BA%9B%E4%B8%B4%E6%97%B6assert%E6%94%B9%E6%88%90%E6%AD%A3%E5%BC%8F%E7%9A%84%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E8%AF%AD%E5%8F%A5%E3%80%82">http://stackoverflow.com/questions/1276308/exception-vs-assertion%EF%BC%89%EF%BC%8C%E5%9B%A0%E4%B8%BA%E5%A4%84%E7%90%86%E8%BF%99%E7%B1%BB%E9%97%AE%E9%A2%98%E7%9A%84%E6%96%B9%E6%B3%95%E6%98%AF%E7%BB%99%E5%87%BA%E4%B8%80%E4%B8%AA%E5%8F%8D%E9%A6%88%E4%BF%A1%E6%81%AF%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E4%B8%AD%E6%96%AD%E6%9C%8D%E5%8A%A1%E3%80%82%E5%9F%BA%E4%BA%8E%E6%AD%A4%EF%BC%8C%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%88%9D%E6%9C%9F%E5%8F%AF%E4%BB%A5%E7%94%A8assert%E5%B0%86%E6%B5%81%E7%A8%8B%E8%BF%90%E8%A1%8C%E7%9A%84%E5%89%8D%E6%8F%90%E6%9D%A1%E4%BB%B6%E5%86%99%E5%87%BA%E6%9D%A5%EF%BC%8C%E4%BD%86%E5%9C%A8%E4%BA%A7%E5%93%81%E5%8F%91%E5%B8%83%E5%89%8D%E5%BA%94%E5%B0%86%E8%BF%99%E4%BA%9B%E4%B8%B4%E6%97%B6assert%E6%94%B9%E6%88%90%E6%AD%A3%E5%BC%8F%E7%9A%84%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E8%AF%AD%E5%8F%A5%E3%80%82</a></p>
+<p>Outlook到托盘区比较简单，就是在托盘区图标上右键，选【最小化时隐藏】即可。msn相对复杂些，首先找到msnmsgr.exe这个文件右键->属性->兼容性，勾选“以兼容模式运行这个程序”，在下拉列表里选“Windows Vista”。这样用Alt+F4（或点击关闭按钮）关闭MSN后，托盘区就会出现MSN的图标了。</p>
 
-<p>JUnit的assert*提供了比内置assert更丰富的判断方法，但本质上仍然是抛出AssertionError，且增加了对JUnit的依赖，因此不建议用JUnit代替assert。</p>
+<h1>恢复窗口</h1>
 
-<p>（2012-12-19更新）</p>
+<p>用autohotkey脚本（见笔记“激活托盘区程序的ahk脚本”），且需要首先自定义托盘区图标的显示规则，让outlook/msn图标始终显示。</p>
 
 <hr />
 
-<p>Java的assert关键字是从JAVA SE 1.4 引入的，为了和老版本兼容，Java在执行的时候默认是不启动断言检查的，这种情况下所有的assert语句都将被忽略。要开启断言检查，则需要在运行时加参数-enableassertions或-ea来开启，在Eclipse中，就是在要运行的类（或测试方法）的Run Configurations中的“Arguments”下的“VM arguments”部分写上：“-ea”。为了避免由于忘记加这个开关造成assert失效导致错误的测试结果，建议不要使用java的assert，而使用JUnit的org.junit.Assert.assertTrue(expr)方法。</p>
+<p>2013-01-05更新：</p>
 
-<h1>assert关键字的两种用法：</h1>
-
-<ol>
-<li>assert &lt;boolean表达式></li>
-</ol>
-
-
-<p>如果&lt;boolean表达式>为true，则程序继续执行。</p>
-
-<p>如果为false，则抛出 java.lang.AssertionError；</p>
-
-<ol>
-<li>assert &lt;boolean表达式> : &lt;提示信息> （boolean表达式和提示信息之间用冒号分隔）</li>
-</ol>
-
-
-<p>如果&lt;boolean表达式>为true，则程序继续执行。</p>
-
-<p>如果为false，则抛出java.lang.AssertionError，并输出提示信息。</p>
-
-<p>另外assert后面可以指定对哪些类断言生效，详见<a href="http://www.ibm.com/developerworks/cn/java/l-javaassertion/index.html">深入解析Java的新特性assertion</a>。</p>
+<p>Outlook最小化后用Executor激活，MSN用MSNLite，可以自定义显示/隐藏面板快捷键；</p>
 </div>
   
   
@@ -1014,7 +365,7 @@ new File('f:/conv.txt').write convStr;
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/07/07/113549/">Use `Resolve Dependency in Workspace` Feature of IvyDE to Resolve Project Dependency in Develop Stage</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/09/102328/">破解Excel文件打开密码</a></h1>
     
     
       <p class="meta">
@@ -1023,14 +374,203 @@ new File('f:/conv.txt').write convStr;
 
 
 
-<time class='entry-date' datetime='2011-07-07T11:35:49+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:35 am</span></time>
+<time class='entry-date' datetime='2011-09-09T10:23:28+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:23 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content">
+  <div class="entry-content"><p>使用了Passware Password Recovery Kit Enterprise(v10.3.2585)，这个软件的优点是能够破解多种密码，CPU占有率低，上手快，易于制定密码规则。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/09/095016/">Windows托盘化工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-09T09:50:16+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>试验了TrayIt（v4.6.5.5）和TrayEverything（v1.3），
+前者只能最小化到托盘区，只能用鼠标双击恢复窗口，而不能定义恢复快捷键，
+后者在windows 7下工作不稳定，Options修改后程序会失去响应。</p>
+
+<hr />
+
+<p>今天（2013-02-12）试用了<a href="http://sourceforge.net/projects/rbtray/">RBTray</a>，
+优点：开源，绿色，操作简单。</p>
+
+<p>使用方法：</p>
+
+<ul>
+<li><p>右键窗口的最小化按钮使之进入托盘区，左键功能不变，单击托盘区图标恢复。</p></li>
+<li><p>程序运行后没有任何图标，退出RBTray的方法是右键被最小化到托盘区的任一个图标，点击“Exit RBTray”。</p></li>
+</ul>
+
+
+<p>另外下载了TrayIt，但需要安装，不方便，放弃；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/08/111058/">GreenBrowser常用设置</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-08T11:10:58+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:10 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>【GreenBrowser选项->常规->禁止多个GreenBrowser进程】；</p>
+
+<p>快捷键</p>
+
+<p>隐藏显示浏览器窗口：Ctrl+`（反引号，在【GreenBrowser选项->其他->显示/隐藏GreenBrowser热键】中设置）；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/06/175629/">HAProxy安装笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-06T17:56:29+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:56 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>HAProxy的名字来自于 High-availability clusters &ldquo;，关于计算机集群，可以参考&rdquo; Computer cluster &ldquo;。</p>
+
+<p>假设haproxy安装在10.0.2.47上，被负载均衡的两个GODU服务器分别在10.0.2.47和10.32.1.38上。安装部署的过程并不复杂：
+ 上传压缩包并解压
+ftp 10.0.2.47</p>
+
+<p>hash</p>
+
+<p>bin</p>
+
+<p>put f:\warez\Develop\HAProxy\haproxy-1.4.17.tar.gz</p>
+
+<p>tar -zxvf haproxy-1.4.17.tar.gz</p>
+
+<p> make</p>
+
+<p>make TARGET=linux26</p>
+
+<p>结果是生成一个新的可执行文件：-rwxrwxr-x 1 godu godu 1601387 09-06 10:50 haproxy
+ install
+切换成root用户：su - root，口令root</p>
+
+<p>安装：make install</p>
+
+<p>安装完成后在/usr/local目录下生成一个haproxy目录，结构为：</p>
+
+<p>drwxr-xr-x 3 root root 4096 09-07 10:04 doc
+drwxr-xr-x 2 root root 4096 09-07 10:04 sbin
+drwxr-xr-x 3 root root 4096 09-07 10:04 share
+ 配置
+在这个目录下新建一个名为haproxy.conf的文件，内容为：</p>
+
+<p> global
+  maxconn 65535
+  uid 0
+  gid 0
+defaults
+  mode tcp
+  timeout connect 5000ms
+  timeout client 30000ms
+  timeout server 30000ms
+listen test1
+  bind 0.0.0.0: 1357
+  mode tcp
+  server s1 10.0.2.47:1234
+  server s2 10.32.1.38:1234</p>
+
+<p>其中bind后面的端口是haproxy的端口，两个server是被haproxy负载均衡的GODU服务器；
+ 启动
+在/usr/local/haproxy下输入命令 sbin/haproxy -f haproxy.conf</p>
+
+<p> 使用haproxy
+将10.0.2.47 1357作为GODU群的“门面”即可， telnet 10.0.2.47 1357 （相对于不用haproxy时的telnet 10.0.2.47 1234）。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/06/095033/">绿色djvu阅读软件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-06T09:50:33+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:50 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>官方的djvu viewer都需要安装，总算找到一个绿色版的，名为STDU Viewer，可以阅读的格式包括DjVu, PDF, TIFF, XPS, FB2等，版本为1.6.2。</p>
 </div>
   
   
@@ -1055,23 +595,23 @@ new File('f:/conv.txt').write convStr;
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a>
+        <a href="/blog/2016/02/21/110422/">3月6日演讲提纲</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a>
+        <a href="/blog/2016/02/20/010838/">Merge Multiple PDF Files in Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a>
+        <a href="/blog/2016/02/16/212514/">Debug Python Script</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a>
+        <a href="/blog/2016/02/09/120142/">Golang Notes</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a>
+        <a href="/blog/2016/02/07/103930/">Cabal Notes</a>
       </li>
     
   </ul>
@@ -1116,7 +656,7 @@ new File('f:/conv.txt').write convStr;
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2015 - Li Chao -
+  Copyright &copy; 2016 - Li Chao -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

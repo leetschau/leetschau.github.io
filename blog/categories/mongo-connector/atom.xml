@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Mongo-connector | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/mongo-connector/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2015-11-20T11:01:10+08:00</updated>
+  <updated>2016-02-21T11:06:40+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,63 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Mongo-connector Dump Error and Solutions]]></title>
+    <link href="http://leetschau.github.io/blog/2016/01/09/195735/"/>
+    <updated>2016-01-09T19:57:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/01/09/195735</id>
+    <content type="html"><![CDATA[<p>When I synchronize data from a mongodb to a elasticsearch server with
+<code>mongo-connector -m 192.168.100.3:27017 -t http://192.168.100.24:9200
+ -d elastic_doc_manager --admin-username root --password xxx</code>,
+the mongo-connector process quit with the following logs in
+&ldquo;mongo-connector.log&rdquo; (all texts behind &ldquo;BulkIndexError&rdquo; are in the same line,
+I rearrange the line for easy to understand):</p>
+
+<pre><code>2016-01-09 19:05:52,457 [CRITICAL] mongo_connector.oplog_manager:543 - Exception during collection dump
+Traceback (most recent call last):
+  File "/usr/local/lib/python2.7/dist-packages/mongo_connector/oplog_manager.py", line 495, in do_dump upsert_all(dm)
+  ...
+BulkIndexError: (u'10 document(s) failed to index.',
+  [
+    {
+      u'index': {
+        u'status': 400,
+        u'_type': u'Fair',
+        u'_id': u'4zWhZTJnqPCd2RK93',
+        u'error': {
+          u'caused_by': {
+            u'reason': u'unknown property [latitude]',
+            u'type': u'illegal_argument_exception'},
+            u'reason': u'failed to parse [recurrence.location]',
+            u'type': u'mapper_parsing_exception'},
+            u'_index': u'staging'
+      }
+    },
+    ...
+  ]
+</code></pre>
+
+<p>When mongo-connector parse a document with <code>_id: 4zWhZTJnqPCd2RK93</code>
+in Collection &ldquo;Fair&rdquo;, it &ldquo;failed to parse [recurrence.location]&rdquo;.
+From <code>_index: staging</code>, we know collection Fair is in mongodb database &ldquo;staging&rdquo;.</p>
+
+<p>List all &ldquo;recurrence.location&rdquo; of each document in staging database:</p>
+
+<pre><code>$ mongo 192.168.100.3:27017/staging -u xxx -p xxx
+foba:PRIMARY&gt; db.Fair.find({}, {"recurrence.location": 1})
+{ "_id" : "h7Lo3hGLrFGEb6BK7", "recurrence" : [ { "location" : { "latitude" : 22.53, "longitude" : 114.06 } } ] }
+{ "_id" : "Kd2e9w58P7vAScLDL", "recurrence" : [ { "location" : "" } ] }
+{ "_id" : "4zWhZTJnqPCd2RK93", "recurrence" : [ { "location" : { "latitude" : 22.53, "longitude" : 114.06 } } ] }
+</code></pre>
+
+<p>It&rsquo;s now clear that the exception in synchronization is caused by
+different structure of &ldquo;recurrence.location&rdquo;.</p>
+
+<p>To guarantee mongo-connector synchronizing successfully,
+you must keep all document in a collection share the same schema.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Synchronize Data From MongoDB to Elasticsearch]]></title>
@@ -41,7 +98,10 @@ you can see it on elasticsearch.</p>
 <p>阿里云服务器上，用普通用户es启动es服务(<code>bin/elasticsearch</code>)，同一用户启动mongo-connector后，报
 &ldquo;AttributeError: &lsquo;IndicesClient&rsquo; object has no attribute &lsquo;delete_mapping&rsquo;"错误，
 es版本为2.0，mongo-connector版本为2.1，将es版本改为1.7，mongo-connector改为1.3后，
-出现另一错误，最终解决方法是仍然用es启动es服务，但用root启动mongo-connector.</p>
+仍然出现这一错误，原因是MongoDB中删除了test库中的一个Collection，但ES中仍然有，就会出现这个错误，
+解决方法是清空ES的test重新同步一遍：
+<code>curl -XDELETE http://123.57.188.18:9322/test</code>.
+Ref: <a href="https://github.com/mongodb-labs/mongo-connector/issues/349">https://github.com/mongodb-labs/mongo-connector/issues/349</a></p>
 
 <p>Note 2:</p>
 
