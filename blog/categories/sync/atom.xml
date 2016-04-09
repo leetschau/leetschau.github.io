@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Sync | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/sync/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-02-21T11:06:40+08:00</updated>
+  <updated>2016-04-09T20:50:36+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,95 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Git Submodule的同步问题]]></title>
+    <link href="http://leetschau.github.io/blog/2016/03/17/140426/"/>
+    <updated>2016-03-17T14:04:26+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/03/17/140426</id>
+    <content type="html"><![CDATA[<h1>获取更新</h1>
+
+<pre><code>git submodule foreach --recursive 'git fetch --all'
+</code></pre>
+
+<h1>列出remote比local新的submodule和所在分支</h1>
+
+<pre><code>git submodule foreach --recursive 'git branch --all -vv'|grep behind -B1
+</code></pre>
+
+<p>查看最新的提交在哪个分支上</p>
+
+<pre><code>git submodule foreach --recursive 'git for-each-ref --sort=-committerdate --count=1'
+</code></pre>
+
+<h1>查询local branch与remote branch之间的关系</h1>
+
+<p>这一步的目的是为了避免后面做<code>git pull --all</code>时无法确定merge目标branch.</p>
+
+<pre><code>git submodule foreach --recursive 'git branch --all -vv'
+</code></pre>
+
+<p>如果一个repository早已设置好remote和local之间的对应关系（见Note2），
+则可以跳过这一步。</p>
+
+<p>显示origin中每个branch的情况：</p>
+
+<pre><code>git submodule foreach --recursive 'git remote show origin'
+</code></pre>
+
+<h1>同步到本地分支上</h1>
+
+<pre><code>git submodule foreach --recursive 'git pull --all'
+</code></pre>
+
+<p>如果上面的命令由于Git无法确定merge目标失败，先执行：</p>
+
+<pre><code>git submodule foreach --recursive 'git checkout master'
+</code></pre>
+
+<p>再执行<code>git pull</code>命令。</p>
+
+<h1>回退</h1>
+
+<p>任何时候如果想放弃本地所做的修改，用<code>git submodule update</code>返回到初始状态。</p>
+
+<h1>切换到工作分支</h1>
+
+<pre><code>git submodule foreach --recursive 'git checkout $(git for-each-ref --count=1 --sort=-committerdate| grep -oE "[^/]+$")'
+</code></pre>
+
+<p>其中<code>git for-each-ref</code>拿到最新的一次commit及其所在分支，
+用<code>grep</code>命令得到分支名称，在checkout出此分支。</p>
+
+<p>参考：</p>
+
+<p><a href="http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit">http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit</a></p>
+
+<p><a href="http://stackoverflow.com/questions/3162385/how-to-split-a-string-in-shell-and-get-the-last-field">http://stackoverflow.com/questions/3162385/how-to-split-a-string-in-shell-and-get-the-last-field</a></p>
+
+<h1>Note</h1>
+
+<h2>Note1</h2>
+
+<p>如果希望查询某个时间点后的提交：</p>
+
+<pre><code>git --no-pager submodule foreach --recursive 'git log --since="2016-03-05" --pretty=oneline --all --decorate'
+</code></pre>
+
+<p>这里的<code>--no-pager</code>避免<code>git log</code>进入"pager"（即类似于vim或者less的全屏风格）模式。</p>
+
+<h2>Note2</h2>
+
+<p>Local branch与remote branch的关系实际上是定义在<code>.git/config</code>文件中的，
+对于Meteor package, 这个文件是
+&ldquo;<APP_PROJ_HOME>/.git/modules/packages/<PACKAGE_NAME>/config"，例如：</p>
+
+<pre><code>[branch "master"]
+  remote = origin
+  merge = refs/heads/master
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[How to Sync a Fork on Github]]></title>

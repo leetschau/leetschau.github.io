@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Git | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/git/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-02-21T11:06:40+08:00</updated>
+  <updated>2016-04-09T20:50:36+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,183 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Git Submodule的同步问题]]></title>
+    <link href="http://leetschau.github.io/blog/2016/03/17/140426/"/>
+    <updated>2016-03-17T14:04:26+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/03/17/140426</id>
+    <content type="html"><![CDATA[<h1>获取更新</h1>
+
+<pre><code>git submodule foreach --recursive 'git fetch --all'
+</code></pre>
+
+<h1>列出remote比local新的submodule和所在分支</h1>
+
+<pre><code>git submodule foreach --recursive 'git branch --all -vv'|grep behind -B1
+</code></pre>
+
+<p>查看最新的提交在哪个分支上</p>
+
+<pre><code>git submodule foreach --recursive 'git for-each-ref --sort=-committerdate --count=1'
+</code></pre>
+
+<h1>查询local branch与remote branch之间的关系</h1>
+
+<p>这一步的目的是为了避免后面做<code>git pull --all</code>时无法确定merge目标branch.</p>
+
+<pre><code>git submodule foreach --recursive 'git branch --all -vv'
+</code></pre>
+
+<p>如果一个repository早已设置好remote和local之间的对应关系（见Note2），
+则可以跳过这一步。</p>
+
+<p>显示origin中每个branch的情况：</p>
+
+<pre><code>git submodule foreach --recursive 'git remote show origin'
+</code></pre>
+
+<h1>同步到本地分支上</h1>
+
+<pre><code>git submodule foreach --recursive 'git pull --all'
+</code></pre>
+
+<p>如果上面的命令由于Git无法确定merge目标失败，先执行：</p>
+
+<pre><code>git submodule foreach --recursive 'git checkout master'
+</code></pre>
+
+<p>再执行<code>git pull</code>命令。</p>
+
+<h1>回退</h1>
+
+<p>任何时候如果想放弃本地所做的修改，用<code>git submodule update</code>返回到初始状态。</p>
+
+<h1>切换到工作分支</h1>
+
+<pre><code>git submodule foreach --recursive 'git checkout $(git for-each-ref --count=1 --sort=-committerdate| grep -oE "[^/]+$")'
+</code></pre>
+
+<p>其中<code>git for-each-ref</code>拿到最新的一次commit及其所在分支，
+用<code>grep</code>命令得到分支名称，在checkout出此分支。</p>
+
+<p>参考：</p>
+
+<p><a href="http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit">http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit</a></p>
+
+<p><a href="http://stackoverflow.com/questions/3162385/how-to-split-a-string-in-shell-and-get-the-last-field">http://stackoverflow.com/questions/3162385/how-to-split-a-string-in-shell-and-get-the-last-field</a></p>
+
+<h1>Note</h1>
+
+<h2>Note1</h2>
+
+<p>如果希望查询某个时间点后的提交：</p>
+
+<pre><code>git --no-pager submodule foreach --recursive 'git log --since="2016-03-05" --pretty=oneline --all --decorate'
+</code></pre>
+
+<p>这里的<code>--no-pager</code>避免<code>git log</code>进入"pager"（即类似于vim或者less的全屏风格）模式。</p>
+
+<h2>Note2</h2>
+
+<p>Local branch与remote branch的关系实际上是定义在<code>.git/config</code>文件中的，
+对于Meteor package, 这个文件是
+&ldquo;<APP_PROJ_HOME>/.git/modules/packages/<PACKAGE_NAME>/config"，例如：</p>
+
+<pre><code>[branch "master"]
+  remote = origin
+  merge = refs/heads/master
+</code></pre>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Git Branch Note]]></title>
+    <link href="http://leetschau.github.io/blog/2016/02/28/002058/"/>
+    <updated>2016-02-28T00:20:58+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/02/28/002058</id>
+    <content type="html"><![CDATA[<p>Ref:</p>
+
+<p><a href="https://git-scm.com/book/no-nb/v1/Git-Branching-What-a-Branch-Is">Git Branching - What a Branch Is</a></p>
+
+<p><a href="https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell">Git Branching - Branches in a Nutshell</a></p>
+
+<p><a href="http://stackoverflow.com/questions/8198105/how-does-git-store-files">How does git store files?</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Combine History Commits With Git]]></title>
+    <link href="http://leetschau.github.io/blog/2016/02/25/103348/"/>
+    <updated>2016-02-25T10:33:48+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/02/25/103348</id>
+    <content type="html"><![CDATA[<h1>Question</h1>
+
+<p>The commit history is:</p>
+
+<pre><code>$ git log --pretty=oneline
+52756ce25b26442a21ebfe52655dcf9c6ba9aa98 ch6 changed
+41d49f2fbd12c00af99a90b6fbd1e4af18db0103 ch5 changed
+c24b32555b5fe98d556acc7d32a2bd68346d40ba ch4 changed
+4088dde16b47f39d1b5f9553bc902e2afc34bf9a ch3 changed
+ea37405f9b59bef389ef6ca6a0c6ae8ad6365fb9 Fix some syntax problem
+...
+</code></pre>
+
+<p>You want to combine changes in chapter 3, 4 and 5.</p>
+
+<h1>Solution</h1>
+
+<pre><code>git rebase -i ea37405f
+</code></pre>
+
+<p>Here &ldquo;ea37405f&rdquo; is the commit <strong>older</strong> than the commits you want to combine.</p>
+
+<p>Now in an editor like:</p>
+
+<pre><code>pick 4088dde ch3 changed
+pick c24b325 ch4 changed
+pick 41d49f2 ch5 changed
+pick 52756ce ch6 changed
+</code></pre>
+
+<p>Notice the timeline order is <strong>reversed</strong> compared with that in <code>git log</code>:
+the newest commit (&ldquo;ch6 changed&rdquo;) is now in the last line, instead of the first.</p>
+
+<p>Modify the content like this:</p>
+
+<pre><code>pick 4088dde ch3 changed
+s c24b325 ch4 changed
+s 41d49f2 ch5 changed
+pick 52756ce ch6 changed
+</code></pre>
+
+<p>Here &ldquo;s&rdquo; means melding the commit into previous (<strong>older</strong>) commit.</p>
+
+<p>Save and quit, you now in an editor for new commit message, input:</p>
+
+<pre><code>chapter 3, 4 and 5 changed
+</code></pre>
+
+<p>Save and you get a message &ldquo;Successfully rebased and updated refs/heads/master&rdquo;.</p>
+
+<h1>Discussion</h1>
+
+<p>Check the history after rebase:</p>
+
+<pre><code>$ git log --pretty=oneline
+b4463e99ad221f270fd9f51d5bc7e8b348805804 ch6 changed
+276932a252b9041085fb30d0d5e4082db8c03584 chapter 3, 4 and 5 changed
+ea37405f9b59bef389ef6ca6a0c6ae8ad6365fb9 Fix some syntax problem
+</code></pre>
+
+<p>You can see the changes in files with <code>git diff &lt;older&gt; &lt;newer&gt;</code>, here it is:
+<code>git diff HEAD~2 HEAD~</code>, or <code>git diff ea37405 276932a</code>.</p>
+
+<p>If something wrong happens and your rebase process stopped,
+come back to the place where you started with <code>git rebase --abort</code>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[将Master分支上的最后一个Commit移动到Develop分支上]]></title>
@@ -59,130 +236,6 @@ git am /path/to/old-repo/*.patch
 <p>Ref:</p>
 
 <p><a href="http://stackoverflow.com/questions/5062389/getting-started-with-git-am">Getting started with git-am</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Linux的图形化Git客户端]]></title>
-    <link href="http://leetschau.github.io/blog/2015/11/19/103131/"/>
-    <updated>2015-11-19T10:31:31+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/11/19/103131</id>
-    <content type="html"><![CDATA[<p>这里的客户端不包括只有浏览功能的viewer，比如gitk, gitg等。
-下面两个客户端都需要安装JRE. 不需要安装，解压后直接使用。</p>
-
-<h1>GitEye</h1>
-
-<p>需要在repo里增加一个.project文件，然后在.gitignore里加入这个文件，不够clean。</p>
-
-<h1>SmartGit</h1>
-
-<p>商业应用付费，非商业用途免费；</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[将Meteor应用完整从1.2版本降级到1.1版本]]></title>
-    <link href="http://leetschau.github.io/blog/2015/10/29/200553/"/>
-    <updated>2015-10-29T20:05:53+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/10/29/200553</id>
-    <content type="html"><![CDATA[<p>当前版本的mup不支持Meteor 1.2，对1.1支持很好。
-一位开发者用<code>meteor update</code>升级了Meteor,然后push到代码库中，
-其他开发者同步代码后发现无法使用mup部署，
-这个问题不能简单地使用<code>meteor --releae 1.1</code>处理，
-因为从1.1到1.2，Metoer很多核心包的版本发生了变化，并增删了很多包，
-<code>meteor --release 1.1</code>只能还原Meteor自身版本，
-无法还原核心包，必须将.meteor目录下所有文件复原。</p>
-
-<p>使用git的patch功能可以方便地实现针对一个目录的复原。
-首先找到包含正确文件（旧Meteor版本和包定义）的commit，例如 15c9f125630，
-然后找到要复原的目标commit，一般是develop branch的HEAD，例如 f13b84f6c55，
-做一个反向patch：<code>git diff f13b84f6c55 15c9f125630 .meteor &gt; reverseDotMeteor.patch</code>;</p>
-
-<p>正常的<code>git diff</code>是旧版本在前，新版本在后，这样生成的patch反映的是文件内容随着时间发生的改变，
-这里将新的commit放在前面，生成的patch就能起到回到过去的作用。</p>
-
-<p>checkout目标commit并加载patch: <code>git apply reverseDotMeteor.patch</code>.</p>
-
-<p>测试mup是否能正常工作，如果能，提交修改。</p>
-
-<p>参考：<a href="http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between">http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Git Submodule]]></title>
-    <link href="http://leetschau.github.io/blog/2015/10/25/212008/"/>
-    <updated>2015-10-25T21:20:08+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/10/25/212008</id>
-    <content type="html"><![CDATA[<h1>Git submodule as Meteor package</h1>
-
-<p>We have a parent (container) Meteor application &ldquo;niufour&rdquo;,
-now we want to add a new package &ldquo;nf-search&rdquo; to niufour.</p>
-
-<p>Make sure if <code>packages/</code> has been added into .gitignore.</p>
-
-<p>Push the nf-search (outside of niufour folder) to remote repo,
-here we use a Phabricator server, with address <remote-repo-url>.</p>
-
-<p>Under the root of niufour, run:</p>
-
-<pre><code>git submodule add &lt;remote-repo-url&gt; packages/nf-search
-</code></pre>
-
-<p>While &ldquo;packages/&rdquo; is always in niufour/.gitignore, you should add module with:</p>
-
-<pre><code>git submodule add -f &lt;remote-repo-url&gt; packages/nf-search
-</code></pre>
-
-<p>The common form is: <code>git submodule add &lt;remote-repo-url&gt; &lt;local-path&gt;</code>,
-where the <local-path> is where you want to put your submodule.</p>
-
-<p>To add it into the niufour package list,
-add <code>nfcommerce:nf-search</code> into file <niufour-project-root>/.meteor/packages.</p>
-
-<p>After your partner push new codes into the repo,
-run commands below to synchronize:</p>
-
-<pre><code>git pull origin develop
-git submodule update --init --recursive
-</code></pre>
-
-<p>Use <code>git submodule status</code> to list current commit of each subpackage.</p>
-
-<h1>Keep demo state in parent project</h1>
-
-<p>A demo need both codes and data at the exact state of the verified time.
-So if your project has not submodules, use commit and tag to record the demo state.</p>
-
-<p>Otherwise, you can use commits in parent project to record demo state.
-In the example above, suppose niufour has another submodule &ldquo;nf-core&rdquo;.
-In the development process, commit on &ldquo;develop&rdquo; branch in each submodule,
-without commit on niufour.
-Only when PM (project manager) verified the demo,
-and all developers have committed and pushed in each submodule,
-PM commits, tags and pushes <strong>in parent project</strong> by himself:</p>
-
-<pre><code>cd /path/to/niufour
-git add -A
-git commit -m "this is for demo of 2015.11.04"
-git tag "demo-2015.11.04"
-git push origin develop
-</code></pre>
-
-<p>Then pm dump the database (<code>mongodump</code> for MongoDB) to a folder
-with the same name of the tag name (here it&rsquo;s &ldquo;demo-2015.11.04&rdquo;).</p>
-
-<p>At the demo day, the PM restore the data into a new database (<code>mongorestore</code> for example),
-then run commands below to restore the codes for demo:</p>
-
-<pre><code>git clone &lt;url-of-niufour&gt;
-git checkout demo-2015.11.04
-git submodule init
-git submodule update
-</code></pre>
-
-<p>Note: To demonstrate the usage of git submodule,
-use example in &ldquo;Git权威指南&rdquo;, 23.1 ~ 23.3, by 蒋鑫.</p>
 ]]></content>
   </entry>
   

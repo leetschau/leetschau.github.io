@@ -9,8 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Installation on CentOS 6.4 Download PGDG RPM file &ldquo;pgdg-centos93-9.3-1.noarch.rpm&rdquo;, copy to 47, and install with rpm -ivh;
-On server 47 &hellip;">
+  <meta name="description" content="Installation Docker Ref: postgres in docker official repo docker run --name some-postgres -e POSTGRES_PASSWORD=mySecretPassword -d postgres
+docker &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -87,68 +87,85 @@ On server 47 &hellip;">
 
 <div class="entry-content"><h1>Installation</h1>
 
+<h2>Docker</h2>
+
+<p>Ref: <a href="https://hub.docker.com/_/postgres/">postgres in docker official repo</a></p>
+
+<pre><code>docker run --name some-postgres -e POSTGRES_PASSWORD=mySecretPassword -d postgres
+docker run -it --link some-postgres:postgres --rm postgres sh -c 'exec psql -h "$POSTGRES_PORT_5432_TCP_ADDR" -p "$POSTGRES_PORT_5432_TCP_PORT" -U postgres'
+</code></pre>
+
+<p>Note do not replace &ldquo;POSTGRES_PORT_5432_TCP_ADDR&rdquo; with &ldquo;localhost&rdquo;.
+Keep this command as is.</p>
+
+<p>When prompting &ldquo;Password for user postgres:&rdquo;,
+input password set in starting server, here it is &ldquo;mySecretPassword&rdquo;.</p>
+
 <h2>on CentOS 6.4</h2>
 
-<ol>
-<li><p>Download PGDG RPM file &ldquo;pgdg-centos93-9.3-1.noarch.rpm&rdquo;, copy to 47, and install with rpm -ivh;</p></li>
-<li><p>On server 47: $ yum list postgres*</p></li>
-<li><p>$ yum install postgresql93-server_x86_64</p></li>
-<li><p>$ service postgresql-9.3 initdb</p></li>
-<li><p>$ chkconfig postgresql-9.3 on</p></li>
-<li><p>$ service postgresql-9.3 start (restart, stop, reload)</p></li>
-<li><p>$ su - postgres</p></li>
-<li><p>verify: $ psql</p></li>
-<li><p>list users: \du</p></li>
-</ol>
+<p>Download PGDG RPM file &ldquo;pgdg-centos93-9.3-1.noarch.rpm&rdquo;, copy to 47,
+install with rpm -ivh, and run:</p>
 
+<pre><code>yum list postgres*
+yum install postgresql93-server_x86_64
+service postgresql-9.3 initdb
+chkconfig postgresql-9.3 on
+service postgresql-9.3 start (restart, stop, reload)
+su - postgres
+</code></pre>
+
+<p>Verify: $ psql  list users: \du</p>
 
 <p><a href="http://wiki.postgresql.org/wiki/YUM_Installation">http://wiki.postgresql.org/wiki/YUM_Installation</a></p>
 
 <h2>on XUbuntu 13.10</h2>
 
-<p>It said there is no saucy (ubuntu 13.10) package in postgresql repository. So I modified &ldquo;saucy&rdquo; to &ldquo;precise&rdquo;:</p>
+<p>It said there is no saucy (ubuntu 13.10) package in postgresql repository.
+So I modified &ldquo;saucy&rdquo; to &ldquo;precise&rdquo;:</p>
 
-<p>$ echo &ldquo;deb <a href="http://apt.postgresql.org/pub/repos/apt/">http://apt.postgresql.org/pub/repos/apt/</a> precise-pgdg main&rdquo; > /etc/apt/sources.list.d/pgdg.list</p>
-
-<p>$ wget &ndash;quiet -O - <a href="https://www.postgresql.org/media/keys/ACCC4CF8.asc">https://www.postgresql.org/media/keys/ACCC4CF8.asc</a> | sudo apt-key add -</p>
-
-<p>$ sudo apt-get update</p>
-
-<p>$ sudo apt-get install postgresql-9.3 pgadmin3</p>
-
-<p>$ /etc/init.d/postgresql start</p>
+<pre><code>echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" &gt; /etc/apt/sources.list.d/pgdg.list
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install postgresql-9.3 pgadmin3
+/etc/init.d/postgresql start
+</code></pre>
 
 <p>Ref: <a href="http://wiki.postgresql.org/wiki/Apt">http://wiki.postgresql.org/wiki/Apt</a></p>
 
 <h1>Get Started</h1>
 
-<ol>
-<li><p>user postgres: $ psql</p></li>
-<li><p>CREATE ROLE bvt LOGIN PASSWORD &lsquo;&lt;&hellip;>&rsquo;; // Note that the semicolon is <strong>mandatory</strong>;</p></li>
-<li><p>create database mydb owner bvt;</p></li>
-<li><p>user bvt: $ psql mydb</p></li>
-</ol>
+<p>Run the following command with user &ldquo;postgres&rdquo;:</p>
 
+<pre><code>$ psql
+CREATE ROLE bvt LOGIN PASSWORD 'xxx';
+create database mydb owner bvt;
+</code></pre>
+
+<p>Run <code>psql mydb</code> with user bvt.</p>
+
+<p>Note the semicolon after each sql statement is mandatory.</p>
 
 <h1>psql usage</h1>
 
-<p>start psql console: psql <database_name> (if <database_name> omitted, it&rsquo;s the same as the user name);</p>
+<p>Start psql console: <code>psql &lt;database_name&gt;</code>.</p>
 
-<p>get help: \?;</p>
+<p>If <database_name> omitted, it&rsquo;s the same as the user name.</p>
 
-<p>list all tables: \d;</p>
+<p>Get help: \?;</p>
 
-<p>print table contents: select * from <table_name>;</p>
+<p>List all tables: \d;</p>
 
-<p>list roles: \du;</p>
+<p>Print table contents: select * from <table_name>;</p>
 
-<p>list databases: \l;</p>
+<p>List roles: \du;</p>
 
-<p>user &ldquo;postgres&rdquo; create database for a common user: create database bvt owner bvt;</p>
+<p>List databases: \l;</p>
 
-<p>delete database: drop database <db_name>; (same as &ldquo;dropdb <database_name>&rdquo; in terminal);</p>
+<p>User &ldquo;postgres&rdquo; create database for a common user: create database bvt owner bvt;</p>
 
-<p><a href="http://www.postgresql.org/docs/9.3/static/index.html">http://www.postgresql.org/docs/9.3/static/index.html</a></p>
+<p>Delete database: drop database <db_name>; (same as &ldquo;dropdb <database_name>&rdquo; in terminal);</p>
+
+<p>Ref: <a href="http://www.postgresql.org/docs/9.3/static/index.html">http://www.postgresql.org/docs/9.3/static/index.html</a></p>
 </div>
 
 
@@ -169,7 +186,7 @@ On server 47 &hellip;">
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/centos/'>centos</a>, <a class='category' href='/blog/categories/postgresql/'>postgresql</a>
+    <a class='category' href='/blog/categories/centos/'>centos</a>, <a class='category' href='/blog/categories/postgresql/'>postgresql</a>, <a class='category' href='/blog/categories/ubuntu/'>ubuntu</a>
   
 </span>
 
@@ -205,23 +222,23 @@ On server 47 &hellip;">
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/02/21/110422/">3月6日演讲提纲</a>
+        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/20/010838/">Merge Multiple PDF Files in Ubuntu</a>
+        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/16/212514/">Debug Python Script</a>
+        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/09/120142/">Golang Notes</a>
+        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/07/103930/">Cabal Notes</a>
+        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
       </li>
     
   </ul>

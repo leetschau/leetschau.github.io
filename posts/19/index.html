@@ -9,8 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin： runJobs: #!/bin/bash BMIN_CNT_WEI_LIST='0.5 0.3'
-MIN_SUP_LIST='0.004 0.0002' rm -rf {result,script} &hellip;">
+  <meta name="description" content="Show current network status of the computer: nmcli c status, nmcli nm and nmcli d; List all available Wi-Fi access points: nmcli dev wifi; Connect to &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,7 +71,7 @@ MIN_SUP_LIST='0.004 0.0002' rm -rf {result,script} &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/11/03/171108/">Spark任务自动执行脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/13/125635/">Connect to Wireless Network in Linux Mint Command Line</a></h1>
     
     
       <p class="meta">
@@ -81,327 +80,41 @@ MIN_SUP_LIST='0.004 0.0002' rm -rf {result,script} &hellip;">
 
 
 
-<time class='entry-date' datetime='2014-11-03T17:11:08+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>5:11 pm</span></time>
+<time class='entry-date' datetime='2014-12-13T12:56:35+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:56 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>当前目录下创建两个脚本，运行脚本runJobs.sh和WFP任务脚本模板wfp-origin：</p>
+  <div class="entry-content"><p>Show current network status of the computer: <code>nmcli c status</code>, <code>nmcli nm</code> and <code>nmcli d</code>;</p>
 
-<p>runJobs:</p>
+<p>List all available Wi-Fi access points: <code>nmcli dev wifi</code>;</p>
 
-<pre><code>#!/bin/bash
+<p>Connect to a new (unconnected before) access point:
+<code>nmcli dev wifi con "My SSID Name" password MyPassword iface wlan0</code>,
+or use default interface: <code>nmcli dev wifi connect MySSIDName password MyPassword</code>,
+replace &ldquo;wlan0&rdquo;, &ldquo;My ESSID Name&rdquo; and &ldquo;MyPassword&rdquo; with yours.</p>
 
-BMIN_CNT_WEI_LIST='0.5 0.3'
-MIN_SUP_LIST='0.004 0.0002'
+<p>Turn off current connected wifi: <code>nmcli nm wifi off</code>.</p>
 
-rm -rf {result,script}
-mkdir {result,script}
-origin_job=wfp-origin
-for bmin_cnt_wei in $BMIN_CNT_WEI_LIST; do
-    for min_sup in $MIN_SUP_LIST; do
-        echo MIN_SUP is: $min_sup , Bmin count weight is: $bmin_cnt_wei
-        new_script_name=wfp-bmin-${bmin_cnt_wei}-sup-${min_sup}
-        sed "4s/xxx/$min_sup/" $origin_job &gt; script/tmp
-        sed "11s/xxx/$bmin_cnt_wei/" script/tmp &gt; script/$new_script_name
-        rm script/tmp
-        echo Run shell script/$new_script_name
-        spark-shell -i script/$new_script_name
-        echo ------Calc is over------
-    done
-done
+<p>Next time when connected this wifi, turn on with <code>nmcli nm wifi on</code>.</p>
+
+<p>Other unverified versions:</p>
+
+<pre><code>nmcli d wifi connect &lt;WiFi-ESSID&gt; password &lt;WiFi-Password&gt; iface wlan0
+iwconfig wlan0 essid &lt;WiFi-ESSID&gt; key &lt;WiFi-Password&gt;
 </code></pre>
 
-<p>wfp-origin:</p>
+<p>Note:</p>
 
-<pre><code>import Math.ceil
-import scala.io
-
-val MIN_SUP = xxx
-val MIN_CONF = 0.1
-val MAX_RELATION_ORDER = 3
-val DATA_FILE = "input"
-val SEP = "\001"
-val WEI_IDX = 5
-val MIN_INT_ID_LEN = 5
-val BMIN_CNT_WEI = xxx
-
-val RES_FILE = "result/wfp-result-bmin-" + BMIN_CNT_WEI.toString + "-sup-" + MIN_SUP.toString
-
-val rawData = sc.textFile(DATA_FILE).distinct
-val data = rawData.filter(x =&gt; x.split(SEP)(1).split("_")(0).size &gt; MIN_INT_ID_LEN)   
-val item_count = data.map(_.split(SEP)(1)).map(w =&gt; (w,1)).reduceByKey(_+_)
-val wids = data.map(_.split(SEP)(0))
-val MAX_ITEM = wids.map(w =&gt; (w,1)).reduceByKey(_+_).map(_._2).max
-val T = wids.distinct.count
-
-val weight = data.map(x =&gt; (x.split(SEP)(1), x.split(SEP)(WEI_IDX).toFloat)).distinct
-val rule_sets = weight.top(2000)
-scala.tools.nsc.io.File(RES_FILE).writeAll(rule_sets.map(_.toString).reduce(_ + "\n" + _))
-exit
-</code></pre>
-
-<p>这里的wfp-orgin只是一个示例，根据自己的脚本调整具体内容，但最后一行"exit"必须有，否则不能退出spark shell执行后面的任务。</p>
-
-<p>需要修改的参数用空格分开定义在一个字符串里，例如上面的BMIN_CNT_WEI_LIST和MIN_SUP_LIST，
-脚本创建script目录，保存新生成的脚本，以及result目录，保存计算结果。</p>
-
-<p>配合tmux，可以在tmux上运行runJobs.sh，下班时从tmux上detach出来，第二天上班时在attach上去看结果。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/03/134818/">SparkR in Action</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-11-03T13:48:18+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Getting online manual: > help(map)</p>
-
-<blockquote><p>sc &lt;- sparkR.init(&ldquo;local&rdquo;)
-lines &lt;- textFile(sc, &ldquo;/home/boco/datamine/alarm_bd_05.txt&rdquo;)
-count(lines)
-14/11/03 09:45:43 INFO FileInputFormat: Total input paths to process : 1
-[1] 7963078</p></blockquote>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/31/092340/">Customize Login Screen of LinuxMint 17</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-31T09:23:40+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>9:23 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I think the default LinuxMint login screen is not cool, need a new backgroud picture.
-How to change this backgroud picture? In LinuxMint 17 this is done by creating a new login &ldquo;Theme&rdquo; and use it.
-According to <a href="http://www.windows-to-linux.com/2014/07/custom-login-screen-background-linux-mint-17/">Custom Login Screen Background On Linux Mint 17</a>
-there is 3 steps to achieve this:</p>
-
-<ol>
-<li><p>Create a new theme based on the default theme;</p></li>
-<li><p>Pack this theme;</p></li>
-<li><p>Set it as the login theme.</p></li>
-</ol>
-
-
-<p>Firstly I choose a picture from Variety&rsquo;s Favorites folder as the new backgroud.
-Then run following commands:</p>
-
-<pre><code>sudo cp -r /usr/share/mdm/html-themes/Mint-X ~/StarWorld
-cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/bg.jpg
-cp ~/.config/variety/Favorites/fbdgbcb_-_imgur.jpg ~/StartWorld/screenshot.jpg
-# modify name &amp; description in ~/StarWorld/theme.info
-tar czf star-world.tar.gz ~/StarWorld
-</code></pre>
-
-<p>Next login to Xfce desktop, startup &ldquo;Login Manager&rdquo;, add a new theme, choose star-world.tar.gz.</p>
-
-<p>Now logout and see the effect.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/29/094400/">Xen on LinuxMint</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-29T09:44:00+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>This morning I tried to install Debian 7.6 64bit on the DELL PC, but it failed due to some hardware problems.
-Then I installed LinuxMint 17 Xfce 64bit on this machine, and partition disk following <a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a>:</p>
-
-<blockquote><p>chad@chadpc ~ $ df -h
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda1       276M   45M  218M  17% /boot
-/dev/sda2        15G  4.1G  9.8G  30% /
-&hellip;</p></blockquote>
-
-<p>where /dev/sda1 is formated as ext2, and /dev/sda2 is formated as ext3, and leave /dev/sda4 unused.</p>
-
-<p>After reboot and login LinuxMint,
-modify apt mirror list according to <a href="https://launchpad.net/ubuntu/+archivemirrors">Official Archive Mirrors for Ubuntu</a>,
-adding the following lines into /etc/apt/sources.list:</p>
-
-<pre><code>deb http://mirrors.zju.edu.cn/ubuntu/ trusty main
-deb-src http://mirrors.zju.edu.cn/ubuntu/ trusty main
-deb http://ubuntu.cnssuestc.org/ubuntu/ trusty main
-deb-src http://ubuntu.cnssuestc.org/ubuntu/ trusty main
-</code></pre>
-
-<p>Then run commands as root:</p>
-
-<pre><code>apt-get update
-apt-get install openssh-server
-apt-get install lvm2
-pvcreate /dev/sda4
-vgcreate vg0 /dev/sda4
-apt-get install bridge-utils
-
-brctl addbr xenbr0
-brctl addif xenbr0 eth0
-dhclient xenbr0
-
-aptitude -P install xen-system  # not xen-linux-system
-dpkg-divert --divert /etc/grub.d/08_linux_xen --rename /etc/grub.d/20_linux_xen
-update-grub
-reboot
-# you can find now "Ubuntu GNU/Linux, with Xen hypervisor" is the default startup item in grub boot menu
-</code></pre>
-
-<h1>Build DomU</h1>
-
-<pre><code>apt-get install xen-tools
-</code></pre>
-
-<h2>Using xen-create-image</h2>
-
-<pre><code>xen-create-image --hostname=ch1 --memory=1024gb --vcpus=2 --lvm=vg0 --dhcp --pygrub --dist=wheezy
-</code></pre>
-
-<h2>Using xl</h2>
-
-<p>Follow <a href="http://wiki.xen.org/wiki/Debian_Guest_Installation_Using_Debian_Installer">Debian Guest Installation Using Debian Installer</a>.</p>
-
-<p>Here we download 2 net-install disk (which is very small) and install the guest system via Internet.
-So the host machine need to connected with Internet, or can connect to another machine which can access Internet,
-and defining a proxy when installing.</p>
-
-<p>Select a mirror <a href="http://ftp.cn.debian.org/debian/">ftp.cn.debian.org/debian/</a> in <a href="http://www.debian.org/mirror/list">Debian worldwide mirror sites</a>.
-And download vmlinuz and initrd.gz (from <a href="http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/">http://ftp.cn.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/xen/</a>)
-to local folder /home/chad/warez/xen-images-debian.</p>
-
-<p>Create a config file /root/deb.cfg:</p>
-
-<pre><code>name = "debian-installer"
-memory = 1024
-disk = ['phy:/dev/vg0/debian-installer,xvda,w']
-vif = [' ']
-
-kernel = "/home/chad/warez/xen-images-debian/vmlinuz"
-ramdisk = "/home/chad/warez/xen-images-debian/initrd.gz"
-extra = "debian-installer/exit/always_halt=true -- console=hvc0"
-</code></pre>
-
-<p>Then run following commands as root:</p>
-
-<pre><code>lvcreate -L 4G -n debian-installer /dev/vg0
-xl create -c /root/deb.cfg
-</code></pre>
-
-<p>Once installation has completed the guest will shutdown and exit.
-Remove the kernel, initrd and extra lines from the guest configuration, here remove the last 3 lines in deb.conf
-and replace them with simply:</p>
-
-<pre><code>bootloader = "pygrub"
-</code></pre>
-
-<p>Now the deb.conf became:</p>
-
-<pre><code>name = "debian-installer"
-memory = 1024
-disk = ['phy:/dev/vg0/debian-installer,xvda,w']
-vif = [' ']
-bootloader = "pygrub"
-</code></pre>
-
-<p>Startup the guest system with <code>xl create -c deb.cfg</code>.
-List all running vms with <code>xl list</code> in dom0.
-Connect this vm with <code>xl console debian-installer</code>.
-List all available subcommands of xl with <code>xl help</code>.
-Shutdown this vm with <code>xl shutdown debian-installer</code></p>
-
-<h1>Post installation</h1>
-
-<p>The &ldquo;brctl&rdquo; and &ldquo;dhclient&rdquo; commands above only build the network interface during system session.
-After system reboot, the bridge interface disappears, thus startup vm will failed.
-So we need define the bridge in /etc/network/interfaces, add the following lines into this file:</p>
-
-<pre><code>auto eth0
-iface eth0 inet dhcp
-
-auto xenbr0
-iface xenbr0 inet dhcp
-    bridge_ports eth0
-</code></pre>
-
-<p>If after reboot, the eth0 can&rsquo;t get IP address, use <code>ifdown eth0</code> and <code>ifup eth0</code> to refresh eth0.</p>
-
-<p>Update 2014.10.31: these settings cause network connection failed. After removing &ldquo;auto xenbr0&hellip;&rdquo; section, everything goes fine.
-So use <code>brctl</code> and <code>dhclient</code> to setup bridge after system startup.</p>
-
-<p>Notes:</p>
-
-<ol>
-<li><p>Use <code>lsblk -f</code> to see the volume group and logical volumes.</p></li>
-<li><p>pvcreate means &ldquo;create physical volume&rdquo;, vgcreate means &ldquo;create volume group&rdquo;, lvcreate means &ldquo;create logical volume&rdquo;.</p></li>
-<li><p>Use <code>lvremove /dev/vg0/debian-installer</code> to remove the logical volume created before.</p></li>
-<li><p>Use <code>dpkg-divert --list</code> to list all diversions, and <code>dpkg-divert --remove /etc/grub.d/20_linux_xen</code> to remove a diversion.</p></li>
-</ol>
-
+<p><code>iwlist wlan0 scan|grep ESSID</code> only list the connected Wifi, instead of all available Wi-Fi access points.</p>
 
 <p>Ref:</p>
 
-<p><a href="http://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide">Xen Project Beginners Guide</a></p>
+<p><code>man nmcli</code>;</p>
 
-<p><a href="https://wiki.debian.org/Xen">Xen on Debian Wiki</a></p>
+<p><a href="http://askubuntu.com/questions/461825/connect-to-wifi-from-command-line">connect to wifi from command line</a>;</p>
 </div>
   
   
@@ -414,7 +127,7 @@ So use <code>brctl</code> and <code>dhclient</code> to setup bridge after system
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/28/182614/">DMShell Up and Running</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/09/171332/">Connect Windows Remote Desktop From Linux Mint</a></h1>
     
     
       <p class="meta">
@@ -423,44 +136,41 @@ So use <code>brctl</code> and <code>dhclient</code> to setup bridge after system
 
 
 
-<time class='entry-date' datetime='2014-10-28T18:26:14+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:26 pm</span></time>
+<time class='entry-date' datetime='2014-12-09T17:13:32+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:13 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>The dmshell is a web server accepting a shell command string, and run it on web server host.</p>
+  <div class="entry-content"><p>On Windows server, check &ldquo;Allow connections only from computers running
+Remote Desktop with Network Level Authentication (more secure).&rdquo;
+in Remote desktop settings.</p>
 
-<h1>Setup DataBase</h1>
+<p>On client, run <code>sudo aptitude install remmina freerdp-x11 remmina-plugin-rdp</code>.</p>
 
-<h2>Fix Derby Server Startup Failed</h2>
+<p>Start Remmina, create a new connection.</p>
 
-<p>When start Derby server with <code>/home/chad/apps/jdk1.6.0_45/db/bin/startNetworkServer</code>, the following error raised:</p>
+<p>Under &ldquo;Basic&rdquo; tab:
+set &ldquo;Server&rdquo; to the IP address of the Windows host,
+&ldquo;User name&rdquo; and &ldquo;Password&rdquo; is the Windows account name and password.
+Leave &ldquo;Domain&rdquo; blank,
+set &ldquo;Color depth&rdquo; to &ldquo;True color (24 bpp)&rdquo; (or &ldquo;32 bpp&rdquo;)
+Set &ldquo;Resolution&rdquo; to &ldquo;Use client resolution&rdquo;.</p>
 
-<blockquote><p>access denied (&ldquo;java.net.SocketPermission&rdquo; &ldquo;localhost:1527&rdquo; &ldquo;listen,resolve&rdquo;)</p></blockquote>
+<p>To enable sound, under &ldquo;Advanced&rdquo; tab, set the &ldquo;Sound&rdquo; to &ldquo;Remote&rdquo;.
+Note this will make the sound from the Windows machine.</p>
 
-<p>Solution:</p>
+<p>Click &ldquo;Connect&rdquo; button to connect to the Windows host.
+After connected, disable &ldquo;Grab all keyboard events&rdquo; on toolbar,
+so you can use Ctrl-Alt-Left/Right to switch between Windows and Linux directly.
+But if you want use keyboard shortcuts defined in Windows
+you have to enable this option.</p>
 
-<p>Find out system&rsquo;s JRE. On my laptop, it&rsquo;s /usr/lib/jvm/java-7-openjdk-amd64/jre
-Add the following codes into file lib/security/java.policy in this folder:</p>
-
-<pre><code>grant {
-    permission java.net.SocketPermission "localhost:1527", "listen";
-};
-</code></pre>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4">http://stackoverflow.com/questions/21154400/unable-to-start-derby-database-from-netbeans-7-4</a></p>
-
-<h2>Create Database and Table</h2>
-
-<p>Run ~/apps/jdk1.6.0_45/db/bin/ij and run following commands:</p>
-
-<pre><code>connect 'jdbc:derby://localhost:1527/dmdb;create=true';
-create table shellstatus (id int not null generated by default as identity (start with 1, increment by 1), shellname varchar(40), starttime timestamp, endtime timestamp,status int);
-</code></pre>
-
-<p>Then you can use <code>select * from shellstatus;</code> to list all data in this table.</p>
+<p>To disable auto-sleep function of the Windows host,
+in [控制面板 -> 硬件和声音 -> 电源选项 -> 编辑计划设置],
+set the value of [使计算机进入休眠状态] in scenario [接通电源] to &ldquo;Never&rdquo;,
+while keep the value in scenario [用电池] as &ldquo;30 minutes&rdquo;.</p>
 </div>
   
   
@@ -473,7 +183,7 @@ create table shellstatus (id int not null generated by default as identity (star
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/27/111204/">A Spark Job Runner in Web Browser</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/08/114328/">Import Data From Files Into Mongodb</a></h1>
     
     
       <p class="meta">
@@ -482,106 +192,82 @@ create table shellstatus (id int not null generated by default as identity (star
 
 
 
-<time class='entry-date' datetime='2014-10-27T11:12:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:12 am</span></time>
+<time class='entry-date' datetime='2014-12-08T11:43:28+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:43 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>I wrote a Spark script. Now I need adding a web interface for it. Thus users can input parameters of the script in web browser, run the script,
-and see the calculation results in browser.</p>
+  <div class="entry-content"><h1>From CSV File</h1>
 
-<h1>JEE</h1>
+<p>Here I use mongoDB&rsquo;s mongoimport tool to import csv file into Meteor app&rsquo;s Mongodb.</p>
 
-<p>Download apache tomcat 7.0.56 core (apache-tomcat-7.0.56.tar.gz) and extract it to ~/apps;</p>
+<p>First download mongodb package (mongodb-linux-x86_64-2.6.5.tgz) from <a href="http://www.mongodb.org/">mongoDB</a>, extract it into ~/apps folder.</p>
 
-<p>Download Eclipse IDE for Java EE Developers (eclipse-jee-luna-SR1-linux-gtk-x86_64.tar.gz) and extract it to ~/apps;</p>
+<p>Next start the Meteor app. Open a new terminal window, in project root folder, run <code>meteor mongo</code>.
+You can see something like &ldquo;connecting to: 127.0.0.1:3001/meteor&rdquo;.
+This tells us database server is listening on port 3001, and database name is &ldquo;meteor&rdquo;.</p>
 
-<p>Start Eclipse IDE for Java EE Developers, build a new Web project: [File -> New -> Web -> Dynamic Web Project];</p>
+<p>Save the following codes into app&rsquo;s $HOME/private folder as importdb.sh:</p>
 
-<p>Specify &ldquo;Project&rdquo; as &ldquo;SparkRunner&rdquo;, &ldquo;Target runtime&rdquo; as &ldquo;Apache Tomcat v7.0&rdquo;.
-If the default runtime has not existed yet, build a new one: Type of runtime environment: Apache -> Apache Tomcat v7.0).
-Check &ldquo;Generate web.xml deployment descriptor&rdquo; at the last step and click &ldquo;Finish&rdquo;.</p>
-
-<p>Add the following texts into &ldquo;web-app&rdquo; of web.xml under $PROJECT_HOME/WebContent/WEB-INF:</p>
-
-<pre><code>&lt;servlet&gt;
-    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
-    &lt;servlet-class&gt;com.boco.dm.JobRunner&lt;/servlet-class&gt;
-&lt;/servlet&gt;
-&lt;servlet-mapping&gt;
-    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
-    &lt;url-pattern&gt;/JobRunner&lt;/url-pattern&gt;
-&lt;/servlet-mapping&gt;
+<pre><code>mongoimport -h localhost:3001 --db meteor --collection fairs --type csv --file fairs.csv --headerline
 </code></pre>
 
-<p>Ref:</p>
+<p>Here &ldquo;-d&rdquo; equals to &ldquo;&ndash;db&rdquo;, &ldquo;-c&rdquo; equals to &ldquo;&ndash;collection&rdquo;.
+And the source csv file is saved in file private/fairs.csv.</p>
 
-<p><a href="https://cloud.google.com/appengine/docs/java/config/webxml#About_Deployment_Descriptors">The Deployment Descriptor: web.xml</a></p>
-</div>
-  
-  
+<p>It&rsquo;s headerline (first line of csv file) is also comma-seperated:</p>
 
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/24/150059/">告警资源过滤算法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-24T15:00:59+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>WFP算法从告警报文中挖掘出关联规则后，保存在下面的RDD data中，每一条规则包含4项：支持度、置信度、规则前项和规则后项。
-前项和后项分别是一个字符串，是一个逗号分隔的多个网元列表，
-例如一条规则(0.2, 0.3, &ldquo;a,b&rdquo;, &ldquo;c&rdquo;)表示“网元a,b上的告警导致网元c上告警发生的支持度是0.2，置信度是0.3。
-也就是a,b,c在所有告警中发生的概率是20%，当a,b已经发生时，c发生的比率是30%。</p>
-
-<p>在另一张资源表中，每一行包含一对网元，保存在下面的RDD res_data中，
-例如"a,c"这一行表示网元a和c有资源上的关联关系，可能是物理链路连接，可能是同一物理位置等等。</p>
-
-<p>所谓的资源过滤就是只有在资源表中的规则才算有效规则，
-资源关系是没有顺序的，不论规则(a => c)还是(c => a)都符合(a,c)这一资源约束，
-对于规则(x1, x2, &hellip;, xm => y1, y2, &hellip;, yn)，只有前项和后项的所有笛卡尔积</p>
-
-<pre><code>(x1, y1), (x1, y2), ... (x1, yn)
+<pre><code>Name, Age, Job
+Bob, 35, Cooker
+Tom, 28, Coder
 ...
-(xm, y1), (xm, y2), ... (xm, yn)
 </code></pre>
 
-<p>都在资源表中，才表明这一条规则通过了资源过滤。
-例如对于规则(a,b => c)，只有a与c，a与b都有资源关系（即(a,b)和(a,c)都在资源表中），这条规则才有效。</p>
+<p>Now in the Meteor app, add <code>Fairs = new Meteor.Collection("fairs");</code> into js file to use the data.</p>
 
-<p>实现算法是：对于一条规则R1，求出其所有笛卡尔积R2，然后求R2与资源表的交集R3，如果</p>
+<h1>From JSON File</h1>
 
-<p>下面是描述这一筛选过程的Spark代码:</p>
+<h2>Json Lint</h2>
 
-<pre><code>val data = sc.parallelize(List((0.2, 0.3, "a,b", "c"), (0.5, 0.2, "b,c", "a,d")))
-val combine_pre_suf = data.flatMap(x =&gt; (x._3.split(",").flatMap(y =&gt; (x._4.split(",").map(z =&gt; (y+","+z, x))))))
-val suf_pre = combine_pre_suf.map(x =&gt; (x._1.split(",")(1) + "," + x._1.split(",")(0), x._2))
-val double_pre_suf_rule = suf_pre ++ combine_pre_suf
-val res_data = sc.parallelize(List("a,c","b,c","c,e","c,d"))
-val res_join_double = res_data.map(x =&gt; (x,1)).join(double_pre_suf_rule)
-val rule_in_res_cnt = res_join_double.map(x =&gt; (x._2._2, x._2._1)).reduceByKey(_+_)
-val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._1._4.split(",").size == x._2)
+<p>Validate the json file with <a href="https://github.com/zaach/jsonlint">jsonlint</a>.</p>
+
+<p>You need install node.js, then install jsonlint with <code>npm install jsonlint -g</code>.
+Next check the json file with <code>jsonlint myfile.json</code>.</p>
+
+<h2>Import from Json File</h2>
+
+<p>Use the following commands to import json objects from a file:</p>
+
+<pre><code>mongoimport -h localhost:3001 -d meteor -c fairs --type json --jsonArray --file demo.json
 </code></pre>
 
-<p>将这段代码保存在文件res-filter.script中，运行<code>spark-shell -i res-filter.script</code>。</p>
+<p>Or if your mongod is running on localhost, use the following line to import
+(no need to create the target database and collection before import):</p>
+
+<pre><code>mongoimport -d meteor -c fairs --type json --file first31.json --jsonArray
+</code></pre>
+
+<p>This is a sample of the imported json file:</p>
+
+<pre><code>[
+  { name: "Widget 1",
+    desc: "This is Widget 1"
+  },
+  { name: "Widget 2",
+    desc: "This is Widget 2"
+  }
+]
+</code></pre>
+
+<p>If the &ldquo;&ndash;jsonArray&rdquo; option is omitted, the json file have to keep each object in one line, like this:</p>
+
+<pre><code>{ name: "Widget 1", desc: "This is Widget 1" }
+{ name: "Widget 2", desc: "This is Widget 2" }
+</code></pre>
+
+<p>See <code>mongoimport --help</code> for details.</p>
 </div>
   
   
@@ -594,7 +280,7 @@ val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/22/103838/">Swap Mouse Buttons on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/04/230146/">Text Box Autocomplete in Meteor</a></h1>
     
     
       <p class="meta">
@@ -603,31 +289,78 @@ val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._
 
 
 
-<time class='entry-date' datetime='2014-10-22T10:38:38+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:38 am</span></time>
+<time class='entry-date' datetime='2014-12-04T23:01:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:01 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>LinuxMint</h1>
+  <div class="entry-content"><p>Autocomplete function in text box provides instant response to user input text, which is very powerful and user-friendly.</p>
 
-<p>If you login in terminal,
-add the following line into ~/.xinitrc before &ldquo;exec i3&rdquo;:</p>
+<p>For meteor, this function is called typeahead.
+Run <code>meteor search typeahead</code>, you can find <a href="https://github.com/sergeyt/meteor-typeahead">sergeyt:typeahead</a>.
+Clone it to your computer with git, in the &ldquo;demo&rdquo; subfolder, run <code>meteor</code> and open <a href="http://localhost:3000/.">http://localhost:3000/.</a>
+When typing in the first text box (&ldquo;NBA teams&rdquo; in it), it will provide instant response.</p>
 
-<pre><code>xmodmap -e "pointer = 3 2 1"
+<p>sergeyt:typeahead&rsquo;s Bootstrap counterpart is called typeahead, too. That of jQuery is called &ldquo;Autocomplete&rdquo;.</p>
+
+<p>The following is a minimal working demo of sergeyt:typeahead:</p>
+
+<pre><code>$ meteor create meteorapp
+$ cd meteorapp
+$ meteor add sergeyt:typeahead
+$ cat meteorapp.html
+&lt;head&gt;
+  &lt;title&gt;meteorapp&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;input "p" in the following text box&lt;/h1&gt;
+
+&lt;/body&gt;
+
+&lt;template name="sti"&gt;
+  &lt;input class="form-control typeahead" name="team"
+      type="text" placeholder="NBA teams"
+      autocomplete="off" spellcheck="off"
+      data-source="nba"/&gt;
+&lt;/template&gt;
+
+$ cat meteorapp.js
+Nba = new Meteor.Collection("nba");
+
+if (Meteor.isClient) {
+  Template.sti.helpers({
+    nba: function(){
+        return Nba.find().fetch().map(
+                function(it){
+                  return it.name;
+                });
+    }
+  });
+
+  Meteor.startup(function(){
+      Meteor.typeahead.inject();
+  });
+}
+
+if (Meteor.isServer) {
+  Meteor.startup(function () {
+    Nba.insert({name:'Philadelphia 76ers'});
+    Nba.insert({name:'Detroit Pistons'});
+    Nba.insert({name:'Portland Trail Blazers'});
+  });
+}
 </code></pre>
 
-<p>If you login with Xfce GUI,
-add above line into ~/.xsessionrc.</p>
+<p>Note:</p>
 
-<p>If you want to change to right-hand style mouse buton,
-run the following command in console:</p>
+<ol>
+<li><p>Every time start the server, the 3 items will be added into collection Nba. So if you don&rsquo;t clear data (with <code>meteor reset</code>), you will see many identical items in candidate list;</p></li>
+<li><p>No matter &ldquo;on&rdquo; or &ldquo;off&rdquo; of the value of the &ldquo;autocomplete&rdquo; attribute of the text box, the autocomplete function always works. So what is the function of this attribute?</p></li>
+</ol>
 
-<pre><code>xmodmap -e "pointer = 1 2 3"
-</code></pre>
-
-<p>Ref: <a href="https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal">https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal</a></p>
 </div>
   
   
@@ -640,7 +373,7 @@ run the following command in console:</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/21/191239/">`Key Could Not Be Imported` Error When Full Update ArchLinux System</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/04/110411/">Username Disappeared in Meteor Official Tutorial</a></h1>
     
     
       <p class="meta">
@@ -649,32 +382,244 @@ run the following command in console:</p>
 
 
 
-<time class='entry-date' datetime='2014-10-21T19:12:39+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>7:12 pm</span></time>
+<time class='entry-date' datetime='2014-12-04T11:04:11+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:04 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Today I update my ArchLinux system with <code>pacman -Syu</code>, when check for package key, I got following errors:</p>
+  <div class="entry-content"><p>In the 9th step (Adding user accounts) of official tutorial &ldquo;simple-todos&rdquo; of Meteor 1.0,
+if you start server while leaving some old data (todo items) created in previous steps,
+you will find that there&rsquo;s no username before the todo text.</p>
 
-<blockquote><p>:: Proceed with installation? [Y/n]
-(211/211) checking keys in keyring                                      [########################################] 100%
-downloading required keys&hellip;
-:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#x3a;&#x6d;&#x75;&#x66;&#x6c;&#x6f;&#x6e;&#101;&#x40;&#x76;&#98;&#x73;&#x69;&#109;&#112;&#x6c;&#x65;&#46;&#110;&#x65;&#x74;">&#x6d;&#117;&#102;&#108;&#x6f;&#x6e;&#101;&#x40;&#x76;&#x62;&#115;&#105;&#109;&#x70;&#x6c;&#x65;&#46;&#110;&#101;&#116;</a>&rdquo;, created: 2009-07-04? [Y/n]
-error: key &ldquo;Fabio Castelli <a href="&#109;&#97;&#x69;&#x6c;&#116;&#111;&#58;&#109;&#117;&#102;&#108;&#x6f;&#110;&#101;&#64;&#x76;&#x62;&#115;&#105;&#109;&#x70;&#108;&#101;&#x2e;&#x6e;&#x65;&#116;">&#109;&#x75;&#x66;&#108;&#111;&#x6e;&#x65;&#x40;&#x76;&#98;&#x73;&#x69;&#109;&#x70;&#x6c;&#101;&#x2e;&#x6e;&#101;&#116;</a>&rdquo; could not be imported
-error: required key missing from keyring
-error: failed to commit transaction (unexpected error)
-Errors occurred, no packages were upgraded.</p></blockquote>
+<p>But if you clear all old data (click remove button on web page, or use <code>meteor reset</code>),
+and create new todo items with a signed in username, you will find the username appear.</p>
 
-<p>The solution is pretty simple. We need to first update archlinux-keyring before proceeding to update other packages.</p>
+<h1>Data binding between Template and Collection</h1>
 
-<pre><code>$ sudo pacman -Syy
-$ sudo pacman -S archlinux-keyring
-$ sudo pacman -Syu
+<p>The following modified version simple-todos works:</p>
+
+<p>simple-todos.html:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;head&gt;
+</span><span class='line'>  &lt;title&gt;Todo List&lt;/title&gt;
+</span><span class='line'>&lt;/head&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;body&gt;
+</span><span class='line'>  &lt;div class="container"&gt;
+</span><span class='line'>    &lt;header&gt;
+</span><span class='line'>      &lt;h1&gt;Todo List&lt;/h1&gt;
+</span><span class='line'>      &lt;label class="hide-completed"&gt;
+</span><span class='line'>        &lt;input type="checkbox" checked="" /&gt;
+</span><span class='line'>        Hide Completed Tasks
+</span><span class='line'>      &lt;/label&gt;
+</span><span class='line'>
+</span><span class='line'>      
+</span><span class='line'>
+</span><span class='line'>      
+</span><span class='line'>        &lt;form class="new-task"&gt;
+</span><span class='line'>          &lt;input type="text" name="text" placeholder="Type to add tasks" /&gt;
+</span><span class='line'>        &lt;/form&gt;
+</span><span class='line'>      
+</span><span class='line'>    &lt;/header&gt;
+</span><span class='line'>    &lt;ul&gt;
+</span><span class='line'>      
+</span><span class='line'>        
+</span><span class='line'>      
+</span><span class='line'>    &lt;/ul&gt;
+</span><span class='line'>  &lt;/div&gt;
+</span><span class='line'>&lt;/body&gt;
+</span><span class='line'>
+</span><span class='line'>&lt;template name="todo"&gt;
+</span><span class='line'>  &lt;li class="checked"&gt;
+</span><span class='line'>    &lt;button class="delete"&gt;&times;&lt;/button&gt;
+</span><span class='line'>    &lt;input type="checkbox" checked="" class="toggle-checked" /&gt;
+</span><span class='line'>    &lt;span class="text"&gt;&lt;strong&gt;&lt;/strong&gt; -  at &lt;/span&gt;
+</span><span class='line'>  &lt;/li&gt;
+</span><span class='line'>&lt;/template&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>simple-todos.js:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Tasks = new Mongo.Collection("tododb");
+</span><span class='line'>
+</span><span class='line'>if (Meteor.isClient) {
+</span><span class='line'>  Template.body.helpers({
+</span><span class='line'>    todoitems: function () {
+</span><span class='line'>      if (Session.get("hideCompleted")) {
+</span><span class='line'>        return Tasks.find({checked: {$ne: true}}, {sort: {createdAt: -1}});
+</span><span class='line'>      } else {
+</span><span class='line'>        return Tasks.find({}, {sort: {createdAt: -1}});
+</span><span class='line'>      }
+</span><span class='line'>    },
+</span><span class='line'>    hideCompleted: function () {
+</span><span class='line'>      return Session.get("hideCompleted");
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.body.events({
+</span><span class='line'>    "submit .new-task": function (event) {
+</span><span class='line'>      var text = event.target.text.value;
+</span><span class='line'>
+</span><span class='line'>      Tasks.insert({
+</span><span class='line'>        text: text,
+</span><span class='line'>        createdAt : new Date(),
+</span><span class='line'>        owner: Meteor.userId(),
+</span><span class='line'>        username: Meteor.user().username
+</span><span class='line'>      });
+</span><span class='line'>
+</span><span class='line'>      event.target.text.value = "";
+</span><span class='line'>
+</span><span class='line'>      return false;
+</span><span class='line'>    },
+</span><span class='line'>
+</span><span class='line'>    "change .hide-completed input": function (event) {
+</span><span class='line'>        Session.set("hideCompleted", event.target.checked);
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.todo.helpers({
+</span><span class='line'>    creDate: function () {
+</span><span class='line'>      return this.createdAt;
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Template.todo.events({
+</span><span class='line'>    "click .toggle-checked": function () {
+</span><span class='line'>      Tasks.update(this._id, {$set: {checked: ! this.checked}});
+</span><span class='line'>    },
+</span><span class='line'>    "click .delete": function () {
+</span><span class='line'>      Tasks.remove(this._id);
+</span><span class='line'>    }
+</span><span class='line'>  });
+</span><span class='line'>
+</span><span class='line'>  Accounts.ui.config({
+</span><span class='line'>    passwordSignupFields: "USERNAME_ONLY"
+</span><span class='line'>  });
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>if (Meteor.isServer) {
+</span><span class='line'>  Meteor.startup(function () {
+</span><span class='line'>    // code to run on server at startup
+</span><span class='line'>  });
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So we can conclude (the left hand side of &ldquo;&lt;=>&rdquo; is template in html file, while js codes on the right hand side):</p>
+
+<ol>
+<li><p>The name after #each is a <strong>helper function</strong> which defined in js file, and returns a subset of a collection:</p>
+
+<pre><code>  &lt;=&gt; Template.body.helpers -&gt; todoitems: function () {...}; 
+</code></pre></li>
+<li><p>Variables in  in a template is the attributes of the object in collection, represented by the template:</p>
+
+<pre><code> &lt;strong&gt;&lt;/strong&gt; -  &lt;=&gt; Tasks.insert({ text: text, ..., username: Meteor.user().username }); 
 </code></pre>
 
-<p>Ref: <a href="http://kiawin.com/blog/2014/09/error-key-could-not-be-imported.html">Error: Key could not be imported</a>.</p>
+<p>or a helper function ( here).</p></li>
+<li><p>&ldquo;this&rdquo; in helper function refers to the template the function based on.</p></li>
+</ol>
+
 </div>
   
   
@@ -687,7 +632,7 @@ $ sudo pacman -Syu
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/21/100928/">Notes of Data Science at the Command Line</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/03/180421/">Meteor Codes Auto Completion in Vim</a></h1>
     
     
       <p class="meta">
@@ -696,26 +641,365 @@ $ sudo pacman -Syu
 
 
 
-<time class='entry-date' datetime='2014-10-21T10:09:28+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:09 am</span></time>
+<time class='entry-date' datetime='2014-12-03T18:04:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:04 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>&ldquo;A Real-World Use Case&rdquo; in Chapter 1</h1>
+  <div class="entry-content"><h1>On ArchLinux</h1>
 
-<p>In this case a GUI window need to be displayed based on data extracted from &ldquo;New York Times&rdquo;.
-So we have to connect to the VM with X forwarded: <code>ssh vagrant@localhost -p 2222 -X</code>.
-I registered the <a href="http://developer.nytimes.com/apps/myapps">NYT developer keys</a>.
-So the run following commands to extract data:</p>
+<ol>
+<li><p>Install node.js: <code>sudo pacman -S nodejs</code>;</p></li>
+<li><p>Install <a href="https://github.com/marijnh/tern_for_vim">tern_for_vim</a>:</p>
 
-<pre><code>parallel -j1 --progress --delay 0.1 --results results "curl -sL 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=New+York+Fashion+Week&amp;begin_date={1}0101&amp;end_date={1}1231&amp;page={2}&amp;api-key=13fdd3f29a9479f92ef74c26166fda3a:16:60048486'" ::: {2009..2013} ::: {0..99} &gt; /dev/null
-cat results/1/*/2/*/stdout | jq -c '.response.docs[] | {date: .pub_date, type: .document_type,title: .headline.main }' | json2csv -p -k date,type,title &gt; fashion.csv
-&lt; fashion.csv Rio -ge 'g + geom_freqpoly(aes(as.Date(date), color=type), ''binwidth=7) + scale_x_date() + labs(x="date", title="Coverage of New York'' Fashion Week in New York Times")' | display
+<pre><code> $ cd ~/.vim/bundle
+ $ git clone https://github.com/marijnh/tern_for_vim.git
+ $ cd tern_for_vim
+ $ npm install
+</code></pre></li>
+<li><p>Install meteor plugin for tern <a href="https://github.com/Slava/tern-meteor">tern-meteor</a>: download meteor.js from this site to folder ~/.vim/bundle/tern_for_vim/node_modules/tern/plugins;</p></li>
+<li><p>Create a meteor project, create a .tern-project file under the project home:</p>
+
+<pre><code> {
+   "libs": [
+     "browser",
+     "jquery",
+     "underscore"
+   ],
+   "loadEagerly": [ "*.js", "*/*.js", "*/*/*.js", "*/*/*/*.js" ],
+   "dontLoad": [ ".meteor" ],
+   "plugins": {
+     "meteor": {}
+   }
+ }
+</code></pre></li>
+<li><p>Now when you edit .js file, use C-x,C-o to trigger autocompletion.</p></li>
+</ol>
+
+
+<p>Ref:</p>
+
+<p><a href="https://github.com/joyent/node/wiki/installing-node.js-via-package-manager#arch-linux">Installing Node.js via package manager</a>;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/03/113214/">Use Template.dynamic to Create Dynamic Pages for Meteor Application</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-03T11:32:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>11:32 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>For a SPA (single page app), it&rsquo;s a common practice to switch between templates instead of pages.
+The following codes demonstrate how to switching between 2 templates according to 2 buttons' clicking events.</p>
+
+<pre><code>$ meteor create multipage
+$ cd multipage
+$ cat &lt;&lt; EOF &gt; multipage.html
+&lt;head&gt;
+  &lt;title&gt;multiple-view-example&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;button class="pageHome"&gt;Home&lt;/button&gt;
+  &lt;button class="pageAbout"&gt;About&lt;/button&gt;
+
+&lt;/body&gt;
+
+&lt;template name="home"&gt;
+  &lt;p&gt;Home!&lt;/p&gt;
+&lt;/template&gt;
+
+&lt;template name="about"&gt;
+  &lt;p&gt;About!&lt;/p&gt;
+&lt;/template&gt;
+EOF
+
+$ cat &lt;&lt; EOF &gt; multipage.js
+if ( Meteor.isClient ) {
+  Meteor.startup(function () {
+    Session.set("page", "home");
+    console.log("session key: " + Session.get("page"));
+  });
+
+  Template.body.helpers({
+    whichOne: function(){
+      console.log("session key: " + Session.get("page"));
+      return Session.get("page");
+    }
+  });
+
+  Template.body.events({
+    "click .pageHome": function () {
+      Session.set("page", "home");
+    },
+    "click .pageAbout": function () {
+      Session.set("page", "about");
+    }
+  });
+}
+
+if ( Meteor.isServer ) {
+  Meteor.startup( function() {
+  } );
+}
+EOF
+
+$ meteor
 </code></pre>
 
-<p>Now a GUI window named ImageMagick appears, and display the data in file fashion.csv.</p>
+<p>Open <a href="http://localhost:3000,">http://localhost:3000,</a> clicking &ldquo;Home&rdquo; button, the &ldquo;home&rdquo; template is shown.
+While clicking &ldquo;about&rdquo; button, the &ldquo;about&rdquo; template is shown.</p>
+
+<p>Template.dynamic is better than Meteor&rsquo;s route package, for it&rsquo;s a built-in function of Meteor.
+No need to install a package with <code>meteor add ...</code>.</p>
+
+<p>And you can put big templates into a new html file, which make the struture more flexible.</p>
+
+<p>Ref: <a href="http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js">http://stackoverflow.com/questions/12968808/dynamically-loading-templates-in-meteor-js</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/01/103921/">Use Bootstrap Themes in Meteor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-01T10:39:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://www.meteor.com/">Meteor</a> is awesome for build dynamic web apps.
+However it&rsquo;s a &ldquo;baremetal&rdquo; without templates.
+On the other hand, <a href="http://getbootstrap.com/">Bootstrap</a> is a powerful front-end framework with many beautiful themes.
+So we have to combine these two.</p>
+
+<p>First of all we need to get the bootstrap.min.js
+from the latest precompiled version of bootstrap release package (bootstrap-x.x.x-dist.zip).
+<a href="http://bootswatch.com/">Bootswatch</a> provides free bootstrap themes.
+Download &ldquo;bootstrap.min.css&rdquo; file with clicking &ldquo;Download&rdquo; button of prefered theme,
+and put it under client folder of meteor app.
+Then all DOM element will be styled.</p>
+
+<pre><code>cd ~/docs/tmp
+meteor create mywebapp
+cd mywebapp
+rm *.js *.css *.html
+mkdir -p {server,client/{css,lib}}
+wget https://github.com/twbs/bootstrap/releases/download/v3.3.1/bootstrap-3.3.1-dist.zip
+unzip bootstrap-3.3.1-dist.zip -d bootstrap
+cp bootstrap/dist/js/bootstrap.min.js client/lib
+rm -rf bootstrap*
+wget http://bootswatch.com/readable/bootstrap.min.css client/css/bootstrap.min.css
+cat &lt;&lt; EOF &gt; client/mywebapp.html
+&lt;head&gt;
+  &lt;title&gt;sousouzhan&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;h1&gt;Welcome to Meteor!&lt;/h1&gt;
+
+
+&lt;/body&gt;
+
+&lt;template name="hello"&gt;
+  &lt;button type="button" class="btn btn-default"&gt;Click Me&lt;/button&gt;
+  &lt;div class="searchform"&gt;
+    &lt;form role="form"&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputEmail1"&gt;Email address&lt;/label&gt;
+        &lt;input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email"&gt;
+      &lt;/div&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputPassword1"&gt;Password&lt;/label&gt;
+        &lt;input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password"&gt;
+      &lt;/div&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label for="exampleInputFile"&gt;File input&lt;/label&gt;
+        &lt;input type="file" id="exampleInputFile"&gt;
+        &lt;p class="help-block"&gt;Example block-level help text here.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class="checkbox"&gt;
+        &lt;label&gt;
+          &lt;input type="checkbox"&gt; Check me out
+        &lt;/label&gt;
+      &lt;/div&gt;
+      &lt;button type="submit" class="btn btn-default"&gt;Submit&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+  &lt;p&gt;You've pressed the button  times.&lt;/p&gt;
+&lt;/template&gt;
+EOF
+meteor
+</code></pre>
+
+<p>Then open <a href="http://localhost:3000">http://localhost:3000</a> to view the result.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/28/084428/">Jump Between Tabs in Firefox With Keyboard Shortcuts</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-28T08:44:28+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:44 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p><strong>Go to specific tab with text</strong> by extension &ldquo;Tabhunter&rdquo;</p>
+
+<p>  Setup the invoking key in its preference page. I use F1 as the key.
+  Every time F1 is pressed, input some text to activate the corresponding tab.
+  Current version (2015/03/27) is 1.0.5.</p></li>
+<li><p><strong>Jump betwwen tabs</strong> with <em>ctrl+tab</em></p>
+
+<p>  In a new tab, type <em>about:config</em> in the address bar and press Enter. Click the button promising to be careful.
+  Set <strong>browser.ctrlTab.previews</strong> to <em>true</em>;
+  Now use <em>ctrl+tab</em> to jump between two tabs;</p>
+
+<p>  Or use extension &ldquo;Ctrl-Tab&rdquo; to achieve the same functionality.</p></li>
+<li><p><strong>Jump between tab groups</strong> with <em>ctrl+`</em></p>
+
+<p>  Create and manage tab groups with <em>ctrl+shift+e</em> (see <a href="https://support.mozilla.org/en-US/kb/tab-groups-organize-tabs#w_how-do-i-organize-my-tab-groups">Use Tab Groups to organize a lot of tabs</a> for details).
+  And use <em>ctrl+`</em> to jump between two tab groups.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/27/092846/">Vim as a HTML Editor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-11-27T09:28:46+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Jump between matching HTML and XML tags</h1>
+
+<p>In normal mode, use &ldquo;vat&rdquo; to select all texts between these matching tags,
+then use &ldquo;o&rdquo; to jump between matching tags.</p>
+
+<p>In &ldquo;vat&rdquo;, &ldquo;v&rdquo; means select,
+&ldquo;a&rdquo; means including tags themselves(comparing with &ldquo;i&rdquo;),
+&ldquo;t&rdquo; means tags.</p>
+
+<p>So we have &ldquo;cat&rdquo; (change outer), &ldquo;yat&rdquo; (copy outer), &ldquo;cit&rdquo; (change inner), &ldquo;dit&rdquo; (delete inner), etc.</p>
+
+<h1>Fold/Unfold HTML Tags</h1>
+
+<p>Fold a html tag: <code>zfit</code>;</p>
+
+<p>Toggle fold/unfold tags: <code>za</code>;</p>
+
+<p>Unfold all tags: <code>zR</code>;</p>
+
+<p>See <a href="http://stackoverflow.com/questions/21501789/vim-how-to-fold-an-html-tag">vim how to fold an html tag</a> for other methods.</p>
+
+<h1>Auto complete opened tags</h1>
+
+<h2>xmledit plugin</h2>
+
+<p>Install with <code>git clone https://github.com/sukima/xmledit.git ~/.vim/bundle/xmledit</code>.
+But it only works with .xml files. Not working with .html files.</p>
+
+<p>To fix this, <code>cd ~/.vim/bundle/xmledit/ftplugin; cp xml.vim html.vim</code> (overwrite the existing html.vim file).</p>
+
+<h2>No plugins</h2>
+
+<p>Add &ldquo;inoremap <F8> &lt;/<C-X><C-O>&rdquo; into ~/.vimrc.
+Now after &ldquo;<p>some text&rdquo;, press F8, it will be converted to &ldquo;<p>some text</p>&rdquo;.</p>
+
+<h2>ragtag plugin</h2>
+
+<p>Install <a href="https://github.com/tpope/vim-ragtag">ragtag</a> plugin for vim with <code>git clone https://github.com/tpope/vim-ragtag.git</code> into ~/.vim/bundle.</p>
+
+<p><code>:h ragtag</code> in vim for help.</p>
+
+<p>When editing a .html file, in insert mode, after input &ldquo;div&rdquo;, press Ctrl-x,Space, it will be convert to &ldquo;<div>|</div>&rdquo;.
+If press Ctrl-x,Enter, it will be converted to:</p>
+
+<pre><code>&lt;div&gt;
+|
+&lt;/div&gt;
+</code></pre>
+
+<p>where &ldquo;|&rdquo; marks the cursor position.</p>
+
+<h2>Other plugins</h2>
+
+<p>There are some more powerful plugins for xml/html editing, but they are more complicated.
+Like <a href="http://www.vim.org/scripts/script.php?script_id=1697">surround.vim</a>, <a href="http://www.vim.org/scripts/script.php?script_id=13">closetag.vim</a>, and <a href="https://github.com/mattn/emmet-vim">emmet-vim</a>.</p>
 </div>
   
   
@@ -740,23 +1024,23 @@ cat results/1/*/2/*/stdout | jq -c '.response.docs[] | {date: .pub_date, type: .
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/02/21/110422/">3月6日演讲提纲</a>
+        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/20/010838/">Merge Multiple PDF Files in Ubuntu</a>
+        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/16/212514/">Debug Python Script</a>
+        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/09/120142/">Golang Notes</a>
+        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/02/07/103930/">Cabal Notes</a>
+        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
       </li>
     
   </ul>

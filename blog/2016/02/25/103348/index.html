@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Combine History Commits With Git - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="Question The commit history is: $ git log --pretty=oneline
+52756ce25b26442a21ebfe52655dcf9c6ba9aa98 ch6 changed &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2016/02/25/103348/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Combine History Commits With Git</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-02-25T10:33:48+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>10:33 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>Question</h1>
+
+<p>The commit history is:</p>
+
+<pre><code>$ git log --pretty=oneline
+52756ce25b26442a21ebfe52655dcf9c6ba9aa98 ch6 changed
+41d49f2fbd12c00af99a90b6fbd1e4af18db0103 ch5 changed
+c24b32555b5fe98d556acc7d32a2bd68346d40ba ch4 changed
+4088dde16b47f39d1b5f9553bc902e2afc34bf9a ch3 changed
+ea37405f9b59bef389ef6ca6a0c6ae8ad6365fb9 Fix some syntax problem
+...
+</code></pre>
+
+<p>You want to combine changes in chapter 3, 4 and 5.</p>
+
+<h1>Solution</h1>
+
+<pre><code>git rebase -i ea37405f
+</code></pre>
+
+<p>Here &ldquo;ea37405f&rdquo; is the commit <strong>older</strong> than the commits you want to combine.</p>
+
+<p>Now in an editor like:</p>
+
+<pre><code>pick 4088dde ch3 changed
+pick c24b325 ch4 changed
+pick 41d49f2 ch5 changed
+pick 52756ce ch6 changed
+</code></pre>
+
+<p>Notice the timeline order is <strong>reversed</strong> compared with that in <code>git log</code>:
+the newest commit (&ldquo;ch6 changed&rdquo;) is now in the last line, instead of the first.</p>
+
+<p>Modify the content like this:</p>
+
+<pre><code>pick 4088dde ch3 changed
+s c24b325 ch4 changed
+s 41d49f2 ch5 changed
+pick 52756ce ch6 changed
+</code></pre>
+
+<p>Here &ldquo;s&rdquo; means melding the commit into previous (<strong>older</strong>) commit.</p>
+
+<p>Save and quit, you now in an editor for new commit message, input:</p>
+
+<pre><code>chapter 3, 4 and 5 changed
+</code></pre>
+
+<p>Save and you get a message &ldquo;Successfully rebased and updated refs/heads/master&rdquo;.</p>
+
+<h1>Discussion</h1>
+
+<p>Check the history after rebase:</p>
+
+<pre><code>$ git log --pretty=oneline
+b4463e99ad221f270fd9f51d5bc7e8b348805804 ch6 changed
+276932a252b9041085fb30d0d5e4082db8c03584 chapter 3, 4 and 5 changed
+ea37405f9b59bef389ef6ca6a0c6ae8ad6365fb9 Fix some syntax problem
+</code></pre>
+
+<p>You can see the changes in files with <code>git diff &lt;older&gt; &lt;newer&gt;</code>, here it is:
+<code>git diff HEAD~2 HEAD~</code>, or <code>git diff ea37405 276932a</code>.</p>
+
+<p>If something wrong happens and your rebase process stopped,
+come back to the place where you started with <code>git rebase --abort</code>.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2016-02-25T10:33:48+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>10:33 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/combine/'>combine</a>, <a class='category' href='/blog/categories/commit/'>commit</a>, <a class='category' href='/blog/categories/git/'>git</a>, <a class='category' href='/blog/categories/merge/'>merge</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2016/02/25/103348/" data-via="" data-counturl="http://leetschau.github.io/blog/2016/02/25/103348/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/02/21/134826/" title="Previous Post: Develop Meteor App with TypeScript">&laquo; Develop Meteor App with TypeScript</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/02/28/002058/" title="Next Post: Git Branch Note">Git Branch Note &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2016 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
