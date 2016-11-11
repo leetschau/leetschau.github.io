@@ -9,9 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="60和61服务器根目录(/)50G空间全被占满，用du -shx /*查看，非挂载目录的空间加起来远达不到50GB，
-查了一下，怀疑原因是原来挂在/mnt下的data1和data2目录下的两块大容量磁盘由于某种原因没有挂载上，
-但cloudera &hellip;">
+  <meta name="description" content="For version 3.0. Install On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract: wget https://fastdl.mongodb.org/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -40,7 +38,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -73,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/24/174727/">CentOS服务器根目录空间被占满的解决方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/03/06/090609/">Setup MongoDB Server on Aliyun</a></h1>
     
     
       <p class="meta">
@@ -82,32 +80,103 @@
 
 
 
-<time class='entry-date' datetime='2014-12-24T17:47:27+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
+<time class='entry-date' datetime='2015-03-06T09:06:09+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:06 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>60和61服务器根目录(/)50G空间全被占满，用<code>du -shx /*</code>查看，非挂载目录的空间加起来远达不到50GB，
-查了一下，怀疑原因是原来挂在/mnt下的data1和data2目录下的两块大容量磁盘由于某种原因没有挂载上，
-但cloudera manager管理的hadoop和hdfs系统仍然在向这两个目录下存放大文件，导致空间被耗光，
-验证方法是用<code>mount</code>命令检查/mnt下是否有挂载，如果有，将它们卸载掉，看/mnt下是否还有文件，
-有的话删除掉就好了。</p>
+  <div class="entry-content"><p>For version 3.0.</p>
 
-<p>如果不是这个原因，还可能是被删除的大文件没有释放，用<code>lsof|grep "deleted"</code>检查；</p>
+<h1>Install</h1>
 
-<p>参考：</p>
+<p>On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract:</p>
 
-<p><a href="http://serverfault.com/questions/275206/disk-full-du-tells-different-how-to-further-investigate">Disk full, du tells different. How to further investigate?</a></p>
+<pre><code>wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+cd /opt
+tar zxf ~/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+mkdir -p /data/db
+</code></pre>
 
-<p><a href="http://serverfault.com/questions/57098/du-vs-df-difference">du vs. df difference</a></p>
+<h1>Authentication Management</h1>
 
-<p><a href="http://serverfault.com/questions/62119/how-do-i-find-out-what-is-using-up-all-the-space-on-my-partition">How do I find out what is using up all the space on my / partition?</a></p>
+<p>Start mongod without auth on VPS (ip: 123.56.18.18): <code>mongod</code>;</p>
 
-<p><a href="http://askubuntu.com/questions/266825/what-do-i-do-when-my-root-filesystem-is-full">What do I do when my root filesystem is full?</a></p>
+<p>Connect to server with <code>mongo 123.56.18.18</code>;
+Create system user administrator:</p>
 
-<p><a href="http://serverfault.com/questions/513136/centos-dev-root-is-getting-full-cannot-find-disk-space-usage">Centos , /dev/root is getting full. Cannot find disk space usage</a></p>
+<pre><code>use admin
+db.createUser(
+    {
+      user: "superuser",
+      pwd: "12345678",
+      roles: [ "root" ]
+    }
+)
+</code></pre>
+
+<p>Create user in current database:</p>
+
+<pre><code>use products
+db.createUser({user: "dba", pwd: "dba", roles: ["readWrite"]})
+show users
+</code></pre>
+
+<p>Verify with <code>db.getUsers()</code>.</p>
+
+<p>Create a production config file mongo.conf:</p>
+
+<pre><code>net:
+  #bindIp: 10.251.212.248
+  port: 15515
+systemLog:
+  destination: file
+  path: "mongo.log"
+  logAppend: true
+security:
+  authorization: enabled
+</code></pre>
+
+<p>Stop and restart mongod with <code>nohup mongod --config mongo.conf &amp;</code>;</p>
+
+<p>Connect to server as a database user: <code>mongo 123.56.18.18:15515/products -u niufair -p nfsecret</code>.
+You can <code>show collections</code>, <code>db.doc.insert()</code>, etc.</p>
+
+<p>Start Meteor app with <code>MONGO_URL="mongodb://niufair:nfsecret@123.56.18.18:15515/products" meteor</code>.</p>
+
+<p>Connect to server as administrator: <code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin</code>.</p>
+
+<p>Use <code>db.getUsers()</code> (or <code>show users</code>) and <code>db.dropUser("username")</code> to list and remove the user.</p>
+
+<h2>Create a new database under authentication</h2>
+
+<p>Say we want to create a new database named &ldquo;bakdb&rdquo;:</p>
+
+<pre><code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin
+use bakdb
+db.createUser({user: "niufair", pwd: "nfsecret", roles: ["readWrite"]})
+</code></pre>
+
+<p>Verify: <code>mongo -u niufair -p nfsecret 123.56.18.18:15515/bakdb</code>;</p>
+
+<p>Ref:</p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication-without-bypass/">Enable Authentication after Creating the User Administrator</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-user-to-database/">Add a User to a Database</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-admin-user/">Create an Administrative User with Unrestricted Access</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication/">Enable Client Access Control</a></p>
+
+<p><a href="http://docs.mongodb.org/manual/reference/built-in-roles/">Built-In Roles</a></p>
+
+<p><a href="http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb">http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb</a></p>
+
+<h1>MMS</h1>
+
+<p>Connect mongodb server without authentication: <code>mongo &lt;ip&gt;:&lt;port&gt;</code>;</p>
 </div>
   
   
@@ -120,7 +189,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/24/152921/">HTML笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/03/05/095056/">Manage Website Remotely</a></h1>
     
     
       <p class="meta">
@@ -129,59 +198,33 @@
 
 
 
-<time class='entry-date' datetime='2014-12-24T15:29:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:29 pm</span></time>
+<time class='entry-date' datetime='2015-03-05T09:50:56+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:50 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>HTML 布局原理</h1>
+  <div class="entry-content"><h1>Prerequisite</h1>
 
-<p>HTML元素分为块级元素(block element)和行内元素(inline element)，
-前者独占一行，也就是元素的头和尾会被自动加上换行符，如<div>, <h1>, <p>, <ul>, <table>等；</p>
+<h2>Managing Node</h2>
 
-<p>后者不会独占一行，如<span>, <b>, <td>, <a>, <img>等；</p>
+<p>// Install Fabric with <code>sudo pip install fabric</code>.</p>
 
-<p>CSS布局原理：<a href="http://www.w3schools.com/css/css_boxmodel.asp">CSS Box Model</a>.</p>
+<p>Install ansible with <code>sudo pip install ansible</code>.</p>
 
-<p>一个CSS box从外向内分为4部分：margin, border, padding, content.
-除了最内部的内容部分(content)，其他3部分都可以设置宽度，
-其中margin是块级元素边界(border)之外的透明区域；
-border是边界线，默认宽度为0，即不可见；
-padding是内容(content)到边界之间的透明区域；</p>
+<h2>Provision of remote host</h2>
 
-<p>将下面的代码保存在一个html文件中，可以看到各部分的作用：</p>
+<p>Create user with <code>sudo useradd -m chad</code>,
+then add ssh-auto-login with <code>ssh-copy-id ...</code>.</p>
 
-<pre><code>&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-  &lt;head&gt;
-    &lt;style&gt;
-    div {
-        background-color: lightgrey;
-        width: 300px;
-        padding: 15px;
-        border: 5px solid navy;
-        margin: 25px;
-    }
-    &lt;/style&gt;
-  &lt;/head&gt;
-  &lt;body&gt;
-    &lt;div&gt;Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod.
-    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
-    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt.&lt;/div&gt;
-  &lt;/body&gt;
-&lt;/html&gt;
-</code></pre>
+<p>// Install Node.js, MongoDB,</p>
 
-<h1>HTML5</h1>
+<h1>Backup MongoDB</h1>
 
-<p>测试浏览器对HTML5的支持度：用待测浏览器打开<a href="https://html5test.com/">HTML5test</a>，该网页会列出浏览器对HTML5每一项特性支持与否。</p>
+<h1>Import new data</h1>
 
-<h2>Semantic Element</h2>
-
-<p>Ref: <a href="http://www.w3schools.com/html/html5_semantic_elements.asp">HTML5 Semantic Elements</a></p>
+<h1>Update website codes</h1>
 </div>
   
   
@@ -194,7 +237,7 @@ padding是内容(content)到边界之间的透明区域；</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/23/180824/">Build Executable Jar in Command Line</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/02/28/152115/">Website Monitor for Meteor Application</a></h1>
     
     
       <p class="meta">
@@ -203,98 +246,34 @@ padding是内容(content)到边界之间的透明区域；</p>
 
 
 
-<time class='entry-date' datetime='2014-12-23T18:08:24+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>6:08 pm</span></time>
+<time class='entry-date' datetime='2015-02-28T15:21:15+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:21 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Build a executable jar file using external jars:</p>
+  <div class="entry-content"><h1>Google Analytics</h1>
 
-<pre><code>$ find .
-./Mod1.java
-./mf
-./lib
-./lib/commons-io-2.4.jar
+<p>Add tracking code (<script>&hellip;</script>) into the &ldquo;<head>&hellip;</head>&rdquo; (commonly in head.html) of your meteor app.</p>
 
-$ cat Mod1.java
-import org.apache.commons.io.FileUtils;
-import java.io.File;
+<p>You can find your tracking codes at Admin -> User Management -> Tracking Info -> Tracking Code.</p>
 
-public class Mod1 {
-  public static void main (String[] args) {
-    String[] scriptExt = new String[] { "scala" };
-    System.out.println("List all scala files: " + FileUtils.listFiles(new File("/home/chad/docs/tmp"), scriptExt, false));
-  }
-}
+<p>Get real-time data (such as on-site user number) at Reporting -> Real-Time -> Overview.</p>
 
-$ cat mf
-Class-Path: lib/commons-io-2.4.jar
-Main-Class: Mod1
-$ javac -cp lib/* Mod1.java
-$ jar cfm pkg.jar mf Mod1.class
-$ java -jar pkg.jar
-List all scala files: [/home/chad/docs/tmp/sf2.scala, /home/chad/docs/tmp/lookup.scala, /home/chad/docs/tmp/spark-filter.scala, /home/chad/docs/tmp/hw.scala, /home/chad/docs/tmp/newDel.scala, /home/chad/docs/tmp/scalaTime.scala, /home/chad/docs/tmp/sf3.scala]
+<h1>Kadira</h1>
+
+<pre><code>meteor add meteorhacks:kadira
 </code></pre>
 
-<p>Note that classpath wildcard can&rsquo;t be used in manifest file (here is mf), which means &ldquo;Class-Path: lib/*&rdquo; doesn&rsquo;t work.
-See <a href="http://www.ibm.com/developerworks/library/j-5things6/">5 things you didn&rsquo;t know about &hellip; JARs</a> for explanations.</p>
+<p>Add the following codes into server/kadira.js:</p>
 
-<p>The &ldquo;-cp&rdquo; option or &ldquo;CLASSPATH=&hellip;&rdquo; is invalid in <code>java -jar xxx.jar</code>.
-So if you don&rsquo;t want to create manifest file by hand, run java program with <code>java -cp ... MainClass</code>:</p>
-
-<pre><code>$ tree
-.
-├── com
-│   └── boco
-│       └── example
-│           └── Example.java
-└── lib
-    └── commons-io-2.4.jar
-4 directories, 2 files
-
-$ cat com/boco/example/Example.java
-package com.boco.example;
-
-import org.apache.commons.io.FileUtils;
-import java.io.File;
-import java.util.Collection;
-import org.apache.commons.io.filefilter.DirectoryFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
-
-public class Example {
-  public static void main (String[] args) {
-    Collection&lt;File&gt; found = FileUtils.listFiles(new File("."), TrueFileFilter.INSTANCE, DirectoryFileFilter.DIRECTORY);
-    System.out.println("List files with apache-commons.FileUtils:");
-    for (File f : found) {
-      System.out.println(f);
-    }
-    System.out.println("--- OVER ---");
-  }
-}
-$ javac -cp lib/commons-io-2.4.jar com/boco/example/Example.java
-$ jar cf example.jar com
-$ mv example.jar lib
-$ tree
-.
-├── com
-│   └── boco
-│       └── example
-│           ├── Example.class
-│           └── Example.java
-└── lib
-    ├── commons-io-2.4.jar
-    └── example.jar
-4 directories, 4 files
-$ java -cp "lib/*" com.boco.example.Example
-List files with apache-commons.FileUtils:
-./com/boco/example/Example.java
-./com/boco/example/Example.class
-./lib/example.jar
-./lib/commons-io-2.4.jar
---- OVER ---
+<pre><code>Kadira.connect('&lt;App ID&gt;', '&lt;App Secret&gt;');
 </code></pre>
+
+<p>get your AppID and App secret at <a href="https://kadira.io/">Kadira</a> -> [Your App] -> Settings.</p>
+
+<p>Then see read-time statistics on its dashboard.</p>
 </div>
   
   
@@ -307,7 +286,7 @@ List files with apache-commons.FileUtils:
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/23/084146/">Deploy Web Server on Linode</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/02/28/114611/">System Monitor Tools for Linux Server</a></h1>
     
     
       <p class="meta">
@@ -316,140 +295,70 @@ List files with apache-commons.FileUtils:
 
 
 
-<time class='entry-date' datetime='2014-12-23T08:41:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>8:41 am</span></time>
+<time class='entry-date' datetime='2015-02-28T11:46:11+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:46 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Setup Virtual Host</h1>
+  <div class="entry-content"><h1>sar</h1>
 
-<p>Buy a Linode instance on <a href="https://www.linode.com/">linode</a>. Note its IP address on the home page in your user account.
-Install a Linux system and <a href="https://www.linode.com/docs/security/securing-your-server/">secure it</a>.</p>
+<p>On CentOS 6.5, install sysstat with <code>yum install sysstat</code>.
+And the cron jobs will be created in /etc/cron.d/sysstat.
+The default routines defined in this file is running system activity accounting every 10 minutes,
+and generating a daily summary of process accounting at 23:53 each day.</p>
 
-<p>Ref: <a href="https://www.linode.com/docs/getting-started">Getting Started</a> for instructions.</p>
+<p>Now you can see system memory usage hisory with <code>sar -r 2 5</code>,
+which means display memory usage every 2 seconds, 5 times totally.</p>
 
-<p>To build a new VPS, in Linodes -> Rebuild,
-select OS (&ldquo;Ubuntu 14.04 LTS&rdquo; for now), set root password, and click &ldquo;rebuild&rdquo; button,
-it will create disks and configuration profile automatically.
-Then click &ldquo;boot&rdquo; button under configuration profile.
-After system startup (see progress in &ldquo;Dashboard -> Host Job Queue&rdquo;),
-Connect to the VPS with SSH according to commands in &ldquo;Remote Access&rdquo;.</p>
-
-<p>Or you can create disks, then configuration profile manually in &ldquo;Dashboard&rdquo;.
-Create new disks under &ldquo;Disks&rdquo;, usually a boot part (3GB), a home part and a swap (same capacity with memory).</p>
-
-<h1>Connect domain name and IP address</h1>
-
-<p>Here we link multiple Domain names to the same IP address.
-Then direct different domain requests to its corresponding port using nginx.</p>
-
-<p>First register (purchase) a domain name, if you haven’t already.
-Here I used niufairs.com and &ldquo;niufairs.cn purchased on <a href="http://www.net.cn/">net.cn</a>.</p>
-
-<p>Set IP address in &ldquo;进入会员中心 -> 我的域名 -> niufairs.com -> 域名解析 ->  解析设置 -> 设置网站解析 -> 把域名指向我的网站-添加IP地址&rdquo;,
-add your Linode instance IP address as &ldquo;A&rdquo; record,
-Then wait up to 24 hours for the changes to take effect.
-I waited about 30 minutes to take effect.</p>
-
-<p>Next set your domain name to use Linode’s name servers (&ldquo;ns1.linode.com&rdquo; to &ldquo;ns5.linode.com&rdquo;)
-in &ldquo;我的域名 -> niufairs.com -> 基本管理 -> DNS修改/创建 -> DNS服务器 -> 修改域名DNS&rdquo;.</p>
-
-<p>On Linode, come to &ldquo;DNS Manager&rdquo; in Linode dashboard, click &ldquo;Add a domain zone&rdquo;.
-Set &ldquo;Domain&rdquo; as your purchased domain name, for example, &ldquo;niufairs.com&rdquo;.
-Set &ldquo;SOA Email&rdquo; the email address of the administrator, for example, &ldquo;<a href="&#x6d;&#97;&#x69;&#x6c;&#x74;&#111;&#58;&#x6c;&#99;&#64;&#x31;&#50;&#54;&#46;&#99;&#111;&#x6d;">&#108;&#99;&#x40;&#49;&#x32;&#54;&#x2e;&#99;&#111;&#x6d;</a>&rdquo;.
-Then click &ldquo;Add a Master Zone&rdquo;.</p>
-
-<h2>Setting Reverse DNS</h2>
-
-<p>On linode instance dashboard -> Remote access -> Reverse DNS, enter &ldquo;niufairs.com&rdquo;, and press &ldquo;Look up&rdquo;.</p>
-
-<p>Ref: <a href="https://www.linode.com/docs/websites/hosting-a-website">Hosting a website</a>.</p>
-
-<h1>Config Relationship betwwen domain and port</h1>
-
-<p>Fist install nginx (with aptitude on Ubuntu).</p>
-
-<p>Edit /etc/nginx/nginx.conf as follows:</p>
-
-<pre><code>events {
-  worker_connections  1024;
-}
-
-http {
-  server {
-    server_name niufairs.cn;
-
-    location / {
-      proxy_pass http://localhost:3000/;
-    }
-  }
-
-  server {
-    server_name niufairs.com;
-
-    location / {
-      proxy_pass http://localhost:4000/;
-    }
-  }
-
-  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-  '$status $body_bytes_sent "$http_referer" '
-  '"$http_user_agent" "$http_x_forwarded_for"';
-
-  access_log  /var/log/nginx/access.log  main;
-}
-</code></pre>
-
-<p>Test if this conf is right: <code>nginx -t</code>;</p>
-
-<p>If test ok, reload conf: <code>nginx -s reload</code>;</p>
-
-<p>Now start 2 meteor app on port 3000 and 4000, and you can use niufairs.cn and niufairs.com to visit them respectively.</p>
-
-<p>If you want server some static files, add a new &ldquo;server&rdquo; section in &ldquo;http&rdquo; of nginx.conf:</p>
-
-<pre><code>http {
-  server {
-    server_name newfairs.cn;
-    location / {
-      root /data/www;
-    }
-    location /images/ {
-      root /data;
-    }
-  }
-
-  server {
-    ...
-  }
-}
-</code></pre>
-
-<h1>Configure Email Server</h1>
-
-<p>I bought an <strong>business</strong> account on <a href="https://www.fastmail.com/">FastMail</a>, and
-configure 3 places to make the mail server functional:</p>
-
-<ol>
-<li><p>In FastMail <a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#x6f;&#58;&#x6d;&#97;&#115;&#x74;&#x65;&#x72;&#117;&#x73;&#x65;&#114;&#x40;&#110;&#105;&#117;&#102;&#97;&#105;&#114;&#115;&#46;&#x63;&#111;&#x6d;">&#109;&#x61;&#115;&#x74;&#101;&#114;&#117;&#115;&#x65;&#114;&#x40;&#110;&#x69;&#117;&#102;&#97;&#x69;&#x72;&#115;&#x2e;&#x63;&#111;&#109;</a> account, add &ldquo;niufairs.com&rdquo; in &ldquo;Domains&rdquo; section in &ldquo;Manage&rdquo; panel.</p></li>
-<li><p>Add the following record on net.cn (website&rsquo;s registrar):</p>
-
-<p> 记录类型: MX, 主机记录: @, 记录值: in1-smtp.messagingengine.com, MX优先级: 1, TTL: 10分钟.</p></li>
-<li><p>Add the following record on &ldquo;niufairs.com&rdquo; on Linode.com:</p>
-
-<p> MX Records ->  Mail Server: in1-smtp.messagingengine.com, Preference: 10, TTL: Default.</p></li>
-</ol>
-
+<p>To see the memory history: <code>sar -r -f /var/log/sa/sa28</code>,
+the total free memory is the sum of 3 items: kbmemfree, kbbuffers, kbcached.</p>
 
 <p>Refs:</p>
 
 <ul>
-<li><p><a href="http://stackoverflow.com/questions/15678224/nginx-proxy-several-domains-to-different-ports">Nginx proxy several domains to different ports</a></p></li>
-<li><p><a href="http://nginx.org/en/docs/beginners_guide.html#static">Serving Static Content</a></p></li>
+<li><p><a href="https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar">https://www.thomas-krenn.com/en/wiki/Collect_and_report_Linux_System_Activity_Information_with_sar</a></p></li>
+<li><p><a href="http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.">http://serverfault.com/questions/85470/meaning-of-the-buffers-cache-line-in-the-output-of-free.</a></p></li>
 </ul>
 
+
+<h1>dstat</h1>
+
+<p>On CentOS 6.5, install dstat with <code>yum install dstat</code>.</p>
+
+<p>Log the memory usage with <code>dstat --output memlog.csv -t -m 600 500</code>,
+which will log totally 500 times, with a 10-minute interval.</p>
+
+<h1>Glances</h1>
+
+<p>Install it with <code>curl -L http://bit.ly/glances | /bin/bash</code>.
+This only works on Linode node.
+It failed on my loptop with message &ldquo;connection reset by peer&rdquo;.
+On the Linode node, the installation failed with &ldquo;yum&rdquo; and &ldquo;pip&rdquo;.
+It seems the reason is the dependencies are not met.</p>
+
+<p>Use it with <code>glances</code> with root, or <code>glances -w</code> as a web server.
+Then you can see the status of your server with url &ldquo;<a href="http://104.237.135.143:61208">http://104.237.135.143:61208</a>&rdquo;.</p>
+
+<p>For keep a system log, use <code>glances -t 600 --export-csv /tmp/glances.csv</code>,
+which means write a csv-format log every 10 minutes (3 seconds by default) to /tmp/glances.csv.</p>
+
+<p>P.S.: There&rsquo;s also a <a href="http://munin-monitoring.org/">Munin</a>.
+It seems the installation is complex, so I gave up.</p>
+
+<h1>collectl</h1>
+
+<p>Install with <code>yum install collectl</code>.</p>
+
+<p>Print memeory usage with <code>collectl -i 2 -c 5 -sm</code>.</p>
+
+<p>Print all subsystems with <code>collectl --showsubsys</code>.</p>
+
+<p>Log output information with &ldquo;-f&rdquo; options: <code>collectl -sm -i 2 -c 5 -f mylog</code>.
+It creates a gz file, which you have to extract with <code>gzip -d mylog...</code>.</p>
+
+<p>Ref: <a href="http://lintut.com/best-command-line-tools-for-linux-performance-monitring/">http://lintut.com/best-command-line-tools-for-linux-performance-monitring/</a></p>
 </div>
   
   
@@ -462,7 +371,7 @@ configure 3 places to make the mail server functional:</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/21/110312/">CSS and LESS Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/02/25/141712/">The Algorithm of Related Fairs</a></h1>
     
     
       <p class="meta">
@@ -471,194 +380,122 @@ configure 3 places to make the mail server functional:</p>
 
 
 
-<time class='entry-date' datetime='2014-12-21T11:03:12+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:03 am</span></time>
+<time class='entry-date' datetime='2015-02-25T14:17:12+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>2:17 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>CSS selector rules: <a href="http://www.w3schools.com/cssref/css_selectors.asp">CSS Selectors</a></p>
+  <div class="entry-content"><p>For a given fair A, it&rsquo;s <em>major category</em> are a set of its cat.major subdocuments.</p>
 
-<p>CSS Combination rules: <a href="http://www.w3schools.com/css/css_combinators.asp">CSS Combinators</a></p>
+<p>For example, for the fair:</p>
 
-<p>Addition to the above rules, you can use &ldquo;element.class&rdquo; to specify a specified elment.
-For example, &ldquo;p.bluecolor&rdquo; will select &ldquo;all p elements with class bluecolor&rdquo;.
-A <div class="bluecolor"> will not be included.
-See <a href="http://css.maxdesign.com.au/selectutorial/selectors_class.htm">Class selectors</a> for details.</p>
-
-<p>LESS introduction: <a href="http://www.elated.com/articles/less-is-more-make-your-css-coding-easier-with-less/">LESS Is More: Make Your CSS Coding Easier with LESS</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/20/230618/">Meteor MongoDB Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-20T23:06:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li><p>Connect to a mongodb of a Meteor app: run <code>meteor</code> at the project root. Start another shell, go to this folder, and run <code>meteor mongo</code>;</p></li>
-<li><p>List all available commands: <code>help</code>;</p></li>
-<li><p>List DB operation methods: <code>db.help()</code>;</p></li>
-<li><p>List all existing collection names: <code>show collections</code>;</p></li>
-<li><p>List all available commands of a collection: <code>db.&lt;collection-name&gt;.help()</code>;</p></li>
-<li><p>Show collection information: <code>db.&lt;collection-name&gt;.stats()</code>;</p></li>
-<li><p>Print all &ldquo;name&rdquo; field of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {name_chn: 1})</code>;</p></li>
-<li><p>Print all fields except &ldquo;name_chn&rdquo; of collection &ldquo;fairs&rdquo;: <code>db.fairs.find({}, {products: 0})</code>;</p></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/17/114238/">Meteor Resources</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-17T11:42:38+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Learning Resources</h1>
-
-<h2>Published Books</h2>
-
-<ul>
-<li><p>Instant Meteor JavaScript Framework Starter by Gabriel Manricks of PACKT, 2013;</p></li>
-<li><p>Getting Started with Meteor.js JavaScript Framework by Isaac Strack of PACKT, 2012;</p></li>
-</ul>
-
-
-<h2>Upcoming Books</h2>
-
-<ul>
-<li><p>Beginning Meteor by Aaron Gray of APress, march 25, 2015;</p></li>
-<li><p>Building Single-page Web Apps with Meteor by Fabian Vogelsteller of PACKT, december 26, 2014;</p></li>
-</ul>
-
-
-<h2>Free Resources</h2>
-
-<p><a href="https://bulletproofmeteor.com/">Bulletproof Meteor</a></p>
-
-<p><a href="http://themeteorchef.com/">The Meteor Chef</a></p>
-
-<p><a href="http://eventedmind.com/">Evented Mind</a></p>
-
-<p><a href="http://meteortips.com/">Meteor Tips</a></p>
-
-<p><a href="https://www.udemy.com/build-your-first-real-time-web-application-with-meteorjs">Build Your First Real-Time Web Application with MeteorJS</a></p>
-
-<p><a href="http://meteorjs.club/">Josh Owen&rsquo;s Meteor Club</a></p>
-
-<h2>Paid Resources</h2>
-
-<p><a href="https://www.discovermeteor.com/">Discover Meteor</a></p>
-
-<p>Ref: <a href="http://www.sitepoint.com/9-ways-meteor-1-0-will-take-world/">9 Ways Meteor 1.0 Will Take You Out of This World</a></p>
-
-<h1>For Meteor Jobs</h1>
-
-<p><a href="http://www.weworkmeteor.com/">We Work Meteor</a></p>
-
-<h1>Test Tools</h1>
-
-<p><a href="https://kadira.io/">Kadira</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/16/170917/">Scala的模式匹配</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-12-16T17:09:17+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下面是一个RDD，每一个元素是一个Array，这个Array由几个tuple组成，
-现在需要将其中第二个元素是13的tuple（比如(-36522769,13)）的一个元素后面追加字符串".000"，其余不变，
-实现方法如下：</p>
-
-<pre><code>val data = RDD[Array[(String, Int)]] = RDD(
-        Array((-36522769,13), (8014,14), (2014-09-19 00:10:47,17), (3,18), (FF-693960651,134)),
-        Array((-905910021.0000000000,13), (200,14), (2014-09-19 00:02:11,17), (3,18), (FF--112226702,134)),
-        Array((-2033866158.0000000000,13), (200,14), (2014-09-19 00:07:12,17), (3,18), (FF--112226702,134)),
-        Array((1712341836.0000000000,13), (200,14), (2014-09-19 00:07:06,17), (3,18), (FF--112226702,134)),
-        Array((-896432680.0000000000,13), (8014,14), (2014-09-19 00:12:17,17), (3,18), (FF-693960651,134)),
-        Array((-1205034451.0000000000,13), (200,14), (2014-09-19 00:07:21,17), (3,18), (FF--112226702,134)),
-        Array((-2117505875.0000000000,13), (15089,14), (2014-09-19 00:41:47,17), (2,18), (FF-1139491304,134))) 
-
-val res = data.map(x =&gt; x.map { case (y,13) =&gt; (y + ".000", 13)
-                                case z =&gt; z
-                              })
+<pre><code>{ cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] }
 </code></pre>
 
-<p>如果把13变为一个变量，比如<code>val BAD_NUM = 13</code>, 这时直接改写为<code>case (y, BAD_NUM) =&gt; ...</code>，将出现错误，
-因为解析器将BAD_NUM视为一个自由变量，而不是外部等于13的那个变量，解决方法是用反引号把BAD_NUM扩起来，写为：</p>
+<p>its major categories are set [&ldquo;abc, "xyz&rdquo;].
+Here we say the major categories of fair X is <code>majorCat(X)</code>.</p>
 
-<pre><code>case (y, `BAD_NUM`) =&gt; (y + ".000", BAD_NUM)
+<p>If the intersection of set <code>majorCat(X)</code> and <code>majorCat(Y)</code> are not empty,
+we say fair X and Y are <em>related</em>.</p>
+
+<p>So for a given fair X, how to find all its related fairs in a collection?</p>
+
+<p>Here is the demonstration:</p>
+
+<p>In mongodb, create a test collection with the following codes:</p>
+
+<pre><code>db.cats.insert( { cat: [ { major: "abc", minor: [ 1,23,3] }, { major: "xyz", minor: [ 3, 23, 583]} ] } );
+db.cats.insert( { cat: [ { major: "abcd", minor: [ 1,23,3] }, { major: "xyzu", minor: [ 87, 987, 343]} ] } );
+db.cats.insert( { cat: [ { major: "bcd", minor: [ 1,23,3] }, { major: "abc", minor: [ 3, 23, 876]} ] } );
+db.cats.insert( { cat: [ { major: "xyz", minor: [ 8,83,5] }, { major: "axc", minor: [ 34, 3, 76]} ] } );
 </code></pre>
 
-<p>推荐文章：</p>
+<p>Create a new Meteor app with <code>meteor create relatedFairs</code>, and its files:</p>
 
-<p><a href="http://kerflyn.wordpress.com/2011/02/14/playing-with-scalas-pattern-matching/">Playing with Scala’s pattern matching</a>;</p>
+<p>relatedFairs.html</p>
 
-<p><a href="http://docs.scala-lang.org/tutorials/tour/pattern-matching.html">Pattern Matching in Scala Documenation</a></p>
+<pre><code>&lt;head&gt;
+  &lt;title&gt;relatedFairs&lt;/title&gt;
+&lt;/head&gt;
 
-<p><a href="http://docs.scala-lang.org/cheatsheets/">Pattern matching section in Scala cheatsheet</a></p>
+&lt;body&gt;
+  &lt;h1&gt;Find related fairs&lt;/h1&gt;
+
+&lt;/body&gt;
+
+&lt;template name="hello"&gt;
+  &lt;ul&gt;
+
+      &lt;li&gt; 
+        &lt;b&gt;:&lt;/b&gt;
+
+          ,
+
+      &lt;/li&gt;
+
+  &lt;/ul&gt;
+
+    &lt;p&gt;Related fairs of the first fair &lt;/p&gt;
+    &lt;ul&gt;
+
+        &lt;li&gt;
+          &lt;b&gt;:&lt;/b&gt;
+
+            ,
+
+        &lt;/li&gt;
+
+    &lt;/ul&gt;
+
+&lt;/template&gt;
+</code></pre>
+
+<p>relatedFairs.js:</p>
+
+<pre><code>Fairs = new Mongo.Collection("cats");
+
+if (Meteor.isClient) {
+  Template.hello.helpers({
+    allFairs: function () {
+      return Fairs.find();
+    },
+    related: function () {
+      var theXrd = 0,
+          theFair = Fairs.findOne( {}, {skip: theXrd } );
+      if (! theFair) {
+        return null;
+      }
+      var majors = _.map(theFair.cat, function(i) { return i.major; } );
+      var rels = Fairs.find( { cat: { $elemMatch: { major: { $in: majors } } },
+                               _id: { $ne: theFair._id } } );
+      return {firstID: theFair._id._str, relatedFairs: rels };
+    }
+  });
+}
+</code></pre>
+
+<p>Here we use <a href="http://underscorejs.org/">Underscore.js</a>,
+so install this package with <code>meteor add underscore</code> to run our demo app
+(with <code>MONGO_URL="mongodb://localhost:27017/test" meteor</code> in project root folder).</p>
+
+<p>Modify the value of &ldquo;theXrd&rdquo; above, you can see the related fairs of each fair.</p>
+
+<p>To make a demo in a production collection,
+in fair &ldquo;A&rdquo; we find a major category called &ldquo;垃圾车与运输车"，
+then choose a fair B, whose id is "54e71a5642fb549b1389ae6f&rdquo;.</p>
+
+<p>Let&rsquo;s add the major cateory to fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a5642fb549b1389ae6f") }, { $push: {category: {major: "垃圾车与运输车"}} } );
+</code></pre>
+
+<p>Now fair A and B is related. Test them on your web site.
+If the test is past, remove the test data from fair B:</p>
+
+<pre><code>db.fairs.update( { _id: ObjectId("54e71a6642fb549b1389ae6f") }, { $pop: { category: 1 } } );
+</code></pre>
 </div>
   
   
@@ -671,7 +508,7 @@ val res = data.map(x =&gt; x.map { case (y,13) =&gt; (y + ".000", 13)
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/15/175800/">网站配色技术</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/02/20/224401/">Test Underscore Functions of Meteor App</a></h1>
     
     
       <p class="meta">
@@ -680,54 +517,53 @@ val res = data.map(x =&gt; x.map { case (y,13) =&gt; (y + ".000", 13)
 
 
 
-<time class='entry-date' datetime='2014-12-15T17:58:00+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:58 pm</span></time>
+<time class='entry-date' datetime='2015-02-20T22:44:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:44 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>颜色有多种表示方式，印刷业常用的CMYK方法是4种颜料的组合值表示一种颜色，
-RGB常用于显示器，用3原色的值表示一种颜色。</p>
+  <div class="entry-content"><p>When you add some underscore functions to your meteor app, you can&rsquo;t test it in browser console.
+So we need test it somewhere else.</p>
 
-<p>HSL是用色调hue，纯度Saturation（也叫饱和度）和亮度lightness组合表示一种颜色，
-其中色调是平时所说的颜色；
-纯度可以理解为颜料的浓度，最小值是灰色（没有颜料），最大值是最纯净的颜色（比如完全的红色，完全的绿色等）；
-亮度是明亮程度，最小值是黑色，最大值的白色。</p>
-
-<p>RGB与HSL的相互关系可以在<a href="http://www.snook.ca/technical/colour_contrast/colour.html">Colour Contrast Check</a>上面通过拖动各个滑块来观察，
-这个网站主要用于检查背景色和文字颜色的对比度，用户输入两种颜色的值，它计算出亮度差(brightness difference)，色调差(color difference)，颜色是否匹配(color compliant)，以及是否符合WCAG 2规范等。</p>
-
-<p>亮度差和色调差的具体计算方法可以搜索关键词"calculate color brightness difference".</p>
-
-<h1>搜索关键词</h1>
-
-<ul>
-<li><p>website color shemes</p></li>
-<li><p>text background contrast calculator</p></li>
-<li><p>文字 背景 对比</p></li>
-</ul>
+<ol>
+<li><p>Create a new folder as the test project root;</p></li>
+<li><p>Install underscore package locally, which means the package is specific for this project;</p></li>
+<li><p>Create a node script to test the underscore functions.</p></li>
+</ol>
 
 
-<h1>配色理论和实践</h1>
+<p>The whole work flow is like this:</p>
 
-<ul>
-<li><p><a href="http://www.had2know.com/technology/color-contrast-calculator-web-design.html">How to Calculate Color Contrast from RGB Values</a></p></li>
-<li><p><a href="http://jingyan.baidu.com/article/ed2a5d1f1170f109f6be1787.html">网页配色技巧：不同背景下文字颜色搭配</a></p></li>
-<li><p><a href="http://www.onextrapixel.com/2013/10/25/40-stunning-website-designs-with-great-color-schemes/">40 Stunning Website Designs with Great Color Schemes</a></p></li>
-<li><p><a href="http://www.dtelepathy.com/blog/inspiration/beautiful-color-palettes-for-your-next-web-project">50 Beautiful Color Palettes for Your Next Web Project</a></p></li>
-</ul>
+<pre><code>$ mkdir myapp
+$ cd myapp
+$ npm install underscore
+$ cat &lt;&lt; EOF &gt; myfunc.js
+var _ = require('underscore');
+var res = _.map([1, 2, 3], function(num){ return num * 3; });
+console.log(res);
+EOF
+$ node myfunc
+[ 3, 6, 9 ]
+</code></pre>
 
+<p>You can&rsquo;t use <code>var _ = require('underscore');</code> in node REPL shell, for node shell use &ldquo;_&rdquo; to hold the last result.</p>
 
-<h1>配色工具和软件</h1>
+<p>Note:</p>
 
-<ul>
-<li><p><a href="http://www.gpick.org/">gpick</a></p></li>
-<li><p><a href="http://libregraphicsworld.org/blog/entry/creating-color-schemes-with-gpick">Creating color schemes with Gpick</a></p></li>
-<li><p><a href="http://www.456bereastreet.com/archive/200709/10_colour_contrast_checking_tools_to_improve_the_accessibility_of_your_design/">10 colour contrast checking tools to improve the accessibility of your design</a></p></li>
-<li><p><a href="http://www.snook.ca/technical/colour_contrast/colour.html">Colour Contrast Check</a>;</p></li>
-<li><p><a href="http://paletton.com/">paletton.com</a></p></li>
-</ul>
+<ol>
+<li><p>See <a href="https://docs.npmjs.com/misc/faq#why-cant-npm-just-put-everything-in-one-place-like-other-package-managers">Why can&rsquo;t npm just put everything in one place, like other package managers? on npm&rsquo;s FAQ</a>
+for the reason why npm not install pakcage globally like pip.</p></li>
+<li><p>For node, how to determine install a package locally or globally?
+According to <a href="http://blog.nodejs.org/2011/03/23/npm-1-0-global-vs-local-installation/">npm 1.0: Global vs Local installation</a></p>
+
+<ol type="a">
+<li><p> If you’re installing something that you want to use in your program, using require(&lsquo;whatever&rsquo;), then install it locally, at the root of your project.</p></li>
+<li><p> If you’re installing something that you want to use in your shell, on the command line or something, install it globally, so that its binaries end up in your PATH environment variable. For example, install <a href="http://bower.io/">bower</a> with <code>npm install bower -g</code>.</p></li>
+</ol>
+</li>
+</ol>
 
 </div>
   
@@ -741,7 +577,7 @@ RGB常用于显示器，用3原色的值表示一种颜色。</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/12/15/170422/">Build Color Theme for Website With Gpick</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/02/20/194901/">Import Data for Newfairs.com</a></h1>
     
     
       <p class="meta">
@@ -750,47 +586,362 @@ RGB常用于显示器，用3原色的值表示一种颜色。</p>
 
 
 
-<time class='entry-date' datetime='2014-12-15T17:04:22+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:04 pm</span></time>
+<time class='entry-date' datetime='2015-02-20T19:49:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>7:49 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>First install with <code>sudo aptitude install gpick</code>, and start it with <code>gpick</code>;</p>
+  <div class="entry-content"><h1>Prerequisites</h1>
 
-<h1>Build a color theme based on existing web page</h1>
+<p>First install MongoDB, node.js and csvkit.</p>
 
-<p>Choose &ldquo;Color picker&rdquo; tag.</p>
+<p>For node.js, download node binary package (node-v0.10.33-linux-x64.tar.gz in my case) from its website,
+extract and add binary folder into $PATH. For example, add the following line into ~/.zshenv:</p>
 
-<p>Select a slot in color picker swatch (the six hexagons mark by 1 ~ 6).
-Start color picker by shortcut Ctrl-p, move mouse to the location,
-press SPACE to put the color into the slot.</p>
+<pre><code>PATH=$HOME/apps/node-v0.10.33-linux-x64/bin:$PATH
+</code></pre>
 
-<p>The highlighted slot become the next slot automatically.</p>
+<p>For MongoDB, download its binary package (mongodb-linux-x86_64-2.6.5.tgz in my case) from its website,
+extract and add binary folder into $PATH:</p>
 
-<p>So you can select another color, and put it into the current highlighted slot by press SPACE.</p>
+<pre><code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH
+</code></pre>
 
-<p>Right click the color picker swatch and select &ldquo;Add to palette&rdquo; or &ldquo;Add all to palette&rdquo;
-to put these color into the color palette on the right-hand side.</p>
+<p>Install csvkit with <code>sudo pip install csvkit</code>.</p>
 
-<h1>Generate Color theme based on existing color</h1>
+<h1>Preparation</h1>
 
-<p>Right click one or more colors in the color palette, select &ldquo;Generate&hellip;&rdquo;.
-Set &ldquo;Colors&rdquo; to 3, &ldquo;Type&rdquo; to &ldquo;triadic&rdquo;, you can find the triadic color group in &ldquo;Preview&rdquo; panel.
-If this is what you want, press &ldquo;OK&rdquo; button.</p>
+<ol>
+<li><p>Convert Excel (xls/xlsx) file to csv file: <code>in2csv data.xls &gt; data.csv</code>;</p></li>
+<li><p>(Optional) Convert file encoding: <code>iconv -f gbk -t utf8 data20150218.csv &gt; input.csv</code>;</p></li>
+<li><p>Examine data: <code>head input.csv | csvjson -i 4</code>;</p></li>
+<li><p>Start MongoDB server for importing data: <code>mongod</code>;</p></li>
+</ol>
 
-<p>In the same way you can build complementary color group with: Type: Complementary, Colors: 2.</p>
 
-<h1>Build a color theme from scratch</h1>
+<h1>Import Data</h1>
 
-<p>Choose &ldquo;Scheme Generation&rdquo; tag in upper-left corner.
-After you&rsquo;ve decided the value of hue, saturation, lightness and type,
-right click the color block and select &ldquo;Add to palette&rdquo; or &ldquo;Add all to palette&rdquo;.</p>
+<p>In case you want to overwrite old data, you need backup old collection:
+start a mongodb client, make a copy of the old collection (the original collection is &ldquo;fairs&rdquo;):</p>
 
-<p>Find all built-in shortcuts on the &ldquo;HELP&rdquo; section of <a href="http://www.gpick.org/">gpick&rsquo;s website</a>.</p>
+<pre><code>$ mongo
+&gt; db.fairs.renameCollection('fairsBak')
+</code></pre>
 
-<p>Ref: <a href="http://libregraphicsworld.org/blog/entry/creating-color-schemes-with-gpick">Creating color schemes with Gpick</a>;</p>
+<p>P.S. You can make a copy of a collection with <code>db.fairs.copyTo('fairsBak')</code>.</p>
+
+<p>Now import new data to collection &ldquo;fairs&rdquo;:</p>
+
+<pre><code>./importdata
+</code></pre>
+
+<h1>Under the hood</h1>
+
+<p>importdata:</p>
+
+<pre><code>#!/bin/bash
+
+# convert the csv file encoding with:
+# iconv -f gbk -t utf8 xxx.csv &gt; input.csv
+INP='input.csv'
+TargetDB='test'
+TargetCol='fairs'
+
+RAW='rawdata.json'
+RES='result.json'
+if [[ ! -f $INP ]]; then
+  echo File input.csv not exists!
+  exit 1
+fi
+rm -rf $RAW $RES
+csvjson $INP &gt; $RAW
+node checkTransform
+mongoimport -d $TargetDB -c $TargetCol --type json --file $RES --jsonArray
+rm -rf $RAW $RES
+</code></pre>
+
+<p>checkTransform.js:</p>
+
+<pre><code>var data = require('./rawdata.json');
+var fs = require('fs');
+var result = []
+
+data.forEach(function(elem) {
+  var aFair = JSON.parse( JSON.stringify(elem) );
+  aFair.indexStr = {};
+  aFair.indexStr['name'] = (elem.chnName + ' ' + elem.engName).trim();
+  aFair.indexStr['sponsor'] = elem.sponsor;
+  aFair.indexStr['undertaker'] = elem.undertaker;
+  aFair.indexStr['category'] = elem.category;
+  aFair.indexStr['simpleSearch'] = elem.chnName + ' ' + elem.engName + ' ' + elem.position + ' ' + elem.time + ' ' + elem.category;
+
+  if (elem.sponsor) {
+    aFair['sponsor'] = [];
+    elem.sponsor.split('|').forEach(function(spr) {
+      var aSponsor = {};
+      var sps = spr.split('$');
+      aSponsor['name'] = sps[0];
+      aSponsor['tel'] = sps[1];
+      aSponsor['fax'] = sps[2];
+      aSponsor['email'] = sps[3];
+      aSponsor['website'] = sps[4];
+      aFair.sponsor.push(aSponsor);
+    });
+  }
+
+  if (elem.undertaker) {
+    aFair['undertaker'] = [];
+    elem.undertaker.split('|').forEach(function(udt) {
+      var aUndertaker = {};
+      var uds = udt.split('$');
+      aUndertaker['name'] = uds[0];
+      aUndertaker['tel'] = uds[1];
+      aUndertaker['fax'] = uds[2];
+      aUndertaker['email'] = uds[3];
+      aUndertaker['website'] = uds[4];
+      aFair.undertaker.push(aUndertaker);
+    });
+  }
+
+  if (elem.category) {
+    aFair['category'] = [];
+    elem.category.split('|').forEach(function(catStr) {
+      var aCat = {};
+      var cats = catStr.split('$');
+      aCat['major'] = cats[0] === '?' ? '' : cats[0];
+      aCat['minor'] = cats.slice(1);
+      aFair.category.push(aCat);
+    });
+  }
+
+  result.push(aFair);
+});
+
+fs.writeFile('result.json', JSON.stringify(result));
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/18/105314/">超链接中data-toggle属性使用新的Session</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-18T10:53:14+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:53 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>如果在超链接中将"data-toggle"属性设为"modal"，如下所示，则超链接所指向的窗体将使用新的Seesion。</p>
+
+<pre><code>&lt;a href="/register" data-toggle="modal"&gt;注册新帐号&lt;/a&gt;
+</code></pre>
+
+<p>比如我们想在每次跳转后将当前url记录在Session变量"currentUrl"中，
+但是在url以"login"和"register"结尾时不更新"currentUrl"：</p>
+
+<pre><code>Router.onAfterAction(function(){
+  if (! (Router.current() &amp;&amp; Router.current().url) ) {
+    return;
+  }
+  var currentUrl = Router.current().url;
+  if ( (currentUrl.indexOf('login') &lt; 0 ) &amp;&amp;
+        currentUrl.indexOf("register") &lt; 0 ) {
+    Session.set("currentUrl", currentUrl);
+  }
+});
+</code></pre>
+
+<p>然后在登录或者注册成功后取出这个缓存的变量，利用callback函数跳转回之前的页面：</p>
+
+<pre><code>Accounts.createUser({
+  email: t.find("#userEmail").value,
+  password: t.find("#userPwd").value,
+  profile: {
+    nickname: t.find("#userNickname").value,
+    role: userRole.value,
+    gender: gender.value,
+    desc: userDesc
+  }
+}, function(error) {
+  if (error) {
+    alert("something wrong, registration failed.");
+  } else {
+    alert("注册并登录成功！");
+    var currentUrl = Session.get("currentUrl");
+    var tmp = document.createElement('a');
+    tmp.href = currentUrl;
+    var currentPath = tmp.pathname + tmp.search;
+    Router.go(currentPath);
+  }
+});
+</code></pre>
+
+<p>那么当点击上面的超链接时，所有Session对象都被清空，"currentUrl"值变为"undefined"，
+如果用<code>Session.setDefault("currentUrl", "aabb");</code>设置默认值，
+则点击上面的超链接后"currentUrl"值变为"aabb"，
+然后再执行Router.onAfterAction中的callback函数。</p>
+
+<p>这样前面利用缓存变量跳转回原来页面的设计就失效了，页面跳转到"/undefined"页面，
+解决办法很简单：去掉超链接中的data-toggle属性，变为一个普通超链接：</p>
+
+<pre><code>&lt;a href="/register"&gt;注册新帐号&lt;/a&gt;
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/13/153724/">使用星星图标获取用户评分</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-13T15:37:24+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>使用一个数组，评分为3对应着：</p>
+
+<p>html:</p>
+
+<pre><code>  &lt;span class="glyphicon  text-danger"&gt;&lt;/span&gt;
+</code></pre>
+
+<p>js:</p>
+
+<pre><code>Template.UserEvaluations.helpers({
+  rankicons: function() {
+    return ['glyphicon-star', 'glyphicon-star', 'glyphicon-star', 'glyphicon-star-empty', 'glyphicon-star-empty'];
+  }
+});
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/14189672/meteor-iterate-list-in-template">http://stackoverflow.com/questions/14189672/meteor-iterate-list-in-template</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/08/163932/">在Meteor应用中计算用户评分平均值</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-02-08T16:39:32+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:39 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以下方法使用的客户端展现代码(html)是一样的：
+<code>&lt;h2&gt;展会评分：&lt;span class="label label-success"&gt;&lt;/span&gt;&lt;/h2&gt;</code>.</p>
+
+<h1>使用MapReduce</h1>
+
+<p>MapReduce一次性将所有展会的用户评分平均值计算出来，优点是每次用户请求页面时不需要计算，直接从计算结果中取值。
+缺点是实时性差，由于MapReduce计算比较耗时，且计算结果存储在一个单独的collection中，
+新的计算结果会覆盖旧的，所以不能一次只计算一个展会的平均值（因为计算结果collection会覆盖掉有来包含所有结果的collection），
+只能在服务清闲的时间（比如凌晨）进行一次批量计算。</p>
+
+<p>在MongoDB中运行mapReduce：</p>
+
+<pre><code>db.userComments.mapReduce(
+    function(){ emit(this.fairId, this.rank); },
+    function(key, values) { return Array.avg(values); },
+    { out: "rank_avg" }
+);
+</code></pre>
+
+<p>客户端控制器(js):</p>
+
+<pre><code>UserAvgRank = new Mongo.Collection("rank_avg");
+
+Template.UserComments.helpers({
+  rankAverage: function() {
+    var rec = UserAvgRank.findOne({ _id: Router.current().params._id });
+    return Math.round(rec.value * 10) / 10;
+  }
+});
+</code></pre>
+
+<h1>aggregate计算平均值</h1>
+
+<p>使用MongoDB collection的aggregate方法在用户请求时实时计算平均值，优缺点与MapReduce方法正好相反。</p>
+
+<p>在Meteor 1.0.3版本中，不支持collection的aggregate方法，
+可以通过安装meteorhacks:aggregate包的方法解决这个问题，但这个方法也只能运行在服务端。</p>
+
+<pre><code>Template.UserComments.helpers({
+  rankAverage: function() {
+    var rec = Comments.aggregate( [ {$match: {fairId: Router.current().params._id} }, { $group: {_id: "$fairId", avgRank: {$avg: "$rank"}} } ]);
+    return Math.round(rec.avgRank * 10) / 10;
+  }
+});
+</code></pre>
+
+<h1>JavaScript手工计算</h1>
+
+<p>也是一种实时计算方法，代码量最大，但版本依赖性小。</p>
+
+<pre><code>Template.UserComments.helpers({
+  rankAverage: function() {
+    var rateNum = Comments.find().count();
+    if (rateNum === 0) return false;
+    var total = 0;
+    Comments.find( {} ).forEach(function(elem) {
+      total = total + elem.rank;
+    });
+    var avg = total / rateNum;
+    return Math.round(avg * 10) / 10;
+  }
+});
+</code></pre>
 </div>
   
   
@@ -815,23 +966,23 @@ right click the color block and select &ldquo;Add to palette&rdquo; or &ldquo;Ad
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Aggregate | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/aggregate/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2016-11-11T14:51:43+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[用aggregate方法处理MongoDB数据]]></title>
+    <link href="http://leetschau.github.io/blog/2016/06/08/092636/"/>
+    <updated>2016-06-08T09:26:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/06/08/092636</id>
+    <content type="html"><![CDATA[<p>下面的aggregate方法对Fair0606 collection做如下处理：</p>
+
+<p>用<code>$match</code>（类似于filter）筛选出recurrence长度不小于2的document (fair).</p>
+
+<p><a href="http://bit.ly/1X9uhLY">$unwind</a>类似于flatmap,
+将每一个recurrence数组中的元素变成一个document;</p>
+
+<p><a href="http://bit.ly/1UE0BTQ">$project</a>类似于map,去掉原document的<code>_id</code>,
+保留nameZHCN, website，
+创建新字段time，值为recurrence.timeStart,
+以及address，值为recurrence.address
+（路径的写法是路径名前面加$，详见Field Path and System Variables in
+<a href="http://bit.ly/1YdER3X">Aggregation Pipeline Quick Reference</a>）.</p>
+
+<p>如果希望保留recurrence.timeStart的结构，写成<code>"recurrence.timeStart": 1,</code>.</p>
+
+<p><code>$limit</code>要求只转换20个document, <code>$out</code>指定输出collection.</p>
+
+<pre><code>db.Fair0606.aggregate([
+  {$match: {'recurrence.1': {$exists: true}}},
+  {$unwind: "$recurrence"},
+  {$project: {
+    _id: 0,
+    nameZHCN: 1,
+    website: 1,
+    time: "$recurrence.timeStart",
+    address: "$recurrence.address"}},
+  {$limit: 20},
+  {$out: "out1"}])
+</code></pre>
+
+<p>通过unwind和project，可以实现对MongoDB schema的转换，下一步可以导出为csv
+进行更复杂的数据分析，例如使用<a href="http://incanter.org/">Incanter</a>.</p>
+
+<pre><code>mongoexport --type=csv -d test -c out1 \
+--fields nameZHCN,website,time,address -o fairs.csv
+</code></pre>
+
+<p>参考：</p>
+
+<p><a href="https://docs.mongodb.com/manual/reference/operator/aggregation/">https://docs.mongodb.com/manual/reference/operator/aggregation/</a></p>
+
+<p><a href="https://github.com/clojuredatascience">Clojure for Data Science</a></p>
+]]></content>
+  </entry>
+  
+</feed>

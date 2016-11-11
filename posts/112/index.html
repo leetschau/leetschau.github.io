@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="时间戳在项目自动构建中广泛使用，例如在jar文件的manifest文件中，以及最后zip包的文件名里等，时间戳对应的Ant命令是，这个标签既可以用在一个内部，也可以放在外部用作“全局”变量，全局变量的好处在于“一次定义，多处可用”，下面分别是内部和外部使用的两个例子，注意 &ldquo;build &hellip;">
+  <meta name="description" content="使用Ant+JUnit跑测试用例时如果出现“NoClassDefFoundError”问题，注意一下classpath里的JUnit版本是否为4.5，如果是将其替换为4.0或者4.8。 参见： http://stackoverflow.com/questions/1171264/ant-junit &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -38,7 +38,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/25/101404/">在Ant脚本中使用时间戳</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/12/15/113825/">Ant + JUnit: NoClassDefFoundError问题解决办法</a></h1>
     
     
       <p class="meta">
@@ -80,37 +80,59 @@
 
 
 
-<time class='entry-date' datetime='2010-09-25T10:14:04+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:14 am</span></time>
+<time class='entry-date' datetime='2010-12-15T11:38:25+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:38 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>时间戳在项目自动构建中广泛使用，例如在jar文件的manifest文件中，以及最后zip包的文件名里等，时间戳对应的Ant命令是<tstamp>，这个标签既可以用在一个<target>内部，也可以放在<target>外部用作“全局”变量，全局变量的好处在于“一次定义，多处可用”，下面分别是内部和外部使用的两个例子，注意 &ldquo;build.date"在 <tstamp>中赋值后就可以在其他地方使用了 ：</p>
+  <div class="entry-content"><p>使用Ant+JUnit跑测试用例时如果出现“NoClassDefFoundError”问题，注意一下classpath里的JUnit版本是否为4.5，如果是将其替换为4.0或者4.8。
+ 参见：
+  <a href="http://stackoverflow.com/questions/1171264/ant-junit-noclassdeffounderror">http://stackoverflow.com/questions/1171264/ant-junit-noclassdeffounderror</a></p>
 
-<p>内部：</p>
+<p> 使用<test>标签运行JUnit测试时，test的name属性要写类的全名，否则会报“ NoClassDefFoundError”错误，例如：
+ <test name="com.boco.godu.gapi.AdminFilterTest" todir="${test.xml.result}">
+  <formatter type="xml" /></p>
 
-<p>  <target name="init">
-   &hellip;&hellip;
-   <tstamp>
-    <format property="build.date" pattern="yyyyMMdd" />
-    <format property="build.time" pattern="HH:mm:ss" />
-   </tstamp>
-   <echo message="get current date:${build.date}" />
+<p> </test>
+ 如果name写成“ AdminFilterTest ”，则出 “ NoClassDefFoundError”错误 。</p>
+
+<p> <junit>的子标签<classpath>中，若需要引用class文件，使用<pathelement path="${test.class.dir}"/>，其中test.class.dir定义为：
+ <property name="test.class.dir" value="${build.dir}/test"/>
+ 若需要引用jar文件，则使用<path refid="lib.path"/>，其中"lib.path"定义为：
+ <path id="lib.path"></p>
+
+<p>  <fileset dir="${build.lib.dir}"></p>
+
+<p>  <include name="**/*.jar"/></p>
+
+<p>  </fileset></p>
+
+<p>  </path></p>
+
+<p> 完整的测试任务实例如下：
+  <target name="unit_test" depends="compile">
+   <javac srcdir="${test.src.dir}" destdir="${test.class.dir}"
+    classpathref="lib.path" classpath="${build.class.dir}"
+    encoding="GBK" optimize="off" debug="on"/>
+   <junit printsummary="yes" haltonfailure="no">
+    <classpath>
+     <pathelement path="${test.class.dir}"/>
+     <pathelement path="${build.class.dir}"/>
+     <path refid="lib.path"/>
+    </classpath>
+    <test name="com.boco.godu.gapi.AdminFilterTest" todir="${test.xml.result}">
+     <formatter type="xml" />
+    </test>
+   </junit>
+   <junitreport todir="${test.report.dir}">
+    <fileset dir="${test.xml.result}">
+     <include name="TEST-*.xml" />
+    </fileset>
+    <report format="noframes" todir="${test.report.dir}" />
+   </junitreport>
   </target></p>
-
-<p>外部：</p>
-
-<p>  <tstamp>
-   <format property="build.date" pattern="yyyyMMdd" />
-   <format property="build.time" pattern="HH:mm:ss" />
-  </tstamp>
-  <target name="init">
-   &hellip;&hellip;</p>
-
-<p>   <echo message="get current date:${build.date}" />
-  </target></p>
 </div>
   
   
@@ -123,7 +145,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/20/103757/">日志核查工具脚本业务逻辑</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/12/09/180259/">自动生成srt格式的脚本（Python实现）</a></h1>
     
     
       <p class="meta">
@@ -132,62 +154,97 @@
 
 
 
-<time class='entry-date' datetime='2010-09-20T10:37:57+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:37 am</span></time>
+<time class='entry-date' datetime='2010-12-09T18:02:59+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>6:02 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>用户确定线程号qth和时间范围[qst, qet]；</p>
+  <div class="entry-content"><p>用威力导演制作短片，这个软件有个导入srt字幕的功能，可以写好文本后一次性导入短片的字幕，比手工在威力导演里写快多了，srt文本中，每一条字幕的格式是：
+ 序号
+ 起止时间
+ 字幕内容</p>
 
-<p>读入文本文件；</p>
+<p>例如：
+ 1
+ 00:00:08,0 &ndash;> 00:00:13,0
+ 发展历程</p>
 
-<p>将有效行标志位vline设为false；</p>
+<p> 2
+ 00:00:13,0 &ndash;> 00:00:18,0
+ 2006年
+ 通用产品线正式成立
+ &hellip;</p>
 
-<p>读入第一行数据，判断是否为日志输出；</p>
+<p>这种格式在字幕的条数发生变化时修改起来很麻烦，比如一共有50条字幕，在第3条后加一条新字幕，则后面47条的序号、起止时间点都要修改，简直是噩梦，为此编写了下面的Python脚本，现在只要将字幕写成如下格式，用脚本处理后就能生成上面要求的格式了：</p>
 
-<p>若是：提取线程号thread_no和时间cur_time，将vline设为true；</p>
+<p> 发展历程</p>
 
-<p>否则：</p>
+<p> 2006年
+ 通用产品线正式成立
+ &hellip;</p>
 
-<p>若vline=true，输出该行</p>
+<p>其中主要的技术点有（Python 3.1）：
+ 时间偏移用timedelta对象，时间点用datetime对象，不能用time对象，因为time对象和timedelta对象不能做和； 时间转换为字符串的方法是strftime() 地址字符串要用“/”代替“\”；
+将待处理文件保存为ANSI格式文本，在脚本里配好地址（这里是“f:/视频制作”）就可以了。</p>
 
-<p>否则忽略该行；</p>
+<p>下面是脚本内容：</p>
 
-<p>若线程号不是qth 忽略该行；</p>
+<p> #!/usr/bin/env python</p>
 
-<p> 若cur_time&lt;qst忽略该行；</p>
+<p> from datetime import datetime, timedelta</p>
 
-<p> 输出本行数据，循环读入下一行文本；</p>
+<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
 
-<p> 用grep -n定位起始位置，awk先判断时间范围，再判断线程号，当时间超出上限时，直接退出（close），不必读后续行（next）。</p>
+<p>  #读原始文件</p>
 
-<p>echo &ldquo;Please input thread number:&rdquo;
-read qth
-echo &ldquo;Please input start time:&rdquo;
-read qst
-echo &ldquo;Please input end time:&rdquo;
-read qet</p>
+<p>  oriScript = open(&lsquo;f:/视频制作/rawScript.srt&rsquo;,&lsquo;rt&rsquo;)</p>
 
-<h1>echo $qth</h1>
+<p>  #写目标文件</p>
 
-<p>awk &lsquo;BEGIN{
-   isLogLine=0;
-   qth=&rsquo;&ldquo;$qth&rdquo;&lsquo;;
-   qst=&rsquo;&ldquo;$qst&rdquo;&lsquo;;
-   qet=&rsquo;&ldquo;$qet&rdquo;&lsquo;;
- }
- {
-  if(substr($3,2,7)==&ldquo;thread_&rdquo;){ #检查是否为日志输出列</p>
+<p>  destScript = open(&lsquo;f:/视频制作/destScript.srt&rsquo;,&lsquo;wt&rsquo;)</p>
 
-<p>   thread_no=substr($3,9,length($3)-9);
-   if(thread_no==qth){
-    print &ldquo;the thread is in line:&rdquo;
-    print NR
-   }
-  }
- }&lsquo; logex</p>
+<p>  try:</p>
+
+<p>   block = &lsquo;&rsquo;</p>
+
+<p>   seqNo = 1</p>
+
+<p>   startTime = datetime(1980,1,1,0,0,8)</p>
+
+<p>   for curLine in oriScript:</p>
+
+<pre><code>#print(len(curLine)) 
+
+if curLine.isspace() and len(block)&gt;0: #本行是空行 
+
+ destScript.write(str(seqNo)+'\n') #写字幕序号 
+
+ endTime = startTime+timedelta(seconds=5) 
+
+ #写起止时间： 
+
+ destScript.write(startTime.strftime("%X") + ',0 --&gt; '+ endTime.strftime("%X") + ',0\n') 
+
+ destScript.write(block+'\n') 
+
+ block = '' #清空缓存 
+
+ seqNo = seqNo + 1 #序号递增 
+
+ startTime = endTime #本条的终止时间是下一条的起始时间 
+
+else: 
+
+ block = block + curLine #当前行追加到缓存中 
+</code></pre>
+
+<p>  finally:</p>
+
+<p>   oriScript.close()</p>
+
+<p>   destScript.close()</p>
 </div>
   
   
@@ -200,7 +257,7 @@ read qet</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/19/173635/">统计代码行工具</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/12/08/163752/">Hudson/Jenkins 笔记</a></h1>
     
     
       <p class="meta">
@@ -209,20 +266,90 @@ read qet</p>
 
 
 
-<time class='entry-date' datetime='2010-09-19T17:36:35+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:36 pm</span></time>
+<time class='entry-date' datetime='2010-12-08T16:37:52+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:37 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>diffcount计算代码行主要有两种方式：一是计算某一个文件夹中源代码的数量： diffcount -c D:\workspace\GODU_API1.1\src</p>
+  <div class="entry-content"><ul>
+<li><p>ivy的settings文件在【Manage Hudson->Configure System->Global properties->Environment variables->Add】中设置；</p></li>
+<li><p>build.xml中需要的变量可以在项目的Configure->Build->Advanced->Properties】中添加，例如： ivy.settings.path=d:/workspace/ivysettings.xml ；</p></li>
+<li><p>一个job的源代码在该job的【Configure->Source Code Management->Subversion->Modules->Repository URL】中指定，例如： <a href="http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/GAPI">http://10.0.2.59:8118/svn/godu/Development-Area/3-SCL/Trunk/GAPI</a> ；</p></li>
+<li><p>发送Email在【Manage Hudson->Configure System->E-mail Notification】中指定，【SMTP server】指定邮件服务器的IP地址（可用 ping boco.com.cn 获取），【System Admin E-mail Address】写上发件人Email地址，【Advanced->Use SMTP Authentication】下写上发件人的用户名和密码；</p></li>
+<li><p>如果Hudson服务器设置了安全管理，匿名用户无法管理，可以将hudson根目录下的config.xml中的<authorizationStrategy .../>改为 <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
+即可。</p></li>
+</ul>
 
-<p> 二是比较两个文件夹的差异：diffcount e:\build\tested\src1 e:\build\tested\src2。</p>
 
-<p> 这两种情况下均可以在后面加&ndash;for-program-reading参数，使得返回结果只有计算数据（没有表头以及说明文字），更方便与应用程序处理。</p>
+<p>2013-05-09更新：</p>
 
-<p> 比较两个文件夹差异时，如果两个文件夹都不存在，或者两个文件夹完全相同时（都不存在也是一种特殊的“相同”），diffcount返回结果都为空，因此用程序处理diffcount结果时，对于返回为空的情况，建议保持其为空的状态，不要将空转换为0，因为0意味着两个文件夹完全相同，但也可能是两个文件夹都不存在。</p>
+<ul>
+<li><p>安装为Windows服务：用java -jar jenkins.war启动后在管理界面中点击“Install as a windows service”，安装完毕后在控制面板的服务里可以看到一个名为"jenkins"的系统服务，启动类型为“自动”，这样每次启动机器后jenkins服务就自动启动了，参考 <a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+as+a+Windows+service">https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+as+a+Windows+service</a></p></li>
+<li><p>修改界面语言：Jenkins使用浏览器的语言作为它的界面语言，所以如果使用IE的话可以通过更改iE的语言配置达到更改Jenkins界面语言的目的：IE菜单->Internet选项->常规->外观->语言，将英语放在语言列表的第一位。</p></li>
+<li><p>配置邮件帐号：</p>
+
+<p>[Jenkins Location -> System Admin e-mail address]中填写管理员email地址，此地址将作为BVT的发送地址；</p>
+
+<p>[邮件通知 -> SMTP服务器] 中写邮件服务器的ip地址；勾选“使用SMTP认证”，“用户名”和“密码”填写管理员帐号的用户名和密码；</p>
+
+<p>验证方法：勾选“通过发送测试邮件测试配置”，填写"Test e-mail recipient"地址，然后点击"Test configuration"；</p></li>
+<li><p>隐藏Disable状态的Project</p></li>
+</ul>
+
+
+<p>新建一个View，在[Job Filters -> Status Filter]中选择"Enabled jobs only";</p>
+
+<ul>
+<li>Trouble Shooting</li>
+</ul>
+
+
+<p>如果报找不到Gradle.bat错误，尝试将浏览器默认语言改为中文，Jenkins全局配置的GRADLE_HOME的路径名后面加反斜杠；</p>
+
+<p>如果Gradle构建成功，提取测试结果失败，在项目配置里，Gradle Task中写两个任务：clean和build；</p>
+
+<h1>install jenkins on Ubuntu</h1>
+
+<p>install jenkins FAILED following these instructions on jenkins official site:</p>
+
+<pre><code>wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+sudo sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ &gt; /etc/apt/sources.list.d/jenkins.list' 
+sudo apt-get update 
+sudo apt-get install jenkins 
+</code></pre>
+
+<p>So download jenkins.war manually and start it as following:</p>
+
+<pre><code>nohup java -jar jenkins.war 1&gt;jenkins.log 2&gt;jenkins.log &amp;
+</code></pre>
+
+<p>reinstall jenkins plugin failed for some reason, so if you upgrade jenkins, you have to:</p>
+
+<ol>
+<li><p>stop jenkins service</p></li>
+<li><p>remove $HOME/.jenkins folder;</p></li>
+<li><p>download new jenkins.war;</p></li>
+<li><p>restart jenkins service.</p></li>
+</ol>
+
+
+<p>some other dir:</p>
+
+<p>/etc/logrotate.d/jenkins
+/etc/jenkins
+/etc/default/jenkins
+/usr/share/jenkins
+/var/lib/jenkins
+/var/log/jenkins
+/opt/jenkins
+/run/jenkins
+/root/.jenkins</p>
+
+<p><a href="http://jenkins.361315.n4.nabble.com/remove-jenkins-and-install-new-one-td3947139.html">remove jenkins and install new one</a> give some good advices to remove Jenkins completely.</p>
+
+<p>基于Jenkins 1.5。</p>
 </div>
   
   
@@ -235,7 +362,7 @@ read qet</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/17/173257/">使用TestNG进行并发测试</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/12/03/103731/">Ivy的配置管理</a></h1>
     
     
       <p class="meta">
@@ -244,40 +371,207 @@ read qet</p>
 
 
 
-<time class='entry-date' datetime='2010-09-17T17:32:57+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:32 pm</span></time>
+<time class='entry-date' datetime='2010-12-03T10:37:31+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>10:37 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>写并发测试用例的时候不要用JUnit，它不支持并发，将测试函数写在public static void main(String[] args)中。但如果一个测试类里有多个并发测试case的时候这招就不灵了，需要用testng解决这个问题。在Eclipse中使用TestNG需要首先安装testng for eclispe的plugin（见[1]），然后引用testng的jar包。然后就可以写测试用例了。</p>
+  <div class="entry-content"><p>一个项目的Ivy文件（ivy.xml）主要定义了项目的三部分内容：
+ 项目本身属性：例如开发项目的组织名称，项目名称、项目版本、项目状态、发布日期等； 项目发布产品的定义：逐条列出项目发布的产品，每个产品条目包括：产品名称、产品类型、产品扩展名等； 项目依赖产品的定义：逐条列出产品运行和发布所需要的依赖包的列表，每个依赖包条目包括：该依赖包的组织名、模块名、版本号以及其他特征说明；
+为了增加ivy的管理能力以应对复杂的实际应用环境，Ivy提供了配置（configuration）功能，一个配置包含两方面的内容，首先是属于此配置的产品，其次是属于此配置的依赖包。Ivy的依赖管理不是建立在产品的基础上，而是建立在配置的基础上，例如模块（项目）MA的产品AA需要将模块MB的产品AB（jar包）添加到classpath中才能运行，在Ivy文件中不是声明“AA依赖于AB”，而是需要声明“MA的配置CA依赖MB的配置CB”，也就是在MA的ivy.xml文件中会有：</p>
 
-<p>testng声明并发测试很简单，示例如下（改自[3]）：</p>
+<p> <dependencies></p>
 
-<p> import org.testng.annotations.Test; @Test(invocationCount = 5, threadPoolSize = 3)
-public void testThreadPool() {
- System.out.println(&ldquo;Thread: &rdquo; + Thread.currentThread().getId());
-}
-参数含义：（引自[2]）</p>
+<p> <dependency org="OB" name="MB" rev="..." conf="CA->CB"/></p>
 
-<p>invocationCount: The number of times this method should be invoked.（线程体总共被执行多少次）；
-threadPoolSize: The size of the thread pool for this method. The method will be invoked from multiple threads as specified by invocationCount.（线程池的大小，也就是并发的线程数目是多少）
-Note: this attribute is ignored if invocationCount is not specified
-上面这个例子输出可能如下： Thread: 14
-Thread: 13
-Thread: 15
-Thread: 14
-Thread: 13
-即程序共运行5次，共有3个线程。</p>
+<p> <dependency .../></p>
 
-<p>[1] <a href="http://testng.org/doc/download.html">http://testng.org/doc/download.html</a></p>
+<p> </dependencies></p>
 
-<p>[2] <a href="http://testng.org/doc/documentation-main.html">http://testng.org/doc/documentation-main.html</a></p>
+<p>由于一个配置对应一个产品，因此上面的声明实际意思是说：CA对应的AA依赖于CB对应的AB。产品与配置的对应关系在<publications>标签中声明：</p>
 
-<p>[3] <a href="http://hi.baidu.com/sunshine/blog/item/9d355982cb1200a40cf4d2c9.html">http://hi.baidu.com/sunshine/blog/item/9d355982cb1200a40cf4d2c9.html</a></p>
+<p> <publications></p>
 
-<p> <a href="http://www.raptorconsultants.com/uncategorized/testng-junit/">http://www.raptorconsultants.com/uncategorized/testng-junit/</a></p>
+<p> <artifact name="AB" type="jar" ext="jar" conf="CB"/></p>
+
+<p> </publications>
+ Ivy查找jar包的工作过程
+以上面的定义为例，MA搜索MBjar包的过程是：</p>
+
+<p>第一步：MA根据项目指定的ivysetting.xml文件中的defaultResolver属性找到用哪个resolver解析MA的ivy.xml文件的dependency条目，这里是chain-repo，它的第一个解析器chain-release的解析模式是："${release.repo.dir}/[organisation]/[module]/[type]s/[artifact]-[revision].[ext]&ldquo;，所以ivy会去</p>
+
+<p>&ldquo;s<a href="ftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/ReleaseArea/">ftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/ReleaseArea/</a>[organisation]/[module]&rdquo;</p>
+
+<p>这个路径下寻找jar包，具体到</p>
+
+<p> <dependency org="OB" name="MB" rev="2.1" conf="CA->CB"/></p>
+
+<p>这一条目，用OB替换[organisation]，用MB替换[module]，变成了</p>
+
+<p>s<a href="ftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/ReleaseArea/OB/MB%EF%BC%88%E5%90%8E%E9%9D%A2%E7%AE%80%E5%86%99%E4%B8%BA%E2%80%9COB/MB%E2%80%9D%EF%BC%89%EF%BC%9B">ftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/ReleaseArea/OB/MB%EF%BC%88%E5%90%8E%E9%9D%A2%E7%AE%80%E5%86%99%E4%B8%BA%E2%80%9COB/MB%E2%80%9D%EF%BC%89%EF%BC%9B</a></p>
+
+<p>第二步：找到OB/MB后，根据chain-release下面的ivy pattern的定义，找到下面的ivys文件夹里的ivy-2.1.xml文件，此文件中的<publications>一节中，CB这个配置对应的artifact名称是AB，type是jar，ext是jar，因此chain-release下面的artifact pattern就被翻译成了：</p>
+
+<p>&ldquo;s<a href="ftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/ReleaseArea/OB/MB/jars/AB-2.1.jar">ftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/ReleaseArea/OB/MB/jars/AB-2.1.jar</a>"，这个jar包就被作为MB项目发布的AB这个jar包被MA项目引用了。</p>
+
+<p>如果OB/MB下没有ivys/ivy*.xml文件，则artifact默认值是模块名MB，type是jar，ext是jar，所以当需要向产品库里增加单独的jar包时（不是来自Maven Repository），需要首先确定该包的 org 、 module 、 revision 三个属性，然后将jar包命名为 module - revision .jar放在 org / module /jars目录下即可。</p>
+
+<p>上述ivysettings.xml文件内容如下：</p>
+
+<p>&lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> <ivysettings></p>
+
+<p> <settings defaultResolver="chain-repo" defaultConflictManager="all" /></p>
+
+<p> <property name="release.repo.dir" value= "sftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/ReleaseArea" /></p>
+
+<p> <property name="test.repo.dir" value="sftp://godu:bocogodu@10.0.2.47:22/opt/ArtifactRepo/TestArea" /></p>
+
+<p> <resolvers></p>
+
+<p> <ibiblio name="public-repo" m2compatible="true" /></p>
+
+<p> <chain name=" chain-repo " returnFirst="true" checkmodified="true"></p>
+
+<p> <sftp name="chain-release"></p>
+
+<p> <artifact pattern=" ${release.repo.dir}/[organisation]/[module]/[type]s/[artifact]-[revision].[ext] " /></p>
+
+<p> <ivy pattern=" ${release.repo.dir}/[organisation]/[module]/[type]s/[artifact]-[revision].xml " /></p>
+
+<p> </sftp></p>
+
+<p> <sftp name="..." checkmodified="true"></p>
+
+<p> <artifact pattern="..." /></p>
+
+<p> <ivy pattern="..." /></p>
+
+<p> </sftp></p>
+
+<p> </chain></p>
+
+<p> </resolvers></p>
+
+<p> </ivysettings></p>
+
+<p>采用这种方式，可以解决以下几种复杂情况。
+ 一个模块发布多个产品
+ 例如模块MB发布了一个制作报表工具，这个工具有一套统一的API，只要调用这套API就能制作出各种各样的报表，包含API和XP风格报表实现的产品名为AB_XP（需要第三方包DEP_XP才能运行），包含API和苹果风格报表的产品名为AB_APPLE （需要第三方包DEP_APPLE才能运行），MB的ivy文件应为（这里DEP_XP和DEP_APPLE分别定义在mod_xp和mod_apple的default配置中）：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> <ivy-module version="2.0" ></p>
+
+<p> <info organisation="OB" module="MB" revision="1.0" status="release" publication="20101121175043"/></p>
+
+<p> <configurations></p>
+
+<p> <conf name="CB_XP" visibility="public" description="..."/></p>
+
+<p> <conf name="CB_APPLE" visibility="public" description="..."/>
+ </configurations></p>
+
+<p> <publications></p>
+
+<p> <artifact name="AB_XP" type="jar" ext="jar" conf="CB_XP"/></p>
+
+<p> <artifact name="AB_APPLE" type="jar" ext="jar" conf="CB_APPLE"/></p>
+
+<p> </publications></p>
+
+<p> <dependencies></p>
+
+<p> <dependency org="org_1" name="mod_xp" rev="1.0" conf="CB_XP->default"/></p>
+
+<p> <dependency org="org_2" name="mod_apple" rev="1.0" conf="CB_APPLE->default"/></p>
+
+<p> </dependencies>
+ </ivy-module>
+模块MA是一个自动测试工具，测试完成后需要用模块MB提供的工具生成测试结果报告，MA发布两个产品：AA_XP（生成XP风格报表，需引用AB_XP）和AA_APPLE（生成苹果格式的报表，需引用AB_APPLE），则MA的ivy文件应为：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> <ivy-module version="2.0" ></p>
+
+<p> <info organisation="OA" module="MA" revision="1.0" status="release" publication="20101121175043"/></p>
+
+<p> <configurations></p>
+
+<p> <conf name="CA_XP" visibility="public" description="..."/></p>
+
+<p> <conf name="CA_APPLE" visibility="public" description="..."/></p>
+
+<p> </configurations></p>
+
+<p> <publications></p>
+
+<p> <artifact name="AA_XP" type="jar" ext="jar" conf="CA_XP"/></p>
+
+<p> <artifact name="AA_APPLE" type="jar" ext="jar" conf="CA_APPLE"/></p>
+
+<p> </publications></p>
+
+<p> <dependencies></p>
+
+<p> <dependency org="OB" name="MB" rev="1.0" conf="CA_XP->CB_XP" transitive=&ldquo;true&rdquo;/></p>
+
+<p> <dependency org="OB" name="MB" rev="1.0" conf="CA_APPLE->CB_APPLE" transitive=&ldquo;true&rdquo;/></p>
+
+<p> </dependencies></p>
+
+<p> </ivy-module></p>
+
+<p>这样模块MA中的ivy进行解析（resolve）的时候，不仅会引用产品AB_XP和AB_APPLE，也会引用DEP_XP和DEP_APPLE，如果将上面<dependency>里的transitive=&ldquo;true"改为transitive="false"，则只引用AB_XP和AB_APPLE，不引用DEP_XP和DEP_APPLE。
+ 产品的部分依赖
+假设模块MB的产品AB的功能很多，实现所有功能所依赖的第三方包有50个（dep_1~dep_50），模块MA的产品AA只需要使用AB的一个功能，而这个功能只需要dep_15一个三方包，这时如果采用transitive="true"方式引用AB，则会把所有50个三方包都引入到AB的lib中，体积会很大，用配置就可以在AB中为AA专门定制一个conf，使transitive="true"方式下AA只取AB和dep_15，AB的ivy.xml如下：</p>
+
+<p> &lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;UTF-8&rdquo;?></p>
+
+<p> <ivy-module version="2.0" ></p>
+
+<p> <info organisation="OB" module="MB" revision="1.0" status="release" publication="20101121175043"/></p>
+
+<p> <configurations></p>
+
+<p> <conf name="AA_runtime" visibility="public" description="only for AA"/></p>
+
+<p> <conf name="default" visibility="public" description="..."/></p>
+
+<p> </configurations></p>
+
+<p> <publications></p>
+
+<p> <artifact name="AB_XP" type="jar" ext="jar" conf="AA_runtime"/></p>
+
+<p> </publications></p>
+
+<p> <dependencies></p>
+
+<p> <dependency org="org_1" name="mod_1" rev="1.0" conf="default->default"/></p>
+
+<p> &hellip;&hellip;</p>
+
+<p> <dependency org="org_15" name="mod_15" rev="1.0" conf="default,AA_runtime->default"/></p>
+
+<p> &hellip;&hellip;</p>
+
+<p> <dependency org="org_50" name="mod_50" rev="1.0" conf="default->default"/></p>
+
+<p> </dependencies></p>
+
+<p> </ivy-module></p>
+
+<p>另外一种解决方法是把dep_15手工加到MA的依赖中，这时可为MB建立一个"Nontransitive"配置（习惯上称为master）：仅在<publications>里出现，而不出现在<dependencies>中，实例可参见很多Maven库里第三方包的ivy.xml文件。这样master配置不包含任何依赖，即使写MA的依赖时注明transitive=&ldquo;true"，也引不到任何MB的依赖包。</p>
+
+<p>使用这种master配置要注意的是：在<dependencies>中所有条目都不能省略conf=&ldquo;&hellip;"。当MB的被依赖项目之一dep_x只有jar包没有ivy配置时，如果省略conf部分，则该依赖对所有配置生效（包括master），这时MB的master就不完全是"Nontransitive"了，而是包括省略conf的条目（dep_x），如果MA依赖MB的master，就会把dep_x也引过来，解决办法就是在MB的<dependencies>的dep_x条目中标明：conf="compile-><em>"（其中compile是用于MB自己编译的配置）。
+ 依赖配置的通配和后备机制
+在依赖配置中，如果被依赖的项目只有jar包，没有ivy配置，或者不清楚被依赖项目的配置情况，可用星号（“</em>”）表示任何配置，例如：conf="compile->*"；</p>
+
+<p>如果被依赖项目可能有master配置，可用后备配置：conf=&ldquo;compile->master(*)"，即当master配置不存在时，使用任何配置。</p>
 </div>
   
   
@@ -290,7 +584,7 @@ Thread: 13
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/17/105145/">VIM的跨行查找和匹配数量</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/12/02/141308/">Ivy异常处理经验总结</a></h1>
     
     
       <p class="meta">
@@ -299,20 +593,22 @@ Thread: 13
 
 
 
-<time class='entry-date' datetime='2010-09-17T10:51:45+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:51 am</span></time>
+<time class='entry-date' datetime='2010-12-02T14:13:08+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2010</span></span> <span class='time'>2:13 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>跨行用\n表示，例如 用4\n56可以匹配到：</p>
+  <div class="entry-content"><p>问题描述 ：找不到配置（2010年12月2日出现并解决）
+ GAPI依赖GODU，在GODU的ivy.xml里添加了新的configuration，名为gapi_runtime，然后重新publish到产品仓库中，然后让GAPI依赖GODU的 gapi_runtime，即：
+ <dependency org="com.boco.ty" name="godu-common" rev="2.1A1" conf="master->gapi_runtime" transitive=&ldquo;true&rdquo;/>
+ ivy解析时报“找不到配置：gapi_runtime”错误，这是由于GODU增加新的配置后，虽然更新的产品仓库，但本地的缓存却并未更新，解析时仍然使用旧的ivy文件，自然就找不到配置了。
+ 解决方法  ：删除本地的缓存（如没有专门设置，WinXP系统下的路径为：c:\Documents and Settings\${UserName}.ivy2\cache）
+ 问题描述： 开发项目在本机Eclipse环境中能够编译通过，但BVT脚本编译时出现错误（2011-8-1）。
+  解决方法  ：通过分析编译错误一般可以确定是否由于缓存没有更新引起的（比如错误是由于使用了之前的老接口引起的），如果怀疑是缓存没有更新，可以手工删除ivy的cache文件夹，再重新编译，如果这时没有错误，就可以确定是缓存没有更新引起的了，更根本的解决方法是设置changing参数为true：</p>
 
-<p> 4</p>
-
-<p> 56</p>
-
-<p>中，查询一段文本中pattern出现的次数，类似于UltraEdit中的“Count All”功能，用:%s/pattern//gn， 例如统计文档中有多少空格分隔的单词可以使用：:%s/[^ ]+//gn（ []中^开头后跟一个字符表示该字符的补集，例如[^a]表示除a外的所有字符），实际上是利用了s命令的n参数。</p>
+<p>  <dependency org="com.boco.ty" name="gapi" rev="alpha" conf="compile->master" changing=&ldquo;true&rdquo; /></p>
 </div>
   
   
@@ -325,7 +621,7 @@ Thread: 13
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/16/205106/">美铁之战TXT文件的修改脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/11/24/114443/">Eclipse编辑器配色的配置文件</a></h1>
     
     
       <p class="meta">
@@ -334,27 +630,15 @@ Thread: 13
 
 
 
-<time class='entry-date' datetime='2010-09-16T20:51:06+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>8:51 pm</span></time>
+<time class='entry-date' datetime='2010-11-24T11:44:43+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>11:44 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>用VIM将美铁之战的txt文件改为适合手机阅读的格式，参见“用VIM修改《红太阳是怎样升起的》”一文。</p>
-
-<p>下面是脚本：</p>
-
-<p>&ldquo;每段起始处加段落标记
-%s/^\s*$/<P>/g
-"在每行后加一个空格
-%s/\S$/&amp; /g
-"将所有文本合为一行
-1,$j!
-"将段落标志替换为回车
-%s/<P>/\r\r/g
-"去掉行首的一个空格
-%s/^\s//g</p>
+  <div class="entry-content"><p>基本编辑器配色：${workspace}.metadata.plugins\org.eclipse.core.runtime.settings\org.eclipse.ui.editors.prefs Java语法配色：${workspace}.metadata.plugins\org.eclipse.core.runtime.settings\org.eclipse.jdt.ui.prefs XML语法配色：${workspace}.metadata.plugins\org.eclipse.core.runtime.settings\org.eclipse.wst.xml.ui.prefs Python语法配色（仅在安装了Pydev插件后有效）：${workspace}.metadata.plugins\org.eclipse.core.runtime.settings\org.python.pydev.prefs
+手工配好编辑器颜色后（参见博文“手工设置Eclipse文本编辑器的配色”），将以上文件保存起来，对于一个新的Workspace，用以上文件覆盖自动生成的文件即可。</p>
 </div>
   
   
@@ -367,7 +651,7 @@ Thread: 13
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/13/135652/">Windows ADSL上网设置方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/11/23/174049/">手工设置Eclipse文本编辑器的配色</a></h1>
     
     
       <p class="meta">
@@ -376,14 +660,17 @@ Thread: 13
 
 
 
-<time class='entry-date' datetime='2010-09-13T13:56:52+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>1:56 pm</span></time>
+<time class='entry-date' datetime='2010-11-23T17:40:49+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>5:40 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>网上邻居->右键_>属性->【创建一个新的连接】->【连接到Internet】->手动设置我的连接->【用要求用户名和密码的宽带来连接】->【输入连接名】（自己定义即可）->【输入用户名和密码】</p>
+  <div class="entry-content"><p>Eclipse中不同的文件都有自己专门的编辑器配色设置，下面分别说明。</p>
+
+<p> 文本编辑器的背景色： Window->Preferences-> General->Editors->Text Editors->Appearance color options->Background color； java文件：Window->Preferences->Java->Editor->Syntax Coloring； properties文件：Window->Preferences->Java->Properties Files Editor； python文件：安装Pydev插件后，Window->Preferences->Pydev->Editor； 被标记的变量的背景色在Window->Preferences->Editors->Text Editors->Annotations->Occurrences(Pydev)中设置；
+Eclipse默认的配色还不错，就是白色的背景太亮了，将背景色调成浅灰色（红绿蓝都设为233）即可。</p>
 </div>
   
   
@@ -396,7 +683,7 @@ Thread: 13
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/09/103945/">Word2007不显示图像问题的解决办法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/11/23/152842/">中文Windows上安装Jython字符串处理异常的解决办法</a></h1>
     
     
       <p class="meta">
@@ -405,20 +692,71 @@ Thread: 13
 
 
 
-<time class='entry-date' datetime='2010-09-09T10:39:45+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:39 am</span></time>
+<time class='entry-date' datetime='2010-11-23T15:28:42+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>3:28 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>适用场景：打开Word文档后，所有显示图形的地方都只显示一个框，而不显示图形，预览时可看到图形。</p>
+  <div class="entry-content"><p>The Jython console didn&rsquo;t work properly on my Chinese version Windows XP. It can not interprete the strings properly.</p>
 
-<p>解决办法：关闭“图片框”选项。 具体步骤：
- 1. 单击“Microsoft Office 按钮”，然后单击“Word 选项”。
- 2. 单击“高级”。
- 3. 在“显示文档内容”下，取消勾选“图片框”复选框。
- 4. 单击“确定”。</p>
+<p>e.g.</p>
+
+<blockquote><blockquote><blockquote><p>print &ldquo;hello world&rdquo;</p></blockquote></blockquote></blockquote>
+
+<p>&hellip;.</p>
+
+<p>Looks like it&rsquo;s looking for a futher input. After I input a &lsquo;\n&rsquo;, ther console crashed and complains</p>
+
+<p>LookupError: unknown encoding &lsquo;gb18030&rsquo;.</p>
+
+<p>This error never happens on the English version Windows XP. So, this problem definitely caused by the system default encoding.</p>
+
+<p>With a few hours study for the JVM &amp; the Jython encoding setting, I found 2 solutions.</p>
+
+<p>1) Change the JVM default character encoding</p>
+
+<p>Start up the jython with option -Dfile.encoding=UTF8,then the Jython console&rsquo;s encoding will be UTF8 as well.</p>
+
+<p>e.g.</p>
+
+<pre><code>jython -Dfile.encoding=UTF8 
+</code></pre>
+
+<p>For change the JVM encoding automatically, you can also create one environment variable JAVA_TOOL_OPTIONS to -Dfile.encoding=UTF8.</p>
+
+<p>e.g.</p>
+
+<pre><code>set JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF8" 
+</code></pre>
+
+<p>2) Change the Jython console character encoding</p>
+
+<p>Start up the jython with option -Dpython.console.encoding=UTF8</p>
+
+<p>e.g.</p>
+
+<pre><code>jython -Dpython.console.encoding=UTF8
+</code></pre>
+
+<p>Or add this setting in the Jython registry file. On my laptop, the file is C:\jython25\registry</p>
+
+<p>Now, you enjoy.</p>
+
+<hr />
+
+<p>2013-03-19更新</p>
+
+<h1>命令行输出</h1>
+
+<p>java -jar -Dpython.console.encoding=UTF-8 jython-2.5.3.jar</p>
+
+<h1>执行文件</h1>
+
+<p>java -jar -Dfile.encoding=UTF-8 jython-2.5.3.jar test.txt</p>
+
+<p>目前都不能输入汉字</p>
 </div>
   
   
@@ -431,7 +769,7 @@ Thread: 13
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/08/160726/">CMMI相关图书</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/11/18/140732/">客户端socket连接的106号错误分析</a></h1>
     
     
       <p class="meta">
@@ -440,18 +778,20 @@ Thread: 13
 
 
 
-<time class='entry-date' datetime='2010-09-08T16:07:26+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>4:07 pm</span></time>
+<time class='entry-date' datetime='2010-11-18T14:07:32+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:07 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Integrating CMMI and Agile Development: Case Studies and Proven Techniques for Faster Performance Improvement</p>
+  <div class="entry-content"><p>Python的socket模块提供了基于socket的网络连接方法，分为server端和client端，在python2.6中，使用server需依次调用下面的方法：</p>
 
-<p> <a href="http://www.sei.cmu.edu/library/abstracts/books/9780321714107.cfm">http://www.sei.cmu.edu/library/abstracts/books/9780321714107.cfm</a></p>
+<p>socket(), bind(), listen(), accept()，其中socket方法是构造函数，可多次调用accept()方法与多个client通信。使用client依次调用 socket()和connect()方法即可。</p>
 
-<p>CMMI Survival Guide: Just Enough Process Improvement</p>
+<p>如果一个client已经用connect()或者connect_ex()方法连接了，在没有close()的情况下再次 connect()或者connect_ex()，则会出现106号错误： Python: Socket Error 106: &lsquo;Transport endpoint is already connected'，connect()方法抛出106号异常，而connect_ex()方法返回值为106（连接成功的返回值为0），解决方法是每次连接时创建一个新的socket，或者先调用close()关闭后再连接。</p>
+
+<p>用connect_ex((host, port))探测端口是否绑定不是很可靠，除了上述106错误外，还有111,即连接被拒绝，建议使用"nc -z host port"代替，不过需要操作系统有netcat，支持nc指令。</p>
 </div>
   
   
@@ -464,7 +804,7 @@ Thread: 13
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/09/06/103753/">Java的classpath与package</a></h1>
+      <h1 class="entry-title"><a href="/blog/2010/11/17/101025/">用Gnucash做财务分析</a></h1>
     
     
       <p class="meta">
@@ -473,395 +813,14 @@ Thread: 13
 
 
 
-<time class='entry-date' datetime='2010-09-06T10:37:53+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:37 am</span></time>
+<time class='entry-date' datetime='2010-11-17T10:10:25+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:10 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>按：这是一篇来自chinaitlab的讨论Java中classpath与package关系的文章，写的非常通俗易懂，尤其是篇末的红字段落，描述了package与classpath配合确定类文件位置的过程，很有用，平时用eclipse时这些设置都由eclipse自动完成了，但手工编译时不懂这些机制就无法正确设置每个类文件的package和import声明，从而无法正确的编译和运行，因此了解这一机制非常重要。
-  Java 很诱人，但对于刚跨入Java门槛的初学者来说，编译并运行一个无比简单的Java程序简直就是一个恶梦。明明程序没错，但各种各样让人摸不着头脑的错误信息真的让你百思不得其解，许多在Java门口徘徊了很久的初学者就这样放弃了学习Java的机会，很是可惜。笔者也经历过这个无比痛苦的阶段，感觉到编译难的问题就出在classpath的设置及对package的理解之上。本文以实例的方式，逐一解决在编译过程中所出现的各种classpath的设置问题。本文实例运行的环境是在Windows XP + JDK 1.5.0。对其他的环境，读者应该很容易进行相应的转换。</p>
-
-<ol>
-<li><p>下载并安装JDK1.5.0，并按默认路径，安装到C:\Program Files\Java\jdk1.5.0中。</p></li>
-<li><p>用鼠标单击WindowsXP的“开始”->“运行”，在弹出的运行窗口中输入cmd，按确定或回车，打开一个命令行窗口。</p></li>
-<li><p>在命令行中输入：</p></li>
-</ol>
-
-
-<p>java</p>
-
-<p> 有一列长长的洋文滚了出来，这是JDK告诉我们java这个命令的使用方法。其中隐含了一个重要信息，即JDK安装成功，可以在命令行中使用java此命令了。</p>
-
-<ol>
-<li>在命令行中输入</li>
-</ol>
-
-
-<p>javac
- 屏幕显示：</p>
-
-<p>&lsquo;javac&rsquo; 不是内部或外部命令，也不是可运行的程序或批处理文件。</p>
-
-<p> 这是由于windows找不到javac这个命令的原因。这就不明白了，java与javac都是JDK在同一个子目录里面的两个文件，为什么可以直接运行java而不能直接运行javac呢？原来，Sun公司为了方便大家在安装完JDK后马上就可以运行Java类文件，在后台悄悄地将java命令加入了Path的搜索路径中，因此我们可以直接运行java命令(但我们是看不到它到底是在哪设置的，无论是在用户的Path或系统的Path设置中均找不到这个java存放的路径)。但Sun所做的到此为止，其他JDK的命令，一概不管，需要由用户自己添加到搜索路径中。</p>
-
-<ol>
-<li>既然如此，那我们自己添加Path的搜索路径吧。对“我的电脑”按右键，选“属性”，在“系统属性”窗口中选“高级”标签，再按“环境变量”按钮，弹出一个“环境变量”的窗口，在用户变量中新建一个变量，变量名为“Path”，变量值为"C:\Program Files\Java\jdk1.5.0\bin;%PATH%&ldquo;。最后的%PATH%的意思是说，保留原有的Path设置，且将目前的Path设置新加到其前面。一路按“确定”退出(共有3次)。关掉原来的命令行窗口，依照第2步，重新打开一个新的命令行窗口。在此窗口中输入</li>
-</ol>
-
-
-<p>javac</p>
-
-<p>长长的洋文又出现了，这回是介绍javac的用法。设置成功。</p>
-
-<ol>
-<li>So far so good. 到目前为止，我们已经可以编程了。但是，这不是一个好办法。因为随着以后我们深入学习Java，我们就会用到JUnit、Ant或NetBeans等应用工具，这些工具在安装时，都需要一个名为指向JDK路径的“JAVA_HOME”的环境变量，否则就安装不了。因此，我们需要改进第5步，为以后作好准备。依照第5步，弹出“环境变量”的窗口，在用户变量中新建一个变量，变量名为“JAVA_HOME”，变量值为"C:\Program Files\Java\jdk1.5.0"。注意，这里的变量值只到jdk1.5.0，不能延伸到bin中。确定后，返回“环境变量”的窗口，双击我们原先设定的Path变量，将其值修改为“%JAVA_HOME%\bin;%PATH%”。这种效果与第5步是完全一样的，只不过多了一个JAVA_HOME的变量。这样，以后当我们需要指向JDK的路径时，只需要加入“%JAVA_HOME%”就行了。至此，Path路径全部设置完毕。一路确定退出，打开新的命令行窗口，输入</li>
-</ol>
-
-
-<p>javac</p>
-
-<p>如果长长的洋文出现，Path已经设置正确，一切正常。如果不是，请仔细检查本步骤是否完全设置正确。</p>
-
-<ol>
-<li>开始编程。在C盘的根目录中新建一个子目录，名为“JavaTest”，以作为存放Java源代码的地方。打开XP中的记事本，先将其保存到JavaTest文件夹中，在“文件名”文本框中输入"Hello.java"。注意，在文件名的前后各加上一个双引号，否则，记事本就会将其存为"Hello.java.txt"的文本文件。然后输入以下代码：
-public class Hello {
-public static void main(String[] args) {
-System.out.println(&ldquo;Hello, world&rdquo;);
-}
-}</li>
-</ol>
-
-
-<p>再次保存文件。</p>
-
-<ol>
-<li>在命令行窗口中输入</li>
-</ol>
-
-
-<p>cd C:\JavaTest</p>
-
-<p>将当前路径转入JavaTest中。然后，输入</p>
-
-<p>javac Hello.java</p>
-
-<p> JDK就在JavaTest文件夹中编译生成一个Hello.class的类文件。如果出现“1 error”或“XX errors”的字样，说明是源代码的输入有误，请根据出错提示，仔细地按第7步的代码找出并修正错误。请读者注意甄别代码输入有误的问题与classpath设置有误的问题。因为本文是关于如何正确设置classpath及package的，因此，这里假设读者输入的代码准确无误。到目前为此，由于我们是在源代码的当前路径下编译，因此，不会出现classpath设置有误的问题。</p>
-
-<ol>
-<li>在命令行窗口中输入</li>
-</ol>
-
-
-<p>java Hello</p>
-
-<p>屏幕出现了</p>
-
-<p>Hello world</p>
-
-<p> 成功了，我们已经顺利地编译及运行了第一个Java程序。
- 但是，第8步及第9步是不完美的，因为我们是在JavaTest这个存放源码的文件夹中进行编译及运行的，因此，一些非常重要的问题并没有暴露出来。实际上，第8步的“javac Hello.java”及第9步的“java Hello”涉及到两个问题，一是操作系统如何寻找“javac”及“java”等命令，二是操作系统如何寻找“Hello.java”及“Hello.class”这些用户自己创建的文件。对于“javac”及“java”等命令，由于它们均是可执行文件，操作系统就会依据我们在第6步中设置好的Path路径中去寻找。而对于“Hello.java”及“Hello.class”这些文件，Path的设置不起作用。由于我们是在当前工作路径中工作，java及javac会在当前工作路径中寻找相应的java文件(class文件的寻找比较特殊，详见第11步)，
- 因此一切正常。下面我们开始人为地将问题复杂化，在非当前工作路径中编译及运行，看看结果如何。
- 10. 在命令行窗口中输入</p>
-
-<p>cd C:
-转入到C盘根目录上，当前路径离开了存放源码的工作区。输入</p>
-
-<p>javac Hello.java</p>
-
-<p>屏幕出现：</p>
-
-<p>error: cannot read: Hello.java
-1 error</p>
-
-<p>找不到Hello.java了。我们要给它指定一个路径，告诉它到C:\JavaTest去找Hello.java文件。输入</p>
-
-<p>javac C:\JavaTest\Hello.java</p>
-
-<p>OK，这回不报错了，编译成功。</p>
-
-<ol>
-<li>输入</li>
-</ol>
-
-
-<p>java C:\JavaTest\Hello</p>
-
-<p>这回屏幕出现：</p>
-
-<p>Exception in thread &ldquo;main&rdquo; java.lang.NoClassDefFoundError: C:\JavaTest\Hello</p>
-
-<p> 意思为在“C:\JavaTest\Hello”找不到类的定义。明明C:\JavaTest\Hello是一个.class文件，为什么就找不到呢？原来，Java对待.java文件与.class文件是有区别的。对.java文件可以直接指定路径给它，而java命令所需的.class文件不能出现扩展名，也不能指定额外的路径给它。</p>
-
-<p>那么，如何指定路径呢？对于Java所需的.class文件，必须通过classpath来指定。</p>
-
-<ol>
-<li>依照第5步，弹出“环境变量”窗口，在用户变量中新建一个变量，变量名为“classpath”，变量值为"C:\JavaTest"。一路按“确定”退出。关闭原命令行窗口，打开新的命令行窗口，输入</li>
-</ol>
-
-
-<p>java Hello</p>
-
-<p>“Hello world”出来了。由此可见，在“环境变量”窗口中设置classpath的目的就是告诉JDK，到哪里去寻找.class文件。这种方法一旦设置好，以后每次运行java或javac时，在需要调用.class文件时，JDK都会自动地来到这里寻找。因此，这是一个全局性的设置。</p>
-
-<ol>
-<li>除了这种在环境变量”窗口中设置classpath的方法之外，还有另一种方法，即在java命令后面加上一个选项classpath，紧跟着不带扩展名的class文件名。例如，</li>
-</ol>
-
-
-<p>java -classpath C:\JavaTest Hello</p>
-
-<p> JDK遇到这种情况时，先根据命令行中的classpath选项中指定的路径去寻找.class文件，找不到时再到全局的classpath环境变量中去寻找。这种情况下，即使是没有设置全局的classpath环境变量，由于已经在命令行中正确地指定类路径，也可以运行。</p>
-
-<p> 为了在下面的例子中更好地演示classpath的问题，我们先将全局的classpath环境变量删除，而在必要时代之以命令行选项-classpath。弹出“环境变量”窗口，选中“classpath”的变量名，按“删除”键。</p>
-
-<p> 此外，java命令中还可以用cp，即classpath的缩写来代替classpath，如java -cp C:\JavaTest Hello。特别注意的是，JDK 1.5.0之前，javac命令不能用cp来代替classpath，而只能用classpath。而在JDK 1.5.0中，java及javac都可以使用cp及classpath。因此，为保持一致，建议一概使用classpath作为选项名称。</p>
-
-<ol>
-<li>我们再次人为地复杂化问题。关闭正在编辑Hello.java的记事本，然后将JavaTest文件夹名称改为带空格的“Java Test”。在命令行中输入</li>
-</ol>
-
-
-<p>javac C:\Java Test\Hello.java</p>
-
-<p>长长的洋文又出来了，但这回却是报错了：</p>
-
-<p>javac: invalid flag: C:\Java</p>
-
-<p> JDK将带有空格的C:\Java Test分隔为两部分"C:\Java"及"Test\Hello.java"，并将C:\Java视作为一个无效的选项了。这种情况下，我们需要将整个路径都加上双引号，即</p>
-
-<p>javac &ldquo;C:\Java Test\Hello.java&rdquo;</p>
-
-<p>这回JDK知道，引号里面的是一个完整的路径，因此就不会报错了。同样，对java命令也需要如此，即</p>
-
-<p>java -classpath &ldquo;C:\Java Test&rdquo; Hello</p>
-
-<p> 对于长文件名及中文的文件夹，XP下面可以不加双引号。但一般来说，加双引号不容易出错，也容易理解，因此，建议在classpath选项中使用双引号。</p>
-
-<ol>
-<li>我们再来看.java文件使用了其他类的情况。在C:\Java Test中新建一个Person.java文件，内容如下：
-public class Person {
-private String name;</li>
-</ol>
-
-
-<p> public Person(String name) {
- this.name = name;
- }</p>
-
-<p> public String getName() {
- return name;
- }
-}</p>
-
-<p>然后，修改Hello.java，内容如下：</p>
-
-<p>public class Hello {
- public static void main(String[] args) {
- Person person = new Person(&ldquo;Mike&rdquo;);
- System.out.println(person.getName());
- }
-}</p>
-
-<p>在命令行输入</p>
-
-<p>javac &ldquo;C:\Java Test\Hello.java&rdquo;</p>
-
-<p>错误来了：</p>
-
-<p>C:\Java Test\Hello.java:3: cannot find symbol
-symbol: class Person
-  JDK提示找不到Person类。为什么javac &ldquo;C:\Java Test\Hello.java"在第14步中可行，而在这里却不行了呢？第14步中的Hello.java文件并没有用来其他类，因此，JDK不需要去寻找其他类，而到了这里，我们修改了Hello.java，让其使用了一个Person类。根据第11步，我们需要告诉JDK，到哪里去找所用到的类，即使这个被使用的类就与Hello.java一起，同在C:\Java Test下面！输入</p>
-
-<p>javac -classpath &ldquo;C:\Java Test&rdquo; &ldquo;C:\Java Test\Hello.java&rdquo;</p>
-
-<p>编译通过，JDK在C:\Java Test文件夹下同时生成了Hello.class及Person.class两个文件。实际上，由于Hello.java使用了Person.java类，JDK先编译生成了Person.class，然后再编译生成Hello.class。因此，不管Hello.java这个主类使用了多少个其他类，只要编译这个类，JDK就会自动编译其他类，很方便。输入</p>
-
-<p>java -classpath &ldquo;C:\Java Test&rdquo; Hello</p>
-
-<p>屏幕出现了</p>
-
-<p>Mike</p>
-
-<p>成功。</p>
-
-<ol>
-<li>第15步说明了在Hello.java中如何使用一个我们自己创建的Person.java，而且这个类与Hello.java是同在一个文件夹下。在这一步中，我们将考查Person.java如果放在不同文件夹下面的情况。</li>
-</ol>
-
-
-<p>先将C:\Java Test文件夹下的Person.class文件删除，然后在C:\Java Test文件夹下新建一个名为DF的文件夹，并将C:\Java Test文件夹下的Person.java移动到其下面。在命令行输入</p>
-
-<p>javac -classpath &ldquo;C:\Java Test\DF&rdquo; &ldquo;C:\Java Test\Hello.java&rdquo;</p>
-
-<p>编译通过。这时javac命令没有什么不同，只需将classpath改成C:\Java Test\DF就行了。</p>
-
-<p>在命令行输入</p>
-
-<p>java -classpath &ldquo;C:\Java Test&rdquo; Hello</p>
-
-<p> 这时由于Java需要找在不同文件夹下的两个.class文件，而命令行中只告诉JDK一个路径，即C:\Java Test，在此文件夹下，只能找到Hello.class，找不到Person.class文件，因此，错误是可以预料得到的：</p>
-
-<p>Exception in thread &ldquo;main&rdquo; java.lang.NoClassDefFoundError: Person
-  at Hello.main(Hello.java:3)</p>
-
-<p> 果真找不到Person.class。在设置两个以上的classpath时，先将每个路径以双引号引起来，再将这些路径以“;”号隔开，并且每个路径与“;”之间不能带有空格。因此，我们在命令行重新输入：</p>
-
-<p>java -classpath &ldquo;C:\Java Test&rdquo;;&ldquo;C:\Java Test\DF&rdquo; Hello</p>
-
-<p> 编译成功。但也暴露出一个问题，如果我们需要用到许多分处于不同文件夹下的类，那这个classpath的设置岂不是很长！有没有办法，对于一个文件夹下的所有.class文件，只指定这个文件夹的classpath，然后让JDK自动搜索此文件夹下面所有相应的路径？有，只要使用package。</p>
-
-<ol>
-<li>package简介。Java中引入package的概念，主要是为了解决命名冲突的问题。比如说，在我们的例子中，我们设计了一个很简单的Person类，如果某人开发了一个类库，其中恰巧也有一个Person类，当我们使用这个类库时，两个Person类出现了命名冲突，JDK不知道我们到底要使用哪个Person类。更有甚者，当我们也开发了一个很庞大的类库，无可避免地，我们的类库中与其他人开发的类库中命名冲突的情况就会越来越多。总不能为了避免自己的类名与其他人开发的类名相同，而让每个编程人员都绞尽脑汁地将一个本应叫Writer的类强行改名为SarkuyaWriter，MikeWriter, SmithWriter吧？</li>
-</ol>
-
-
-<p> 现实生活中也是如此。假如你名叫张三，又假如与你同一单位的人中有好几个都叫张三，那你的问题就来了。某天单位领导在会上宣布，张三被任命为办公室主任，你简直不知道是该哭还是该笑。但如果你的单位中只有你叫张三，你才不会在乎全国叫张三的人有多少个，因为其他张三都分布在全国各地、其他城市，你看不见他们，摸不着他们，自然不会担心。</p>
-
-<p> Sun从这个“张三问题”受到了很大的启发，为解决命名冲突问题，就采取了“眼不见心不烦”的策略：将每个类都归属到一个特定的区域中，在同一个区域中的所有类，都不允许同名；而不同区域的类，由于相互看不到，则允许有同名的类存在。这样，就解决了命名冲突的问题，正如北京的张三与上海的张三毕竟不是同一人。这个区域在Java中就叫package。由于package在Java中非常重要，如果你没有定义自己的package，JDK将会你的类都归到一个默认的无名package中。</p>
-
-<p> 自定义package的名称可以由各个程序员自由创建。作为避免命名冲突的手段，package的名称最好足以与其他程序员的区别开来。在互联网上，每个域名都是唯一的，因此，Sun推荐将你自己的域名倒写后作为package的名称。如果你没有自己的域名，很可能只是因为囊中羞涩而不去申请罢了，并不见得你假想的域名与其他域名发生冲突。例如，笔者假想的域名是sarkuya.com，目前就是唯一的，因此我的package就可以定名为com.sarkuya。谢谢Java给了我们一个免费使用我们自己域名的机会，唯一的前提是倒着写。当然，每个package下面还可以带有不同的子package，如com.sarkuya.util，com.sarkuya.swing，等等。</p>
-
-<p> 定义package的方式是在相应的.java文件的第一行加上“package packagename;”的字样，而且每个.java文件只能有一个package。实际上，Java中的package的实现是与计算机文件系统相结合的，即你有什么样的package，在硬盘上就有什么样的存放路径。例如，某个类的package名为com.sarkuya.util，那么，这个类就应该必须存放在com/sarkuya/util的路径下面。至于这个com/sarkuya/util又是哪个文件夹的子路径，第18步会谈到。</p>
-
-<p> package除了有避免命名冲突的问题外，还引申出一个保护当前package下所有类文件的功能，主要通过为类定义几种可视度不同的修饰符来实现：public, protected, private, 另外加上一个并不真实存在的friendly类型。</p>
-
-<p> 对于冠以public的类、类属变量及方法，包内及包外的任何类均可以访问；
-protected的类、类属变量及方法，包内的任何类，及包外的那些继承了此类的子类才能访问；
-private的类、类属变量及方法，包内包外的任何类均不能访问；
-如果一个类、类属变量及方法不以这三种修饰符来修饰，它就是friendly类型的，那么包内的任何类都可以访问它，而包外的任何类都不能访问它(包括包外继承了此类的子类)，因此，这种类、类属变量及方法对包内的其他类是友好的，开放的，而对包外的其他类是关闭的。</p>
-
-<p> 前面说过，package主要是为了解决命名冲突的问题，因此，处在不同的包里面的类根本不用担心与其他包的类名发生冲突，因为JDK在默认情况下只使用本包下面的类，对于其他包，JDK一概视而不见：“眼不见心不烦”。如果要引用其他包的类，就必须通过import来引入其他包中相应的类。只有在这时，JDK才会进行进一步的审查，即根据其他包中的这些类、类属变量及方法的可视度来审查是否符合使用要求。如果此审查通不过，编译就此卡住，直至你放弃使用这些类、类属变量及方法，或者将被引入的类、类属变量及方法的修饰符改为符合要求为止。如果此审查通过，JDK最后进行命名是否冲突的审查。如果发现命名冲突，你可以通过在代码中引用全名的方式来显式地引用相应的类，如使用</p>
-
-<p>java.util.Date = new java.util.Date()</p>
-
-<p>或是</p>
-
-<p>java.sql.Date = new java.sql.Date()。</p>
-
-<p>package的第三大作用是简化classpath的设置。还记得第16步中的障碍吗？这里重新引用其java命令：</p>
-
-<p>java -classpath &ldquo;C:\Java Test&rdquo;;&ldquo;C:\Java Test\DF&rdquo; Hello</p>
-
-<p> 我们必须将所有的.class文件的路径一一告诉JDK，而不管DF其实就是C:\Java Test的子目录。如果要用到100个不同路径的.class文件，我们就得将classpath设置为一个特别长的字符串，很累。package的引入，很好地解决了这个问题。package的与classpath相结合，通过import指令为中介，将原来必须由classpath完成的类路径搜索功能，很巧妙地转移到import的身上，从而使classpath的设置简洁明了。我们先看下面的例子。</p>
-
-<ol>
-<li>先在Hello.java中导入DF.Person。代码修改如下：
-import DF.Person;</li>
-</ol>
-
-
-<p>public class Hello {
- public static void main(String[] args) {
- Person person = new Person(&ldquo;Mike&rdquo;);
- System.out.println(person.getName());
- }
-}</p>
-
-<p>再将DF子文件夹中的Person.java设置一个DF包。代码修改如下：
-  package DF;</p>
-
-<p>public class Person {
- private String name;
- public Person(String name) {
- this.name = name;
- }</p>
-
-<p> public String getName() {
- return name;
- }
-}</p>
-
-<p>好了，神奇的命令行出现了：</p>
-
-<p>javac -classpath &ldquo;C:\Java Test&rdquo; &ldquo;C:\Java Test\Hello.java&rdquo;
-java -classpath &ldquo;C:\Java Test&rdquo; Hello
-  尽管这次我们只设置了C:\Java Test的classpath，但编译及运行居然都通过了！事实上，Java在搜索.class文件时，共有三种方法：
-一是全局性的设置，详见第12步，其优点是一次设置，每次使用；
-二是在每次的javac及java命令行中自行设置classpath，这也是本文使用最多的一种方式，其优点是不加重系统环境变量的负担；
- 三是根据import指令，将其内容在后台转换为classpath。JDK将读取全局的环境变量classpath及命令行中的classpath选项信息，然后将每条classpath与经过转换为路径形式的import的内容相合并，从而形成最终的classpath. 在我们的例子中，JDK读取全局的环境变量classpath及命令行中的classpath选项信息，得到C:\Java Test。接着，将import DF.Person中的内容，即DF.Person转换为DF\Person, 然后将C:\Java Test与其合并，成为C:\Java Test\DF\Person，这就是我们所需要的Person.class的路径。在Hello.java中有多少条import语句，就自动进行多少次这样的转换。而我们在命令行中只需告诉JDK最顶层的classpath就行了，剩下的则由各个类中的import指令代为操劳了。这种移花接木的作法为我们在命令行中手工地设置classpath提供了极大的便利。</p>
-
-<p> 应注意的一点是，import指令是与package配套使用的，只有在某类通过“package pacakgename;”设定了包名后，才能给其他类通过import指令导入。如果import试图导入一个尚未设置包的类，JVM就会报错。</p>
-
-<ol>
-<li><p>我们接下来看，当使用JDK类库时，classpath如何设置。</p></li>
-<li><p>修改Hello.java，内容如下：
-import DF.Person;
-import java.util.Date;</p></li>
-</ol>
-
-
-<p>public class Hello {
- public static void main(String[] args) {
- Date date = new Date();
- System.out.println(date);</p>
-
-<p> Person person = new Person(&ldquo;Mike&rdquo;);
- System.out.println(person.getName());
- }
-}</p>
-
-<ol>
-<li>JDK类库存放于C:\Program Files\Java\jdk1.5.0\jre\lib\rt.jar文件中。关于jar文件的介绍，已经超出了本文的范围， 感兴趣的读者可以阅读Horstmann写的Core Java一书 。</li>
-</ol>
-
-
-<p> jar文件可以用WinRar打开。用WinRar打开后，可以看到里面有一些文件夹，双击其中的java文件夹，再双击util的文件夹，可以在看到Date.class文件就在其中。如果你看过Data.java或其他JDK类库的源码(在C:\Program Files\Java\jdk1.5.0\src.zip文件中)，你就会发现，像java、util这些文件夹均是package。这也是Hello.java第2行中使用了import指令的原因。</p>
-
-<p> 我们可以通过WinRar的查找功能来定位某个类所在的包。在“查找文件”的窗口中的“要查找的文件名”文本框中输入Date.class，就会查找出在rt.jar文件中存在两个Date.class文件，一个是java\sql\Date.class，另一个是java\util\Date.class。其中，sql下面的Date.class文件与数据库有关，并非我们这里所需，java\util\Date.class才是我们所要的。</p>
-
-<p>  rt.jar文件就像本文中的C:\Java Test中一样，是JDK类库的唯一入口。我们可以在命令行的classpath选项指定.jar文件。需要注意，.jar文件的classpath设置有些特珠。在以前的例子中，我们设置classpath时都是设置了路径就行了，而对于.jar文件，我们必须将.jar文件名直接加到classpath中。</p>
-
-<ol>
-<li>在命令行输入</li>
-</ol>
-
-
-<p>javac -classpath &ldquo;C:\Program Files\Java\jdk1.5.0\jre\lib\rt.jar&rdquo;;&ldquo;C:\Java Test&rdquo; &ldquo;C:\Java Test\Hello.java&rdquo;
-java -classpath &ldquo;C:\Program Files\Java\jdk1.5.0\jre\lib\rt.jar&rdquo;;&ldquo;C:\Java Test&rdquo; Hello</p>
-
-<p>这样当然没有问题，因为我们指定了rt.jar文件及C:\Java Test两个classpath。但且慢，在命令行输入：</p>
-
-<p>javac -classpath &ldquo;C:\Java Test&rdquo; &ldquo;C:\Java Test\Hello.java&rdquo;
-java -classpath &ldquo;C:\Java Test&rdquo; Hello</p>
-
-<p> 不可思议的是，编译及运行成功了！令人惊讶的是在我们将classspath只设置为C:\Java Test的情况下，JDK如何得出java.util.Date的classpath？</p>
-
-<p> 原因在于，就像java的Path路径已经悄悄在后台设置好一样，rt.jar的classpath路径也悄悄地在后台设置了。因此，我们不必多此一举手工设置其classpath了。</p>
-
-<ol>
-<li>最后一点需要谈到的是，如果主类恰好也在一个package中(在大型的开发中，其实这才是一种最常见的现象)，那么java命令行的类名前面就必须加上包名。</li>
-</ol>
-
-
-<p> 在C:\Java Test下面新建一个文件夹，名为NF。将C:\Java Test下面的Hello.class删除，将Hello.java移到NF文件夹下。打开NF文件夹下的Hello.java，为其设置package属性。
-  package NF;</p>
-
-<p>import DF.Person;
-import java.util.Date;</p>
-
-<p>public class Hello {
- public static void main(String[] args) {
- Date date = new Date();
- System.out.println(date);</p>
-
-<p> Person person = new Person(&ldquo;Mike&rdquo;);
- System.out.println(person.getName());
- }
-}</p>
-
-<p>编译与以前没啥区别，只不过是修正一下改过之后的路径。</p>
-
-<p>javac -classpath &ldquo;C:\Java Test&rdquo; &ldquo;C:\Java Test\NF\Hello.java&rdquo;</p>
-
-<p>而java命令行却有了变化</p>
-
-<p>java -classpath &ldquo;C:\Java Test&rdquo; NF.Hello</p>
-
-<p>上面命令行语句中，NF.Hello告诉JDK，Hello.class在NF的package下面。</p>
-
-<p> 至此，本文有关classpath及package的问题的讨论已经全部结束。由此可见，Java的入门的确非常不易。如果初学Java的程序员一见到Java的编译竟是如此的复杂，多半就会抽身而退。因此，笔者认为，Sun在J2SE的Tutorial中故意将编译的问题尽量简单化，以吸引更多的Java初学者。一旦品尝了Java的香醇可口的美味后，就不用担心他们退出了，因为咖啡是非常容易让人上瘾的。</p>
+  <div class="entry-content"><p>财务分析主要目的是搞清楚一段时间内支出的去向，某类消费所占的比重有多少，主要用到的工具是 Reports->Income &amp; Expense目录下的Expense Barchart、Expense Piechart、Income Barchart和Income Piechart四项。 其中Barchart是饼图，用来分析总体收入/支出中各种成分所占的比重，Barchart是柱状图，以时间为横轴，以支出金额为纵轴，显示各种消费成分随时间的变化。 对于每一个分析图，都可以指定分析的时间段、消费种类的数量（例如一共有8种支出类型，但Barchart报告的“Max Bar”设为5，则消费量最少的4中类型合起来作为Other显示在柱状图中）、目标账户（account），以及图的高度、宽度等，Barchart还可以指定时间单位，选择以日/周/月/季度/年为单位。还可以用Print将报告打印出来，Export功能输出的是空的html文档，可能目前这个功能还没实现？  Gnucash的资金流报告工具也很有用：Reports->Income &amp; Expense->Cash Flow，生成指定账户（account）资金的流入/流出报告。资金流报告适于具体分析某一账户（如针对日常用品支出，现金付账了多少，信用卡付账了多少），但不适用于分析整体支出状况（如日常用品与其他类型支出的对比占多大比重），这方面用Piechart分析最合适。</p>
 </div>
   
   
@@ -886,23 +845,23 @@ import java.util.Date;</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

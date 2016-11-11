@@ -1,0 +1,475 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>为Elasticsearch服务添加中文分词功能 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="业务目标： ES服务中的index &ldquo;production"需要增加中文分词，
+具体效果见下面查询命令输出的对比。 实现过程 将数据从mongoDB导入到临时index中；
+从这个index生成mappings文件；
+基于上面生成的mappings文件，添加中文分词功能，具体方法见后面 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2016/08/03/203624/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>The technical blog of Li Chao in Beijing</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">为Elasticsearch服务添加中文分词功能</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-08-03T20:36:24+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2016</span></span> <span class='time'>8:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>业务目标：</p>
+
+<p>ES服务中的index &ldquo;production"需要增加中文分词，
+具体效果见下面查询命令输出的对比。</p>
+
+<h1>实现过程</h1>
+
+<ol>
+<li>将数据从mongoDB导入到临时index中；</li>
+<li>从这个index生成mappings文件；</li>
+<li>基于上面生成的mappings文件，添加中文分词功能，具体方法见后面"修改mappings文件";</li>
+<li>根据这个mappings创建index &ldquo;production&rdquo;;</li>
+<li>将数据从mongoDB导入到"production"中。</li>
+</ol>
+
+
+<p>下面是代码实现：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>es_ip=192.168.100.90
+</span><span class='line'>es="$es_ip:9200"
+</span><span class='line'>mongo_ip='192.168.xxx.xxx'
+</span><span class='line'>tmp_idx=old_production
+</span><span class='line'>idx=production
+</span><span class='line'>type=Fair
+</span><span class='line'>mapping_file='newfairs-mappings.json'
+</span><span class='line'>
+</span><span class='line'>git clone https://github.com/leetschau/mongo2es.git && cd mongo2es
+</span><span class='line'>mongoexport -h $mongo_ip -d $idx -c $type -u xxx -p xxx -o fairs.json
+</span><span class='line'>python3 uploadES.py fairs.json $es_ip $tmp_idx $type
+</span><span class='line'>
+</span><span class='line'>http -b --pretty=format $es/$idx/_mapping/$type &gt; $mapping_file
+</span><span class='line'>
+</span><span class='line'># add "analyzer" into this mapping, see notes below for details
+</span><span class='line'>
+</span><span class='line'>http -b PUT $es/$idx mappings:=@$mapping_file
+</span><span class='line'>
+</span><span class='line'>python3 uploadES.py fairs.json $es_ip $idx $type
+</span><span class='line'>
+</span><span class='line'>http -b POST $es/$tmp_idx/$type/_search query:='{"bool":{"must":[{ "match": { "recurrence.nameZHCN": "五金机械" }}]}}' sort:='[{"recurrence.timeStart": {"order" : "desc", "mode": "max"}}]' size=10 | jq -r '.hits.hits[] | "\(._id): \(._source.recurrence[0].nameZHCN), \(._source.recurrence[0].timeStart)"'
+</span><span class='line'>G79B2vwBrHunwkXC6: 国际林业机械和新产品博览会, 2020-06-01T00:00:00.000Z
+</span><span class='line'>yXsohQLuRkBXuu8sz: 奥地利林业机械及设备展, 2019-10-08T00:00:00.000Z
+</span><span class='line'>uYcC2zMvw9FDutcwk: 金融服务国际展会, 2019-09-26T00:00:00.000Z
+</span><span class='line'>BNzwq3WrkH8N7T7tF: 2019年欧洲纺织机械展览会, 2019-06-20T00:00:00.000Z
+</span><span class='line'>pkjZjqbd6CSB62Z37: 国际冶金技术展暨研讨会, 2019-06-01T00:00:00.000Z
+</span><span class='line'>Rws7ZnBzCSL4AZCMa: 2019年德国国际工程机械、建材机械、矿山机械、工程车辆及设备博览会（2019年第32届德国国际工程机械博览会）, 2019-04-01T00:00:00.000Z
+</span><span class='line'>GxjMbDrGoiSDoECEN: 2019年德国国际工程机械、建材机械、矿山机械、工程车辆及设备博览会（2019年第32届德国国际工程机械博览会）, 2019-04-01T00:00:00.000Z
+</span><span class='line'>Kp83k5ciWCNyCapYb: 2019美国际冶金铸造展暨北美铸造年会, 2019-04-01T00:00:00.000Z
+</span><span class='line'>LeWCAmhymxxg7Pn64: 机械电子、控制、自动化、植入式电子器材, 2018-10-01T00:00:00.000Z
+</span><span class='line'>yD7RtepqLB9QnCSwj: 德国汉诺威国际金属板材加工展, 2018-10-01T00:00:00.000Z
+</span><span class='line'>
+</span><span class='line'>http -b POST $es/$idx/$type/_search query:='{"bool":{"must":[{ "match": { "recurrence.nameZHCN": "五金机械" }}]}}' sort:='[{"recurrence.timeStart": {"order" : "desc", "mode": "max"}}]' size=10 | jq -r '.hits.hits[] | "\(._id): \(._source.recurrence[0].nameZHCN), \(._source.recurrence[0].timeStart)"'
+</span><span class='line'>G79B2vwBrHunwkXC6: 国际林业机械和新产品博览会, 2020-06-01T00:00:00.000Z
+</span><span class='line'>yXsohQLuRkBXuu8sz: 奥地利林业机械及设备展, 2019-10-08T00:00:00.000Z
+</span><span class='line'>BNzwq3WrkH8N7T7tF: 2019年欧洲纺织机械展览会, 2019-06-20T00:00:00.000Z
+</span><span class='line'>Rws7ZnBzCSL4AZCMa: 2019年德国国际工程机械、建材机械、矿山机械、工程车辆及设备博览会（2019年第32届德国国际工程机械博览会）, 2019-04-01T00:00:00.000Z
+</span><span class='line'>GxjMbDrGoiSDoECEN: 2019年德国国际工程机械、建材机械、矿山机械、工程车辆及设备博览会（2019年第32届德国国际工程机械博览会）, 2019-04-01T00:00:00.000Z
+</span><span class='line'>LeWCAmhymxxg7Pn64: 机械电子、控制、自动化、植入式电子器材, 2018-10-01T00:00:00.000Z
+</span><span class='line'>2RQ65WebsKjsPXzby: 南非国际建筑机械、建材机械、矿山机械及工程车辆展, 2018-09-01T00:00:00.000Z
+</span><span class='line'>HDj7oxqP92FRHCmfx: 农业机械展（德国）, 2018-06-01T00:00:00.000Z
+</span><span class='line'>wbPbknwmCeXiYus7w: 德国科隆国际食品加工机械展, 2018-03-20T00:00:00.000Z
+</span><span class='line'>rF7utm6WC67R6wGgR: 2018年德国科隆国际五金工具展览会, 2018-03-03T16:00:00.000Z</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到临时index的查询结果中，第3、5、8、10项都是没有中文分词导致的错误查询结果，
+添加中文分词的正式index中，这些结果都被过滤掉了。</p>
+
+<h1>修改mappings文件</h1>
+
+<h2>使用httpie创建index</h2>
+
+<p>为了增加中文分词analyzer:</p>
+
+<p>原有的mappings文件：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>{
+</span><span class='line'>    "production": {
+</span><span class='line'>        "mappings": {
+</span><span class='line'>            "Fair": {
+</span><span class='line'>                "properties": {
+</span><span class='line'>                    "createdAt": {
+</span><span class='line'>                        "format": "strict_date_optional_time||epoch_millis",
+</span><span class='line'>                        "type": "date"
+</span><span class='line'>                    },
+</span><span class='line'>                    "createdBy": {
+</span><span class='line'>                    ...
+</span><span class='line'>                    "nameZHCN": {
+</span><span class='line'>                        "type": "string"
+</span><span class='line'>                    }, 
+</span><span class='line'>                    ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>修改后的mappings文件：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>{
+</span><span class='line'>    "Fair": {
+</span><span class='line'>        "properties": {
+</span><span class='line'>            "createdAt": {
+</span><span class='line'>                "format": "strict_date_optional_time||epoch_millis",
+</span><span class='line'>                "type": "date"
+</span><span class='line'>            },
+</span><span class='line'>            "createdBy": {
+</span><span class='line'>            ...
+</span><span class='line'>            "nameZHCN": {
+</span><span class='line'>                "type": "string",
+</span><span class='line'>                "analyzer": "smartcn"
+</span><span class='line'>            }, 
+</span><span class='line'>            ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>两方面改动：</p>
+
+<ol>
+<li><p>在<code>nameZHCN</code>字段后增加"analyzer": &ldquo;smartcn"，
+要改掉mappings中的所有的<code>nameZHCN</code>，否则可能会报格式冲突；</p></li>
+<li><p>mappings文件的格式有变化：要去掉原文件中外层的index名称和<code>mappings:</code>，
+但"mappings"后面的大括号不要去掉。</p></li>
+</ol>
+
+
+<p>在青云上的ES服务上验证通过，他们的ES服务应该安装了<a href="https://github.com/elastic/elasticsearch-analysis-smartcn">smartcn</a>插件，
+如果是自己搭建的ES服务，需要手工安装这个插件。</p>
+
+<p>参考：</p>
+
+<p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html</a></p>
+
+<p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-mapping.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-mapping.html</a></p>
+
+<h2>使用curl创建index</h2>
+
+<p>使用<code>curl</code>时需要把<code>mappings</code>放在mapping文件里，也就是只去掉最外层的``：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>{
+</span><span class='line'>    "mappings": {
+</span><span class='line'>        "Fair": {
+</span><span class='line'>            "properties": {
+</span><span class='line'>             ...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>然后用<code>curl -i -XPUT ${es_url}/$idx @fair-product-mappings.json</code>基于这个
+mapping文件创建名为"$idx"的index.</p>
+
+<h2>创建多个mappings</h2>
+
+<p>如果在创建index时需要指定多个type mappings，需要都放在mappings文件里，
+不能分开多次执行，否则报 <em>index已存在</em> 错误。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>{
+</span><span class='line'>    "mappings": {
+</span><span class='line'>        "Fair": {
+</span><span class='line'>            "properties": {
+</span><span class='line'>             ...
+</span><span class='line'>        "Product": {
+</span><span class='line'>             ...</span></code></pre></td></tr></table></div></figure>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2016-08-03T20:36:24+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2016</span></span> <span class='time'>8:36 pm</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/chinese/'>chinese</a>, <a class='category' href='/blog/categories/elasticsearch/'>elasticsearch</a>, <a class='category' href='/blog/categories/segment/'>segment</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2016/08/03/203624/" data-via="" data-counturl="http://leetschau.github.io/blog/2016/08/03/203624/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/07/19/151715/" title="Previous Post: Move Window Between Screens with Keyboard">&laquo; Move Window Between Screens with Keyboard</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/08/17/082418/" title="Next Post: Elasticsearch的相关度计算方法和排序规则">Elasticsearch的相关度计算方法和排序规则 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2016 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

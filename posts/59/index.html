@@ -9,31 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Here is a basic erlang echo server. 1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
--module(echo). -author('Li Chao &lt;lichao1@boco. &hellip;">
+  <meta name="description" content="The following expect script achieves a simple telnet client: login -> send command -> exit. The point is the form of prompt in regular expression. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -62,7 +38,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -95,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/07/15/172544/">Echo Server in Erlang</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/08/26/104022/">A Telnet Client Using Expect</a></h1>
     
     
       <p class="meta">
@@ -104,72 +80,50 @@
 
 
 
-<time class='entry-date' datetime='2013-07-15T17:25:44+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:25 pm</span></time>
+<time class='entry-date' datetime='2013-08-26T10:40:22+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:40 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Here is a basic erlang echo server.</p>
+  <div class="entry-content"><p>The following expect script achieves a simple telnet client: login -> send command -> exit. The point is the form of prompt in regular expression. You have to add 3 backslash before &ldquo;[&rdquo;, &ldquo;]&rdquo; and &ldquo;$&rdquo;, and add &ldquo;-re&rdquo; option after expect command in &ldquo;expect $prompt&rdquo;.</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>-module(echo). 
-</span><span class='line'>-author('Li Chao &lt;lichao1@boco.com.cn&gt;'). 
-</span><span class='line'>-export([listen/1]). 
-</span><span class='line'>-define(TCP_OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]). 
-</span><span class='line'>listen(Port) -&gt; 
-</span><span class='line'>    {ok, LSocket} = gen_tcp:listen(Port, ?TCP_OPTIONS), 
-</span><span class='line'>    accept(LSocket). 
-</span><span class='line'>accept(LSocket) -&gt; 
-</span><span class='line'>    {ok, Socket} = gen_tcp:accept(LSocket), 
-</span><span class='line'>    spawn(fun() -&gt; loop(Socket) end), 
-</span><span class='line'>    accept(LSocket). 
-</span><span class='line'>loop(Socket) -&gt; 
-</span><span class='line'>    case gen_tcp:recv(Socket, 0) of 
-</span><span class='line'>        {ok, &lt;&lt;"bye\n"&gt;&gt;} -&gt; 
-</span><span class='line'>            gen_tcp:send(Socket, list_to_binary("bye buddy!")); 
-</span><span class='line'>        {ok, Data} -&gt; 
-</span><span class='line'>            io:format("~p~n", [Data]), 
-</span><span class='line'>            RecvStr = binary_to_list(Data), 
-</span><span class='line'>            Answer = "you say: " ++ RecvStr, 
-</span><span class='line'>            gen_tcp:send(Socket, list_to_binary(Answer)), 
-</span><span class='line'>            loop(Socket); 
-</span><span class='line'>        {error, closed} -&gt; 
-</span><span class='line'>            ok 
-</span><span class='line'>    end. </span></code></pre></td></tr></table></div></figure>
+<p> #!/usr/bin/expect
+ set prompt &ldquo;\[hadoop@49server\s.*\]\\$\s&rdquo;
+ spawn telnet 10.0.2.49
+ expect &ldquo;login:&rdquo;
+ send &ldquo;hadoop\r&rdquo;
+ expect &ldquo;Password:&rdquo;
+ send &ldquo;h\r&rdquo;
+ expect -re $prompt
+ send &ldquo;df -h\r&rdquo;
+ expect -re $prompt
+ send &ldquo;ls -l\r&rdquo;
+ expect -re $prompt
+ send &ldquo;exit\r&rdquo;
+ expect eof</p>
 
+<p>The following script achieves auto-login and auto-logout. Save it as autoTelnet.exp:</p>
 
-<p>Now you can use <code>echo:listen(1234).</code> to start this echo server. Using <code>nc &lt;server_host&gt; 1234</code> to connect the server. And use &ldquo;bye&rdquo; to disconnect from server.</p>
+<p> #!/usr/bin/expect
+ set ip [lindex $argv 0]
+ set username [lindex $argv 1]
+ set password [lindex $argv 2]
+ spawn telnet $ip
+ expect &ldquo;login:&rdquo;
+ send &ldquo;$username\r&rdquo;
+ expect &ldquo;Password:&rdquo;
+ send &ldquo;$password\r&rdquo;
+ interact +++ return
+ send &ldquo;exit\r&rdquo;
+ expect eof</p>
 
-<p>Ref:</p>
+<p>then run it:</p>
 
-<p><a href="http://20bits.com/article/network-programming-in-erlang/">http://20bits.com/article/network-programming-in-erlang/</a></p>
+<p> $ ./autoTelnet.exp 10.0.2.49 hadoop h</p>
 
-<p><a href="http://20bits.com/article/erlang-a-generalized-tcp-server">http://20bits.com/article/erlang-a-generalized-tcp-server</a></p>
+<p>After auto-login, you can send any commands as if you communicates with host directly. When you want to quit, type &ldquo;+++&rdquo; and then the script exits from interact mode and runs logout routine.</p>
 </div>
   
   
@@ -182,7 +136,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/07/12/140657/">Console File Manager on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/08/26/084605/">Use Laptop as Wifi Hotspot</a></h1>
     
     
       <p class="meta">
@@ -191,24 +145,14 @@
 
 
 
-<time class='entry-date' datetime='2013-07-12T14:06:57+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:06 pm</span></time>
+<time class='entry-date' datetime='2013-08-26T08:46:05+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:46 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>&ldquo;vi style&rdquo; means use j/k to move cursor up/down, use h/l to move parent/child directory.</p>
-
-<h1>ranger</h1>
-
-<p>vi style. Recommended.</p>
-
-<h1>vifm</h1>
-
-<p>vi style. Add &ldquo;FILETYPE=PDF=pdf=exo-open&rdquo; in ~/.vifm/vifmrc will open pdf file in background.</p>
-
-<h1>Midnight Commander</h1>
+  <div class="entry-content"><p>Your laptop used as wifi hotspot have to connect with internet with <strong>wired connection</strong>. see <a href="http://www.howtogeek.com/116409/how-to-turn-your-ubuntu-laptop-into-a-wireless-access-point/">http://www.howtogeek.com/116409/how-to-turn-your-ubuntu-laptop-into-a-wireless-access-point/</a> for details.</p>
 </div>
   
   
@@ -221,7 +165,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/07/12/092133/">Build a Beautiful Oh-my-zsh Themes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/08/23/104927/">Wildcards in Spawn Command</a></h1>
     
     
       <p class="meta">
@@ -230,118 +174,26 @@
 
 
 
-<time class='entry-date' datetime='2013-07-12T09:21:33+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:21 am</span></time>
+<time class='entry-date' datetime='2013-08-23T10:49:27+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:49 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>What is a beautiful prompt</h1>
+  <div class="entry-content"><p>The following script works fine.</p>
 
-<ul>
-<li><p>double line;</p></li>
-<li><p>provide username, hostname, current directory;</p></li>
-<li><p>provide information of git branch and commit status;</p></li>
-<li><p>provide command exit code;</p></li>
-<li><p>prompt is easy to distinguished from command results;</p></li>
-<li><p>optional: provide command order number, current time;</p></li>
-</ul>
+<p> #!/usr/bin/expect
+ spawn bash -c &ldquo;ls -l *.exp&rdquo;
+ expect eof</p>
 
-
-<h1>Customize zsh prompt</h1>
-
-<p>Some important escape sequences in zsh prompt:</p>
-
-<ul>
-<li><p>%n: username;</p></li>
-<li><p>%m: hostname;</p></li>
-<li><p>%~: current directory;</p></li>
-<li><p>%t: current time;</p></li>
-<li><p>%?: return code of last command;</p></li>
-</ul>
-
-
-<p>Customization of font and color see the following demonstration.</p>
-
-<p>Ref:</p>
-
-<ul>
-<li><p>&ldquo;3.9 Customizing the prompt&rdquo; on <a href="https://wiki.archlinux.org/index.php/Zsh">zsh on archlinux</a></p></li>
-<li><p><a href="http://www.acm.uiuc.edu/workshops/zsh/prompt/escapes.html">Using escape sequences in prompts</a></p></li>
-</ul>
-
-
-<h2>Put it together</h2>
+<p>Questions</p>
 
 <ol>
-<li><p>Create a new file: ~/.oh-my-zsh/themes/lichao.zsh-theme:</p>
-
-<p> rc=$reset_color
- cy=$fg_bold[cyan]
- bl=$fg_bold[blue]
- re=$fg_bold[red]
- wh=$fg_bold[white]
- ye=$fg_bold[yellow]
- gr=$fg_bold[green]
- ma=$fg_bold[magenta]</p>
-
-<p> ZSH_THEME_GIT_PROMPT_PREFIX=&ldquo;git(&rdquo;
- ZSH_THEME_GIT_PROMPT_SUFFIX=&ldquo;):&rdquo;
- ZSH_THEME_GIT_PROMPT_CLEAN=&ldquo;✔&rdquo;
- ZSH_THEME_GIT_PROMPT_DIRTY=&ldquo;✗&rdquo;
- ZSH_THEME_GIT_PROMPT_ADDED=&ldquo;%{$fg[green]%} ✚&rdquo;
- ZSH_THEME_GIT_PROMPT_MODIFIED=&ldquo;%{$fg[blue]%} M&rdquo;
- ZSH_THEME_GIT_PROMPT_DELETED=&ldquo;%{$fg[red]%} ✖&rdquo;
- ZSH_THEME_GIT_PROMPT_RENAMED=&ldquo;%{$fg[magenta]%} ➜&rdquo;
- ZSH_THEME_GIT_PROMPT_UNMERGED=&ldquo;%{$fg[yellow]%} ═&rdquo;
- ZSH_THEME_GIT_PROMPT_UNTRACKED=&ldquo;%{$fg[cyan]%} U&rdquo;</p>
-
-<p> PROMPT=&lsquo;$ye%n$rc @ $cy%m $gr%~ $re$(git_prompt_info)$(git_prompt_status)$rc $wh%t$rc
- [%?] &rsquo;</p></li>
-<li><p>Modify &ldquo;ZSH_THEME&rdquo; in ~/.zshrc as:</p>
-
-<p> ZSH_THEME=&ldquo;lichao&rdquo;</p></li>
+<li><p>Why I can&rsquo;t remove &ldquo;expect eof&rdquo;?</p></li>
+<li><p>Why I can&rsquo;t remove &ldquo;bash -c&rdquo;?</p></li>
 </ol>
 
-
-<p>Note: If you want add any color or highlight in the 2nd line of the prompt,
-  remember escape the color directives with &ldquo;%{&rdquo; and &ldquo;%}&rdquo;.
-  For example, if your prompt is like this:</p>
-
-<pre><code>PROMPT='$ye%n$rc @ $cy%m $gr%~ $re$(git_prompt_info)$(git_prompt_status)$rc $wh%t$rc
-${wh}[%?]${rc} '
-</code></pre>
-
-<p>you have to define variables like this:</p>
-
-<pre><code>wh=%{$fg_bold[white]%}
-rc=%{$reset_color%}
-</code></pre>
-
-<p>If you keep using variables without escape, when you use tab-completion, your command line will be messed up.</p>
-
-<p>Ref:
-<a href="http://stackoverflow.com/questions/13546672/custom-oh-my-zsh-theme-long-prompts-disappear-cut-off/14179542#14179542">http://stackoverflow.com/questions/13546672/custom-oh-my-zsh-theme-long-prompts-disappear-cut-off/14179542#14179542</a>
-<a href="http://stackoverflow.com/questions/7957435/zsh-auto-complete-screws-up-command-name/10644062#10644062">http://stackoverflow.com/questions/7957435/zsh-auto-complete-screws-up-command-name/10644062#10644062</a></p>
-
-<h1>Recommended Themes</h1>
-
-<p>kphoen: double line, display user, host, CWD, command exit code when it&rsquo;s nonzero,
-  git branch and status, no time, its title line is darker than &ldquo;ys&rdquo;,
-  but the command and command output is the same;</p>
-
-<p>ys: double line, display user, host, CWD, time, partial git information, no exit code;</p>
-
-<p>bureau: double line, display user, host, CWD, time, complete git information, no exit code;</p>
-
-<p>steeef: double line, display user, host, CWD, complete git information, no exit code;</p>
-
-<p>rkj: double line, display user, host, CWD, time, command exit code, no git information;</p>
-
-<p>duellj: double line, display user, host, CWD, command order number, time, no git information;</p>
-
-<p>some other good themes includes: frisk, candy, blinks</p>
 </div>
   
   
@@ -354,7 +206,7 @@ rc=%{$reset_color%}
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/07/12/084919/">Modify File Descriptor Limit on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/08/23/102651/">Spawn and Expect</a></h1>
     
     
       <p class="meta">
@@ -363,36 +215,26 @@ rc=%{$reset_color%}
 
 
 
-<time class='entry-date' datetime='2013-07-12T08:49:19+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:49 am</span></time>
+<time class='entry-date' datetime='2013-08-23T10:26:51+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2013</span></span> <span class='time'>10:26 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>System-wide File Descriptor Limit</h1>
+  <div class="entry-content"><p>Run this script:</p>
 
-<ul>
-<li><p>Get current value: <code>sysctl fs.file-max</code></p></li>
-<li><p>modify max fd limit: <code>sysctl -w fs.file-max=10000</code></p></li>
-</ul>
+<p> #!/usr/bin/expect
+ spawn ls -l
+ expect &ldquo;aaa&rdquo;
+ puts &ldquo;bbb&rdquo;
+ expect &ldquo;bbb&rdquo;</p>
 
+<p>you will get a</p>
 
-<h1>User File Descriptor Limit</h1>
+<p>spawn_id?</p>
 
-<ul>
-<li><p>Get current value: <code>ulimit -n</code></p></li>
-<li><p>modify max fd limit: <code>ulimit -n 10000</code></p></li>
-<li><p>use <code>ulimit -a</code> to print all limits of a user, such as fd, processes, etc.</p></li>
-</ul>
-
-
-<p>Based on <a href="http://www.cyberciti.biz/faq/linux-increase-the-maximum-number-of-open-files/">http://www.cyberciti.biz/faq/linux-increase-the-maximum-number-of-open-files/</a></p>
-
-<p>Ref:</p>
-
-<p><a href="http://unix.stackexchange.com/questions/29577/ulimit-difference-between-hard-and-soft-limits">http://unix.stackexchange.com/questions/29577/ulimit-difference-between-hard-and-soft-limits</a>
-<a href="http://ss64.com/bash/ulimit.html">http://ss64.com/bash/ulimit.html</a></p>
+<p>When &ldquo;ls -l&rdquo; ends, it send a eof to expect script process, this signal canceled &ldquo;expect aaa&rdquo;?</p>
 </div>
   
   
@@ -405,7 +247,7 @@ rc=%{$reset_color%}
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/07/09/171311/">利用email-ext插件自动提取Sonar项目数据的方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/08/22/175812/">Subclipse Report `Unable to Load Default Svn Client` on Ubuntu</a></h1>
     
     
       <p class="meta">
@@ -414,131 +256,112 @@ rc=%{$reset_color%}
 
 
 
-<time class='entry-date' datetime='2013-07-09T17:13:11+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:13 pm</span></time>
+<time class='entry-date' datetime='2013-08-22T17:58:12+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>5:58 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>下面的自动提取数据方法需要Jenkins项目名称与Sonar项目的projectKey属性一致，因为Sonar的Web Service API可以通过projectKey属性指定项目，这样我们用${PROJECT_NAME}标记在email-ext的Pre-send Script中指定Sonar项目，获取项目数据，具体实现过程如下：</p>
+  <div class="entry-content"><p>Scenario: When checkout codes in Juno SR2 with svn plugin subclipse 1.10.x, it reports &ldquo;unable to load default svn client&rdquo;, and checkout failed.</p>
 
-<ol>
-<li><p>新建BVT项目USB-TEST，此项目的BVT脚本build.xml中定义对应的Sonar项目的projectKey：</p>
+<p>Solution: There is a bug in this version. Remove this plugin, and install 1.6.x (I use 1.6.18 at <a href="http://subclipse.tigris.org/files/documents/906/49028/site-1.6.18.zip,">http://subclipse.tigris.org/files/documents/906/49028/site-1.6.18.zip,</a> unzip it into dropins folder of $ECLIPSE_HOME). Restart Eclipse, everything goes fine.</p>
 
-<pre><code> &lt;property name="sonar.projectKey" value="USB-TEST" /&gt;
-</code></pre></li>
-<li><p>Jenkins -> Manage Jenkins -> Configure System -> Extended E-mail Notification -> Default Pre-send Script</p></li>
-</ol>
+<p>I install a svn repository at 10.0.7.141:/opt/svnRepo.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/21/102535/">Exercies of Chapter 3 in `Exploring Expect`</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-21T10:25:35+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>10:25 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>1 ~ 3: ftp.uu.net has disappeared since 2006 (<a href="https://en.wikipedia.org/wiki/UUNET">https://en.wikipedia.org/wiki/UUNET</a>).</p></li>
+<li><p>4:</p></li>
+</ul>
+
+
+<p>method 1 (no timeout): login; send &ldquo;ls&rdquo;; save expect_out(buffer) to buf; expect &ldquo;ftp>&rdquo;; parse buf, if there is &ldquo;pub&rdquo;, send &ldquo;cd pub&rdquo;; &ldquo;interact&rdquo;;</p>
+
+<p>method 2 (timeout): login; send &ldquo;ls&rdquo;; expect &ldquo;pub*send OK.&rdquo; then send &ldquo;cd pub&rdquo;; if timeout, interact;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/20/185908/">Notes About `Exploring Expect`</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-08-20T18:59:08+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:59 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Chapter 3</h1>
+
+<ul>
+<li><p>Section &ldquo;The expect Command&rdquo;: expect_out(0,string) can NOT be written as &ldquo;expect_out(0, string)&rdquo;, blank before &ldquo;string&rdquo; will make a mistake;</p></li>
+<li><p>Concurrent matching:</p></li>
+</ul>
 
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>import groovy.json.JsonSlurper
-</span><span class='line'>sonarUrl = 'http://10.0.2.74:9000/api/resources?resource=${PROJECT_NAME}' +
-</span><span class='line'>  '&metrics=ncloc,classes,violations,coverage,tests,' +
-</span><span class='line'>  'test_success_density,comment_lines_density,duplications_data,' +
-</span><span class='line'>  'function_complexity'
-</span><span class='line'>def conn = new URL(sonarUrl).getText()
-</span><span class='line'>def project = new JsonSlurper().parseText(conn)
-</span><span class='line'>String report = ''  // 一定要声明为String，否则Jenkins执行脚本时报错
-</span><span class='line'>def result = project.msr[0]
-</span><span class='line'>result.each { item -&gt; report = report + nameMapping(item.key) + ': ' + item.frmt_val + '&lt;br /&gt;' }
-</span><span class='line'>String detail = 'See project &lt;a href="http://10.0.2.74:9000"&gt;${PROJECT_NAME} on Sonar&lt;/a&gt; for detail information.'
-</span><span class='line'>msg.setContent(report+detail, 'text/html')
-</span><span class='line'>def nameMapping (input) {
-</span><span class='line'> switch (input) {
-</span><span class='line'>  case "ncloc":
-</span><span class='line'>   result = "Total Lines of Code"
-</span><span class='line'>   break
-</span><span class='line'>  case "classes":
-</span><span class='line'>   result = "Total Classes"
-</span><span class='line'>   break
-</span><span class='line'>  case "violations":
-</span><span class='line'>   result = "Total Violations"
-</span><span class='line'>   break
-</span><span class='line'>  case "tests":
-</span><span class='line'>   result = "Total Test Cases"
-</span><span class='line'>   break
-</span><span class='line'>  case "test_success_density":
-</span><span class='line'>   result = "Test Success Rate"
-</span><span class='line'>   break
-</span><span class='line'>
-</span><span class='line'>  case "coverage":
-</span><span class='line'>   result = "Average Test Coverage"
-</span><span class='line'>   break
-</span><span class='line'>  case "comment_lines_density":
-</span><span class='line'>   result = "Average Comment Lines Rate"
-</span><span class='line'>   break
-</span><span class='line'>  case "function_complexity":
-</span><span class='line'>   result = "Average Function Complexity"
-</span><span class='line'>   break
-</span><span class='line'>  default:
-</span><span class='line'>   reuslt = input
-</span><span class='line'> }
+</pre></td><td class='code'><pre><code class=''><span class='line'>expect {
+</span><span class='line'>    item1 {send cmd1}
+</span><span class='line'>    item2 {send cmd2}
 </span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
 
 
-<p>Jenkins中新建一个名为"USB-TEST"的项目，Configure -> Post-build Actions -> Advanced -> Pre-send Script: ${DEFAULT_PRESEND_SCRIPT}. Note that this token is case sensitive; This template is stored in the file $JENKINS_HOME/hudson.plugins.emailext.ExtendedEmailPublisher.xml;</p>
+<ul>
+<li>In spawn process, use &ldquo;\r&rdquo; as the return key in send command;</li>
+</ul>
 
-<p>上面脚本中的msg变量是JDK的javax.mail.internet.MimeMessage对象，用setText()方法设置邮件正文，详细介绍见email-ext官网；</p>
 
-<p>当修改默认Pre-send Script后，各项目的Pre-send Scrpit不会自动更新，需要手工改为${DEFAULT_PRESEND_SCRIPT}；</p>
+<h1>Chapter 5</h1>
 
-<p>构建项目后Jenkins会自动发送邮件。</p>
+<ul>
+<li>Section &ldquo;Using Parentheses For Feedback&rdquo; give a clear and concise explanations of how to get feedback in expect.</li>
+</ul>
 
-<p>如果邮件正文中没有超链接，将文本格式设为text/plain更简洁，相应地上面的代码改为：</p>
-
-<pre><code>result.each { item -&gt; report = report + nameMapping(item.key) + ': ' + item.frmt_val + '\n' } 
-msg.setText(report)
-</code></pre>
-
-<h1>调试Groovy脚本的方法</h1>
-
-<h2>利用Jenkins的Groovy引擎</h2>
-
-<p>在"<a href="http://10.0.2.74:8088/script">http://10.0.2.74:8088/script</a>"中用Web API调试代码，例如：</p>
 
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -550,103 +373,158 @@ msg.setText(report)
 <span class='line-number'>8</span>
 <span class='line-number'>9</span>
 <span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>import groovy.json.JsonSlurper 
-</span><span class='line'>sonarUrl = 'http://10.0.2.74:9000/api/resources?resource=ESB' + 
-</span><span class='line'>  '&metrics=ncloc,classes,violations,coverage,tests,' + 
-</span><span class='line'>  'test_success_density,comment_lines_density,duplications_data,' + 
-</span><span class='line'>  'function_complexity' 
-</span><span class='line'>def conn = new URL(sonarUrl).getText() 
-</span><span class='line'>def project = new JsonSlurper().parseText(conn) 
-</span><span class='line'>println project
-</span><span class='line'>
-</span><span class='line'>println project.id</span></code></pre></td></tr></table></div></figure>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#!/usr/bin/expect 
+</span><span class='line'>set timeout 60 
+</span><span class='line'>expect -re "a(.*)c" 
+</span><span class='line'>send "expect_out(buffer) = ${expect_out(buffer)}\n" 
+</span><span class='line'>send "expect_out(0,string) = ${expect_out(0,string)}\n" 
+</span><span class='line'>send "expect_out(1,string) = ${expect_out(1,string)}\n" 
+</span><span class='line'>expect -re "e" 
+</span><span class='line'>send "expect_out(buffer) = ${expect_out(buffer)}\n" 
+</span><span class='line'>send "expect_out(0,string) = ${expect_out(0,string)}\n" 
+</span><span class='line'>send "expect_out(1,string) = ${expect_out(1,string)}\n" </span></code></pre></td></tr></table></div></figure>
 
 
-<h2>命令行中调试</h2>
+<p>Run this script, input &ldquo;junk abcbcdef&rdquo; and return, will produces:</p>
 
-<p>在命令行中执行<code>groovy myscript.groovy</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/09/110533/">Set Classpath for Groovy on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ ./feedback.exp 
+</span><span class='line'>junk abcbcdef 
+</span><span class='line'>expect_out(buffer) = junk abcbc 
+</span><span class='line'>expect_out(0,string) = abcbc 
+</span><span class='line'>expect_out(1,string) = bcb 
+</span><span class='line'>expect_out(buffer) = de 
+</span><span class='line'>expect_out(0,string) = e 
+</span><span class='line'>expect_out(1,string) = bcb </span></code></pre></td></tr></table></div></figure>
 
 
+<p>You can see value of &ldquo;expect_out(&hellip;)&rdquo; will be refreshed when a expect matches (expect &ldquo;e&rdquo;). &ldquo;buffer&rdquo; are all things from last buffer (&ldquo;&hellip;cbc&rdquo;) to this match (&ldquo;e&rdquo;), which is &ldquo;de&rdquo; in this case. &ldquo;0,string&rdquo; means all matching strings (note &ldquo;0, string&rdquo; will raise a exception for the redundant blank). &ldquo;1,string&rdquo; means the first subgroup of &ldquo;0,string&rdquo;. If there is no subgroup (expressed as parentheses) in current match, (1,string) remains last value (&ldquo;bcb&rdquo; in this case). Even &ldquo;f&rdquo; at the end of input has been sent to expect, it will not be added to &ldquo;buffer&rdquo;, because it&rsquo;s not a part of the current match.</p>
+
+<h1>Chapter 6</h1>
+
+<ul>
+<li>exp_continue is useful in many circumstances. See its code example in section &ldquo;Matching Multiple Times&rdquo; in chapter 6 and section &ldquo;Prompting For A Password On Behalf Of A Program&rdquo; in chapter 8;</li>
+</ul>
 
 
-<time class='entry-date' datetime='2013-07-09T11:05:33+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:05 am</span></time>
-        
-      </p>
-    
-  </header>
+<h1>Chapter 7 &amp; 8</h1>
+
+<ul>
+<li><p>some frequently used command:</p>
+
+<pre><code>  log_file: write output of spawned process to a file; 
+  log_user: send output of spawned process to/not to user; 
+  send_user: expect script send messages to user;
+
+  expect_user: continue communicating with the user even after a process has been spawned; 
+  send: expect script send messages to spawned process; 
+  send_log: only write to log (without writing to stdout); 
+  send_error: expect script send messages to stderr; 
+  exp_internal: enable/disable internal diagnostics to stdout or log file (see section "Logging Internal Diagnostics"); 
+</code></pre></li>
+<li><p>proc sendexpect in section &ldquo;The send_error Command&rdquo; is useful;</p></li>
+<li><p>right-wrong-timeout switch in section &ldquo;The expect_user Command&rdquo;:</p>
+
+<pre><code>  expect {
+      right {
+      } wrong {
+          send_error error_message
+          exit 1
+      } timeout {
+          send_error "time out!"
+          exit 1
+      }
+  }
+</code></pre></li>
+<li><p>A program switch between character and line mode. Notice the usage of &ldquo;stty raw&rdquo;:</p>
+
+<pre><code>  send_user "Now we are in line mode. You can use backspace to re-input.\n" 
+  send_user "Continue? y or n\n" 
+  expect_user -re "y|n" 
+  send_user "you press $expect_out(0,string)\n" 
+  stty raw 
+  send_user "Now we are in character mode. You have no chance to re-input.\n" 
+  send "Continue? Enter y or n: \r\n" 
+  expect -re "y|n" 
+  send_user "\nyou press $expect_out(0,string)" 
+</code></pre></li>
+<li><p>stty should be executed during times when the user is not typing, such as before a prompt rather than after, otherwise there is possibility of losing characters while switching modes. See the end of section &ldquo;Line Versus Character-Oriented And Other Terminal Modes&rdquo;;</p></li>
+<li><p>In the modified version of su2 in section &ldquo;Echoing&rdquo;, I modified &ldquo;# &rdquo; to &ldquo; #&rdquo; in the last 3rd line, because on my platform (Mint Xfce 14) there are no space after &ldquo;#&rdquo; in the prompt of root user;</p></li>
+<li><p>the get password procedure in section &ldquo;Echo&rdquo; is a must-have tool;</p></li>
+<li><p>If you want exact Bourne-shell semantics, the simplest way is to call system. See section &ldquo;The system Command&rdquo;;</p></li>
+</ul>
 
 
-  <div class="entry-content"><p>The &ldquo;-cp&rdquo; option of groovy is the same with Java.</p>
+<h1>Chapter 9</h1>
 
-<p>Wildcards can be used on JDK6 or later. For example:</p>
+<h2>arguments experiment after #!</h2>
 
-<p> groovy -cp &ldquo;/home/chad/apps/http-builder-0.6/<em>:/home/chad/apps/http-builder-0.6/dependencies/</em>&rdquo; httpex.groovy</p>
+<p>The echo.exp:</p>
 
-<p>Note1: &ldquo;**&rdquo; is not supported, which means above command can not written as:</p>
+<p>version 1:</p>
 
-<p> groovy -cp &ldquo;/home/chad/apps/http-builder-0.6/**&rdquo; httpex.groovy</p>
-
-<p>Note2: &ldquo;<em>.jar&rdquo; is not supported, which means &ldquo;/home/chad/apps/http-builder-0.6/</em>.jar&rdquo; is invalid;</p>
-
-<p>Note3: the double quotes of classpath is necessary;</p>
-
-<p>Note4: &ldquo;/home/chad&rdquo; in classpath can not be replaced by &ldquo;~&rdquo;;</p>
-
-<p>See: <a href="http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath">http://stackoverflow.com/questions/219585/setting-multiple-jars-in-java-classpath</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/08/154203/">`package com.sun.xml.internal.bind. V2 Does Not Exist` Solution</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-08T15:42:03+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:42 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>When execute javac task in ant under openjdk(I also find this problem in Oracle JDK 1.6, 2014-3-21), you may encounter &ldquo;package com.sun.xml.internal.bind.v2 does not exist&rdquo; error, which is because this package only exists in Oracle (Sun) JDK, but not in openjdk. To resolve this problem, add compiler arguments &ldquo;-XDignore.symbol.file=true&rdquo; to javac task:</p>
-
-<pre><code>&lt;javac destdir="${src.class.dir}" encoding="UTF-8" debug="true" classpathref="lib.path" failonerror="true"&gt; 
-    &lt;src path="${src.dir}"/&gt; 
-    &lt;compilerarg line="-XDignore.symbol.file=true" /&gt; 
-&lt;/javac&gt; 
+<pre><code>#!/usr/bin/expect 
+set argc [llength $argv] 
+for {set i 0} {$i&lt;$argc} {incr i} { 
+    puts "arg $i: [lindex $argv $i]" 
+} 
 </code></pre>
 
-<p>This is also valid when using javac in command line.</p>
+<p>version 2:</p>
+
+<pre><code>#!/usr/bin/expect --
+...
+</code></pre>
+
+<p>version 3:</p>
+
+<pre><code>#!/usr/bin/expect -f
+...
+</code></pre>
+
+<p>Now run command <code>./echo.exp -c "puts hello" 1 2 3</code>, the output is:</p>
+
+<p>version 1:</p>
+
+<pre><code>arg 0: -c 
+arg 1: puts hello 
+arg 2: 1 
+arg 3: 2 
+arg 4: 3 
+</code></pre>
+
+<p>version 2:</p>
+
+<pre><code>arg 0: -c 
+arg 1: puts hello 
+arg 2: 1 
+arg 3: 2 
+arg 4: 3 
+</code></pre>
+
+<p>version 3:</p>
+
+<pre><code>hello 
+arg 0: 1 
+arg 1: 2 
+arg 2: 3 
+</code></pre>
+
+<p>So it is clear that only when &ldquo;-f&rdquo; is specified, &ldquo;-c&rdquo; means &ldquo;take my arguments as a script&rdquo;. Otherwise &ldquo;-c&rdquo; will be treated as a common arguments of the script. &ldquo;&ndash;&rdquo; explicitly stop any arguments interpreting.</p>
+
+<h1>Chapter 17</h1>
+
+<ul>
+<li>this chapter describes how to make expect script a server;</li>
+</ul>
+
 </div>
   
   
@@ -659,7 +537,7 @@ msg.setText(report)
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/07/08/151108/">用vi删除utf-8文件中的BOM标记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/08/20/102248/">Exercies of Chapter 2 in `Exploring Expect`</a></h1>
     
     
       <p class="meta">
@@ -668,60 +546,105 @@ msg.setText(report)
 
 
 
-<time class='entry-date' datetime='2013-07-08T15:11:08+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>3:11 pm</span></time>
+<time class='entry-date' datetime='2013-08-20T10:22:48+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:22 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>BOM (Byte-Order Mark)用来表示Unicode文件的字节顺序（参考<a href="http://blog.csdn.net/shixing_11/article/details/6976900">编译工程时报java:[1,0] illegal character: \65279问题排查与解决过程</a>中对BOM作用的说明），在UTF-8文件中已没有作用，而且这个标记会导致javac编译失败（但在Eclipse中却能够正常编译，原因不明），用vi打开这个文件，执行<code>:setlocal bomb?</code>检查是否有bom，如果有，用<code>:setlocal nobomb</code>去掉它。
- 或者用vi -b <filename>以binary方式打开文件，就可以看到文件头上的BOM标记，删之。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/08/115359/">Import Bdb Format SVN Repo Into VisualSVN Server</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-07-08T11:53:59+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:53 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Repo format in VisualSVN is fsfs. It can&rsquo;t import bdb format repo directly. So you have to import is in the following 2 steps:</p>
-
-<ol>
-<li>Dump old repo to a file:</li>
+  <div class="entry-content"><blockquote><ol>
+<li>Write a procedure to reverse a string. If you wrote an iterative solution, now write a recursive solution or vice versa.</li>
 </ol>
+</blockquote>
 
+<p> #!/usr/bin/tclsh</p>
 
-<p> K:\svn>svnadmin dump ./GPAS > f:\tmp\gpas_dump</p>
+<p> # iterative solution:</p>
 
-<ol>
-<li><p>Import dump file into VisualSVN Server as a repo:</p></li>
-<li><p>Start VisualSVN Server Manager;</p></li>
-<li><p>Repositories -> Create new repository: Repository Name: GPAS, uncheck &ldquo;create default structure&rdquo;;</p></li>
-<li><p>Menu: 操作 -> 所有任务 -> Command Prompt;</p></li>
-<li><p>F:\SVNDW> svnadmin load ./GPAS &lt; f:\tmp\gpas_dump</p></li>
+<p> proc rev_str_iter { input } {
+  for {set idx [string length $input]} {$idx > 0} {incr idx -1} {
+   append res [string index $input [expr $idx-1]]
+  }
+  return $res
+ }
+ # recursive solution:
+ proc rev_str_recur { input } {
+  set len [string length $input]
+  if {[expr $len - 1] > 0} {
+   append res [rev_str_recur [string range $input 1 end]] \
+             [string index $input 0]
+  } else {
+   set res $input
+  }
+  return $res
+ }
+ set m &ldquo;abcdefg&rdquo;
+ set n [rev_str_iter $m]
+ puts $n
+ set n2 [rev_str_recur $m]
+ puts $n2</p>
+
+<blockquote><ol>
+<li>Repeat the previous exercise but with a list instead of a string.</li>
 </ol>
+</blockquote>
 
+<p> #!/usr/bin/tclsh
+ # iterative solution:
+ proc rev_list_iter { input } {
+  for {set idx [llength $input]} {$idx > 0} {incr idx -1} {
+   lappend res [lindex $input [expr $idx-1]]
+  }
+  return $res
+ }
+ # recursive solution:
+ proc rev_list_recur { input } {
+  set len [llength $input]
+  if {[expr $len - 1] > 0} {
+   set res [concat [rev_list_recur [lrange $input 1 end]] [lindex $input 0]]
+  } else {
+   set res $input
+  }
+  return $res
+ }
+ set m &ldquo;a b c d e g&rdquo;
+ set n [rev_list_iter $m]
+ puts $n
+ set n2 [rev_list_recur $m]
+ puts $n2</p>
+
+<blockquote><ol>
+<li>Write a procedure to rename all the files in a directory ending with .c to names ending in &ldquo;.cc“.</li>
+</ol>
+</blockquote>
+
+<p> #!/usr/bin/tclsh
+ foreach file_name [glob *.c] {
+  file rename $file_name [append file_name c]
+ }</p>
+
+<blockquote><ol>
+<li>Write a procedure that takes a list of variable names and a list of values, and sets each variable in the list to the respective value in the other list. Think of different alternatives to handle the case when the lists are of different lengths.</li>
+</ol>
+</blockquote>
+
+<p> #!/usr/bin/tclsh
+ proc assign {names values} {
+  if {[llength $names] > [llength $values]} {
+   set len [llength $values]
+  } else {
+   set len [llength $names]
+  }
+  for {set idx 0} {$idx&lt;$len} {incr idx} {
+   set var_name [lindex $names $idx]
+   set $var_name [lindex $values $idx]
+   puts [concat $var_name = [set $var_name]]
+  }
+ }
+ set names &ldquo;za bb ee dk&rdquo;
+ set values &ldquo;11 32 53 94 5&rdquo;
+ assign $names $values</p>
 </div>
   
   
@@ -734,7 +657,7 @@ msg.setText(report)
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/07/06/160429/">Notes About Kvm</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/08/20/101843/">Tcl Shell Notes</a></h1>
     
     
       <p class="meta">
@@ -743,46 +666,67 @@ msg.setText(report)
 
 
 
-<time class='entry-date' datetime='2013-07-06T16:04:29+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:04 pm</span></time>
+<time class='entry-date' datetime='2013-08-20T10:18:43+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:18 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Test If Your Processor Supports VT</h1>
+  <div class="entry-content"><ul>
+<li><p>Start origin tcl shell: tclsh (apt-get install tcl);</p></li>
+<li><p>Start tcl shell with command history shortcuts (up arrow for previous command and other powerful command line shortcuts like alt+backspace, brackets matching, etc. on Ubuntu): rlwrap -c tclsh;</p></li>
+</ul>
 
-<p>egrep -c &lsquo;(vmx|svm)&rsquo; /proc/cpuinfo</p>
 
-<p>If it is bigger than 0, VT is supported. &lsquo;vmx&rsquo; is the VT of intel, while &lsquo;svm&rsquo; is that of amd.</p>
+<p>For efficiency, add <code>alias tcl="rlwrap -c tclsh"</code> to ~/.zshrc;</p>
 
-<p>Ref: <a href="http://www.howtogeek.com/howto/linux/linux-tip-how-to-tell-if-your-processor-supports-vt/">http://www.howtogeek.com/howto/linux/linux-tip-how-to-tell-if-your-processor-supports-vt/</a></p>
+<p>Note: rlwrap is readline wrapper;</p>
+</div>
+  
+  
 
-<h1>Install</h1>
 
-<h2>Ubuntu</h2>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/16/174647/">Copy Full Path Name of a File in Ranger</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>sudo apt-get install kvm</p>
 
-<h2>Setup a Gust OS</h2>
 
-<p>cd ~/VirtualBoxVMs/kvmtest</p>
 
-<p>kvm-img create winxp.img 4G</p>
+<time class='entry-date' datetime='2013-08-16T17:46:47+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:46 pm</span></time>
+        
+      </p>
+    
+  </header>
 
-<p>kvm -drive file=winxp.img -cdrom ~/warez/OS/tomatoXp.iso -boot d -m 512</p>
 
-<p>use ctrl+alt+del to release mouse.</p>
+  <div class="entry-content"><p>After version 1.4.0, ranger add a command <code>yp</code> to copy full path name of
+the selected file with xsel.</p>
 
-<p>Ref:<a href="http://wiki.ubuntu.com.cn/Kvm%E6%95%99%E7%A8%8B#.E5.8F.8B.E6.83.85.E8.BF.9E.E6.8E.A5">http://wiki.ubuntu.com.cn/Kvm%E6%95%99%E7%A8%8B#.E5.8F.8B.E6.83.85.E8.BF.9E.E6.8E.A5</a></p>
+<p>Install xsel (<code>apt-get install xsel</code>), and modify command of <code>yp</code> to copy
+the slected filename to system clipboard instead of only the PRIMARY clipboard:
+In file <code>/etc/ranger/config/rc.conf</code>,
+modify <code>map yp shell -d echo -n %d/%f | xsel -i</code> to:
+<code>map yp shell -d echo -n %d/%f | xsel -i -p -b</code>.
+Add <code>-p -b</code> to command <code>yd</code> and <code>yn</code> as well.
+Here <code>-p</code> means copy to <code>PRIMARY</code> clipboard,
+while <code>-b</code> means copy to system clipboard.</p>
 
-<h2>CentOS</h2>
+<p>Now use <code>yp</code> (or <code>yn</code>) to copy full path (or filename),
+and Ctrl-Shift-v (in console) or Ctrl-v (in GUI app) to paste.</p>
 
-<p>$ yum install kvm python-virtinst libvirt libvirt-python virt-manager virt-viewer libguestfs-tools</p>
-
-<p>$ service libvirtd restart</p>
-
-<p>$ virt-install &ndash;name vm1 &ndash;ram=1024 &ndash;vcpu=1 &ndash;cdrom ./warez/CentOS-6.4-x86_64-LiveDVD.iso &ndash;graphics none &ndash;disk path=vm1.img,size=10</p>
+<p>Note: See manpage of xsel for the concept of 3 different clipboard PRIMARY,
+SECONDARY and CLIPBOARD of X windows.</p>
 </div>
   
   
@@ -807,23 +751,23 @@ msg.setText(report)
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

@@ -1,0 +1,390 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>部署Python Web应用 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="部署流程 新部署 部署过程分为以下步骤： 安装依赖组件：git, pip, virtualenv, uwsgi
+clone代码库(git clone)；
+在源代码文件夹里创建wsgi.py和uwsgi.ini文件作为uwsgi的入口和环境定义文件，
+这两个文件不要加入到版本控制系统中； &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2016/04/28/070323/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>The technical blog of Li Chao in Beijing</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">部署Python Web应用</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-04-28T07:03:23+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>7:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h1>部署流程</h1>
+
+<h2>新部署</h2>
+
+<p>部署过程分为以下步骤：</p>
+
+<ol>
+<li><p>安装依赖组件：git, pip, virtualenv, uwsgi</p></li>
+<li><p>clone代码库(git clone)；</p></li>
+<li><p>在源代码文件夹里创建wsgi.py和uwsgi.ini文件作为uwsgi的入口和环境定义文件，
+这两个文件不要加入到版本控制系统中；</p></li>
+<li><p>创建服务启动脚本/etc/init/myapp.conf，启动服务；</p></li>
+<li><p>创建nginx服务实例：绑定监听端口，指向上一步生成的unix socket；</p></li>
+<li><p>测试并重启nginx服务。</p></li>
+</ol>
+
+
+<h2>代码更新</h2>
+
+<ol>
+<li><p>同步代码：<code>git pull</code>;</p></li>
+<li><p>重启服务：<code>sudo restart myapp</code>.</p></li>
+</ol>
+
+
+<h1>部署示例</h1>
+
+<p>以下步骤基于<a href="http://do.co/1StnidM">How To Set Up uWSGI and Nginx to Serve Python Apps on Ubuntu 14.04</a></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>sudo aptitude install python-dev python-pip nginx
+</span><span class='line'>sudo pip install virtualenv
+</span><span class='line'>mkdir -p ~/test/myapp
+</span><span class='line'>cd ~/test/myapp
+</span><span class='line'>virtualenv myappenv
+</span><span class='line'>source myappenv/bin/activate
+</span><span class='line'>pip install uwsgi
+</span><span class='line'>cat &lt;&lt; EOF &gt; wsgi.py
+</span><span class='line'>def application(environ, start_response):
+</span><span class='line'>    start_response('200 OK', [('Content-Type', 'text/html')])
+</span><span class='line'>    return ["&lt;h1 style='color:blue'&gt;Hello There!&lt;/h1&gt;"]
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'># uwsgi --socket 0.0.0.0:8080 --protocol=http -w wsgi
+</span><span class='line'>deactivate
+</span><span class='line'>cat &lt;&lt; EOF &gt; myapp.ini
+</span><span class='line'>[uwsgi]
+</span><span class='line'>module = wsgi:application
+</span><span class='line'>
+</span><span class='line'>master = true
+</span><span class='line'>processes = 5
+</span><span class='line'>
+</span><span class='line'>socket = myapp.sock
+</span><span class='line'>chmod-socket = 664
+</span><span class='line'>vacuum = true
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'>sudo cat &lt;&lt; EOF &gt; /etc/init/myapp.conf
+</span><span class='line'>description "uWSGI instance to serve myapp"
+</span><span class='line'>
+</span><span class='line'>start on runlevel [2345]
+</span><span class='line'>stop on runlevel [!2345]
+</span><span class='line'>
+</span><span class='line'>setuid your-user-name
+</span><span class='line'>setgid www-data
+</span><span class='line'>
+</span><span class='line'>script
+</span><span class='line'>cd /home/your-user-name/test/myapp
+</span><span class='line'>. myappenv/bin/activate
+</span><span class='line'>uwsgi --ini myapp.ini
+</span><span class='line'>end script
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'>sudo start myapp
+</span><span class='line'># ps aux|grep myapp
+</span><span class='line'># sudo stop myapp
+</span><span class='line'>
+</span><span class='line'>sudo cat &lt;&lt; EOF &gt; /etc/nginx/sites-available/myapp
+</span><span class='line'>server {
+</span><span class='line'>    listen 8080;
+</span><span class='line'>    server_name 192.168.100.201;
+</span><span class='line'>
+</span><span class='line'>    location / {
+</span><span class='line'>        include         uwsgi_params;
+</span><span class='line'>        uwsgi_pass      unix:/home/your-user-name/test/myapp/myapp.sock;
+</span><span class='line'>    }
+</span><span class='line'>}
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'>sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled
+</span><span class='line'>sudo nginx -t
+</span><span class='line'>sudo nginx -s reload</span></code></pre></td></tr></table></div></figure>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2016-04-28T07:03:23+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>7:03 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/nginx/'>nginx</a>, <a class='category' href='/blog/categories/python/'>python</a>, <a class='category' href='/blog/categories/uwsgi/'>uwsgi</a>, <a class='category' href='/blog/categories/wsgi/'>wsgi</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2016/04/28/070323/" data-via="" data-counturl="http://leetschau.github.io/blog/2016/04/28/070323/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/04/19/120234/" title="Previous Post: Option类型的实现方法比较">&laquo; Option类型的实现方法比较</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/04/29/104211/" title="Next Post: 基于Flask的Python微服务">基于Flask的Python微服务 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2016 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -9,9 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="使用源代码版本的ansible 按照Running From Source,
-首先安装依赖包 (sudo pip install paramiko PyYAML Jinja2 httplib2 six),
-clone ansible的github repo, 然后配置环境变量， &hellip;">
+  <meta name="description" content="场景：需要向/etc/default/docker文件追加一行文字： DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://b53a2938.m.daocloud.io" 其中双引号和$是特殊字符，难度主要提现在如何转意这两个字符上。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -40,7 +38,7 @@ clone ansible的github repo, 然后配置环境变量， &hellip;">
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -73,7 +71,7 @@ clone ansible的github repo, 然后配置环境变量， &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2016/01/08/125827/">Ansible Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2016/05/26/001459/">Fabric中向文件写入特殊字符</a></h1>
     
     
       <p class="meta">
@@ -82,107 +80,41 @@ clone ansible的github repo, 然后配置环境变量， &hellip;">
 
 
 
-<time class='entry-date' datetime='2016-01-08T12:58:27+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>12:58 pm</span></time>
+<time class='entry-date' datetime='2016-05-26T00:14:59+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>12:14 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>使用源代码版本的ansible</h1>
+  <div class="entry-content"><p>场景：需要向/etc/default/docker文件追加一行文字：</p>
 
-<p>按照<a href="http://docs.ansible.com/ansible/intro_installation.html#running-from-source">Running From Source</a>,
-首先安装依赖包 (<code>sudo pip install paramiko PyYAML Jinja2 httplib2 six</code>),
-clone ansible的github repo, 然后配置环境变量，就可以使用ansible的各个版本了。</p>
-
-<pre><code>git clone git://github.com/ansible/ansible.git --recursive $HOME/apps
+<pre><code>DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://b53a2938.m.daocloud.io"
 </code></pre>
 
-<p>需要使用ansible时，运行：</p>
+<p>其中双引号和$是特殊字符，难度主要提现在如何转意这两个字符上。</p>
 
-<pre><code>source $HOME/apps/ansible/hacking/env-setup
+<p>普通用户通过Shell达到目标的方法是：</p>
+
+<pre><code>echo "DOCKER_OPTS=\"\$DOCKER_OPTS --registry-mirror=http://b53a2938.m.daocloud.io\"" | sudo tee -a /etc/default/docker
 </code></pre>
 
-<p>默认是devel分支，如果要切换到稳定版分支，首先列出所有分支：<code>git branch -ra</code>，
-然后切换到此分支上：</p>
+<p>root用户使用Shell的方法是：</p>
 
-<pre><code>cd $HOME/apps/ansible
-git checkout origin/stable-2.0.1
-source $HOME/apps/ansible/hacking/env-setup
+<pre><code>echo "DOCKER_OPTS=\"\$DOCKER_OPTS --registry-mirror=http://b53a2938.m.daocloud.io\"" &gt;&gt; /etc/default/docker
 </code></pre>
 
-<p>更新代码库：</p>
+<p>Fabric的实现方法是：</p>
 
-<pre><code>cd $HOME/apps/ansible
-git pull --rebase
-git submodule update --init --recursive
+<pre><code>sudo('echo "DOCKER_OPTS=\\\\"\\\$DOCKER_OPTS '
+     '--registry-mirror=http://b53a2938.m.daocloud.io\\\\"" '
+     '&gt;&gt; /etc/default/docker')
 </code></pre>
 
-<h1>lookup ini plugin</h1>
+<p>或者用raw string:</p>
 
-<p>通过pip安装的ansible是1.9.4版本，这一版没有lookup ini plugin.
-在<a href="http://docs.ansible.com/ansible/playbooks_lookups.html#the-ini-file-lookup">The INI File Lookup</a>
-下可以看到 &ldquo;New in version 2.0.&rdquo;.</p>
-
-<p>运行下面的task时，</p>
-
-<pre><code>- debug: msg="User in integration is "
-</code></pre>
-
-<p>会报错：</p>
-
-<blockquote><p>lookup plugin (ini) not found</p></blockquote>
-
-<p>用pip安装后，所有的lookup plugin的安装目录是
-/usr/local/lib/python2.7/dist-packages/ansible/runner/lookup_plugins
-下面没有ini.py.</p>
-
-<p>解决方法见上节使用源代码版本的ansible.</p>
-
-<p>有了ini lookup plugin, 可以在ansible的roles/<role-name>/tasks/main.yml中
-引用ansible变量和外部ini文件：</p>
-
-<pre><code>- name: download codes to laptop
-  local_action: &gt;
-    command
-</code></pre>
-
-<p>相关的文件：</p>
-
-<pre><code>cat $ANSIBLE_PRJ_HOME/roles/deploy/vars/main.yml 
-repo_base: "~/temp"
-timestamp: ""
-repo_name: "-"
-local_repo: "/"
-target_branch: "develop"
-ext_path: "/"
-nodejs_bin_path: ":/opt/node-v0.10.40-linux-x64/bin"
-app_settings: "~/docs/website/v3/settings.json"
-env_settings: "~/docs/website/v3/serverEnv.ini"
-
-cat ~/docs/website/v3/serverEnv.ini
-[common]
-PORT=3000
-
-[p21.newfairs-inc.com]
-MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/production
-ROOT_URL=http://www.newfairs.net
-GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/NEWFAIRS/newfairs.git
-
-[p22.newfairs-inc.com]
-MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/production
-ROOT_URL=http://www.newfairs.net
-GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/NEWFAIRS/newfairs.git
-
-[beta-app.newfairs-inc.com]
-MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/production
-ROOT_URL=http://beta.newfairs.com
-GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/NEWFAIRS/newfairs.git
-
-[console.newfairs-inc.com]
-MONGO_URL=mongodb://dba:dba@192.168.100.3:27017/console
-ROOT_URL=http://console.newfairs-inc.com
-GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/CONSOLE/newfairs-console.git
+<pre><code>sudo(r'echo "DOCKER_OPTS=\\"\\$DOCKER_OPTS --registry-mirror='
+     r'http://b53a2938.m.daocloud.io\\"" &gt;&gt; /etc/default/docker')
 </code></pre>
 </div>
   
@@ -196,7 +128,7 @@ GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/CONSOLE/newfairs-con
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/12/30/162805/">Wordpress中文文章详情页无法打开问题</a></h1>
+      <h1 class="entry-title"><a href="/blog/2016/05/24/204911/">使用flake8做Python Linter</a></h1>
     
     
       <p class="meta">
@@ -205,15 +137,41 @@ GIT_REPO=git clone ssh://git@git.newfairs-inc.com/diffusion/CONSOLE/newfairs-con
 
 
 
-<time class='entry-date' datetime='2015-12-30T16:28:05+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:28 pm</span></time>
+<time class='entry-date' datetime='2016-05-24T20:49:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>8:49 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Wordpress Dashboard -> Settings -> Permalinks -> Common Settings:
-Plain（或者Numeric）。</p>
+  <div class="entry-content"><p>今天写Python脚本时遇到一个问题，重构代码时，修改了一个变量名，
+但只改了正常分支中的，忘了改错误处理分支中的，由于没有Linter做未定义变量检查，
+bug在本机测试时并没有被发现，直到被push到remote repo，
+在Jenkins job里运行几次出错后才被发现。
+解决方案是安装flake8以及vim插件。</p>
+
+<p>For Python 2.x: <code>pip install flake8</code>，
+vim的syntastic插件不需要配置。</p>
+
+<p>For Python 3.x，首先要安装flake8 for Python 3.x:</p>
+
+<pre><code>sudo apt-get install python3-pip
+sudo pip3 install flake8
+</code></pre>
+
+<p>命令行中检查文件命令：<code>python3 -m pyflakes syncRecurrences.py</code>.</p>
+
+<p>配置vim语法检查的方法是在.vimrc文件里增加一下配置项：</p>
+
+<pre><code>let g:syntastic_python_python_exec = '/usr/bin/python3'
+let g:syntastic_python_flake8_exec = 'python3'
+let g:syntastic_python_flake8_args = ['-m', 'flake8']
+</code></pre>
+
+<p>配置好后用vim打开python脚本，保存文件后，在未声明的变量行上会出现下面的错误信息：</p>
+
+<pre><code>undefined name 'objId' [F821]
+</code></pre>
 </div>
   
   
@@ -226,7 +184,7 @@ Plain（或者Numeric）。</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/12/29/134651/">青云的负载均衡器</a></h1>
+      <h1 class="entry-title"><a href="/blog/2016/05/11/184550/">Jenkins的版本控制</a></h1>
     
     
       <p class="meta">
@@ -235,125 +193,484 @@ Plain（或者Numeric）。</p>
 
 
 
-<time class='entry-date' datetime='2015-12-29T13:46:51+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>1:46 pm</span></time>
+<time class='entry-date' datetime='2016-05-11T18:45:50+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>6:45 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>青云把负载均衡器抽象成了三个概念：一是负载均衡器本身；二是监听器，三是后端主机。
-监听器代表负载均衡器对外提供的协议类型和端口；
-后端主机页面上的"端口"指的是后端主机上服务进程监听的端口。</p>
+  <div class="entry-content"><p>这里使用<a href="http://bit.ly/1NqkLkz">SCM Sync configuration plugin</a>
+实现Jenkins各项配置的版本控制。</p>
 
-<p>只要用户创建负载均衡器、监听器、主机，就可以在界面里头完成负载均衡器的所有操作。</p>
+<p>在gitlab上创建了代码库：git@gitlab.com:leechau/newfairs-jenkins.git</p>
 
-<p>一条转发策略，代表一条从域名到主机和端口的关联规则，所以如果是同一个服务有多个域名，
-可以配置在同一个转发策略里。
-如果是两个不同的服务，即使是同一IP不同端口，也要配置在不同的转发策略里。</p>
+<p>安装这个插件后，在 [Manage Jenkins -> System Information -> System Properties ->
+user.name] 里查到Jenins系统的用户名，一般是jenkins，只有创建了这个用户的ssh key，
+下面指定Git repo时才能连接成功，登录Jenkins服务器运行：</p>
 
-<h1>示例</h1>
+<pre><code>su - jenkins
+ssh-keygen
+git config --global user.name 'Li Chao'
+git config --global user.email 'leechau@126.com'
+</code></pre>
 
-<h2>添加第一个服务</h2>
+<p>将<code>cat .ssh/id_rsa.pub</code>的输出加入到Gitlab的
+[Profile settings -> SSH Keys] 里（在右上角搜索框里直接搜索ssh keys）；</p>
 
-<p>需要将内网中的一台服务器作为beta服务器，
-外部用户可以通过域名 beta.nufair.com 从公网访问，实现方法：</p>
+<p>删除$JENKINS_HOME/plugins下面所有git开头的插件，重启Jenkins服务；
+安装Jenkins的Git插件。配置Jenkins的远端版本库：
+[Manage Jenkins -> Config System -> SCM Sync configuration -> Git ->
+Repo URL: git@gitlab.com:leechau/newfairs-jenkins.git]</p>
+
+<p>要从版本库恢复Jenkins配置文件，使用 [Manage Jenkins -> Config System ->
+SCM Sync configuration -> Reload config from SCM: Reload]
+这个插件在 $JENKINS_HOME/scm-sync-configuration/checkoutConfiguration 中
+创建了git repo。</p>
+
+<p>怎样将Jenkins的状态返回到之前的某个commit？</p>
+
+<p>这个插件会在Jenkins Web页面的底部加上 SCM Sync status 提示，
+但似乎不太准，比如现在它显示同步失败，但代码库提交历史显示配置能够正常保存并
+被push到远端库。</p>
+
+<p>其他：</p>
+
+<p>Ubuntu 16.04居然没有预装Python：</p>
+
+<pre><code>apt install python
+apt install python-pip
+export LC_ALL=en_US.UTF-8
+pip install requests
+</code></pre>
+
+<p>下午安装的Git插件时，由于本地还没有配置好git用户名和email，
+安装过程中出现空指针异常，整个Jenkins服务整个无法启动，
+到服务器上plugins文件夹下删除了<code>git*</code>后，重启服务才正常；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/04/29/104211/">基于Flask的Python微服务</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-04-29T10:42:11+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>10:42 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>收发JSON报文</h1>
+
+<p>下面基于Flask实现了最简单的JSON报文收发功能，收到请求后打印出内容，
+重新组织后返回给客户端。
+使用Flask的request.get_json()接收HTTP POST中的JSON报文，
+使用json.dumps()发送JSON报文：</p>
+
+<p>创建并启动服务：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>cat &lt;&lt; EOF &gt; server.py
+</span><span class='line'>from flask import Flask, request
+</span><span class='line'>import json
+</span><span class='line'>
+</span><span class='line'>app = Flask(__name__)
+</span><span class='line'>
+</span><span class='line'>@app.route('/api/&lt;user&gt;/&lt;uuid&gt;', methods=['GET', 'POST'])
+</span><span class='line'>def add_message(user, uuid):
+</span><span class='line'>  content = request.get_json()
+</span><span class='line'>  print(content)
+</span><span class='line'>  return json.dumps({"user": user, "uuid": uuid})
+</span><span class='line'>
+</span><span class='line'>if __name__ == '__main__':
+</span><span class='line'>  app.run(host= '0.0.0.0', port=3000, debug=True)
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'>python server.py</span></code></pre></td></tr></table></div></figure>
+
+
+<p>用httpie和jq测试：
+<code>http POST localhost:3000/api/chad/097aa543 head:='{"a1":"bb","c3":"dd"}' body=theBody | jq '.user'</code></p>
+
+<h1>一个简单的Python微服务实现</h1>
+
+<p>下面这个服务接收HTTP请求发送来的shell脚本，执行之，并根据用户需求返回控制台输出。
+为了保证服务器的安全，生产环境中的这类服务需要校验客户端身份，
+并为传入的命令设置白名单。</p>
+
+<p>服务器接收的url包括mode和uuid两个字段，mode分exec和poll两种情况，
+前者要求服务器开始执行Post body中的指令，后者查看当前运行指令的控制台输出。
+uuid可以用于验证客户端合法性，例如客户端以"调用者+时间戳"并加密后生成uuid，
+服务器验证调用者和时间戳的有效性。</p>
+
+<p>服务端的配置项包括服务监听的端口以及返回控制台输出的行数。</p>
+
+<p>创建并启动服务：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>cat &lt;&lt; EOF &gt; server.py
+</span><span class='line'>from flask import Flask, request
+</span><span class='line'>import json
+</span><span class='line'>from subprocess import Popen, PIPE
+</span><span class='line'>from threading import Thread
+</span><span class='line'>from queue import Queue
+</span><span class='line'>
+</span><span class='line'>PORT = 3000
+</span><span class='line'>CMD_LINE_NUM = 3
+</span><span class='line'>
+</span><span class='line'>app = Flask(__name__)
+</span><span class='line'>output_q = Queue(CMD_LINE_NUM)
+</span><span class='line'>cmd_q = []
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>def save_newest_output(p, queue, cmds):
+</span><span class='line'>    while p.poll() is None:
+</span><span class='line'>        line = p.stdout.readline().decode().strip()  # blocking read
+</span><span class='line'>        if queue.full():
+</span><span class='line'>            queue.get()   # abandon old output silently
+</span><span class='line'>        queue.put(line)
+</span><span class='line'>    cmds.clear()
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>@app.route('/api/&lt;mode&gt;/&lt;uuid&gt;', methods=['GET', 'POST'])
+</span><span class='line'>def run_cmd(mode, uuid):
+</span><span class='line'>    if mode == 'exec':
+</span><span class='line'>        if len(cmd_q) &gt; 0:
+</span><span class='line'>            return json.dumps({"mode": mode, "status": "busy"})
+</span><span class='line'>        cmd = request.get_json()['cmd']
+</span><span class='line'>        proc = Popen(cmd, shell=True, stdout=PIPE)
+</span><span class='line'>        cmd_q.append(proc)
+</span><span class='line'>        t = Thread(target=save_newest_output, args=(proc, output_q, cmd_q))
+</span><span class='line'>        t.daemon = True
+</span><span class='line'>        t.start()
+</span><span class='line'>        return json.dumps({"mode": mode, "status": "accepted"})
+</span><span class='line'>    if mode == 'poll' and len(cmd_q) &gt; 0:
+</span><span class='line'>        lines = []
+</span><span class='line'>        while not output_q.empty():
+</span><span class='line'>            line = output_q.get_nowait()
+</span><span class='line'>            lines.append(line)
+</span><span class='line'>        return json.dumps({"mode": mode,
+</span><span class='line'>                           "status": "running",
+</span><span class='line'>                           "output": '\n'.join(lines)
+</span><span class='line'>                           })
+</span><span class='line'>    return json.dumps({"mode": mode, "status": "finished"})
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>if __name__ == '__main__':
+</span><span class='line'>    app.run(host='0.0.0.0', port=PORT, debug=True)
+</span><span class='line'>EOF
+</span><span class='line'>python server.py</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Shell脚本在一个单独的进程中运行，并由一个独立的Thread读取它的输出，
+保证HTTP服务不会被阻塞。</p>
+
+<p>测试客户端：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>cat &lt;&lt; EOF &gt; test.py 
+</span><span class='line'>from time import sleep
+</span><span class='line'>for i in range(28, 49):
+</span><span class='line'>    print(i, flush=True)
+</span><span class='line'>    sleep(2)
+</span><span class='line'>EOF
+</span><span class='line'>http POST localhost:3000/api/exec/097aa543 cmd='python3 test.py'    # accepted
+</span><span class='line'>http POST localhost:3000/api/exec/097aa543 cmd='python3 test.py'    # busy
+</span><span class='line'>http POST localhost:3000/api/poll/097aa543         # realtime output: 30, 31, 32
+</span><span class='line'>sleep 10
+</span><span class='line'>http POST localhost:3000/api/poll/097aa543         # realtime output: 37, 38, 39
+</span><span class='line'>sleep 40
+</span><span class='line'>http POST localhost:3000/api/poll/097aa543         # status: finished
+</span><span class='line'>http POST localhost:3000/api/exec/097aa543 cmd='python3 test.py'    # accepted</span></code></pre></td></tr></table></div></figure>
+
+
+<p>为了保证输出不会被缓存，需要在print函数中增加<code>flush=True</code>，只有Python 3支持，
+所以运行测试脚本时需要用<code>python3 test.py</code>.</p>
+
+<p>在Python 3.4.3, Flask 0.10.1上测试通过。</p>
+
+<h1>服务管理</h1>
+
+<p>这里使用<a href="http://supervisord.org/">Supervisor</a>管理Python进程，
+相比于Monit, start-stop-daemon等工具，它的优点是不依赖pidfile，配置方便，
+提供日志输出，文档写得好。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/04/28/070323/">部署Python Web应用</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-04-28T07:03:23+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>7:03 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>部署流程</h1>
+
+<h2>新部署</h2>
+
+<p>部署过程分为以下步骤：</p>
 
 <ol>
-<li><p>在青云控制台 [计算与网络 -> 公网IP]中购买IP地址 nufairIP: 123.234.34.5</p></li>
-<li><p>在域名 (nufair.com) DNS配置中增加一条A记录：beta -> 123.234.34.5</p></li>
-<li><p>新建 [路由器] nufairRouter, 绑定nufairIP;</p></li>
-<li><p>新建 [私有网络] nufairNet, 绑定nufairRouter;</p></li>
-<li><p>新建 [主机] beta-app.nufair.com, IP: 192.168.100.121, 加入 nufairNet;</p></li>
-<li><p>在 beta-app.nufair.com 中部署应用，服务监听端口 3000;</p></li>
-<li><p>新建 [负载均衡器] nufairLB, IP：192.168.100.4, 绑定nufairNet;</p></li>
-<li><p>[nufairRouter -> 端口转发]中添加规则 http-route: tcp 80 -> 192.168.100.4 80</p></li>
-<li><p>[nufairRouter -> 基本属性]中点击[防火墙]，在其中增加规则：允许80端口下行；</p></li>
-<li><p>[nufairLB -> 转发策略] 中新建转发策略:</p>
-
-<blockquote><p>名称：app-beta
-匹配方式：匹配任意规则</p></blockquote>
-
-及其规则：
-
-<blockquote><p>规则类型: 按域名转发
-规则内容: beta.nufair.com</p></blockquote></li>
-<li><p>nufairLB 中新建一个[监听器] http-listener, 为其[添加后端]，</p>
-
-<blockquote><p>名称：beta
-网络：受管私有网络
-主机：192.168.100.121
-端口：3000</p></blockquote>
-
-<p>创建完成后，在[转发策略]一栏中点击[绑定]，选择[app-beta].</p></li>
+<li><p>安装依赖组件：git, pip, virtualenv, uwsgi</p></li>
+<li><p>clone代码库(git clone)；</p></li>
+<li><p>在源代码文件夹里创建wsgi.py和uwsgi.ini文件作为uwsgi的入口和环境定义文件，
+这两个文件不要加入到版本控制系统中；</p></li>
+<li><p>创建服务启动脚本/etc/init/myapp.conf，启动服务；</p></li>
+<li><p>创建nginx服务实例：绑定监听端口，指向上一步生成的unix socket；</p></li>
+<li><p>测试并重启nginx服务。</p></li>
 </ol>
 
 
-<h2>添加第二个服务</h2>
-
-<p>需要将内网中另一台服务器作为生产服务器，通过域名nufair.com和www.nufair.com访问。</p>
+<h2>代码更新</h2>
 
 <ol>
-<li><p>青云控制台中购买一台主机，IP: 192.168.100.21, 在上面部署生产应用，服务监听端口3000;</p></li>
-<li><p>在域名 (nufair.com) DNS配置中增加两条A记录：
-@ -> 123.234.34.5
-www -> 123.234.34.5</p></li>
-<li><p>[nufairLB -> 转发策略] 中新建转发策略:</p>
-
-<blockquote><p>名称：app-production
-匹配方式：匹配任意规则</p></blockquote>
-
-及其规则：
-
-<blockquote><p>规则类型: 按域名转发
-规则内容: nufair.com www.nufair.com</p></blockquote></li>
-<li><p><a href="">nufairLB -> http-listener -> 添加后端</a>:</p>
-
-<blockquote><p>名称：prod
-网络：受管私有网络
-主机：192.168.100.21
-端口：3000</p></blockquote>
-
-<p>创建完成后，在[转发策略]一栏中点击[绑定]，选择[app-production].</p></li>
+<li><p>同步代码：<code>git pull</code>;</p></li>
+<li><p>重启服务：<code>sudo restart myapp</code>.</p></li>
 </ol>
 
 
-<p>说明：</p>
+<h1>部署示例</h1>
 
-<p>转发策略的规则里，如果是按域名转发，注意一级域名，如nufair.com，
-它实际上是<code>*.nufair.com</code>，当监听器的某个后端绑定了这样的规则后，
-它后面的后端再绑定这个一级域名下的二级域名将无效，
-例如将test.nufair.com指向100.21服务器的4500端口，</p>
+<p>以下步骤基于<a href="http://do.co/1StnidM">How To Set Up uWSGI and Nginx to Serve Python Apps on Ubuntu 14.04</a></p>
 
-<p>[nufairLB -> 转发策略] 中新建转发策略:</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>sudo aptitude install python-dev python-pip nginx
+</span><span class='line'>sudo pip install virtualenv
+</span><span class='line'>mkdir -p ~/test/myapp
+</span><span class='line'>cd ~/test/myapp
+</span><span class='line'>virtualenv myappenv
+</span><span class='line'>source myappenv/bin/activate
+</span><span class='line'>pip install uwsgi
+</span><span class='line'>cat &lt;&lt; EOF &gt; wsgi.py
+</span><span class='line'>def application(environ, start_response):
+</span><span class='line'>    start_response('200 OK', [('Content-Type', 'text/html')])
+</span><span class='line'>    return ["&lt;h1 style='color:blue'&gt;Hello There!&lt;/h1&gt;"]
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'># uwsgi --socket 0.0.0.0:8080 --protocol=http -w wsgi
+</span><span class='line'>deactivate
+</span><span class='line'>cat &lt;&lt; EOF &gt; myapp.ini
+</span><span class='line'>[uwsgi]
+</span><span class='line'>module = wsgi:application
+</span><span class='line'>
+</span><span class='line'>master = true
+</span><span class='line'>processes = 5
+</span><span class='line'>
+</span><span class='line'>socket = myapp.sock
+</span><span class='line'>chmod-socket = 664
+</span><span class='line'>vacuum = true
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'>sudo cat &lt;&lt; EOF &gt; /etc/init/myapp.conf
+</span><span class='line'>description "uWSGI instance to serve myapp"
+</span><span class='line'>
+</span><span class='line'>start on runlevel [2345]
+</span><span class='line'>stop on runlevel [!2345]
+</span><span class='line'>
+</span><span class='line'>setuid your-user-name
+</span><span class='line'>setgid www-data
+</span><span class='line'>
+</span><span class='line'>script
+</span><span class='line'>cd /home/your-user-name/test/myapp
+</span><span class='line'>. myappenv/bin/activate
+</span><span class='line'>uwsgi --ini myapp.ini
+</span><span class='line'>end script
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'>sudo start myapp
+</span><span class='line'># ps aux|grep myapp
+</span><span class='line'># sudo stop myapp
+</span><span class='line'>
+</span><span class='line'>sudo cat &lt;&lt; EOF &gt; /etc/nginx/sites-available/myapp
+</span><span class='line'>server {
+</span><span class='line'>    listen 8080;
+</span><span class='line'>    server_name 192.168.100.201;
+</span><span class='line'>
+</span><span class='line'>    location / {
+</span><span class='line'>        include         uwsgi_params;
+</span><span class='line'>        uwsgi_pass      unix:/home/your-user-name/test/myapp/myapp.sock;
+</span><span class='line'>    }
+</span><span class='line'>}
+</span><span class='line'>EOF
+</span><span class='line'>
+</span><span class='line'>sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled
+</span><span class='line'>sudo nginx -t
+</span><span class='line'>sudo nginx -s reload</span></code></pre></td></tr></table></div></figure>
 
-<blockquote><p>名称：app-test
-匹配方式：匹配任意规则</p></blockquote>
-
-<p>  及其规则：</p>
-
-<blockquote><p>规则类型: 按域名转发
-规则内容: test.nufair.com</p>
-
-<p>名称：test
-网络：受管私有网络
-主机：192.168.100.21
-端口：4500</p></blockquote>
-
-<p>  创建完成后，在[转发策略]一栏中点击[绑定]，选择[app-test].</p>
-
-<p>应用修改后，test.nufair.com仍然指向3000端口上的服务，
-原因是它作为nufair.com的二级域名，被app-production中的一级域名覆盖了，
-解决方法是，从app-production中去掉"nufair.com".</p>
-
-<p>修改负载均衡器IP地址后需要注意：
-要相应修改路由器中端口转发中目标（也就是负载均衡器）的IP地址。</p>
-
-<p>参考：</p>
-
-<p><a href="http://network.51cto.com/art/201504/472491.htm">青云QingCloud：云上最强负载均衡服务</a></p>
-
-<p><a href="https://docs.qingcloud.com/guide/loadbalancer.html">负载均衡器指南</a></p>
 </div>
   
   
@@ -366,7 +683,7 @@ www -> 123.234.34.5</p></li>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/12/27/185843/">Move Some Commit From One Repo to Another</a></h1>
+      <h1 class="entry-title"><a href="/blog/2016/04/19/120234/">Option类型的实现方法比较</a></h1>
     
     
       <p class="meta">
@@ -375,35 +692,25 @@ www -> 123.234.34.5</p></li>
 
 
 
-<time class='entry-date' datetime='2015-12-27T18:58:43+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:58 pm</span></time>
+<time class='entry-date' datetime='2016-04-19T12:02:34+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>12:02 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>We need move all commit between origin/develop to develop in an old repo
-to a new repo.</p>
+  <div class="entry-content"><p>Scala的Option类型定义在
+<a href="https://github.com/scala/scala">scala/scala</a>的src/library/scala/Option.scala中：</p>
 
-<p>Export all commits in old repo:</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>sealed abstract class Option[+A]
+</span><span class='line'>final case class Some[+A](x: A) extends Option[A]
+</span><span class='line'>case object None extends Option[Nothing]</span></code></pre></td></tr></table></div></figure>
 
-<pre><code>cd /path/to/old-repo
-git format-patch origin/develop..develop
-</code></pre>
 
-<p>Now you have many .patch files in old repo.
-Each patch file represents a commit between origin/develop and develop.</p>
-
-<p>Apply these patches in new repo:</p>
-
-<pre><code>cd /path/to/new-repo
-git checkout develop
-git am /path/to/old-repo/*.patch
-</code></pre>
-
-<p>Ref:</p>
-
-<p><a href="http://stackoverflow.com/questions/5062389/getting-started-with-git-am">Getting started with git-am</a></p>
+<p>对应的Haskell定义是： <code>data Maybe a = Nothing | Just a</code></p>
 </div>
   
   
@@ -416,7 +723,7 @@ git am /path/to/old-repo/*.patch
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/12/25/102101/">WebSocket Error 400 in Meteor App</a></h1>
+      <h1 class="entry-title"><a href="/blog/2016/04/15/171843/">几种常用语言处理文本的效率比较</a></h1>
     
     
       <p class="meta">
@@ -425,40 +732,233 @@ git am /path/to/old-repo/*.patch
 
 
 
-<time class='entry-date' datetime='2015-12-25T10:21:01+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:21 am</span></time>
+<time class='entry-date' datetime='2016-04-15T17:18:43+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>5:18 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>I deploy a Meteor app, and proxy it with nginx.
-When connect to the app server, there&rsquo;s a websocket error:</p>
+  <div class="entry-content"><p>读一个37264行，大小为81MB的文本文件f4.json，计算每行的单词数，然后打印出总单词数，
+Python用时0.16秒，Ruby用时1.16秒，Haskell用时13.4秒，分别差一个数量级。
+下面是测试脚本和过程：</p>
 
-<p>WebSocket connection to &lsquo;ws://prod-app-192-168-100-21.newfairs-inc.com/sockjs/311/ud_4e5xf/websocket&rsquo; failed:
-Error during WebSocket handshake: Unexpected response code: 400</p>
+<p>wordcount.py:</p>
 
-<p>Solution:</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>inp = 'f4.json'
+</span><span class='line'>counts = []
+</span><span class='line'>with open(inp) as f:
+</span><span class='line'>  for line in f:
+</span><span class='line'>    counts.append(len(line.split()))
+</span><span class='line'>print(sum(counts))</span></code></pre></td></tr></table></div></figure>
 
-<pre><code>cat /etc/nginx/sites-enabled/newfairs
-server {
-  server_name prod-app-192-168-100-21.newfairs-inc.com;
-  location / {
-    proxy_pass http://localhost:3000/;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-  }
+
+<p>wordcount.rb:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>inp = 'f4.json'
+</span><span class='line'>words = []
+</span><span class='line'>File.open(inp).each do |line|
+</span><span class='line'>  words.push(line.split.size)
+</span><span class='line'>end
+</span><span class='line'>puts words.reduce(0, :+)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>WordCount.hs:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>main :: IO ()
+</span><span class='line'>main = do
+</span><span class='line'>input &lt;- readFile "f4.json"
+</span><span class='line'>print $ sum(countWords input)
+</span><span class='line'>
+</span><span class='line'>countWords input = map (length.words) (lines input)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>测试过程：
+```
+wc -l f4.json
+37264 f4.json</p>
+
+<p>time python wordcount.py
+1103404
+python wordsum.py  0.14s user 0.01s system 99% cpu 0.157 total</p>
+
+<p>time ruby wordsum.rb
+1103404
+ruby wordsum.rb  1.13s user 0.02s system 99% cpu 1.158 total</p>
+
+<p>time runhaskell Main.hs
+1105752
+runhaskell wordcount.hs  12.64s user 0.76s system 100% cpu 13.395 total</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/04/12/094707/">青云的告警监控系统</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-04-12T09:47:07+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>9:47 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>首席创建通知列表：</p>
+
+<p>在[控制台 -> 通知列表]中[创建]一个[通知列表]："网站连接超时"</p>
+
+<p>然后创建告警策略：</p>
+
+<p>在[控制台 -> 管理 -> 告警监控]中[创建]一个[告警策略]，
+名称：网站不能连接
+资源类型：负载均衡监听器-HTTP协议
+规则：[响应延迟时间] > 1000毫秒
+通知列表："网站连接超时"</p>
+
+<p>监控资源：选择对应的负载均衡器。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/04/09/204200/">Note About Rest Client</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-04-09T20:42:00+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>8:42 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>httpie + jq</h1>
+
+<p><a href="https://github.com/jkbrzt/httpie">httpie</a> + <a href="https://stedolan.github.io/jq/">jq</a></p>
+
+<p>前者是curl的增强版，后者用来处理httpie返回的json结果。</p>
+
+<pre><code>http -b api.newfairs.com/Fair/_search query:='{ "match": { "nameZHCN": "中国上海国际栅栏护栏展览会暨研讨会" } }' size=5 fields:='["nameZHCN"]'
+http -b api.newfairs.com/Fair/_search query:='{ "match": { "nameZHCN": "中国上海国际栅栏护栏展览会暨研讨会" } }' size=5 | jq '.hits.total'
+http -b api.newfairs.com/Fair/_search query:='{ "match": { "nameZHCN": "中国上海国际栅栏护栏展览会暨研讨会" } }' size=5 | jq '.hits.hits[]._source.nameZHCN'
+http -b api.newfairs.com/Fair/_search query:='{ "query": { "match": { "_id": "Ao3Ati9dvWBerBrn8" } } }' | jq '.hits.hits[]._source.nameZHCN'
+
+http -b POST http://api.newfairs.com/Fair/_search query:='{"query":{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}}'|jq '.hits.hits[]._source.recurrence[].timeStart'   
+</code></pre>
+
+<p>-b 代表只显示response的body，不显示head，以方便后续jq进行下一步处理，
+中括号代表array，例如<code>jq '.hits.hits[0]'</code>表示只显示第一个结果，
+hits[]代表返回数组里的所有结果。</p>
+
+<p>这二者结合fzf，可以实现Postman/Insomnia这类GUI工具的功能。</p>
+
+<h1>Insomnia</h1>
+
+<p><a href="http://insomnia.rest/">Insomnia</a>: Chrome App.</p>
+
+<h2>Pros</h2>
+
+<ul>
+<li><p>Request和Response窗口是左右排列的，且宽度可以调节；</p></li>
+<li><p>分级管理Request: Workspace -> Group -> Request，
+只能同时打开一个Workspace，比Postman更整洁；</p></li>
+<li><p>良好的快捷键支持，request body和环境变量编辑窗口中可以使用vi编辑模式；</p></li>
+<li><p>可以为每个Workspace定义环境变量，然后在url中使用这些环境变量，见下面的演示；</p></li>
+<li><p>按名称搜索request: 默认快捷键Ctrl-P;</p></li>
+</ul>
+
+
+<h2>Cons</h2>
+
+<ul>
+<li>没有云同步，只能本地import/export;</li>
+</ul>
+
+
+<h1>Postman</h1>
+
+<p><a href="https://www.getpostman.com/">Postman</a>: Chrome App.</p>
+
+<h2>Pros</h2>
+
+<ul>
+<li><p>分级管理request: Collection -> Folder -> Request，可以方便地搜索；
+Collection实际就是高一级的Folder，当request数量多时，request面板会比较凌乱；</p></li>
+<li><p>可以同步到云端，在不同机器上方便地同步；</p></li>
+</ul>
+
+
+<h2>Cons</h2>
+
+<p>Request和Response窗口是上下排列的，当调试Post方法时，
+打开的Body窗体基本占满了整个屏幕，而且是最小高度，不能再减小，
+导致每次看response内容都要使用滚轮，非常不方便。</p>
+
+<h1>Discussion</h1>
+
+<h2>Insomnia的环境变量</h2>
+
+<p>例如定义下面的环境变量：</p>
+
+<pre><code>{
+    "api_url": "http://api.newfairs.com",
+    "inner_url": "http://192.168.100.24:9200/"
 }
 </code></pre>
 
-<p>Ref:</p>
+<p>在request的url栏里可以这样定义url: <code>/Fair/_search</code>，
+点击request名称后面的三角图标并选择"Export as cURL"，可以看到url被替换成了
+<code>http://api.newfairs.com/Fair/_search</code>.</p>
 
-<p><a href="http://stackoverflow.com/questions/17014969/meteor-websocket-handshake-error-400-with-nginx">Meteor WebSocket handshake error 400 with nginx</a></p>
+<h2>其他类似工具</h2>
 
-<p><a href="http://nginx.org/en/docs/http/websocket.html">WebSocket proxying</a></p>
-
-<p><a href="http://stackoverflow.com/questions/30171179/meteor-websocket-connection-to-ws-websocket-failed-error-during-websock">http://stackoverflow.com/questions/30171179/meteor-websocket-connection-to-ws-websocket-failed-error-during-websock</a></p>
+<p>Firefox插件：Poster, RESTED, REST Easy, RESTClient.
+前三者都不具备多Request管理功能，无法保存多个Request.
+RESTClient可以定义favorite，但没有单独的窗体，查看不方便。</p>
 </div>
   
   
@@ -471,7 +971,7 @@ server {
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/12/23/030734/">Install Wordpress on Ubuntu 14.04</a></h1>
+      <h1 class="entry-title"><a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a></h1>
     
     
       <p class="meta">
@@ -480,415 +980,151 @@ server {
 
 
 
-<time class='entry-date' datetime='2015-12-23T03:07:34+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>3:07 am</span></time>
+<time class='entry-date' datetime='2016-03-29T18:34:44+08:00'><span class='date'><span class='date-month'>Mar</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>6:34 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>MySQL database is installed on the host when installing
-Phabricator. We use this database as backend of our new
-Wordpress service.</p>
+  <div class="entry-content"><p>Use <a href="https://github.com/variety/variety-cli">variety/variety-cli</a> to
+analysis mongodb schema.</p>
 
-<pre><code>$ sudo useradd -m -s /bin/bash wordpress
-$ sudo su - wordpress
-$ mysql -u root -p'NewFairs0910'
-&gt; CREATE DATABASE wordpress;
-&gt; CREATE USER nfadmin@localhost IDENTIFIED BY 'nfMysQL2015';
-&gt; GRANT ALL PRIVILEGES ON wordpress.* TO nfadmin@localhost;
-&gt; FLUSH PRIVILEGES;
-&gt; exit
-$ wget http://wordpress.org/latest.tar.gz
-$ tar zxf latest.tar.gz
-$ sudo apt-get update
-$ sudo apt-get install php5-gd libssh2-php
-$ cd ~/wordpress
-$ cp wp-config-sample.php wp-config.php
-</code></pre>
+<h1>Install with npm</h1>
 
-<p>Modify wp-config.php according to above values for mysql:</p>
+<p><code>npm install variety-cli -g</code>
+If the command <code>variety</code> is conflict with
+<a href="http://peterlevi.com/variety/">Variety the Wallpaper Changer</a>,
+add <code>alias variety='/home/leo/apps/node-v5.4.1-linux-x64/bin/variety'</code>
+into ~/.bash_aliases.</p>
 
-<pre><code>define('DB_NAME', 'wordpress');
-define('DB_USER', 'nfadmin');
-define('DB_PASSWORD', 'nfMysQL2015');
-define('DB_HOST', 'localhost');
-</code></pre>
-
-<p>Create file /etc/apache2/sites-available/wordpress.conf:</p>
-
-<pre><code>&lt;VirtualHost *:80&gt;
-  ServerName cms.newfairs-inc.com
-  DocumentRoot /home/wordpress/wordpress
-&lt;/VirtualHost&gt;
-
-&lt;Directory "/home/wordpress/wordpress"&gt;
-  Require all granted
-&lt;/Directory&gt;
-</code></pre>
-
-<p>Enable it:</p>
-
-<pre><code>cd /etc/apache2/sites-enabled
-ln -s /etc/apache2/sites-available/wordpress.conf wordpress.conf
-</code></pre>
-
-<p>Then restart apache server: <code>sudo service apache2 restart</code>.</p>
-
-<p>Open &ldquo;cms.newfairs-inc.com&rdquo; in browser, start wordpress installation.</p>
-
-<pre><code>website title: Newfairs CMS
-username: nfcms
-pwd: nEwfAIrsAt6102
-</code></pre>
-
-<p>Note: A &ldquo;Forbidden. You don&rsquo;t have permission to access /&rdquo; error appears
-without &ldquo;Require all granted&rdquo;.</p>
-
-<p>After installation, install wordpress plugin &ldquo;WordPress REST API (Version 2)&rdquo;
-with <a href="http://wp-cli.org/">wp-cli.phar</a>:</p>
-
-<pre><code>curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-chmod 755 wp-cli.phar
-mv wp-cli.phar /usr/local/bin/wp
-wp --info
-sudo su - wordpress
-cd wordpress
-wp plugin list
-wp plugin search rest
-wp plugin install rest-api
-</code></pre>
-
-<p>Note:</p>
-
-<p>We can&rsquo;t install plugin &ldquo;WordPress REST API (Version 2)&rdquo; through
-&ldquo;Plugin -> Add New&rdquo; in Wordpress web page.</p>
-
-<p>It need ssh/ftp username and password. And the ssh port must be 22.
-While our ssh port is 222.</p>
-
-<p>Ref:</p>
-
-<p><a href="https://www.digitalocean.com/community/tutorials/how-to-install-wordpress-on-ubuntu-14-04">https://www.digitalocean.com/community/tutorials/how-to-install-wordpress-on-ubuntu-14-04</a></p>
-
-<h1>Reset Wordpress Admin password</h1>
-
-<pre><code>su - wordpress
-cd $HOME/wordpress    # which is $WP_HOME
-wp user list          # where you can find the administrator's name is nfcms
-wp user update nfcms --user_pass=nEwfAIrsAt6102
-</code></pre>
-
-<p>Ref:</p>
-
-<p><a href="http://codex.wordpress.org/Resetting_Your_Password">Resetting Your Password</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/12/10/165329/">A Lightweight Message Queue</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-12-10T16:53:29+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:53 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>RSMQ</h1>
-
-<p><a href="http://smrchy.github.io/rsmq/">RSMQ</a> is a lightweight message queue
-based on Redis.</p>
-
-<h2>Setup Redis Server on Docker</h2>
-
-<p>Start Redis server on docker:</p>
+<p>The production database is connected with
+<code>mongo 192.168.10.89:27017/production -u user -p password</code>.
+To analyze it, run:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'>docker run --name myredis -d redis
-</span><span class='line'>                  -------
-</span><span class='line'>                     A
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>variety production/Fair --host 192.168.10.89 --port <span class="m">27017</span> --username user --password password
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Connect to the server with:</p>
+<p>Note you can&rsquo;t use <code>-u</code> instead of <code>--username</code> above.</p>
 
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'>docker run -it --link myredis:redis --rm redis bash -c <span class="s1">&#39;redis-cli -h redis&#39;</span>
-</span><span class='line'>                      ------- -----                                  -----
-</span><span class='line'>                         A      B                                      B
-</span></code></pre></td></tr></table></div></figure>
+<h1>Run with mongo</h1>
 
-
-<p>or the full version:
-<code>docker run -it --link myredis:redis --rm redis bash -c 'exec redis-cli -h "$REDIS_PORT_6379_TCP_ADDR" -p "$REDIS_PORT_6379_TCP_PORT"'</code>.</p>
-
-<p>Now in redis console, use <code>info</code> to get the server&rsquo;s version;</p>
-
-<p><code>keys *</code> to list all keys;
-<code>set mykey "hello"</code> to add a key/value pair.
-<code>get mykey</code> to fetch the key&rsquo;s value.</p>
-
-<p>Note:</p>
-
-<ol>
-<li>Names labled with &ldquo;A&rdquo; is the container&rsquo;s name of Redis server.
-Names labled with &ldquo;B&rdquo; is the name alias of Redis server container used
-by Redis client container.</li>
-</ol>
-
-
-<h2>Setup Redis on Metal Host</h2>
-
-<p>Install Redis on Ubuntu 14.04 with:</p>
+<p>Download variety.js from it&rsquo;s repo and run:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'>apt-get install -y python-software-properties <span class="c"># optional</span>
-</span><span class='line'>add-apt-repository -y ppa:rwky/redis
-</span><span class='line'>apt-get update
-</span><span class='line'>apt-get install -y redis-server
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>mongo 192.168.10.89:27017/production -u user -p password --eval <span class="s2">&quot;var collection = &#39;Fair&#39;&quot;</span> variety.js
+</span><span class='line'>+------------------------------------------------------------------------------------------------------------------------------+
+</span><span class='line'><span class="p">|</span> key                                              <span class="p">|</span> types                              <span class="p">|</span> occurrences <span class="p">|</span> percents               <span class="p">|</span>
+</span><span class='line'><span class="p">|</span> ------------------------------------------------ <span class="p">|</span> ---------------------------------- <span class="p">|</span> ----------- <span class="p">|</span> ---------------------- <span class="p">|</span>
+</span><span class='line'><span class="p">|</span> _id                                              <span class="p">|</span> String                             <span class="p">|</span>        <span class="m">9316</span> <span class="p">|</span> 100.000000000000000000 <span class="p">|</span>
+</span><span class='line'><span class="p">|</span> recurrence.XX._id                                <span class="p">|</span> String                             <span class="p">|</span>        <span class="m">9276</span> <span class="p">|</span>  99.570631172176902624 <span class="p">|</span>
+</span><span class='line'><span class="p">|</span> recurrence.XX.timeStart                          <span class="p">|</span> String <span class="o">(</span>9180<span class="o">)</span>,Date <span class="o">(</span>116<span class="o">)</span>           <span class="p">|</span>        <span class="m">9275</span> <span class="p">|</span>  99.559896951481320571 <span class="p">|</span>
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>Install rsmq: in project root folder, run<code>npm install rsmq</code>;</p>
+<p>Verify it with mongo shell:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>mongo 192.168.10.89:27017/production -u dba -p password
+</span><span class='line'>&gt; db.Fair.count<span class="o">()</span>
+</span><span class='line'>9316
+</span><span class='line'>&gt; db.Fair.find<span class="o">({</span><span class="s1">&#39;recurrence._id&#39;</span>: <span class="o">{</span><span class="nv">$exists</span>: <span class="nb">true</span><span class="o">}})</span>.count<span class="o">()</span>
+</span><span class='line'>9276
+</span><span class='line'>&gt; db.Fair.find<span class="o">({</span><span class="nv">$and</span>: <span class="o">[{</span><span class="s1">&#39;recurrence&#39;</span>: <span class="o">{</span><span class="nv">$exists</span>: <span class="nb">true</span><span class="o">}}</span>, <span class="o">{</span><span class="s1">&#39;recurrence._id&#39;</span>: <span class="o">{</span><span class="nv">$exists</span>: <span class="nb">false</span><span class="o">}}]})</span>.count<span class="o">()</span>
+</span><span class='line'><span class="m">40</span>      // <span class="m">9316</span> - 9276
+</span><span class='line'>&gt; db.Fair.find<span class="o">({</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$exists</span>: <span class="nb">true</span><span class="o">}})</span>.count<span class="o">()</span>
+</span><span class='line'><span class="m">9275</span>    //
+</span><span class='line'>&gt; db.Fair.find<span class="o">({</span><span class="nv">$and</span>: <span class="o">[{</span><span class="s1">&#39;recurrence._id&#39;</span>: <span class="o">{</span><span class="nv">$exists</span>: <span class="nb">true</span><span class="o">}}</span>, <span class="o">{</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$exists</span>: <span class="nb">false</span><span class="o">}}]})</span>.count<span class="o">()</span>
+</span><span class='line'><span class="m">1</span>       // <span class="m">9276</span> - 9275
+</span><span class='line'>&gt; db.Fair.find<span class="o">({</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$type</span>: <span class="m">2</span> <span class="o">}})</span>.count<span class="o">()</span>
+</span><span class='line'>9180
+</span><span class='line'>&gt; db.Fair.find<span class="o">({</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$type</span>: 9<span class="o">}})</span>.count<span class="o">()</span>
+</span><span class='line'>116
+</span><span class='line'>&gt; db.Fair.find<span class="o">({</span><span class="nv">$and</span>: <span class="o">[{</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$exists</span>: <span class="nb">true</span><span class="o">}}</span>, <span class="o">{</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$not</span>: <span class="o">{</span><span class="nv">$type</span>: 2<span class="o">}}}</span>, <span class="o">{</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$not</span>: <span class="o">{</span><span class="nv">$type</span>: 9<span class="o">}}}]})</span>.count<span class="o">()</span>
+</span><span class='line'><span class="m">0</span>      // there<span class="err">&#39;</span>s no other data <span class="nb">type</span>, all you need to <span class="k">do</span> is converting String to Date
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>For type number, 2 means String, 9 means Date.
+See their definitions in <a href="https://docs.mongodb.org/manual/reference/operator/query/type/">$type in MongoDB doc</a>.</p>
+
+<p>Why 9180 + 116 > 9275? Because all the numbers here is the counts of fairs.
+While in a single fair there are maybe many recurrences.
+So if a fair has 2 recurrences, one&rsquo;s timeStart type is String,
+and the other&rsquo;s type is Date,
+it will be counted twice, both in 9180 and 116.</p>
+
+<h1>Unify Schema</h1>
+
+<p>We need convert the type of &ldquo;updatedAt&rdquo;, &ldquo;recurrence.$.timeStart&rdquo;
+and &ldquo;recurrence.$.timeEnd&rdquo; from String to Date with mongo script below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>db.Fair.find<span class="o">({</span><span class="s1">&#39;recurrence.timeStart&#39;</span>: <span class="o">{</span><span class="nv">$type</span>: 2<span class="o">}})</span>.forEach<span class="o">(</span><span class="k">function</span><span class="o">(</span>fair<span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  fair.recurrence.forEach<span class="o">(</span><span class="k">function</span><span class="o">(</span>rec<span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span>typeof<span class="o">(</span>rec.timeStart<span class="o">)</span> <span class="o">===</span> <span class="s1">&#39;string&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      rec.timeStart <span class="o">=</span> new Date<span class="o">(</span>rec.timeStart<span class="o">)</span><span class="p">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">})</span><span class="p">;</span>
+</span><span class='line'>  db.Fair.save<span class="o">(</span>fair<span class="o">)</span><span class="p">;</span>
+</span><span class='line'><span class="o">})</span><span class="p">;</span>
+</span><span class='line'>db.Fair.find<span class="o">({</span><span class="s1">&#39;recurrence.timeEnd&#39;</span>: <span class="o">{</span><span class="nv">$type</span>: 2<span class="o">}})</span>.forEach<span class="o">(</span><span class="k">function</span><span class="o">(</span>fair<span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  fair.recurrence.forEach<span class="o">(</span><span class="k">function</span><span class="o">(</span>rec<span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span>typeof<span class="o">(</span>rec.timeEnd<span class="o">)</span> <span class="o">===</span> <span class="s1">&#39;string&#39;</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      rec.timeEnd <span class="o">=</span> new Date<span class="o">(</span>rec.timeEnd<span class="o">)</span><span class="p">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">})</span><span class="p">;</span>
+</span><span class='line'>  db.Fair.save<span class="o">(</span>fair<span class="o">)</span><span class="p">;</span>
+</span><span class='line'><span class="o">})</span><span class="p">;</span>
+</span><span class='line'>db.Fair.find<span class="o">({</span><span class="s1">&#39;updatedAt&#39;</span>: <span class="o">{</span><span class="nv">$type</span>: 2<span class="o">}})</span>.forEach<span class="o">(</span><span class="k">function</span><span class="o">(</span>fair<span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  fair.updatedAt <span class="o">=</span> new Date<span class="o">(</span>fair.updatedAt<span class="o">)</span><span class="p">;</span>
+</span><span class='line'>  db.Fair.save<span class="o">(</span>fair<span class="o">)</span><span class="p">;</span>
+</span><span class='line'><span class="o">})</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
 
-<p>Install rsmq-cli: <code>npm install -g rsmq-cli</code>;</p>
-
-<pre><code>rsmq config ls
-rsmq create -q payment            // create a new queue named "payment"
-rsmq ls                           // list all queues
-rsmq stats -q payment             // print stats of queue "payment"
-rsmq send "pay $1000" -q payment  // send a message to "payment"
-rsmq receive -q payment           // receive a message from "payment"
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/11/23/005959/">Linux上的API文档搜索工具</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-11-23T00:59:59+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>12:59 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Devdocs</h1>
-
-<p>Mac上的Dash是一款很方便的API文档搜索工具，经过一番查找，
-发现了<a href="https://github.com/Thibaut/devdocs">devdocs</a>这个很好的替代品。</p>
-
-<p>devdocs是一款浏览器插件，可以安装在Chrome或者Firefox上，
-所以不论那种操作系统，只要能安装这两款浏览器就可以使用它。</p>
-
-<p>支持地址栏搜索：在地址栏输入"dev"，出现"devdocs.io"自动补全时，按Tab键，
-再输入"meteor createuser"并回车，就可以直接跳转到Meteor的
-Accounts.createUser()方法上。</p>
-
-<p>支持离线下载和自动更新，有夜间模式。</p>
-
-<p>常用的快捷键包括：</p>
-
-<ul>
-<li><p>ESC: 重新搜索；</p></li>
-<li><p>Tab: 二次筛选，例如输入javascript<Tab>，再输入map，则只在JavaScript中寻找map.</p></li>
-<li><p>Enter: 执行搜索；</p></li>
-</ul>
-
-
-<p>完整的快捷键和说明文档见<a href="http://devdocs.io/help">Help</a>.</p>
-
-<h1>Zeal</h1>
-
-<p>2015.11.20发布的Zeal v0.2.1在Ubuntu 14.04 Unity下运行正常，
-但下载一些docset后无法启动，原因不明。</p>
-
-<p>增加新的Docsets的方法：File -> Options -> Docsets.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/11/22/225751/">Use Postman as the RESTful Tools</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-11-22T22:57:51+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>10:57 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Find <a href="https://chrome.google.com/webstore/search/postman">Postman</a> in chrome web store.
-Install it.
-Open &ldquo;chrome://apps&rdquo; in chrome, click Postman&rsquo;s icon.</p>
-
-<p>That&rsquo;s it.</p>
-
-<p>To send a post with Postman,</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/11/22/212852/">MongoDB Client</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-11-22T21:28:52+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>9:28 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>MongoChef</h1>
-
-<p><a href="http://3t.io/mongochef/">MongoChef</a> is a cross platform MongoDB GUI client.
-Its free version only for non-commercial use.
-It&rsquo;s the best choice I found so far.</p>
-
-<h1>RockMongo</h1>
-
-<h2>Install and Setup</h2>
-
-<p><a href="http://rockmongo.com/">RockMongo</a> is a PHP MongoDB client.</p>
-
-<p>It can&rsquo;t update complicated (nested) data structure, useless.</p>
-
-<p>Install bitnami Nginx Stack;</p>
-
-<p>Run <code>$STACK_HOME/php/bin/pecl install mongo</code>;</p>
-
-<p>Add <code>extension=mongo.so</code> into <code>$STACK_HOME/php/etc/php.ini</code>;</p>
-
-<p>Run <code>mkdir $STACK_HOME/apps/rockmongo</code>;</p>
-
-<p>Download rockmongo-1.1.7.zip, extract to <code>$STACK_HOME/apps/rockmongo</code>;
-and <code>mv rockmongo-1.1.7 htdocs</code>;</p>
-
-<p>In folder <code>$STACK_HOME/apps</code>, run <code>cp -r demo/conf rockmongo/</code>;</p>
-
-<p>In folder <code>$STACK_HOME/apps</code>, replace all <code>demo</code> in <code>rockmongo/conf/nginx-prefix.conf</code>
-to <code>rockmongo</code>;</p>
-
-<p>Add <code>include "/home/leo/apps/nginxstack-1.9.7-0/apps/rockmongo/conf/nginx-prefix.conf";</code>
-into <code>$STACK_HOME/nginx/conf/bitnami/bitnami-apps-prefix.conf</code>;</p>
-
-<p>Modify mongodb connection parameters in <code>$STACK_HOME/apps/rockmongo/htdocs/config.php</code>:
-modify &ldquo;mongo_name&rdquo;, &ldquo;mongo_host&rdquo; and &ldquo;mongo_port&rdquo; as your target value,
-modify &ldquo;mongo_auth&rdquo; and &ldquo;ui_hide_system_collections&rdquo; to &ldquo;true&rdquo;.</p>
-
-<p>Start nginx server: <code>$STACK_HOME/ctlscript.sh start</code>;</p>
-
-<p>Open &ldquo;localhost:8080/rockmongo&rdquo; in your browser, login with your mongodb auth params.</p>
-
-<p>You can add a new mongodb with codes below in apps/rockmongo/htdocs/config.php:</p>
-
-<pre><code>$MONGO["servers"][$i]["mongo_name"] = "AliDB";
-$MONGO["servers"][$i]["mongo_host"] = "123.57.188.18";
-$MONGO["servers"][$i]["mongo_port"] = "15515";
-$MONGO["servers"][$i]["mongo_auth"] = true;
-$MONGO["servers"][$i]["ui_hide_system_collections"] = true;
-$i ++;
-</code></pre>
-
-<p>And validate with <code>./ctlscript.sh restart nginx</code>.</p>
-
-<p>Note:</p>
-
-<ol>
-<li><p>The nginx listening port (here is 8080) is defined in
-<code>$STACK_HOME/nginx/conf/bitnami/bitnami.conf</code>;</p></li>
-<li><p>If you logged in with a previous user in browser, click &ldquo;logout&rdquo; button
-in upper-right corner to logout. Specify target username, passowrd and database
-in login page.</p></li>
-</ol>
-
-
-<h2>Usage</h2>
-
-<p>You have to write regex query in this way: <code>{ "chnName": { "$regex": "98" } }</code>,
-and it didn&rsquo;t accept this form: <code>{ "chnName": /98/ }</code>.</p>
-
-<p>Specify which fields will be shown in the results at the &ldquo;Fields&rdquo; dropdown list
-below the query box.</p>
-
-<h1>UMongo</h1>
-
-<p><a href="http://edgytech.com/umongo/">UMongo</a> can only setup 1 connection,
-and if the user is not root, it will give a auth failed error.</p>
-
-<h1>MongoVUE</h1>
-
-<p>Only for Windows. I tested v1.6.9 on Windows 7 64bit.
-It can&rsquo;t connect to mongo replica set. (Always auth failed).
-When connected with a local mongodb server,
-searching and &ldquo;copy as json text&rdquo; function is ok.
-But crash and quit when copy a part in a document.</p>
 </div>
   
   
@@ -913,23 +1149,23 @@ But crash and quit when copy a part in a document.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

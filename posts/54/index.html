@@ -9,8 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Installation sudo pip install fabric (verified on Mint 14, 2013-9-4)
-sudo apt-get install fabric (verified on Ubuntu Server 12.04 with goagent, 2013- &hellip;">
+  <meta name="description" content="indexed-step (-> (iterate indexed-step glider) (nth 8) pprint) is equals to (pprint (nth (iterate indexed-step glider) 8));
+(iterate f x) means & &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -39,7 +39,7 @@ sudo apt-get install fabric (verified on Ubuntu Server 12.04 with goagent, 2013-
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -72,7 +72,7 @@ sudo apt-get install fabric (verified on Ubuntu Server 12.04 with goagent, 2013-
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/09/04/172538/">Fabric Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/10/11/093307/">Notes About Conway's Game of Life in `Clojure Programming`</a></h1>
     
     
       <p class="meta">
@@ -81,40 +81,89 @@ sudo apt-get install fabric (verified on Ubuntu Server 12.04 with goagent, 2013-
 
 
 
-<time class='entry-date' datetime='2013-09-04T17:25:38+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:25 pm</span></time>
+<time class='entry-date' datetime='2013-10-11T09:33:07+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:33 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Installation</h1>
+  <div class="entry-content"><h1>indexed-step</h1>
 
 <ul>
-<li><p>sudo pip install fabric (verified on Mint 14, 2013-9-4)</p></li>
-<li><p>sudo apt-get install fabric (verified on Ubuntu Server 12.04 with goagent, 2013-9-7)</p></li>
+<li><p>(-> (iterate indexed-step glider) (nth 8) pprint) is equals to (pprint (nth (iterate indexed-step glider) 8));</p></li>
+<li><p>(iterate f x) means &ldquo;Return a lazy sequence of x, (f x), (f (f x)) etc, f must be free of side-effects&rdquo;;</p></li>
 </ul>
 
 
-<h1>Test &ldquo;With&rdquo; Statement of Fabric</h1>
+<p>So (indexed-step glider) returns the next state of the board &ldquo;glider&rdquo; based on its current state.</p>
 
-<p>When running fabric command on remote host, if the current directory after &ldquo;with cd(&hellip;)&rdquo; will return to original one? Let&rsquo;s test it.</p>
+<p>(nth (iterate indexed-step glider) 8) is the 8th step of the transformation. If you want to see the 4th step just modify 8 to 4 in above code snippet.</p>
 
-<p>fabfile.py</p>
+<p>(->> (iterate indexed-step glider) (take 5) ppr/pprint), equals to (ppr/pprint (take 5 (iterate indexed-step glider))), displays every step of the transformation from origin state to the first translational position.</p>
 
-<pre><code>from __future__ import with_statement 
-from fabric.api import local, settings, abort, run, cd 
-def testcd(path): 
-    run("pwd") 
-    run("ls -l") 
-    with cd(path): 
-        run("pwd") 
-        run("ls -l") 
-    run("pwd") 
-    run("ls -l") 
-</code></pre>
+<p>The result of above code can be verified visually at [<a href="http://www.bitstorm.org/gameoflife/">http://www.bitstorm.org/gameoflife/</a>] (use mouse button to add/remove seed in the panel).</p>
 
-<p>Now run <code>fab -H 10.0.7.142 -u gcp -p gcp@123 testcd:path="zdjk"</code>. The &ldquo;pwd&rdquo; and &ldquo;ls&rdquo; before and after &ldquo;with&rdquo; statement give the same result, which means &ldquo;cd&rdquo; in &ldquo;with&rdquo; statement only take effect in &ldquo;with&rdquo; block. It&rsquo;s cool.</p>
+<h1>index-free-step</h1>
+
+<ul>
+<li>&ldquo;map&rdquo;, &ldquo;partition&rdquo; and &ldquo;concat&rdquo; create a lazy seq;</li>
+</ul>
+
+
+<p>Why add a (repeat nil) to board in &ldquo;index-free-step&rdquo;?</p>
+
+<h1>step</h1>
+
+<ul>
+<li>&ldquo;frequencies&rdquo; receives a collection, returns a map, the key is the item of the collection, the value is the number of times this item appear. So:</li>
+</ul>
+
+
+<p> (frequencies [1 2 3 2 3 4]) => {1 1, 2 2, 3 2, 4 1}</p>
+
+<ul>
+<li><p>(mapcat f coll) &lt;=> (apply concat (map f coll));</p></li>
+<li><p>&ldquo;for&rdquo; is the Cartesian product. So:</p></li>
+</ul>
+
+
+<p> (for [x [:a :b] y [1 2]] [x y]) => ([:a 1] [:a 2] [:b 1] [:b 2])</p>
+
+<p> (for [[x y] {1 1, 2 2, 3 2, 4 1}] [x y]) => ([1 1] [2 2] [3 2] [4 1])</p>
+
+<p>and &ldquo;(for [[x y] (frequencies [1 2 3 2 3 4]) :when (= y 2)] x)&rdquo; select items which appear 2 times in collection.</p>
+
+<p>Translate example 3-7 to plain text is:</p>
+
+<ol>
+<li><p>The live cells are a subset of all neighbours of original live cells;</p></li>
+<li><p>Every cell in the neighbour area are expressed as variable &ldquo;loc&rdquo;, while the number of its neighbour is expressed as &ldquo;n&rdquo;;</p></li>
+<li><p>To a cell &ldquo;loc&rdquo;, if one of the following conditions are met, it is alive:</p></li>
+<li><p>It has 3 neighbours, expressd as (= n 3);</p></li>
+<li><p>It has 2 neighbours and it is alive, expressed as (and (= n 2) (cells loc))</p></li>
+</ol>
+
+
+<p>Example 3-7:</p>
+
+<p> (defn step
+  [cells]
+  (set (for [[loc n] (frequencies (mapcat neighbours cells))
+     :when (or (= n 3) (and (= n 2) (cells loc)))]
+    loc)))</p>
+
+<h1>stepper</h1>
+
+<ul>
+<li><p>To hex-step, the board and cells are all hexagonal, which means every cell has 6 neighbours;</p></li>
+<li><p>To every cell (loc) in the neighbour area, if it is alive(tested with (cells loc) in the &ldquo;for&rdquo; function), it&rsquo;s liveness is determined with &ldquo;survive?&rdquo; function: (survive? n); otherwise it&rsquo;s determined with &ldquo;(birth? n)&rdquo;;</p></li>
+<li><p>Test 4 step oscillator:</p></li>
+</ul>
+
+
+<p> (def init #{[0 0] [1 1] [1 3] [0 4]})
+ (= (-> (iterate hex-step init) (nth 4)) init)</p>
 </div>
   
   
@@ -127,7 +176,7 @@ def testcd(path):
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/09/04/104222/">Continous Delivery Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/10/10/180521/">A Deployment Pipeline Based on Puppet</a></h1>
     
     
       <p class="meta">
@@ -136,30 +185,95 @@ def testcd(path):
 
 
 
-<time class='entry-date' datetime='2013-09-04T10:42:22+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:42 am</span></time>
+<time class='entry-date' datetime='2013-10-10T18:05:21+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:05 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>From <a href="http://doc36.controltier.org/wiki/ControlTier">ControlTier</a>.</p>
+  <div class="entry-content"><p><a href="https://puppetlabs.com/blog/a-deployment-pipeline-for-infrastructure">https://puppetlabs.com/blog/a-deployment-pipeline-for-infrastructure</a></p>
 
-<p>Tools comparison: <a href="https://en.wikipedia.org/wiki/Comparison_of_open-source_configuration_management_software">https://en.wikipedia.org/wiki/Comparison_of_open-source_configuration_management_software</a></p>
+<h1>Installation</h1>
 
-<p>Now ControlTier is replaced by rundeck.org.</p>
+<p>On Linux Mint 14 Xfce.</p>
 
-<p>Fabic is another good tool based on Python. It has a fexpect component to do expect-like automation tasks. Fabric is &ldquo;push&rdquo; model, see <a href="http://mattcallanan.blogspot.com/2013/03/puppet-vs-fabric-for-deploys.html">Puppet vs Fabric for deploys</a>;</p>
+<h2>OS verification</h2>
 
-<p><a href="https://wiki.jenkins-ci.org/display/JENKINS/RunDeck+Plugin">RunDeck Plugin of Jenkins</a> give a good example of &ldquo;0-click&rdquo; deployment.</p>
+<pre><code>$ lsb_release -a
+</code></pre>
 
-<p><a href="http://www.debian-administration.org/articles/671">A simple introduction to fabric</a> give a good explanation of how to use fabric to do deploying jobs.</p>
+<p>The codename of Linux Mint 14 is &ldquo;Nadia&rdquo;. Google &ldquo;linux mint release&rdquo; shows Nadia based on Ubuntu Quantal(12.10), which is in the supported version of puppet 3.</p>
 
-<p><a href="https://fedorahosted.org/func/">Func</a> is &ldquo;Fedora Unified Network Controller&rdquo;, so it&rsquo;s suited on rpm-based Linux.</p>
+<h2>Install it in standalone mode</h2>
 
-<p><a href="http://www.smartfrog.org/">SmartFrog</a> is a Java-based tool, we can use it with Fabric.</p>
+<pre><code>$ wget https://apt.puppetlabs.com/puppetlabs-release-quantal.deb
+$ sudo dpkg -i puppetlabs-release-quantal.deb
+$ sudo apt-get update
+$ sudo apt-get install puppet-common
+</code></pre>
 
-<p><a href="http://saltstack.com/">Salt Stack</a> is also a candidate, support push and pull models(<a href="http://serverfault.com/questions/415713/what-advantages-features-does-puppet-or-chef-offer-over-salt-or-vice-versa">http://serverfault.com/questions/415713/what-advantages-features-does-puppet-or-chef-offer-over-salt-or-vice-versa</a>). It has nice Chinese support, see <a href="http://wiki.saltstack.cn/">Salt介绍</a>.</p>
+<p>You have to run puppet command as root: <code>puppet apply -e 'notice ("Hello World")'</code>.</p>
+
+<h2>On Master Node</h2>
+
+<p>After update apt repo:</p>
+
+<pre><code># apt-get install puppetmaster
+# puppet master --version
+# apt-get install puppetmaster-passenger (failed on my laptop)
+</code></pre>
+
+<p>Verify as root:</p>
+
+<pre><code># service puppetmaster status
+</code></pre>
+
+<p>Start it in foreground:</p>
+
+<pre><code># service puppetmaster stop
+# puppet master --no-daemonize --verbose
+</code></pre>
+
+<h2>On Agent Node</h2>
+
+<pre><code># apt-get install puppet
+</code></pre>
+
+<p>Verify as root:</p>
+
+<pre><code># service puppet status
+# puppet agent --test --server=10.21.2.7
+</code></pre>
+
+<p>You will meet a &ldquo;no certificate found and waitforcert is disabled&rdquo; error. So we let master sign the certificate for the agent.</p>
+
+<h2>Signing the Certificate</h2>
+
+<p>On master:</p>
+
+<pre><code># puppet cert list
+</code></pre>
+
+<p>You get the agent&rsquo;s name. It&rsquo;s OK.</p>
+
+<pre><code># puppet cert sign chadpc527.boco.com
+</code></pre>
+
+<p>On agent:</p>
+
+<pre><code># puppet apply -e '...'
+</code></pre>
+
+<h1>Trouble Shooting</h1>
+
+<p>Log file: /var/log/puppet/masterhttp.log</p>
+
+<p>Default puppet master port: 8140</p>
+
+<p>Port detection: lsof -wni tcp:8140</p>
+
+<p>Regenerate certificate request of agent: rm -rf /var/lib/puppet/ssl</p>
 </div>
   
   
@@ -172,7 +286,7 @@ def testcd(path):
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/09/04/101920/">Manage Python Packages With Pip</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/10/10/114908/">Clojure Namespaces</a></h1>
     
     
       <p class="meta">
@@ -181,39 +295,55 @@ def testcd(path):
 
 
 
-<time class='entry-date' datetime='2013-09-04T10:19:20+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>10:19 am</span></time>
+<time class='entry-date' datetime='2013-10-10T11:49:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:49 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Install pip</h1>
+  <div class="entry-content"><p>Now we have a 2-dimensional vector glider(as follows) in our own namespace.
+We want use clojure.pprint/pprint to print it out.</p>
 
-<pre><code>sudo apt-get python-pip
+<pre><code>(def glider (vec (repeat 3 (vec (repeat 6 nil)))))
 </code></pre>
 
-<h1>Install package with pip</h1>
+<h1>Declare require as a common function</h1>
 
-<pre><code>sudo pip install fabric
+<pre><code>(def glider (vec (repeat 3 (vec (repeat 6 nil)))))
+
+(require 'clojure.pprint) 
+(clojure.pprint/pprint glider)
+
+(require '[clojure.data.json :as json])
+
+(defn get-data [url] (json/read-str (slurp url)))
 </code></pre>
 
-<h1>List all installed packages</h1>
+<h1>Put require in namespace declaration</h1>
 
-<pre><code>pip freeze
+<pre><code>(ns conways-game-of-life.core (:require clojure.pprint)) 
+
+(def glider (vec (repeat 3 (vec (repeat 6 nil)))))
+
+(clojure.pprint/pprint glider) 
 </code></pre>
 
-<h2>List some packages</h2>
+<h1>Give required namespace a alias name</h1>
 
-<pre><code>pip freeze | grep "[F|f]abric"
+<pre><code>(ns conways-game-of-life.core (:require [clojure.pprint :as ppr]))
+
+(def glider (vec (repeat 3 (vec (repeat 6 nil)))))
+
+(ppr/pprint glider)
+
+(ns sonar-parser.core 
+(:require [clojure.data.json :as json]))
+
+(defn get-data [url] (json/read-str (slurp url)))
 </code></pre>
 
-<p>Note: Double quotes after grep is necessary;</p>
-
-<h1>Uninstall packages with pip</h1>
-
-<pre><code>sudo pip uninstall Fabric
-</code></pre>
+<p>Ref: <a href="http://blog.8thlight.com/colin-jones/2010/12/05/clojure-libs-and-namespaces-require-use-import-and-ns.html">http://blog.8thlight.com/colin-jones/2010/12/05/clojure-libs-and-namespaces-require-use-import-and-ns.html</a></p>
 </div>
   
   
@@ -226,7 +356,7 @@ def testcd(path):
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/09/02/161537/">Get Coverage Data for Standalone Server With Cobertura</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/10/06/091558/">Notes of `reduce-by` in `Clojure Programming`</a></h1>
     
     
       <p class="meta">
@@ -235,76 +365,244 @@ def testcd(path):
 
 
 
-<time class='entry-date' datetime='2013-09-02T16:15:37+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2013</span></span> <span class='time'>4:15 pm</span></time>
+<time class='entry-date' datetime='2013-10-06T09:15:58+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>6</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:15 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Prerequisites</h1>
+  <div class="entry-content"><p>In page 120 of &ldquo;Clojure Programming&rdquo;.</p>
 
-<p>Copy cobertura.jar (1.9.1), asm-3.0.jar, asm-tree-3.0.jar, jakarta-oro-2.0.8.jar, log4j-1.2.15.jar totally 5 jars to a folder (in this case it is: &ldquo;/home/lichao/apps/coberturaLib&rdquo;).</p>
+<p>(reduce-by :customer #(+ %1 (:total %2)) 0 orders) =></p>
 
-<p>If using cobertura-2.0.3, copy cobertura.jar and all jars in folder &ldquo;lib&rdquo; to &ldquo;coberturaLib&rdquo;.</p>
+<p>key-fn: :customer</p>
 
-<p>The current working directory is project home folder, under which there are 3 folders: cmd, conf, lib.</p>
+<p>f: #(+ %1 (:total %2))</p>
 
-<h1>Instrument</h1>
+<p>init: 0</p>
 
-<p>Now we need instrument class files under &ldquo;class&rdquo; folder to &ldquo;instru&rdquo; folder:</p>
+<p>coll: orders</p>
 
-<pre><code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.instrument.Main --destination instru class
+<p>user=> (doc reduce)</p>
+
+<hr />
+
+<p>clojure.core/reduce
+([f coll] [f val coll])
+ f should be a function of 2 arguments. If val is not supplied,
+ returns the result of applying f to the first 2 items in coll, then
+ applying f to that result and the 3rd item, etc. If coll contains no
+ items, f must accept no arguments as well, and reduce returns the
+ result of calling f with no arguments. If coll has only 1 item, it
+ is returned and f is not called. <strong>If val is supplied, returns the
+ result of applying f to val and the first item in coll, then
+ applying f to that result and the 2nd item, etc. If coll contains no
+ items, returns val and f is not called.</strong></p>
+
+<p>According to above definition, summaries is the second argument of reduce ({}), x is the first element of coll (orders).</p>
+
+<p>user=> (doc assoc)</p>
+
+<hr />
+
+<p>clojure.core/assoc
+([map key val] [map key val &amp; kvs])
+ assoc[iate]. When applied to a map, returns a new map of the
+ same (hashed/sorted) type, that contains the mapping of key(s) to
+ val(s). When applied to a vector, returns a new vector that
+ contains val at index. Note - index must be &lt;= (count vector).</p>
+
+<p>The run the following script in repl:</p>
+
+<p>(def orders</p>
+
+<p> [{:product &ldquo;Clock&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 6, :total 300}</p>
+
+<p>{:product &ldquo;Dynamite&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 20, :total 5000}</p>
+
+<p>{:product &ldquo;Shotgun&rdquo;, :customer &ldquo;Elmer Fudd&rdquo;, :qty 2, :total 800}</p>
+
+<p>{:product &ldquo;Shells&rdquo;, :customer &ldquo;Elmer Fudd&rdquo;, :qty 4, :total 100}</p>
+
+<p>{:product &ldquo;Hole&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 1, :total 1000}</p>
+
+<p>{:product &ldquo;Anvil&rdquo;, :customer &ldquo;Elmer Fudd&rdquo;, :qty 2, :total 300}</p>
+
+<p>{:product &ldquo;Anvil&rdquo;, :customer &ldquo;Wile Coyote&rdquo;, :qty 6, :total 900}])</p>
+
+<p>(defn reduce-by</p>
+
+<p> [key-fn f init coll]</p>
+
+<p> (println &ldquo;key-fn:&rdquo; key-fn)</p>
+
+<p> (println &ldquo;f:&rdquo; f)</p>
+
+<p> (println &ldquo;init:&rdquo; init)</p>
+
+<p> (println &ldquo;coll:&rdquo; coll)</p>
+
+<p> (println &ldquo;==========&rdquo;)</p>
+
+<p> (reduce (fn [summaries x]</p>
+
+<p>   (let [k (key-fn x)]</p>
+
+<pre><code>(println "summaries:" summaries)
+
+(println "k:" k)
+
+(println "x:" x)
+
+(println "(key-fn x):" (key-fn x))
+
+(println "value for k:" (f (summaries k init) x))
+
+(println "---------")
+
+(assoc summaries k (f (summaries k init) x))))
 </code></pre>
 
-<p>Note the double quotes of &ldquo;/home&hellip;/coberturaLib/*&rdquo; is necessary.</p>
+<p>   {} coll))</p>
 
-<p>If you use cobertura-2.0.3, add project dependencies ($PROJ_HOME/lib), too:</p>
+<p>(reduce-by :customer #(+ %1 (:total %2)) 0 orders)</p>
 
-<pre><code>java -cp "/home/lichao/apps/coberturaLib/*:../lib/*" net.sourceforge.cobertura.instrument.Main --destination CalcServer --datafile CalcServer/cobertura.ser CalcServer.jar 
+<p>And the output:</p>
+
+<p>key-fn: :customer</p>
+
+<p>f: #&lt;core$eval1500$fn<strong>1501 startclojure.core$eval1500$fn</strong>1501@10d78ec></p>
+
+<p>init: 0</p>
+
+<p>coll: [{:total 300, :customer Wile Coyote, :qty 6, :product Clock} {:total 5000, :customer Wile Coyote, :qty 20, :product Dynamite} {:total 800, :customer Elmer Fudd, :qty 2, :product Shotgun} {:total 100, :customer Elmer Fudd, :qty 4, :product Shells} {:total 1000, :customer Wile Coyote, :qty 1, :product Hole} {:total 300, :customer Elmer Fudd, :qty 2, :product Anvil} {:total 900, :customer Wile Coyote, :qty 6, :product Anvil}]</p>
+
+<hr />
+
+<p>summaries: {}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 300, :customer Wile Coyote, :qty 6, :product Clock}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 300</p>
+
+<hr />
+
+<p>summaries: {Wile Coyote 300}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 5000, :customer Wile Coyote, :qty 20, :product Dynamite}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 5300</p>
+
+<hr />
+
+<p>summaries: {Wile Coyote 5300}</p>
+
+<p>k: Elmer Fudd</p>
+
+<p>x: {:total 800, :customer Elmer Fudd, :qty 2, :product Shotgun}</p>
+
+<p>(key-fn x): Elmer Fudd</p>
+
+<p>value for k: 800</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 800, Wile Coyote 5300}</p>
+
+<p>k: Elmer Fudd</p>
+
+<p>x: {:total 100, :customer Elmer Fudd, :qty 4, :product Shells}</p>
+
+<p>(key-fn x): Elmer Fudd</p>
+
+<p>value for k: 900</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 900, Wile Coyote 5300}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 1000, :customer Wile Coyote, :qty 1, :product Hole}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 6300</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 900, Wile Coyote 6300}</p>
+
+<p>k: Elmer Fudd</p>
+
+<p>x: {:total 300, :customer Elmer Fudd, :qty 2, :product Anvil}</p>
+
+<p>(key-fn x): Elmer Fudd</p>
+
+<p>value for k: 1200</p>
+
+<hr />
+
+<p>summaries: {Elmer Fudd 1200, Wile Coyote 6300}</p>
+
+<p>k: Wile Coyote</p>
+
+<p>x: {:total 900, :customer Wile Coyote, :qty 6, :product Anvil}</p>
+
+<p>(key-fn x): Wile Coyote</p>
+
+<p>value for k: 7200</p>
+
+<hr />
+
+<p>Verified on Eclipse Juno SR2 with Counterclockwise plugin, Mint 14 Xfce, 2013-10-6.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/10/01/195354/">Note About `Start Clojure` on Youtube</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-10-01T19:53:54+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>7:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>0:28:36 in &ldquo;Start Clojure&rdquo; by Chas Emerick on Youtube:</p>
+
+<p>You have to start app in texteditor of app.clj instead of the project &ldquo;startclojure&rdquo;. Otherwise you have to use</p>
+
+<pre><code>(def server (ring.adapter.jetty/jetty/run-jetty #'startclojure.app/app {:port 8080 :join? false}))
 </code></pre>
 
-<p>Synopsis:</p>
+<p>instead of</p>
 
-<pre><code>java -cp &lt;Cobertura_lib&gt; net.sourceforge.cobertura.instrument.Main --destination &lt;dest_folder&gt; --datafile &lt;datafile_path&gt; &lt;target&gt;
-</code></pre>
-
-<p>If <target> is a folder containing class files, instrumented class files will be created under <dest_folder>.
-If <target> is a jar file, instrumented jar file will be created under <dest_folder>.
-If &ldquo;&ndash;destination <dest_folder> is not specified, the instrumented one will overwrite the origin.</p>
-
-<h1>Start Server</h1>
-
-<p>This step equals to &ldquo;unit test&rdquo; in junit-cobertura scenario. The start.sh is:</p>
-
-<pre><code>#!/bin/sh 
-CoberturaJar="/home/lichao/apps/coberturaLib/cobertura-2.0.3.jar" 
-JARS="$CoberturaJar:conf:./*:lib/*" 
-java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deploy.Main 
-</code></pre>
-
-<p>Note: The instrumented jar must be add <strong>before</strong> uninstrumented jar in classpath.</p>
-
-<p>Synopsis:</p>
-
-<pre><code>java -cp &lt;cobertura.jar_path&gt;:&lt;other_dependencies&gt; -Dnet.sourceforge.cobertura.datafile=&lt;datafile_path&gt; Server.Main.Class.Name
-</code></pre>
-
-<h1>Merge Datafile</h1>
-
-<pre><code>java -cp "coberturaLib-2.0.3/*" net.sourceforge.cobertura.merge.Main --datafile GcpCollector/cmd/cobertura.ser GcpServerCore/cmd/cobertura.ser cobertura.ser
-</code></pre>
-
-<h1>Get Report</h1>
-
-<pre><code>java -cp "/home/lichao/apps/coberturaLib/*" net.sourceforge.cobertura.reporting.Main --datafile cobertura.ser --destination ../report ../../src
-</code></pre>
-
-<p>The report data will not be written to report files until the server process is down.</p>
-
-<p>Synopsis:</p>
-
-<pre><code>java -cp &lt;cobertura_lib&gt; net.sourceforge.cobertura.reporting.Main --datafile &lt;datafile_path&gt; --destination &lt;report_path&gt; &lt;source_folder&gt;
+<pre><code>(def server (jetty/run-jetty #'app {:port 8080 :join? false}))
 </code></pre>
 </div>
   
@@ -318,7 +616,7 @@ java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deplo
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/08/31/223240/">Network Promgramming in Clojure</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/09/29/172020/">Converting an Imperative Algorithm Into Functional Style</a></h1>
     
     
       <p class="meta">
@@ -327,7 +625,223 @@ java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deplo
 
 
 
-<time class='entry-date' datetime='2013-08-31T22:32:40+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2013</span></span> <span class='time'>10:32 pm</span></time>
+<time class='entry-date' datetime='2013-09-29T17:20:20+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>5:20 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Question and Python Solution</h1>
+
+<p>The follow is a question I posted on stackoverflow.com and the Python imperative style solution:</p>
+
+<p>I wrote a simple procedure to calculate the average of the test coverage of some specific packages in a Java project. The raw data in a huge html file is like this:</p>
+
+<pre><code>&lt;body&gt; 
+package pkg1 &lt;line_coverage&gt;11/111,&lt;branch_coverage&gt;44/444&lt;end&gt; 
+package pkg2 &lt;line_coverage&gt;22/222,&lt;branch_coverage&gt;55/555&lt;end&gt; 
+package pkg3 &lt;line_coverage&gt;33/333,&lt;branch_coverage&gt;66/666&lt;end&gt; 
+... 
+&lt;/body&gt; 
+</code></pre>
+
+<p>Given the specified packages &ldquo;pkg1&rdquo; and &ldquo;pkg3&rdquo;, for example, the average line coverage is:</p>
+
+<pre><code>(11+33)/(111+333) 
+</code></pre>
+
+<p>and average branch coverage is:</p>
+
+<pre><code>(44+66)/(444+666) 
+</code></pre>
+
+<p>I wrote the follow procedure to get the result and it works well. But how to implement this calculation in a functional style? Something like &ldquo;(x,y) for x in &hellip; for b in &hellip; if&hellip;&rdquo;. I know a little Erlang, Haskell and Clojure, So solutions in these languages are also appreciated. Thanks a lot!</p>
+
+<pre><code>from __future__ import division 
+import re 
+datafile = ('abc', 'd&gt;11/23d&gt;34/89d', 'e&gt;25/65e&gt;13/25e', 'f&gt;36/92f&gt;19/76') 
+core_pkgs = ('d', 'f') 
+covered_lines, total_lines, covered_branches, total_branches = 0, 0, 0, 0 
+for line in datafile: 
+    for pkg in core_pkgs: 
+        ptn = re.compile('.*'+pkg+'.*'+'&gt;(\d+)/(\d+).*&gt;(\d+)/(\d+).*') 
+        match = ptn.match(line) 
+        if match is not None: 
+            cvln, tlln, cvbh, tlbh = match.groups() 
+            covered_lines += int(cvln) 
+            total_lines += int(tlln) 
+            covered_branches += int(cvbh) 
+            total_branches += int(tlbh) 
+print 'Line coverage:', '{:.2%}'.format(covered_lines / total_lines) 
+print 'Branch coverage:', '{:.2%}'.format(covered_branches/total_branches) 
+</code></pre>
+
+<h1>Functional Style Solution in Clojure</h1>
+
+<p> (defn extract-data
+  &ldquo;extract 4 integer from a string line according to a package name&rdquo;
+  [pkg line]
+  (map read-string
+   (rest (first
+     (re-seq
+     (re-pattern
+     (str pkg &ldquo;.<em>>(\d+)/(\d+).</em>>(\d+)/(\d+)&rdquo;))
+     line)))))
+ (defn scan-lines-by-pkg
+  &ldquo;scan all string lines and extract all data as integer sequences
+  according to package names&rdquo;
+  [pkgs lines]
+  (filter seq (for [pkg pkgs
+      line lines]
+     (extract-data pkg line))))
+ (defn sum-data
+  &ldquo;add all data in valid lines together&rdquo;
+  [pkgs lines]
+  (apply map + (scan-lines-by-pkg pkgs lines)))
+ (defn get-percent
+  [covered all]
+  (str (format &ldquo;%.2f&rdquo; (float (/ (* covered 100) all))) &ldquo;%&rdquo;))
+ (defn get-cov
+  [pkgs lines]
+  {:line-cov (apply get-percent (take 2 (sum-data pkgs lines)))
+  :branch-cov (apply get-percent (drop 2 (sum-data pkgs lines)))})
+ (get-cov [&ldquo;d&rdquo; &ldquo;f&rdquo;] [&ldquo;abc&rdquo; &ldquo;d>11/23d>34/89d&rdquo; &ldquo;e>25/65e>13/25e&rdquo; &ldquo;f>36/92f>19/76&rdquo;])</p>
+
+<h1>clojure solutions with load file and command line args</h1>
+
+<p>core-pkgs=&hellip;+&hellip;+&hellip;</p>
+
+<p>clojure get-cov.clj $core-pkgs</p>
+
+<p>(def s (slurp &ldquo;frame-summary.html&rdquo;))</p>
+
+<p>(use &lsquo;clojure.string)</p>
+
+<p>(def lines (split s #&ldquo;\n&rdquo;))</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/27/141324/">ISO Image Manipulation on Mint Xfce</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-27T14:13:24+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>2:13 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Create ISO Image File from CD</h1>
+
+<p>genisoimage -o Unix_Program.iso -V Unix_Linux_Programming -R -J /media/lichao/NEW</p>
+
+<p>SYNOPSIS: genisoimage -o <iso_filename> -V <volume_ID> -R -J <cd_path></p>
+
+<p>Ref: <a href="http://askubuntu.com/questions/136165/how-to-create-iso-images">http://askubuntu.com/questions/136165/how-to-create-iso-images</a></p>
+
+<h1>Mount ISO Image from ISO File</h1>
+
+<ol>
+<li><p>$ thunar</p></li>
+<li><p>In thunar, right click the iso file and select &ldquo;Mount/Unmount ISO&rdquo;;</p></li>
+<li><p>$ cd /mnt/Unix_Program.iso</p></li>
+</ol>
+
+
+<h1>Unmount ISO</h1>
+
+<p>In thunar, right click the iso file and select &ldquo;Mount/Unmount ISO&rdquo;;</p>
+
+<p>Ref: <a href="http://askubuntu.com/questions/164227/how-to-mount-an-iso-file">http://askubuntu.com/questions/164227/how-to-mount-an-iso-file</a></p>
+
+<p>Verified on Mint 14 Xfce.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/26/202540/">Difference of Cons and Conj in Clojure</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-26T20:25:40+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>8:25 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>conj put collection as its first argument while cons put collection as its second argument.</p>
+
+<p>Synopsis:</p>
+
+<p>conj <collection> element1 element2 &hellip;</p>
+
+<p>cons element <collection></p>
+
+<p>Meanwhile this post from <a href="http://stackoverflow.com/questions/3008411/clojure-seq-cons-vs-list-conj">http://stackoverflow.com/questions/3008411/clojure-seq-cons-vs-list-conj</a> give other 2 important difference:</p>
+
+<p>One difference is that conj accepts any number of arguments to insert into a collection, while cons takes just one:</p>
+
+<p>(conj &lsquo;(1 2 3) 4 5 6)
+; => (6 5 4 1 2 3)
+(cons 4 5 6 &rsquo;(1 2 3))
+; => IllegalArgumentException due to wrong arity
+Another difference is in the class of the return value:
+(class (conj &lsquo;(1 2 3) 4))
+; => clojure.lang.PersistentList
+(class (cons 4 &rsquo;(1 2 3))
+; => clojure.lang.Cons</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/26/164843/">Define Key Shortcuts in Emacs</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2013-09-26T16:48:43+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:48 pm</span></time>
         
       </p>
     
@@ -335,205 +849,26 @@ java -cp $JARS -Dnet.sourceforge.cobertura.datafile=cobertura.ser com.boco.deplo
 
 
   <div class="entry-content"><ul>
-<li><p>TCP echo server: <a href="http://stackoverflow.com/questions/1223352/writing-a-multiplexing-server-in-clojure">http://stackoverflow.com/questions/1223352/writing-a-multiplexing-server-in-clojure</a></p></li>
-<li><p>Asynchronous communication framework based on Netty: <a href="https://github.com/ztellman/aleph/wiki">aleph</a></p></li>
-<li><p>System admin and deployment tool: <a href="https://github.com/killme2008/clojure-control">clojure-control</a></p></li>
-<li><p>Cloud Automation Tool (build Hadoop cluster on Amazon EC2): <a href="http://palletops.com/">Pallet</a></p></li>
-<li><p>SSH client based on jsch: <a href="https://github.com/hugoduncan/clj-ssh">clj-ssh</a></p></li>
+<li>Set a keybind: (global-set-key <key> <command>)</li>
 </ul>
 
-</div>
-  
-  
 
+<p>&ldquo;(global-set-key <key> <command>)&rdquo; and &ldquo;(define-key global-map <key> <command>)&rdquo; are basically the same thing in most cases;</p>
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/30/180938/">Copy, Tag and Branch of Subversion</a></h1>
-    
-    
-      <p class="meta">
-        
+<ul>
+<li><p>Find out the current keybinding of a key, for example, C-x C-e: press [F1 k], then press [C-x C-e];</p></li>
+<li><p>List all current key bindings: [F1 b];</p></li>
+<li><p>Get last executed command, for example: use &ldquo;C-x b&rdquo; to switch to another window:</p></li>
+<li><p>Press C-x b, then select &ldquo;<em>Messages</em>&rdquo;;</p></li>
+<li><p>Press C-x <Esc> <Esc>, then you can see the last executed command &ldquo;(switch-to-buffer &rdquo;<em>Message</em>&ldquo;)&rdquo;;</p></li>
+</ul>
 
-
-
-
-<time class='entry-date' datetime='2013-08-30T18:09:38+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Tag and branch are the same from the point of view of svn server. They are both the &ldquo;copy&rdquo; operation (this is why they use the same menu item in TortoiseSVN, they are actually the &ldquo;svn copy&rdquo; command). Copy operation of svn server will create a link to original revision. So create tag or branch will not double the disk space usage. The disk space usage is actually related with how many files are modified based on a specific revision.</p>
-
-<p>What is the difference of tag and branch? When you create a &ldquo;tag&rdquo;, you mean you will save this link at a &ldquo;baseline area&rdquo; where it&rsquo;s prohibited to do checkout-modify-checkin operation. On the contrary, if you create a &ldquo;branch&rdquo;, you will do checkout-modify-checkin operation in the future for new feature development or bug fix.</p>
-
-<p>Use &ldquo;svn help copy&rdquo; for explanations.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/29/210003/">Auto Deploy Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-29T21:00:03+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>9:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ol>
-<li>Write a property file: /home/bvt/docs/jenkinsEnv.properties:</li>
-</ol>
-
-
-<p> gcp.job.type=deliver
- gcp.deliver.ip=10.0.7.142
- gcp.deliver.user=gcp
- gcp.deliver.home=/home/gcp
- gcp.deliver.deployFolder=deploy
- gcp.deliver.prompt=gcp@cloud142</p>
-
-<p>Note: Do <strong>not</strong> leave blanks between &ldquo;=&rdquo; and values in property file.</p>
-
-<p> gcp.deliver.home = /home/gcp</p>
-
-<p>will produce wrong value when gotten by expect script.</p>
-
-<ol>
-<li><p>Add this file to &ldquo;Build Environment -> Inject environment variables to the build process&rdquo; in Jenkins Job Configure panel with Environment Injector plugin.</p></li>
-<li><p>Create a deploy script (deploy.exp) in project base folder:</p></li>
-</ol>
-
-
-<p> #!/usr/bin/expect
- set artifact [lindex $argv 0]
- spawn scp $artifact $env(gcp.deliver.user)@$env(gcp.deliver.ip):$env(gcp.del
- expect eof</p>
-
-<ol>
-<li>Create a &ldquo;Conditional step(single)&rdquo; with conditional-buildstep plugin.</li>
-</ol>
-
-
-<p> Run? Strings match</p>
-
-<p>  String 1: ${ENV,var=&ldquo;gcp.job.type&rdquo;}</p>
-
-<p>  String 2: deliver</p>
-
-<p> Builder: Execute Shell</p>
-
-<p>  Command: ./deploy.exp build/*.zip</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/28/181723/">Create Shortcut for SSH Hosts</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-28T18:17:23+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:17 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>You frequently visit host 10.0.7.141 for example. It&rsquo;s a waste to type &ldquo;ssh <a href="&#109;&#x61;&#105;&#x6c;&#x74;&#111;&#58;&#103;&#x63;&#x70;&#64;&#49;&#48;&#x2e;&#48;&#x2e;&#55;&#46;&#x31;&#x34;&#x31;">&#x67;&#x63;&#x70;&#64;&#x31;&#x30;&#x2e;&#48;&#x2e;&#x37;&#46;&#49;&#x34;&#49;</a>&rdquo; every time you connect it. So you can create a file ~/.ssh/config, and add follow lines to it:</p>
-
-<pre><code>Host 141 
-Hostname 10.0.7.141 
-User gcp 
-[Port 22]
-[IdentityFile ~/.ssh/id_rsa.pub]
-</code></pre>
-
-<p>Now you can use &ldquo;ssh 141&rdquo; to connect to this host.
-Or use &ldquo;scp user@141:/home/user/&rdquo; to copy files.</p>
-
-<p>With key authorization (see note &ldquo;Login SSH Server without Password&rdquo;), you can connect to this host without inputing password. You can copy local file to remote host with &ldquo;scp myfile 141:/target/path&rdquo;, and copy file on remote host to local folder with &ldquo;scp 141:/source/path/to/file /target/folder&rdquo;.</p>
-
-<p>Note: IdentifyFile is the shortcut of &ldquo;-i /path/to/public-key&rdquo; option of &ldquo;ssh&rdquo; command;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/28/180743/">Create Shortcut to Get Jar File Meta Information</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2013-08-28T18:07:43+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>6:07 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>You have to get meta information of cobertura.jar with command &ldquo;unzip -q -c cobertura.jar META-INF/MANIFEST.MF&rdquo;. It&rsquo;s too long to write so we gonna create a shortcut &ldquo;getmeta&rdquo; for this command. Then we can use &ldquo;getmeta cobertura&rdquo; to get the same information.</p>
-
-<p>In zsh, you can add following snippet into .zshrc:</p>
-
-<p> getmeta() { unzip -q -c &ldquo;$*&rdquo;.jar META-INF/MANIFEST.MF }</p>
-
-<p>You can also use command &ldquo;alias&rdquo; to define this. But it&rsquo;s not general like above.</p>
-
-<p>In bash, add the following snippet to .bashrc or .bash_profile:</p>
-
-<p> getmeta() { unzip -q -c &ldquo;$@&rdquo;.jar META-INF/MANIFEST.MF }</p>
 
 <p>Ref:</p>
 
-<p><a href="http://stackoverflow.com/questions/2904677/alias-with-parameters">http://stackoverflow.com/questions/2904677/alias-with-parameters</a></p>
+<p> <a href="http://ergoemacs.org/emacs/keyboard_shortcuts.html">http://ergoemacs.org/emacs/keyboard_shortcuts.html</a></p>
 
-<p><a href="http://stackoverflow.com/questions/4060880/shell-bash-passing-argument-to-alias">http://stackoverflow.com/questions/4060880/shell-bash-passing-argument-to-alias</a></p>
+<p> <a href="http://docs.huihoo.com/homepage/shredderyin/wiki/KeyBinding.html">http://docs.huihoo.com/homepage/shredderyin/wiki/KeyBinding.html</a></p>
 </div>
   
   
@@ -546,7 +881,7 @@ Or use &ldquo;scp user@141:/home/user/&rdquo; to copy files.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/08/28/111229/">Show Output and Internal Diagnostics of Expect Script in Different Terminals</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/09/26/162442/">Change Current Working Directory of Emacs</a></h1>
     
     
       <p class="meta">
@@ -555,48 +890,18 @@ Or use &ldquo;scp user@141:/home/user/&rdquo; to copy files.</p>
 
 
 
-<time class='entry-date' datetime='2013-08-28T11:12:29+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>11:12 am</span></time>
+<time class='entry-date' datetime='2013-09-26T16:24:42+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2013</span></span> <span class='time'>4:24 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><ol>
-<li><p>Start a terminal, run <code>tty</code> to get its device file name, &ldquo;/dev/pts/0&rdquo; in this case.</p></li>
-<li><p>Start another terminal. Create a expect script &ldquo;testDebug.exp&rdquo;:</p>
+  <div class="entry-content"><ul>
+<li><p>Change current working directory (cwd) on the fly: M-x cd <Return>, then input directory name;</p></li>
+<li><p>Set default cwd permanently: add (cd &lsquo;your_default_path&rsquo;) or (setq default-directory &lsquo;your-default-directory&rsquo;) to ~/.emacs;</p></li>
+</ul>
 
-<pre><code> #!/usr/bin/expect 
- set prompt "\\\[hadoop@49server\\s.*\\\]\\\$\\s" 
- spawn telnet 10.0.2.49 
- exp_internal 1 
- expect "login:" 
- send "hadoop\r" 
- expect "Password:" 
- send "h\r" 
- expect -re $prompt 
- send "df -h\r" 
- expect -re $prompt 
- send "exit\r" 
- expect eof
-</code></pre></li>
-<li><p>Give execution priority to testDebug.exp (using chmod) and run it: <code>./testDebug.exp 2&gt; /dev/pts/0</code>. You can see all diagnostics information are printed in the terminal &ldquo;/dev/pts/0&rdquo; while all &ldquo;normal&rdquo; informal are printed in the second terminal window.</p></li>
-</ol>
-
-
-<p>Explanation: the command &ldquo;exp_internal 1&rdquo; send all pattern diagnostics to standard error, which is specified as &ldquo;2> &hellip;&rdquo; in the command line. Meanwhile, a terminal&rsquo;s id can be get from &ldquo;tty&rdquo; command.</p>
-
-<p>You can use &ldquo;exp_internal -f <log_file_name> 0&rdquo; instead of &ldquo;exp_internal 1&rdquo; to save all standard output and diagnostics information into file <log_file_name>. while only standard output can be seen on the terminal.</p>
-
-<p>Reference: Section &ldquo;Enabling Internal Diagnostics&rdquo; and &ldquo;Logging Internal Diagnostics&rdquo; in chapter 7:&ldquo;Debugging Patterns And Controlling Output&rdquo; of &ldquo;Exploring Expect&rdquo; by Don Libes.</p>
-
-<p>Notes: If you run command &ldquo;ls -l /dev/pts/*&rdquo;, you can get the following outputs:</p>
-
-<pre><code>crw--w---- 1 lichao tty 136, 0 Aug 28 11:56 0
-...
-</code></pre>
-
-<p>Notice that the file type are &ldquo;c&rdquo; (the first character of the line), which stands for &ldquo;character device&rdquo; (standard input/output, like keyboard and screen, relative to &ldquo;block device&rdquo;, like hard drives). See &ldquo;<a href="http://en.wikipedia.org/wiki/Unix_file_types#Device_file">http://en.wikipedia.org/wiki/Unix_file_types#Device_file</a>&rdquo; for details.</p>
 </div>
   
   
@@ -621,23 +926,23 @@ Or use &ldquo;scp user@141:/home/user/&rdquo; to copy files.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

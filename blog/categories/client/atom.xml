@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Client | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/client/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -18,7 +18,27 @@
     <link href="http://leetschau.github.io/blog/2016/04/09/204200/"/>
     <updated>2016-04-09T20:42:00+08:00</updated>
     <id>http://leetschau.github.io/blog/2016/04/09/204200</id>
-    <content type="html"><![CDATA[<h1>Insomnia</h1>
+    <content type="html"><![CDATA[<h1>httpie + jq</h1>
+
+<p><a href="https://github.com/jkbrzt/httpie">httpie</a> + <a href="https://stedolan.github.io/jq/">jq</a></p>
+
+<p>前者是curl的增强版，后者用来处理httpie返回的json结果。</p>
+
+<pre><code>http -b api.newfairs.com/Fair/_search query:='{ "match": { "nameZHCN": "中国上海国际栅栏护栏展览会暨研讨会" } }' size=5 fields:='["nameZHCN"]'
+http -b api.newfairs.com/Fair/_search query:='{ "match": { "nameZHCN": "中国上海国际栅栏护栏展览会暨研讨会" } }' size=5 | jq '.hits.total'
+http -b api.newfairs.com/Fair/_search query:='{ "match": { "nameZHCN": "中国上海国际栅栏护栏展览会暨研讨会" } }' size=5 | jq '.hits.hits[]._source.nameZHCN'
+http -b api.newfairs.com/Fair/_search query:='{ "query": { "match": { "_id": "Ao3Ati9dvWBerBrn8" } } }' | jq '.hits.hits[]._source.nameZHCN'
+
+http -b POST http://api.newfairs.com/Fair/_search query:='{"query":{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}}'|jq '.hits.hits[]._source.recurrence[].timeStart'   
+</code></pre>
+
+<p>-b 代表只显示response的body，不显示head，以方便后续jq进行下一步处理，
+中括号代表array，例如<code>jq '.hits.hits[0]'</code>表示只显示第一个结果，
+hits[]代表返回数组里的所有结果。</p>
+
+<p>这二者结合fzf，可以实现Postman/Insomnia这类GUI工具的功能。</p>
+
+<h1>Insomnia</h1>
 
 <p><a href="http://insomnia.rest/">Insomnia</a>: Chrome App.</p>
 
@@ -72,7 +92,7 @@ Collection实际就是高一级的Folder，当request数量多时，request面�
 }
 </code></pre>
 
-<p>在request的url栏里可以这样定义url: <code>/Fair/_search</code>，
+<p>在request的url栏里可以这样定义url: <code>{{api_url}}/Fair/_search</code>，
 点击request名称后面的三角图标并选择"Export as cURL"，可以看到url被替换成了
 <code>http://api.newfairs.com/Fair/_search</code>.</p>
 

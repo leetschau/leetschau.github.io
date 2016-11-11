@@ -9,9 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="The following codes can display a random date within a month after the specified fair date. $ meteor create randomDate
-$ cd randomDate
-$ meteor add &hellip;">
+  <meta name="description" content="青云把负载均衡器抽象成了三个概念：一是负载均衡器本身；二是监听器，三是后端主机。 负载均衡器分为公网和私有网络两种类型，
+前者可以同时关联多个公网IP，但它绑定的后端只能是公网服务器/私有网络路由器/公网IP，
+后者直接与某个私有网络关联，后端是这个私有网络中某台服务器的某端口。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -40,7 +40,7 @@ $ meteor add &hellip;">
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -73,7 +73,7 @@ $ meteor add &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/09/20/212102/">Generate Random Date After a Specified Date</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/12/29/134651/">青云的负载均衡器</a></h1>
     
     
       <p class="meta">
@@ -82,158 +82,131 @@ $ meteor add &hellip;">
 
 
 
-<time class='entry-date' datetime='2015-09-20T21:21:02+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:21 pm</span></time>
+<time class='entry-date' datetime='2015-12-29T13:46:51+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>1:46 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>The following codes can display a random date within a month after the specified fair date.</p>
+  <div class="entry-content"><p>青云把负载均衡器抽象成了三个概念：一是负载均衡器本身；二是监听器，三是后端主机。</p>
 
-<pre><code>$ meteor create randomDate
-$ cd randomDate
-$ meteor add momentjs:moment
-$ cat randomDate.html
-&lt;head&gt;
-  &lt;title&gt;Random Date&lt;/title&gt;
-&lt;/head&gt;
+<p>负载均衡器分为<em>公网</em>和<em>私有网络</em>两种类型，
+前者可以同时关联多个公网IP，但它绑定的后端只能是公网服务器/私有网络路由器/公网IP，
+后者直接与某个私有网络关联，后端是这个私有网络中某台服务器的某端口。
+<em>公网</em>类型的负载均衡器可以通过路由器的端口映射实现与私有网络某主机端口连接。</p>
 
-&lt;body&gt;
-  在 展会日期 输入框中输入日期，例如：2015-05-25，然后点击 评论 按钮。
-  &lt;hr&gt;
+<p>监听器代表负载均衡器对外提供的协议类型和端口；
+后端主机页面上的"端口"指的是后端主机上服务进程监听的端口。</p>
 
-&lt;/body&gt;
+<p>只要用户创建负载均衡器、监听器、主机，就可以在界面里完成负载均衡器的所有操作。</p>
 
-&lt;template name="DatePanel"&gt;
-  &lt;label&gt;展会日期：&lt;/label&gt;
-  &lt;input type="text" id="fairDate"&gt;
-  &lt;button&gt;评论&lt;/button&gt;
-  &lt;p&gt;评论添加日期：&lt;/p&gt;
-&lt;/template&gt;
+<p>一条转发策略，代表一条从域名到主机和端口的关联规则，所以如果是同一个服务有多个域名，
+可以配置在同一个转发策略里。
+如果是两个不同的服务，即使是同一IP不同端口，也要配置在不同的转发策略里。</p>
 
-$ cat randomDate.js
-if (Meteor.isClient) {
-  Template.DatePanel.helpers({
-    commentDate: function () {
-      return Session.get('commentDate');
-    }
-  });
+<h1>示例</h1>
 
-  Template.DatePanel.events({
-    'click button': function (e, t) {
-      var dateStr = t.find("#fairDate").value;
-      var fairDate = moment(dateStr);
-      var randomDays = Math.floor((Math.random() * 30) + 1);
-      var commentDate = fairDate.add(randomDays, 'days');
-      var commStr = commentDate.format("YYYY-MM-DD");
-      Session.set('commentDate', commStr);
-    }
-  });
-}
+<h2>添加第一个服务</h2>
 
-$ meteor
-</code></pre>
-</div>
-  
-  
+<p>需要将内网中的一台服务器作为beta服务器，
+外部用户可以通过域名 beta.nufair.com 从公网访问，实现方法：</p>
 
+<ol>
+<li><p>在青云控制台 [计算与网络 -> 公网IP]中购买IP地址 nufairIP: 123.234.34.5</p></li>
+<li><p>在域名 (nufair.com) DNS配置中增加一条A记录：beta -> 123.234.34.5</p></li>
+<li><p>新建 [路由器] nufairRouter, 绑定nufairIP;</p></li>
+<li><p>新建 [私有网络] nufairNet, 绑定nufairRouter;</p></li>
+<li><p>新建 [主机] beta-app.nufair.com, IP: 192.168.100.121, 加入 nufairNet;</p></li>
+<li><p>在 beta-app.nufair.com 中部署应用，服务监听端口 3000;</p></li>
+<li><p>新建 [负载均衡器] nufairLB, IP：192.168.100.4, 绑定nufairNet;</p></li>
+<li><p>[nufairRouter -> 端口转发]中添加规则 http-route: tcp 80 -> 192.168.100.4 80</p></li>
+<li><p>[nufairRouter -> 基本属性]中点击[防火墙]，在其中增加规则：允许80端口下行；</p></li>
+<li><p>[nufairLB -> 转发策略] 中新建转发策略:</p>
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/16/101529/">A JavaScript Closure Demo</a></h1>
-    
-    
-      <p class="meta">
-        
+<blockquote><p>名称：app-beta
+匹配方式：匹配任意规则</p></blockquote>
+
+及其规则：
+
+<blockquote><p>规则类型: 按域名转发
+规则内容: beta.nufair.com</p></blockquote></li>
+<li><p>nufairLB 中新建一个[监听器] http-listener, 为其[添加后端]，</p>
+
+<blockquote><p>名称：beta
+网络：受管私有网络
+主机：192.168.100.121
+端口：3000</p></blockquote>
+
+<p>创建完成后，在[转发策略]一栏中点击[绑定]，选择[app-beta].</p></li>
+</ol>
 
 
+<h2>添加第二个服务</h2>
+
+<p>需要将内网中另一台服务器作为生产服务器，通过域名nufair.com和www.nufair.com访问。</p>
+
+<ol>
+<li><p>青云控制台中购买一台主机，IP: 192.168.100.21, 在上面部署生产应用，服务监听端口3000;</p></li>
+<li><p>在域名 (nufair.com) DNS配置中增加两条A记录：
+@ -> 123.234.34.5
+www -> 123.234.34.5</p></li>
+<li><p>[nufairLB -> 转发策略] 中新建转发策略:</p>
+
+<blockquote><p>名称：app-production
+匹配方式：匹配任意规则</p></blockquote>
+
+及其规则：
+
+<blockquote><p>规则类型: 按域名转发
+规则内容: nufair.com www.nufair.com</p></blockquote></li>
+<li><p><a href="">nufairLB -> http-listener -> 添加后端</a>:</p>
+
+<blockquote><p>名称：prod
+网络：受管私有网络
+主机：192.168.100.21
+端口：3000</p></blockquote>
+
+<p>创建完成后，在[转发策略]一栏中点击[绑定]，选择[app-production].</p></li>
+</ol>
 
 
-<time class='entry-date' datetime='2015-09-16T10:15:29+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:15 am</span></time>
-        
-      </p>
-    
-  </header>
+<p>说明：</p>
 
+<p>转发策略的规则里，如果是按域名转发，注意一级域名，如nufair.com，
+它实际上是<code>*.nufair.com</code>，当监听器的某个后端绑定了这样的规则后，
+它后面的后端再绑定这个一级域名下的二级域名将无效，
+例如将test.nufair.com指向100.21服务器的4500端口，</p>
 
-  <div class="entry-content"><p>下面的代码演示了JavaScript中的闭包：</p>
+<p>[nufairLB -> 转发策略] 中新建转发策略:</p>
 
-<pre><code>$ cat test.js
-x = 100;
-inc = function(){
-  var x = 0;
-  return function(){
-    console.log(x++);
-  };
-};
-inc1 = inc();
-inc2 = inc();
+<blockquote><p>名称：app-test
+匹配方式：匹配任意规则</p></blockquote>
 
-$ node
-&gt; require('./test.js')
-{}
-&gt; x
-100
-&gt; inc
-[Function]
-&gt; inc1
-[Function]
-&gt; inc2
-[Function]
-&gt; inc1()
-0
-undefined
-&gt; inc1()
-1
-undefined
-&gt; inc1()
-2
-undefined
-&gt; inc2()
-0
-&gt; inc2()
-1
-undefined
-&gt; inc2()
-2
-undefined
-&gt; inc2()
-3
-undefined
-&gt; inc2()
-4
-undefined
-&gt; inc1()
-3
-undefined
-&gt; inc()
-[Function]
-&gt; inc()()
-0
-undefined
-&gt; inc()()
-0
-undefined
-</code></pre>
+<p>  及其规则：</p>
 
-<p>可以看到inc2()最后一次执行时内部x值为4，
-inc1不受影响，执行时依然从上次的2开始增加变成3，
-所以，不同的闭包（这里是inc1和inc2）保存了自己单独的内部变量x，
-其中一个变化不会影响另一个的值。</p>
+<blockquote><p>规则类型: 按域名转发
+规则内容: test.nufair.com</p>
 
-<p>由于每次执行inc()返回一个新的function，所以每次执行<code>inc()()</code>都打印0。</p>
+<p>名称：test
+网络：受管私有网络
+主机：192.168.100.21
+端口：4500</p></blockquote>
+
+<p>  创建完成后，在[转发策略]一栏中点击[绑定]，选择[app-test].</p>
+
+<p>应用修改后，test.nufair.com仍然指向3000端口上的服务，
+原因是它作为nufair.com的二级域名，被app-production中的一级域名覆盖了，
+解决方法是，从app-production中去掉"nufair.com".</p>
+
+<p>修改负载均衡器IP地址后需要注意：
+要相应修改路由器中端口转发中目标（也就是负载均衡器）的IP地址。</p>
 
 <p>参考：</p>
 
-<p><a href="http://www.zhihu.com/question/35060711/answer/62641357?group_id=627257263421976576#comment-94699289">javascript的闭包的概念和ruby的闭包的概念有何异同？</a>.</p>
+<p><a href="http://network.51cto.com/art/201504/472491.htm">青云QingCloud：云上最强负载均衡服务</a></p>
 
-<p>&ldquo;Load and execute external js file in node.js with access to local variables?&rdquo; on StackOverflow.</p>
+<p><a href="https://docs.qingcloud.com/guide/loadbalancer.html">负载均衡器指南</a></p>
 </div>
   
   
@@ -246,7 +219,7 @@ inc1不受影响，执行时依然从上次的2开始增加变成3，
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/09/15/122519/">JSDoc Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/12/27/185843/">Move Some Commit From One Repo to Another</a></h1>
     
     
       <p class="meta">
@@ -255,91 +228,35 @@ inc1不受影响，执行时依然从上次的2开始增加变成3，
 
 
 
-<time class='entry-date' datetime='2015-09-15T12:25:19+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:25 pm</span></time>
+<time class='entry-date' datetime='2015-12-27T18:58:43+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:58 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>JSDoc is a documentation generator similar to JavaDoc or PHPDoc.</p>
+  <div class="entry-content"><p>We need move all commit between origin/develop to develop in an old repo
+to a new repo.</p>
 
-<h1>JSDoc</h1>
+<p>Export all commits in old repo:</p>
 
-<p>Install <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> with <code>npm install -g jsdoc</code>.
-Generate docs with <code>jsdoc **/*.js</code>.</p>
+<pre><code>cd /path/to/old-repo
+git format-patch origin/develop..develop
+</code></pre>
 
-<h1>YUIDoc</h1>
+<p>Now you have many .patch files in old repo.
+Each patch file represents a commit between origin/develop and develop.</p>
 
-<p><a href="http://yui.github.io/yuidoc/">YUIDoc</a> is suitable for generate documentation for <a href="http://yuilibrary.com/">YUI</a>,
-a JavaScript library, and no longer actively maintained.</p>
+<p>Apply these patches in new repo:</p>
 
-<p>It can only list modules and classes on the homepage,
-which is not very suitable for general purpose jsdoc.</p>
-
-<p>Install it with <code>npm install -g yuidocjs</code>.
-Run it with <code>yuidoc .</code>.
-It creates a folder named &ldquo;out&rdquo; by default in the current directory.
-Open the index.html in &ldquo;out&rdquo; folder to see the doc.</p>
-
-<h1>Editor</h1>
-
-<p>vim with <a href="https://github.com/scrooloose/nerdcommenter">scrooloose/nerdcommenter</a>.
-Use <code>&lt;leader&gt;cs</code> to add block comment.
-But note that the block generated by this plugin is started by <code>/*</code>, which is invalid for jsdoc and yuidoc.
-You have to add an asterisk behind it as <code>/**</code>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/12/233609/">Push to Github Repository With SSH Keys</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-09-12T23:36:09+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:36 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I want push to github repository without input username and password.</p>
-
-<ol>
-<li><p>Add pub key to github account [profile -> settings -> SSH keys];</p></li>
-<li><p>Set up git default user name and email address with <code>git config --global user.name</code>
-and <code>git config --global user.email</code>;</p></li>
-<li><p>Test ssh connection: <code>ssh -T git@github.com</code>;</p></li>
-<li><p>Modify remote repo address: from <code>https://github.com/USERNAME/OTHERREPOSITORY.git</code> to
-<code>git@github.com:USERNAME/OTHERREPOSITORY.git</code>, where first replace <code>https://</code> with <code>git@</code>,
-then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
-</ol>
-
-
-<p>Now you can push to github repo (<code>git push origin master</code>) without input username and password.</p>
+<pre><code>cd /path/to/new-repo
+git checkout develop
+git am /path/to/old-repo/*.patch
+</code></pre>
 
 <p>Ref:</p>
 
-<p><a href="http://stackoverflow.com/questions/6565357/git-push-requires-username-and-password">Git push requires username and password</a></p>
-
-<p><a href="https://help.github.com/articles/set-up-git/#next-steps-authenticating-to-github-from-git">Set Up Git</a></p>
-
-<p><a href="https://help.github.com/articles/generating-ssh-keys/">Generating SSH keys</a></p>
-
-<p><a href="https://help.github.com/articles/changing-a-remote-s-url/">Changing a remote&rsquo;s URL</a></p>
+<p><a href="http://stackoverflow.com/questions/5062389/getting-started-with-git-am">Getting started with git-am</a></p>
 </div>
   
   
@@ -352,7 +269,7 @@ then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/09/12/093754/">Change SSH Port on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/12/25/102101/">WebSocket Error 400 in Meteor App</a></h1>
     
     
       <p class="meta">
@@ -361,21 +278,323 @@ then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
 
 
 
-<time class='entry-date' datetime='2015-09-12T09:37:54+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:37 am</span></time>
+<time class='entry-date' datetime='2015-12-25T10:21:01+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:21 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Modify /etc/ssh/sshd_config:</p>
+  <div class="entry-content"><p>I deploy a Meteor app, and proxy it with nginx.
+When connect to the app server, there&rsquo;s a websocket error:</p>
+
+<p>WebSocket connection to &lsquo;ws://prod-app-192-168-100-21.newfairs-inc.com/sockjs/311/ud_4e5xf/websocket&rsquo; failed:
+Error during WebSocket handshake: Unexpected response code: 400</p>
+
+<p>Solution:</p>
+
+<pre><code>cat /etc/nginx/sites-enabled/newfairs
+server {
+  server_name prod-app-192-168-100-21.newfairs-inc.com;
+  location / {
+    proxy_pass http://localhost:3000/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/17014969/meteor-websocket-handshake-error-400-with-nginx">Meteor WebSocket handshake error 400 with nginx</a></p>
+
+<p><a href="http://nginx.org/en/docs/http/websocket.html">WebSocket proxying</a></p>
+
+<p><a href="http://stackoverflow.com/questions/30171179/meteor-websocket-connection-to-ws-websocket-failed-error-during-websock">http://stackoverflow.com/questions/30171179/meteor-websocket-connection-to-ws-websocket-failed-error-during-websock</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/12/23/030734/">Install Wordpress on Ubuntu 14.04</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-12-23T03:07:34+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>3:07 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>MySQL database is installed on the host when installing
+Phabricator. We use this database as backend of our new
+Wordpress service.</p>
+
+<pre><code>$ sudo useradd -m -s /bin/bash wordpress
+$ sudo su - wordpress
+$ mysql -u root -p'NewFairs0910'
+&gt; CREATE DATABASE wordpress;
+&gt; CREATE USER nfadmin@localhost IDENTIFIED BY 'nfMysQL2015';
+&gt; GRANT ALL PRIVILEGES ON wordpress.* TO nfadmin@localhost;
+&gt; FLUSH PRIVILEGES;
+&gt; exit
+$ wget http://wordpress.org/latest.tar.gz
+$ tar zxf latest.tar.gz
+$ sudo apt-get update
+$ sudo apt-get install php5-gd libssh2-php
+$ cd ~/wordpress
+$ cp wp-config-sample.php wp-config.php
+</code></pre>
+
+<p>Modify wp-config.php according to above values for mysql:</p>
+
+<pre><code>define('DB_NAME', 'wordpress');
+define('DB_USER', 'nfadmin');
+define('DB_PASSWORD', 'nfMysQL2015');
+define('DB_HOST', 'localhost');
+</code></pre>
+
+<p>Create file /etc/apache2/sites-available/wordpress.conf:</p>
+
+<pre><code>&lt;VirtualHost *:80&gt;
+  ServerName cms.newfairs-inc.com
+  DocumentRoot /home/wordpress/wordpress
+&lt;/VirtualHost&gt;
+
+&lt;Directory "/home/wordpress/wordpress"&gt;
+  Require all granted
+&lt;/Directory&gt;
+</code></pre>
+
+<p>Enable it:</p>
+
+<pre><code>cd /etc/apache2/sites-enabled
+ln -s /etc/apache2/sites-available/wordpress.conf wordpress.conf
+</code></pre>
+
+<p>Then restart apache server: <code>sudo service apache2 restart</code>.</p>
+
+<p>Open &ldquo;cms.newfairs-inc.com&rdquo; in browser, start wordpress installation.</p>
+
+<pre><code>website title: Newfairs CMS
+username: nfcms
+pwd: nEwfAIrsAt6102
+</code></pre>
+
+<p>Note: A &ldquo;Forbidden. You don&rsquo;t have permission to access /&rdquo; error appears
+without &ldquo;Require all granted&rdquo;.</p>
+
+<p>After installation, install wordpress plugin &ldquo;WordPress REST API (Version 2)&rdquo;
+with <a href="http://wp-cli.org/">wp-cli.phar</a>:</p>
+
+<pre><code>curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+chmod 755 wp-cli.phar
+mv wp-cli.phar /usr/local/bin/wp
+wp --info
+sudo su - wordpress
+cd wordpress
+wp plugin list
+wp plugin search rest
+wp plugin install rest-api
+</code></pre>
+
+<p>Note:</p>
+
+<p>We can&rsquo;t install plugin &ldquo;WordPress REST API (Version 2)&rdquo; through
+&ldquo;Plugin -> Add New&rdquo; in Wordpress web page.</p>
+
+<p>It need ssh/ftp username and password. And the ssh port must be 22.
+While our ssh port is 222.</p>
+
+<p>Ref:</p>
+
+<p><a href="https://www.digitalocean.com/community/tutorials/how-to-install-wordpress-on-ubuntu-14-04">https://www.digitalocean.com/community/tutorials/how-to-install-wordpress-on-ubuntu-14-04</a></p>
+
+<h1>Reset Wordpress Admin password</h1>
+
+<pre><code>su - wordpress
+cd $HOME/wordpress    # which is $WP_HOME
+wp user list          # where you can find the administrator's name is nfcms
+wp user update nfcms --user_pass=nEwfAIrsAt6102
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://codex.wordpress.org/Resetting_Your_Password">Resetting Your Password</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/12/10/165329/">A Lightweight Message Queue</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-12-10T16:53:29+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:53 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>RSMQ</h1>
+
+<p><a href="http://smrchy.github.io/rsmq/">RSMQ</a> is a lightweight message queue
+based on Redis.</p>
+
+<h2>Setup Redis Server on Docker</h2>
+
+<p>Start Redis server on docker:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>docker run --name myredis -d redis
+</span><span class='line'>                  -------
+</span><span class='line'>                     A
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Connect to the server with:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>docker run -it --link myredis:redis --rm redis bash -c <span class="s1">&#39;redis-cli -h redis&#39;</span>
+</span><span class='line'>                      ------- -----                                  -----
+</span><span class='line'>                         A      B                                      B
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>or the full version:
+<code>docker run -it --link myredis:redis --rm redis bash -c 'exec redis-cli -h "$REDIS_PORT_6379_TCP_ADDR" -p "$REDIS_PORT_6379_TCP_PORT"'</code>.</p>
+
+<p>Now in redis console, use <code>info</code> to get the server&rsquo;s version;</p>
+
+<p><code>keys *</code> to list all keys;
+<code>set mykey "hello"</code> to add a key/value pair.
+<code>get mykey</code> to fetch the key&rsquo;s value.</p>
+
+<p>Note:</p>
+
+<ol>
+<li>Names labled with &ldquo;A&rdquo; is the container&rsquo;s name of Redis server.
+Names labled with &ldquo;B&rdquo; is the name alias of Redis server container used
+by Redis client container.</li>
+</ol>
+
+
+<h2>Setup Redis on Metal Host</h2>
+
+<p>Install Redis on Ubuntu 14.04 with:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>apt-get install -y python-software-properties <span class="c"># optional</span>
+</span><span class='line'>add-apt-repository -y ppa:rwky/redis
+</span><span class='line'>apt-get update
+</span><span class='line'>apt-get install -y redis-server
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Install rsmq: in project root folder, run<code>npm install rsmq</code>;</p>
+
+<p>Install rsmq-cli: <code>npm install -g rsmq-cli</code>;</p>
+
+<pre><code>rsmq config ls
+rsmq create -q payment            // create a new queue named "payment"
+rsmq ls                           // list all queues
+rsmq stats -q payment             // print stats of queue "payment"
+rsmq send "pay $1000" -q payment  // send a message to "payment"
+rsmq receive -q payment           // receive a message from "payment"
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/11/23/005959/">Linux上的API文档搜索工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-11-23T00:59:59+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>12:59 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Devdocs</h1>
+
+<p>Mac上的Dash是一款很方便的API文档搜索工具，经过一番查找，
+发现了<a href="https://github.com/Thibaut/devdocs">devdocs</a>这个很好的替代品。</p>
+
+<p>devdocs是一款浏览器插件，可以安装在Chrome或者Firefox上，
+所以不论那种操作系统，只要能安装这两款浏览器就可以使用它。</p>
+
+<p>支持地址栏搜索：在地址栏输入"dev"，出现"devdocs.io"自动补全时，按Tab键，
+再输入"meteor createuser"并回车，就可以直接跳转到Meteor的
+Accounts.createUser()方法上。</p>
+
+<p>支持离线下载和自动更新，有夜间模式。</p>
+
+<p>常用的快捷键包括：</p>
 
 <ul>
-<li><p>Port 22 -> 222</p></li>
-<li><p>PermitRootLogin yes -> no</p></li>
-<li><p>PasswordAuthentication yes -> no</p></li>
+<li><p>ESC: 重新搜索；</p></li>
+<li><p>Tab: 二次筛选，例如输入javascript<Tab>，再输入map，则只在JavaScript中寻找map.</p></li>
+<li><p>Enter: 执行搜索；</p></li>
 </ul>
 
+
+<p>完整的快捷键和说明文档见<a href="http://devdocs.io/help">Help</a>.</p>
+
+<h1>Zeal</h1>
+
+<p>2015.11.20发布的Zeal v0.2.1在Ubuntu 14.04 Unity下运行正常，
+但下载一些docset后无法启动，原因不明。</p>
+
+<p>增加新的Docsets的方法：File -> Options -> Docsets.</p>
 </div>
   
   
@@ -388,7 +607,7 @@ then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/09/12/085417/">Translate English Words in Browser and Console</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/11/22/225751/">Use Postman as the RESTful Tools</a></h1>
     
     
       <p class="meta">
@@ -397,97 +616,132 @@ then replace <code>github.com/</code> with <code>github.com:</code>.</p></li>
 
 
 
-<time class='entry-date' datetime='2015-09-12T08:54:17+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:54 am</span></time>
+<time class='entry-date' datetime='2015-11-22T22:57:51+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>10:57 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Everytime I want to get the meaning of a english word,
-I have to copy the word, open dict.cn,
-paste the word into the box and get the meaning, which is boring.
-Here we demonstrate with the word &ldquo;spoiler&rdquo;.</p>
+  <div class="entry-content"><p>Find <a href="https://chrome.google.com/webstore/search/postman">Postman</a> in chrome web store.
+Install it.
+Open &ldquo;chrome://apps&rdquo; in chrome, click Postman&rsquo;s icon.</p>
 
-<h1>Chrome</h1>
+<p>That&rsquo;s it.</p>
 
-<p>Right click in Chrome&rsquo;s address bar, and select &ldquo;Edit search engines&rdquo;.
-Find &ldquo;dict.cn&rdquo;, set its title to &ldquo;dict.cn&rdquo; (in the 1st column),
-set the shortcut name to &ldquo;dc&rdquo; (the 2nd column, whose origin value is &ldquo;dict.cn&rdquo;),
-remain the command as <code>http://dict.cn/%s</code> (in the 3rd column).</p>
+<p>To send a post with Postman,</p>
+</div>
+  
+  
 
-<p>Now input &ldquo;dc&rdquo; in address bar and press Space key,
-the address bar title is now &ldquo;Search Dict.CN&rdquo;, and input &ldquo;spoiler&rdquo;.</p>
 
-<p>BTW:
-With the same method, define Google with shortcut &ldquo;gg&rdquo; and
-command &ldquo;<a href="https://www.google.com/search?q=%s">https://www.google.com/search?q=%s</a>&rdquo;, and press &ldquo;Make default&rdquo;.
-Now input a word in address bar and press Enter,
-you will get the search result from Google.</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/11/22/212852/">MongoDB Client</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<h1>Console</h1>
 
-<p>Install <code>ici</code> with <code>sudo pip install ici</code>, run it with <code>ici spoiler</code>.</p>
 
-<h1>Firefox</h1>
 
-<p>While there&rsquo;re some google translate extensions of firefox,
-but they are slow and not very complete.
-For example: the word meaning of &ldquo;spoiler&rdquo; in
-&ldquo;This synopsis may contain spoilers.&rdquo; on
-page <a href="http://www.imdb.com/title/tt0209144/synopsis">Synopsis for Memento</a>.
-So I have to build my own translate extension based on dict.cn.</p>
+<time class='entry-date' datetime='2015-11-22T21:28:52+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>9:28 pm</span></time>
+        
+      </p>
+    
+  </header>
 
-<h2>Steps</h2>
+
+  <div class="entry-content"><h1>MongoChef</h1>
+
+<p><a href="http://3t.io/mongochef/">MongoChef</a> is a cross platform MongoDB GUI client.
+Its free version only for non-commercial use.
+It&rsquo;s the best choice I found so far.</p>
+
+<h1>RockMongo</h1>
+
+<h2>Install and Setup</h2>
+
+<p><a href="http://rockmongo.com/">RockMongo</a> is a PHP MongoDB client.</p>
+
+<p>It can&rsquo;t update complicated (nested) data structure, useless.</p>
+
+<p>Install bitnami Nginx Stack;</p>
+
+<p>Run <code>$STACK_HOME/php/bin/pecl install mongo</code>;</p>
+
+<p>Add <code>extension=mongo.so</code> into <code>$STACK_HOME/php/etc/php.ini</code>;</p>
+
+<p>Run <code>mkdir $STACK_HOME/apps/rockmongo</code>;</p>
+
+<p>Download rockmongo-1.1.7.zip, extract to <code>$STACK_HOME/apps/rockmongo</code>;
+and <code>mv rockmongo-1.1.7 htdocs</code>;</p>
+
+<p>In folder <code>$STACK_HOME/apps</code>, run <code>cp -r demo/conf rockmongo/</code>;</p>
+
+<p>In folder <code>$STACK_HOME/apps</code>, replace all <code>demo</code> in <code>rockmongo/conf/nginx-prefix.conf</code>
+to <code>rockmongo</code>;</p>
+
+<p>Add <code>include "/home/leo/apps/nginxstack-1.9.7-0/apps/rockmongo/conf/nginx-prefix.conf";</code>
+into <code>$STACK_HOME/nginx/conf/bitnami/bitnami-apps-prefix.conf</code>;</p>
+
+<p>Modify mongodb connection parameters in <code>$STACK_HOME/apps/rockmongo/htdocs/config.php</code>:
+modify &ldquo;mongo_name&rdquo;, &ldquo;mongo_host&rdquo; and &ldquo;mongo_port&rdquo; as your target value,
+modify &ldquo;mongo_auth&rdquo; and &ldquo;ui_hide_system_collections&rdquo; to &ldquo;true&rdquo;.</p>
+
+<p>Start nginx server: <code>$STACK_HOME/ctlscript.sh start</code>;</p>
+
+<p>Open &ldquo;localhost:8080/rockmongo&rdquo; in your browser, login with your mongodb auth params.</p>
+
+<p>You can add a new mongodb with codes below in apps/rockmongo/htdocs/config.php:</p>
+
+<pre><code>$MONGO["servers"][$i]["mongo_name"] = "AliDB";
+$MONGO["servers"][$i]["mongo_host"] = "123.57.188.18";
+$MONGO["servers"][$i]["mongo_port"] = "15515";
+$MONGO["servers"][$i]["mongo_auth"] = true;
+$MONGO["servers"][$i]["ui_hide_system_collections"] = true;
+$i ++;
+</code></pre>
+
+<p>And validate with <code>./ctlscript.sh restart nginx</code>.</p>
+
+<p>Note:</p>
 
 <ol>
-<li><p>Install Greasemonkey extension in Firefox.</p></li>
-<li><p>Build a new script with the following codes.</p></li>
-<li><p>Select some text and press &ldquo;\&rdquo; key.</p>
-
-<p> // ==UserScript==
- // @name        TranslateIt
- // @namespace   LeoScript
- // @include     *
- // @version     1
- // @grant       none
- // ==/UserScript==</p>
-
-<p> // document.addEventListener(&lsquo;mouseup&rsquo;, getSel, false);
- document.addEventListener(&lsquo;keypress&rsquo;, transIt, false);</p>
-
-<p> function transIt(e) {
-   // console.log(e.key);
-   if (e.key !== &lsquo;\&rsquo;){ return; }
-   var sel = document.getSelection().toString();
-   if (sel) { window.open(&lsquo;<a href="http://dict.cn/">http://dict.cn/</a>&rsquo; + sel); }
- }</p></li>
+<li><p>The nginx listening port (here is 8080) is defined in
+<code>$STACK_HOME/nginx/conf/bitnami/bitnami.conf</code>;</p></li>
+<li><p>If you logged in with a previous user in browser, click &ldquo;logout&rdquo; button
+in upper-right corner to logout. Specify target username, passowrd and database
+in login page.</p></li>
 </ol>
 
 
-<p>Sometimes the popuped windows will be blocked by the browser.
-Add the website into the whitelist of the blocked sites.</p>
+<h2>Usage</h2>
 
-<p>To debug the script, modify and save the script,
-reload the web page, and test the script.</p>
+<p>You have to write regex query in this way: <code>{ "chnName": { "$regex": "98" } }</code>,
+and it didn&rsquo;t accept this form: <code>{ "chnName": /98/ }</code>.</p>
 
-<h2>References:</h2>
+<p>Specify which fields will be shown in the results at the &ldquo;Fields&rdquo; dropdown list
+below the query box.</p>
 
-<p><a href="http://hayageek.com/greasemonkey-tutorial/#install-greasemonkey">Greasemonkey Tutorial for Beginners</a></p>
+<h1>UMongo</h1>
 
-<p>Get selected text:</p>
+<p><a href="http://edgytech.com/umongo/">UMongo</a> can only setup 1 connection,
+and if the user is not root, it will give a auth failed error.</p>
 
-<p><a href="http://stackoverflow.com/questions/3260926/greasemonkey-addeventlistener-questions">greasemonkey: addEventListener questions</a></p>
+<h1>MongoVUE</h1>
 
-<p><a href="http://www.w3schools.com/jsref/met_document_addeventlistener.asp">HTML DOM addEventListener() Method</a></p>
-
-<p>Test if ctrl or alt key is pressed on clicking:</p>
-
-<p><a href="http://stackoverflow.com/questions/6806271/javascript-check-if-ctrl-button-was-pressed">JavaScript: Check if CTRL button was pressed</a></p>
-
-<p>search &lsquo;altKey&rsquo; in <a href="http://www.w3schools.com/jsref/dom_obj_event.asp">HTML DOM Events</a></p>
-
-<p><a href="http://stackoverflow.com/questions/4907843/open-a-url-in-a-new-tab-using-javascript">Open a URL in a new tab using JavaScript</a></p>
+<p>Only for Windows. I tested v1.6.9 on Windows 7 64bit.
+It can&rsquo;t connect to mongo replica set. (Always auth failed).
+When connected with a local mongodb server,
+searching and &ldquo;copy as json text&rdquo; function is ok.
+But crash and quit when copy a part in a document.</p>
 </div>
   
   
@@ -500,7 +754,7 @@ reload the web page, and test the script.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/08/28/112117/">Detect Website Information</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/11/20/104508/">Clear Chrome DNS Cache</a></h1>
     
     
       <p class="meta">
@@ -509,24 +763,28 @@ reload the web page, and test the script.</p>
 
 
 
-<time class='entry-date' datetime='2015-08-28T11:21:17+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:21 am</span></time>
+<time class='entry-date' datetime='2015-11-20T10:45:08+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:45 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Based on <a href="http://stackoverflow.com/questions/396739/how-do-you-determine-what-technology-a-website-is-built-on">How do you determine what technology a website is built on?</a>.</p>
+  <div class="entry-content"><p>Problem:
+When open &ldquo;cms.nzw.com&rdquo; with Chrome, it always jump to &ldquo;localhost&rdquo;.
+But open the same address in Firefox, it works good.</p>
 
-<p>Website:</p>
+<p>Possible reason:
+Chrome cache some DNS or sockets information, which should be cleaned.</p>
 
-<p><a href="http://builtwith.com/">BuiltWith</a>.</p>
+<p>Solution:
+Open &ldquo;chrome://net-internals/#dns&rdquo; in Chrome,
+click &ldquo;Clear host cache&rdquo;.
+Open &ldquo;chrome://net-internals/#sockets&rdquo;,
+click &ldquo;Close idle sockets&rdquo; and &ldquo;Flush socket pools&rdquo;.
+Restart Chrome.</p>
 
-<p><a href="http://w3techs.com/sites/">W3Techs</a>.</p>
-
-<p>Browser plugins:</p>
-
-<p><a href="https://wappalyzer.com/">Wappalyzer</a> for firefox and chrome.</p>
+<p>Ref: <a href="http://www.howtogeek.com/197804/how-to-clear-the-google-chrome-dns-cache-on-windows/">How to Clear the Google Chrome DNS cache on Windows</a></p>
 </div>
   
   
@@ -539,7 +797,7 @@ reload the web page, and test the script.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/08/19/100625/">Underscore Highlights Problem in Vim Markdown Documents</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/11/19/103131/">Linux的图形化Git客户端</a></h1>
     
     
       <p class="meta">
@@ -548,157 +806,23 @@ reload the web page, and test the script.</p>
 
 
 
-<time class='entry-date' datetime='2015-08-19T10:06:25+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:06 am</span></time>
+<time class='entry-date' datetime='2015-11-19T10:31:31+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:31 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Install GFM plugin for vim</h1>
+  <div class="entry-content"><p>这里的客户端不包括只有浏览功能的viewer，比如gitk, gitg等。
+下面两个客户端都需要安装JRE. 不需要安装，解压后直接使用。</p>
 
-<p>To fix the highlight problem,
-use <code>Plugin 'jtratner/vim-flavored-markdown'</code> instead of
-<code>Plugin 'plasticboy/vim-markdown'</code> in .vimrc,
-and run <code>vim +PluginClean +PluginInstall +qall</code>.</p>
+<h1>GitEye</h1>
 
-<h1>Use Atom as Editor</h1>
+<p>需要在repo里增加一个.project文件，然后在.gitignore里加入这个文件，不够clean。</p>
 
-<p>Install <a href="https://atom.io/">Atom</a> and modify the value of &ldquo;EDITOR&rdquo; in $DSNOTE_HOME/notes.sh to &ldquo;atom -f&rdquo;.</p>
+<h1>SmartGit</h1>
 
-<h2>Run in foreground</h2>
-
-<p>dsnot works in sync manner, while the default Atom working flow is async.
-So use &ldquo;atom -f&rdquo; instead of &ldquo;vim&rdquo; for the value of variable &ldquo;EDITOR&rdquo;.</p>
-
-<h2>Chinese character support</h2>
-
-<p>Verified on Ubuntu 14.04 LTS.</p>
-
-<p>First install font &ldquo;文泉驿正黑&rdquo;:</p>
-
-<pre><code>sudo aptitude install ttf-wqy-microhei
-sudo aptitude install ttf-wqy-zenhei
-</code></pre>
-
-<p>Then press &ldquo;Ctrl+,&rdquo; to open settings panel:</p>
-
-<p>Set [Settings -> Editor Settings -> Font Family] as:</p>
-
-<pre><code>DejaVu Sans Mono, 文泉驿正黑
-</code></pre>
-
-<p>But Chinese characters can&rsquo;t be displayed in preview window.</p>
-
-<h2>Toggle Tree View</h2>
-
-<p>Use <code>ctrl-\</code> to toggle tree view.
-<code>alt-\</code> or <code>ctrl-0</code> to focus it.</p>
-
-<h2>Markdown editing and preview</h2>
-
-<p>Use <code>Ctrl-Shift-M</code> to toggle preview panel.
-Install some advanced packages:</p>
-
-<pre><code>apm search vim
-apm install vim-mode
-apm install markdown-scroll-sync
-apm install markdown-writer
-apm install markdown-preview-plus
-apm install markdown-format
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/19/002231/">PHPStorm Notes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-19T00:22:31+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:22 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>On Linux (Ubuntu 14.04 LTS), openjdk-7-jdk must be installed before running PhpStorm 9.0.</p>
-
-<p>To startup PHPStorm, Alt-F2, input <code>pstorm</code>.</p>
-
-<h1>Important Shortcuts</h1>
-
-<p>Double Shift: search everything;</p>
-
-<p>Shift - Ctrl - N: open file in project (fuzzy find);</p>
-
-<p>Alt - F12: switch focus between editor and terminal (you can use fzf and autojump in terminal);</p>
-
-<p>Shift - ESC: hide navigation bar;</p>
-
-<p>Alt-1: Toggle and focus navigation bar;</p>
-
-<p>ESC: focus editor;</p>
-
-<h1>Editor</h1>
-
-<h2>IdeaVim</h2>
-
-<p><code>:q</code>: close file;</p>
-
-<p><code>:vs</code>: split vertical;</p>
-
-<p>Ref:</p>
-
-<p><a href="https://www.jetbrains.com/phpstorm/help/keyboard-shortcuts-you-cannot-miss.html">Keyboard Shortcuts You Cannot Miss</a>;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/14/160315/">eCommerce Framework</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-14T16:03:15+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>4:03 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="https://github.com/magento">Magento</a>: PHP, Zend Framework, bitnami</p>
-
-<p>Node extension with Magento:</p>
-
-<p><a href="https://github.com/spree/spree">spree</a>: Ruby on Rails</p>
-
-<h1>Magento</h1>
+<p>商业应用付费，非商业用途免费；</p>
 </div>
   
   
@@ -723,23 +847,23 @@ apm install markdown-format
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

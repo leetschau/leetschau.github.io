@@ -9,7 +9,7 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="财务分析主要目的是搞清楚一段时间内支出的去向，某类消费所占的比重有多少，主要用到的工具是 Reports->Income &amp; Expense目录下的Expense Barchart、Expense Piechart、Income Barchart和Income Piechart四项。 &hellip;">
+  <meta name="description" content="经验总结：首先要把cobertura.jar包含ant的classpath路径中，其次要求它包含在测试用例的classpath中； 使用cobertura做代码覆盖率测试中出现的问题：覆盖率始终为0，不论是否有可用的测试用例都如此； 解决问题的历程： 第一步：在被测工程中增加了一个很简单的方法， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -38,7 +38,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -71,7 +71,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/11/17/101025/">用Gnucash做财务分析</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/02/14/085951/">使用Cobertura做代码覆盖率测试</a></h1>
     
     
       <p class="meta">
@@ -80,14 +80,38 @@
 
 
 
-<time class='entry-date' datetime='2010-11-17T10:10:25+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:10 am</span></time>
+<time class='entry-date' datetime='2011-02-14T08:59:51+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:59 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>财务分析主要目的是搞清楚一段时间内支出的去向，某类消费所占的比重有多少，主要用到的工具是 Reports->Income &amp; Expense目录下的Expense Barchart、Expense Piechart、Income Barchart和Income Piechart四项。 其中Barchart是饼图，用来分析总体收入/支出中各种成分所占的比重，Barchart是柱状图，以时间为横轴，以支出金额为纵轴，显示各种消费成分随时间的变化。 对于每一个分析图，都可以指定分析的时间段、消费种类的数量（例如一共有8种支出类型，但Barchart报告的“Max Bar”设为5，则消费量最少的4中类型合起来作为Other显示在柱状图中）、目标账户（account），以及图的高度、宽度等，Barchart还可以指定时间单位，选择以日/周/月/季度/年为单位。还可以用Print将报告打印出来，Export功能输出的是空的html文档，可能目前这个功能还没实现？  Gnucash的资金流报告工具也很有用：Reports->Income &amp; Expense->Cash Flow，生成指定账户（account）资金的流入/流出报告。资金流报告适于具体分析某一账户（如针对日常用品支出，现金付账了多少，信用卡付账了多少），但不适用于分析整体支出状况（如日常用品与其他类型支出的对比占多大比重），这方面用Piechart分析最合适。</p>
+  <div class="entry-content"><p>经验总结：首先要把cobertura.jar包含ant的classpath路径中，其次要求它包含在测试用例的classpath中；</p>
+
+<p>使用cobertura做代码覆盖率测试中出现的问题：覆盖率始终为0，不论是否有可用的测试用例都如此；</p>
+
+<p>解决问题的历程：</p>
+
+<p>第一步：在被测工程中增加了一个很简单的方法，在测试工程中增加了一个对前述方法的测试，发现覆盖度仍为0，由此确定是使用cobertura的方法有问题，而不是测试用例覆盖度确实为0；</p>
+
+<p>第二步：分离了cobertura中进行junit测试报告（以下简称为cob-junit）与cobertura测试报告（之前是放在一个文件夹里，难以区分哪些是junit的报告，哪些是cobertura的报告，后来放在了两个不同的文件夹中）；</p>
+
+<p>第三步：分离后发现：cob-junit的测试报告与纯junit测试报告显示的测试数不同，纯junit的测试用例数正确，cob-junit测试用例数总为1，且运行错误（error），说明测试用例未能启动；检查错误原因：提示“java.lang.NoClassDefFoundError: net/sourceforge/cobertura/coveragedata/HasBeenInstrumented”；</p>
+
+<p>第四步：尝试解决上述错误。google后发现引起这个错误的原因是没有把cobertura.jar包含在测试用例的classpath中，也就是测试工程的ivy.xml文件的依赖条目里没有cobertura的jar包，将它加入到ivy.xml的依赖条目中后，解决了覆盖度始终为0的问题；</p>
+
+<p>经验总结：</p>
+
+<ol>
+<li><p>对于自己不熟悉的技术，不要走捷径，如把cob-junit与cobertura测试报告放在一个文件夹里；</p></li>
+<li><p>出错后要仔细阅读错误报告，寻找能够代表这个错误的关键词句，如“java.lang.NoClassDefFoundError: net/sourceforge/cobertura/coveragedata/HasBeenInstrumented”；</p></li>
+<li><p>如果通过错误报告自己不能解决，使用搜索引擎查找前一步中的关键词句，寻找解决问题的可能经验；</p></li>
+<li><p>如果暂时找不到能解决问题的经验，则按照软件（这里是cobertura）的Tutorial（一般来自官网）构建一个最简单的原型，并使其正常工作，然后不断向自己的问题靠拢，在不断修改原型的过程中对可能出错的方面进行筛选，最终锁定出错的位置；</p></li>
+</ol>
+
+
+<p>实践中面对一些古怪的错误，往往要重复、交叉进行很多次第3步和第4步，才能最终解决问题。</p>
 </div>
   
   
@@ -100,7 +124,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/11/11/102004/">Python代码的打包和部署工具</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/27/105812/">视频格式转换软件比较</a></h1>
     
     
       <p class="meta">
@@ -109,18 +133,28 @@
 
 
 
-<time class='entry-date' datetime='2010-11-11T10:20:04+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:20 am</span></time>
+<time class='entry-date' datetime='2011-01-27T10:58:12+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:58 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>setuptools，详情google: python setuptools</p>
+  <div class="entry-content"><p>此处比较的软件共6种，分别是：</p>
 
-<p>等同于java中的jar，python叫作egg，也就是“蛇蛋”</p>
+<p> 狸窝全能：狸窝全能视频转换器，Leawo Video Converter v2.7.0.0</p>
 
-<p>与java中classpath对应的概念是sys.path</p>
+<p> Softstunt： Softstunt RM RMVB Converter</p>
+
+<p>Any Video Conv: Any Video Converter Professional v2.7.6</p>
+
+<p> 软件名称/功能特点 多种格式转换 转换速度 CPU占用率 合并视频 已完成百分比 视频剪辑 目标文件大小 任务列表 任务完成自动关机 已消耗时间 剩余时间 狸窝全能 全部格式 快 100% 能 标识 具备 标识 具备 具备 标识 标识  Softstunt 仅rm->多种格式 慢 单任务40%，双任务80% 不能 标识 不具备 无标识 具备 不具备 无标识 无标识  Any Video Conv 全部格式 快 单任务50% 能 标识 具备 无标识 具备 具备 无标识 无标识</p>
+
+<p>整体而言，Softstunt生成的avi体积太大，CPU占有率太高，一开始转换就无法进行其他工作了，只能转换rm格式视频，在本次PK中首先出局。Leawo和Any的功能都不错，leawo的易用性更胜一筹，Any生成的avi文件体积只是leawo版的一半左右（相同的avi制式），且实验证明用Any生成的xvid格式的avi影片能够在电视上正常放映， 最终的胜出者是 Any Video Converter  。</p>
+
+<p>Any转换格式设置方法：</p>
+
+<p>首先导入影片，以rmvb影片为例，在右边的“视频输出”部分，【编码器(video codec)】选【xvid】；【大小(video size)】选【原先的】；【比特率】选【768】；【帧率】设置为与被转换的影片一样；“音频输出”部分全部用默认值即可。</p>
 </div>
   
   
@@ -133,7 +167,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/11/05/102205/">Eclipse的变量标记开关</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/26/163426/">使用jetty做webserver示例</a></h1>
     
     
       <p class="meta">
@@ -142,26 +176,76 @@
 
 
 
-<time class='entry-date' datetime='2010-11-05T10:22:05+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:22 am</span></time>
+<time class='entry-date' datetime='2011-01-26T16:34:26+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:34 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>例如有如下代码：</p>
+  <div class="entry-content"><p>使用jetty做webserver大体可分为3步：首先配置webserver，如指定起始页是哪个文件等，然后利用jetty写一个server，放在某一个类的main()方法里，最后用shell脚本启动这个main()方法。但实际启动webserver的过程则正好相反，用户首先运行shell脚本，这个脚本运行一个java的main()方法，这个方法里定义了配置文件在什么地方，首先启动哪个页面。下面按照运行顺序分别说明这三个步骤。
+ 运行启动脚本
+脚本应该是一个bat(on windows)或者sh(on unix)文件，下面是一个bat示例：</p>
 
-<p>int var_a = 0;
-int var_b = var_a + 2;</p>
+<p>&ldquo;%JAVA_HOME%\bin\java&rdquo; -javaagent:%GODU_HOME%\WebRoot\WEB-INF\lib\spring\org.springframework.instrument-3.0.4.RELEASE.jar -Xms256m -Xmx512m -Dfile.encoding=GBK -Dservice_name=goduweb -Djava.awt.Window.locationByPlatform=true -cp %JARS% com.boco.godu.web.server. SimpleJettyServer 8080</p>
 
-<p>当光标在var_a变量上时，Eclipse会将代码进行如下标记：
- int var_a = 0;</p>
+<p>实际上就是在%JARS%指定的所有jar包里搜索名为SimpleJettyServer的类，运行其main方法，且带一个参数8080；
+ 写启动类
+下面是一个类main()方法内容：</p>
 
-<p> int  var_b = var_a + 2;</p>
+<p>public static void main(final String[] args) throws Exception {</p>
 
-<p> 这一特性在编写和分析代码时很有用，当这一功能关闭时，用如下方法打开此功能：</p>
+<p>if(args.length>0){</p>
 
-<p> Eclipse菜单->Window->Preferences->Java->Editor->Mark Occurences，勾选“Mark occurences of the selected element in the current file”以及下面的所有选项。</p>
+<p> try{</p>
+
+<p>port= Integer.parseInt(args[0]);</p>
+
+<p> }catch(NumberFormatException e){</p>
+
+<p>throw new Exception(&ldquo;web端口设置出错！&rdquo;);</p>
+
+<p> }</p>
+
+<p>}</p>
+
+<p> Server server = new Server();</p>
+
+<p>SelectChannelConnector connector = new SelectChannelConnector();</p>
+
+<p>connector.setPort(port);</p>
+
+<p>connector.setThreadPool(new QueuedThreadPool(150));// 设置服务线程数量</p>
+
+<p>server.addConnector(connector);</p>
+
+<p>WebAppContext context = new WebAppContext();</p>
+
+<p> context.setContextPath(&ldquo;/godu&rdquo;);</p>
+
+<p> context.setDescriptor(&ldquo;WebRoot/WEB-INF/web.xml&rdquo;);</p>
+
+<p> context.setResourceBase(&ldquo;WebRoot&rdquo;);</p>
+
+<p>context.setConfigurationDiscovered(true);</p>
+
+<p>server.setHandler(context);</p>
+
+<p> server.start();</p>
+
+<p>}</p>
+
+<p>其中"Server server = new Server();&ldquo;中的Server类的全名是org.eclipse.jetty.server.Server，因此最后"server.start()"启动的就是一个jetty服务器，这种jetty服务器的特点是运行在启动它的shell(windows上是bat)命令进程中，当这个进程被关闭时，相应的webserver也就不存在了；
+ 配置webserver
+从第二步中可以看出，server的配置信息放在了"WebRoot/WEB-INF/web.xml"中，这个文件中有如下一段：</p>
+
+<p> <welcome-file-list></p>
+
+<p> <welcome-file>index.jsp</welcome-file></p>
+
+<p> </welcome-file-list></p>
+
+<p>这就定义了当用户在浏览器里输入服务器IP地址并回车后，初始页面是WebRoot文件夹下的index.jsp文件；</p>
 </div>
   
   
@@ -174,7 +258,7 @@ int var_b = var_a + 2;</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/11/03/114432/">Ivy使用手册</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/25/170312/">Gnucash的借款操作</a></h1>
     
     
       <p class="meta">
@@ -183,135 +267,147 @@ int var_b = var_a + 2;</p>
 
 
 
-<time class='entry-date' datetime='2010-11-03T11:44:32+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2010</span></span> <span class='time'>11:44 am</span></time>
+<time class='entry-date' datetime='2011-01-25T17:03:12+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:03 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>安装和配置</p>
+  <div class="entry-content"><p>主要参考：gnucash手册：Chapter 7. Loans，示例：A Personal Loan to a friend (How-To)</p>
 
-<p> 安装  Ivy</p>
+<p>需要在资产（Asset）账户下建立一个“借出钱款”账户，借钱给张三，就是把钱款从个人资产（如银行账户、钱包）账户转到借出账户，在备注里注明借给张三，张三还款就是从借出账户转回资产账户。如果要进行更细致的资金流跟踪，可以在借出账户下建立某人专门的借出账户，这样就可以统计一段时间内针对此人的借出明细。</p>
 
-<p> 下载并解压 Ivy-2.2.0 ；</p>
+<p>如果借给某人并规定分期还款方式和利息，gnucash可以计算出每期应归还的数额，示例见Chapter 7. Loans下的A Personal Loan to a friend (How-To)和Calculations两节。</p>
 
-<p> Eclipse->Window->Preferences->Ant->Runtime->Global Entries->Add External JARs ，添加 IVY 压缩包里的 ivy-2.2.0.jar 和 jsch-0.1.31.jar 。</p>
+<p>比如自己借款2000元给朋友Mike，</p>
+</div>
+  
+  
 
-<p> 安装  IvyDE</p>
 
-<p> Eclipse->Help->Install New Software->Add->Location 设为：</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/24/093309/">PyScripter使用手记</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p> <a href="http://www.apache.org/dist/ant/ivyde/updatesite">http://www.apache.org/dist/ant/ivyde/updatesite</a></p>
 
-<p> 根据要求完成后续安装过程。</p>
 
-<p> 配置  Ivy</p>
 
-<p> Eclipse->Window->Preferences->Ivy->Settings->Ivy settings path 设为：</p>
+<time class='entry-date' datetime='2011-01-24T09:33:09+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:33 am</span></time>
+        
+      </p>
+    
+  </header>
 
-<p> ${project_loc}/ivysettings.xml</p>
 
-<p> 开发过程改进</p>
+  <div class="entry-content"><p>版本：2.4.1.0 运行调试快捷键：默认的几个快捷键都很不方便，在 Tools->Options->IDE shortcuts->Run中修改，将actDebug（调试）快捷键设为F9，将actDebugAbort（退出调试）设为F2； 编辑器背景颜色： Tools->Options->Editor Options->Syntax Colors，【Element】选【Space】，【Background Color】选【#CCCCCC】； 界面语言：【View->Language】； 运行选中的代码（这个功能很强悍）：【Edit->Source Code->Execute selection】； 代码模板：快捷键：Ctrl+J（在Tools->Options->IDE Shortcuts->Edit->actInsertTemplate下面修改）；
+常用快捷键 （在 Tools->Options->Editor Options->keystrokes 中设置， 设置新的快捷键后要点Update按钮使新设置生效 ）  代码补全快捷键（Code Completion）：Alt+J 删除行快捷键：Ctrl+Y； 行选择模式：Ctrl+Shift+L，普通选择模式：Ctrl+Shift+N 选择到匹配括号：Shift+Ctrl+]（对小括号和中括号都有效，光标放在左右括号处均可），仅跳转光标不选中是Ctrl+]； 选择光标右侧一个单词：Ctrl+Shift+Right（光标放在单词开始处按快捷键，如果是多个单词可以多按几次，或者放在单词结尾处按Ctrl+shift+left） 设置书签：Shift+Ctrl+&frac12;/3&hellip;，跳转到书签：Ctrl+&frac12;/3&hellip; 函数搜索：Ctrl+G，可用来快速跳转到某函数；</p>
+</div>
+  
+  
 
-<p> 项目根目录下将不再有 lib 文件夹，相应地两个文件： ivy.xml 和 ivysettings.xml ，开发人员在 ivy.xml 中声明本项目依赖的包（包括第三方包和其他项目的发布包）， ivysettings.xml 定义项目共享库的位置以及从库中获取包的方法。这两个文件由共享库管理员维护，通过 SVN 保持项目成员间的一致。</p>
 
-<p> classpath  整合</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/21/180654/">Windows输入法切换快捷键的一个bug</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p> 使用 Ivy 的第一步是将 Ivy 管理的依赖包整合进项目的 classpath 中，首先将项目依赖写入 ivy.xml 文件，然后设置项目属性： Java Build Path->Libraries->Add Library->IvyDE Managed Dependencies ，后面使用默认设置即可。</p>
 
-<p> 依赖管理</p>
 
-<p> 开发过程中需要增加依赖包时，根据包的类型不同分两种情况分别说明。</p>
 
-<p> 引用第三方包</p>
+<time class='entry-date' datetime='2011-01-21T18:06:54+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>6:06 pm</span></time>
+        
+      </p>
+    
+  </header>
 
-<p> 以 dom4j-1.6.1 为例，在 Maven 共享库 上搜索“ dom4j ”，选择搜索结果中的“ dom4j>dom4j ”，点击进入后选择 1.6.1 版，点击进入后找到“ Apache Ivy ”，将下面的内容（依赖说明）</p>
 
-<p> <dependency org="dom4j" name="dom4j" rev="1.6.1"/></p>
+  <div class="entry-content"><p>Windows系统默认的中英文输入法切换快捷键是Ctrl+Space，但这个设置有一个bug，就是如果修改了这个设置，就无法再改回去了，快捷键里必须有一个Shift，很不方便，下面是一个解决办法：    1、任务栏上的“语言栏”图标上右键&ndash;>设置，出现“文字服务和输入语言”窗体，选中“中文简体-美式键盘”，【删除】；【 确定】后可能需要重启； 2、再次进入 “文字服务和输入语言”窗体，【添加】，【输入语言】选“中文（中国）”，【键盘布局/输入法】选 “中文简体-美式键盘”，如果没有这一项，选“中文（繁体）-美国键盘”。 3、在【键设置】里【输入法/非输入法切换】里取消勾选【启用按键顺序】； 4、在 “文字服务和输入语言”窗体的【默认输入语言】下拉框里选【中文（中国）- 美国键盘】，这样默认打开的程序就是英文输入法状态了；   Windows7下如果误删了默认输入法，会造成不管什么窗体都进入中文输入法的状态，非常别扭，解决方法是在控制面板->区域和语言->键盘和语言->更改键盘，出现 “文字服务和输入语言”窗体，在列表的最下面的“中文（简体，中国）”下勾选“中文（简体）-美式键盘”，确定即可找回丢失的语言栏。</p>
+</div>
+  
+  
 
-<p> 拷贝到 ivy.xml 中，并增加“ transitive=&ldquo;false&rdquo; ”（以避免下载 dom4j 的依赖包）：</p>
 
-<p> <ivy-module ></p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/01/19/111508/">Python发送邮件时的抄送问题</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p> <info  /></p>
 
-<p>  <publications></p>
 
-<p>  </p>
 
-<p>  </publications></p>
+<time class='entry-date' datetime='2011-01-19T11:15:08+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:15 am</span></time>
+        
+      </p>
+    
+  </header>
 
-<p> <dependencies></p>
 
-<p>   <dependency org="dom4j" name="dom4j" rev="1.6.1" transitive="false"/></p>
+  <div class="entry-content"><p>python使用smtp模块的sendmail()方法发送邮件时，并不区分是“发送给”、“抄送给”还是“密送给”，都一视同仁的放在该方法的第二个参数中，但邮件头（也就是收到的邮件中头部“收件人”、“抄送”等信息）却是由第三个参数决定，也就是说邮件的表现形式是在邮件头里定义的，所以如果想“密送”给某人，只要把他的地址加在第二个参数里，而不要在邮件头里出现就行了。下面是代码实例。</p>
 
-<p>   </p>
-
-<p>  </dependencies></p>
-
-<p> </ivy-module></p>
-
-<p> 保存文件后如果出现“包无法解析”错误，说明共享库中没有此三方包，需要将依赖说明发给共享库管理员，由其更新共享库后重新解析即可。</p>
-
-<p> 引用项目发布包</p>
-
-<p> 在 ivy.xml 中添加：</p>
-
-<p> <dependency org="com.boco" name="godu" rev="2.1" transitive="false"/></p>
-
-<p> 定义项目发布包</p>
-
-<p> 定义本项目所发布的产品，以便于其他项目引用，在 ivy.xml 的 publications 部分声明产品名称、类型、扩展名等，例如：</p>
-
-<p> <ivy-module ></p>
-
-<p>  <info  /></p>
-
-<p>  <publications></p>
-
-<p>   <artifact name="gapi" type="jar" ext="jar" /></p>
-
-<p>  </publications></p>
-
-<p> <dependencies></p>
-
-<p>   </p>
-
-<p>  </dependencies></p>
-
-<p> </ivy-module></p>
-
-<p> 发布过程改进</p>
-
-<p> 打包脚本</p>
-
-<p> 纯 Ant 打包脚本向 Ant+Ivy 打包脚本迁移非常简单，只要在编译任务开始前增加“获取”任务，其他完全保持不变：</p>
-
-<p> <target name="resolve" depends="init" description=""></p>
-
-<p>  &lt;ivy:retrieve pattern=&ldquo;${lib.dir}/[artifact].[ext]&rdquo;/></p>
-
-<p> </target></p>
-
-<p> 通过修改 pattern 属性，可以将依赖包在 lib 文件夹里以不同的方式组织，例如安装“类型”属性分文件夹放置：</p>
-
-<p> pattern=&ldquo;${lib.dir}/[type]/[artifact].[ext]&rdquo;</p>
-
-<p> 发布项目产品</p>
-
-<p> 在 ant 脚本中添加以下任务：</p>
-
-<p> <target name="publish" depends="compile" description=""></p>
-
-<p>   &lt;ivy:publish artifactspattern=&ldquo;${build.dist.dir}/[artifact].[ext]&rdquo;</p>
-
-<pre><code> resolver="" status="" pubrevision=""/&gt; 
+<pre><code>import smtplib, ConfigParser, datetime 
+from email.mime.text import MIMEText 
+from email.mime.multipart import MIMEMultipart 
+config = ConfigParser.ConfigParser() 
+config.read('build.cfg') 
+try: 
+    mail_server = smtplib.SMTP(config.get('mail','server_addr')) 
+    mail_server.set_debuglevel(1) 
+    mail_server.login(config.get('mail','username'), config.get('mail','password')) 
+except Exception,e: 
+    exit() 
+from_addr = config.get('mail','from_addr') 
+to_addr = config.get('mail','to_addr') 
+copyto_addr = config.get('mail','copyto_addr') 
+sending_date = datetime.datetime.now().strftime("%d/%m/%Y %H:%M") 
+message_body = '&lt;html&gt;&lt;body&gt;aa&lt;/body&gt;&lt;/html&gt;' 
+msg = MIMEMultipart() 
+msg.add_header('From',from_addr) 
+msg.add_header('To',to_addr) 
+msg.add_header('Cc',copyto_addr) 
+msg.add_header('Subject',config.get('mail','subject')) 
+msg.add_header('Date',sending_date) 
+msg.attach(MIMEText(message_body, 'html')) 
+mail_server.sendmail(from_addr, to_addr.split()+copyto_addr.split(), msg.as_string()) 
+mail_server.quit() 
 </code></pre>
 
-<p> </target></p>
+<p>在代码所在文件夹下写一个build.cfg文件，内容如下：</p>
 
-<p> release 发布时， status=release ，非 release 发布时，去掉 status 和 pubrevision 属性。</p>
+<pre><code>[mail] 
+server_addr: 124.127.106.5 
+username: lichao1 
+password: aba... 
+from_addr: LiChao&lt;lichao1@boco.com.cn&gt; 
+to_addr: lichao1@boco.com.cn zhaohuaqiao_kkk@boco.com.cn 
+copyto_addr: leechau@126.com liu_xin_kkk@boco.com.cn 
+subject: BVT Reports
+</code></pre>
 </div>
   
   
@@ -324,7 +420,7 @@ int var_b = var_a + 2;</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/10/29/100536/">UNIX中上安装软件</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/19/083210/">代码行汇总算法</a></h1>
     
     
       <p class="meta">
@@ -333,19 +429,49 @@ int var_b = var_a + 2;</p>
 
 
 
-<time class='entry-date' datetime='2010-10-29T10:05:36+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:05 am</span></time>
+<time class='entry-date' datetime='2011-01-19T08:32:10+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:32 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>需要在Unix上运行ant，以下过程以安装apache-ant-1.8.1-bin.zip为例。  解压并上传软件文件夹（由于Unix上解压比较麻烦，最好在本机上解压后用 SecureFX上传 ）  设置环境变量  cd （回到$HOME目录下）  vi .profile （编辑定义文件），如果是bash，则该文件名为.bash_profile 在文件末尾加上：  ANT_HOME=/home/boco/dist-repo/apache-ant-1.8.1 （设置变量） export ANT_HOME  （使该变量变为全局变量） PATH=$PATH:${ANT_HOME}/bin （注意Unix的分隔符为冒号）
-  使更新生效： . .profile （点，空格，点profile） 为ant赋予运行权限  cd ${ANT_HOME}/bin  chmod 755 ant</p>
+  <div class="entry-content"><p>原始数据如下图，现需对每一种语言分类汇总各项指标，例如需计算3个项目中所有java语言增加的总行数（Addition列的52881、4828、14621的和）。每一个项目中语言的种类和数量是不可预知的，但针对一种语言进行的各项统计是确定的（这里共进行8项统计，其中前7项要按语言汇总，即做和，第8项RATE对某种语言是固定值，汇总时不要相加，照写即可）。</p>
 
-<p> 注1：要查询一个环境变量的值，用 echo $ANT_HOME ；</p>
+<p>算法分为3步：</p>
 
-<p> 注2：文件操作最好在SecureFX上进行。</p>
+<p>1、将取得的数据依次放入list中，形成一个一维list；</p>
+
+<p>2、顺序遍历该list，获得语言项的下标位置，每种语言的名字是字典的key，下标列表是对应的value；</p>
+
+<p>3、根据上面生成的字典依次对相同语言的对应条目进行做和，最后一项照写；</p>
+
+<p>下面是代码实现，其中 tested 是原始数据在第一步后形成的一维list， index_dict 是第二步后形成的下标列表字典， summary 是最终的汇总数据列表。</p>
+
+<pre><code>tested = ['java','4','5','0.41','xml','3','7','0.23','java','23','42','0.41','xml','63','82','0.23'] 
+index_dict = {} 
+for item in tested: 
+    if item.isalpha(): 
+        if not index_dict.has_key(item): index_dict[item] = [] 
+        index_dict[item].append(tested.index(item)) 
+        tested[tested.index(item)]='-' 
+print(index_dict) 
+summary=[] 
+for item in index_dict: 
+    summary.append(item) 
+    index_list = [k+1 for k in index_dict[item]] 
+    summary.append(sum(int(tested[k]) for k in index_list)) 
+    index_list = [k+2 for k in index_dict[item]] 
+    summary.append(sum(int(tested[k]) for k in index_list)) 
+    summary.append(tested[index_dict[item][0]+3]) 
+print(summary) 
+</code></pre>
+
+<p>输出是（python 2.6）：</p>
+
+<pre><code>{'xml': [4, 12], 'java': [0, 8]} 
+['xml', 66, 89, '0.23', 'java', 27, 47, '0.41']
+</code></pre>
 </div>
   
   
@@ -358,7 +484,7 @@ int var_b = var_a + 2;</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/10/28/105402/">用IvyDE整合Ivy与Eclipse</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/18/113744/">用minidom解析xml文档</a></h1>
     
     
       <p class="meta">
@@ -367,20 +493,66 @@ int var_b = var_a + 2;</p>
 
 
 
-<time class='entry-date' datetime='2010-10-28T10:54:02+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>10:54 am</span></time>
+<time class='entry-date' datetime='2011-01-18T11:37:44+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:37 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>IvyDE的安装</p>
+  <div class="entry-content"><p>原始xml文档（下划线部分是要解析的数据）：</p>
 
-<p>采用 自动安装方式 安装 IvyDE（ 手工安装方式 失败， 原因不清楚 ）；</p>
+<p> &lt;?xml version=&ldquo;1.0&rdquo;?></p>
 
-<p> 将Ivy依赖加入到项目的classpath中</p>
+<p> &lt;!DOCTYPE coverage SYSTEM &ldquo;<a href="http://cobertura.sourceforge.net/xml/coverage-04.dtd">http://cobertura.sourceforge.net/xml/coverage-04.dtd</a>&rdquo;></p>
 
-<p>例如项目A依赖项目B的方法，由于项目B没有被加入到classpath中，A里使用B项目的方法就会被标记为“无法解析”，解决方法是将ivy声明的依赖包加入到classpath中，详细过程在 这里 ，IvyDE使用的方法是先将依赖包下载到本地的Ivy Cache里，然后加入到classpath中；</p>
+<p> <coverage  line-rate="0.0" branch-rate="0.0" lines-covered="0" lines-valid="4358" branches-covered="0" branches-valid="1280" complexity="1.538085255066387"  version="1.9.1" timestamp="1294906695765"></p>
+
+<p> <packages /></p>
+
+<p> </coverage></p>
+
+<p>解析为list：</p>
+
+<p> test_datasets = []</p>
+
+<p> import xml.dom.minidom</p>
+
+<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
+
+<p> raw_test_res = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0]</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-covered&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;lines-valid&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;line-rate&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-covered&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branches-valid&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;branch-rate&rsquo;].value)</p>
+
+<p> test_datasets.append(raw_test_res.attributes[&lsquo;complexity&rsquo;].value)</p>
+
+<p> return test_datasets</p>
+
+<p>解析为字典：</p>
+
+<p> test_datasets = {}</p>
+
+<p> import xml.dom.minidom</p>
+
+<p> dom = xml.dom.minidom.parse(&lsquo;e:\MyDoc\Project\GODU_BVT\build\2011-01-18\GODU_WEB\build\result\cov\coverage-summary.xml&rsquo;)</p>
+
+<p> raw_data_set = dom.getElementsByTagName(&lsquo;coverage&rsquo;)[0].attributes</p>
+
+<p> for the_attr in raw_data_set.values():</p>
+
+<p>  test_datasets[the_attr.name] = the_attr.value</p>
+
+<p> return test_datasets</p>
 </div>
   
   
@@ -393,7 +565,7 @@ int var_b = var_a + 2;</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2010/10/27/145616/">基于ANT-IVY的自动构建系统的使用规范</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/01/17/083035/">关于Python的嵌套域（nested Scope）</a></h1>
     
     
       <p class="meta">
@@ -402,149 +574,38 @@ int var_b = var_a + 2;</p>
 
 
 
-<time class='entry-date' datetime='2010-10-27T14:56:16+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>2:56 pm</span></time>
+<time class='entry-date' datetime='2011-01-17T08:30:35+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>17</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:30 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>安装Eclipse的IvyDE插件，选择“自动安装”模式；
- Eclipse->Window->Preferences->Ivy->Settings->Ivy settings path: ${project_loc}/ivysettings.xml
- 当开发者需要添加新的依赖包时：
- 向库管提出要求；
- 库管
- 将三方包下载到共享库中；
- 库管更新ivy.xml文件；
-  开发阶段尽量不要更新产品库。开发阶段代码更新频繁，功能不稳定，这一阶段构建的jar包尽量不要提交到产品库（ivy:publish），以保证其他依赖项目使用的jar包是稳定的；
- 构建最终发布包时，所有开发项目要向产品库进行提交，保证库中得到产品是最终版；</p>
-</div>
-  
-  
+  <div class="entry-content"><p>周五下午因为嵌套函数的问题反复折腾了几个小时，今天终于搞明白了，python2.6手册里对“nested scope”有一段定义，并结合“OReilly - Python in a Nutshell”第4.10.6.2节，总结如下： 1 python支持嵌套函数；
+ 2 内层函数可以访问外层函数中定义的变量，但不能重新赋值（rebind）；
+ 3 内层函数的local namespace不包含外层函数定义的变量（见下面的演示程序）；
+ 4 避免出现低版本（&lt;=2.1）不支持nested scope问题的方法：在内层函数参数列表中使用默认参数：
+ (copied from &ldquo;OReilly - Python in a Nutshell&rdquo; section 4.10.6.2)
+ def make_adder_1(augend):    # works with any version
+ def add(addend, <em>augend=augend ): return addend+</em>augend
+ return add
+ 演示程序：
+ def outterfunc():
+  def innerfunc():
+   cc = bb+&lsquo;2&rsquo;
+   print &lsquo;inner:&rsquo;,locals()
+   # bb = 3 #这句会造成运行失败
+  bb = &lsquo;3&rsquo;
+  outer = &lsquo;out&rsquo;
+  innerfunc()
+  print &lsquo;outter:&rsquo;,locals()
+ bb=31
+ outterfunc()
+ 输出：
+ inner: {&lsquo;cc&rsquo;: &lsquo;32&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}
+ outter: {&lsquo;innerfunc&rsquo;: <function innerfunc at 0x01F0C1F0>, &lsquo;outer&rsquo;: &lsquo;out&rsquo;, &lsquo;bb&rsquo;: &lsquo;3&rsquo;}</p>
 
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/26/172942/">使用sftp连接Ivy库时缺包异常的处理方法</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-26T17:29:42+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:29 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用sftp resolver时出现 java.lang. NoClassDefFoundError : com/jcraft/jsch/JSchExceptio 异常的处理方法：</p>
-
-<p> 命令行：将${IVY_HOME}/lib/jsch-0.1.31.jar拷贝到${ANT_HOME}/lib下；</p>
-
-<p> Eclipse中：用Window->Preference->Ant->Runtime->Global Entries->Add External JARs加 jsch-0.1.31.jar；</p>
-
-<p> 异常出现的ivy文件（文件名：ivysettings.xml）：</p>
-
-<p> <ivysettings>
-  <settings defaultCache="${ivy.settings.dir}/ivy-cache" defaultResolver="projects"/>
-  <resolvers>
-   <sftp name="projects">
-    <artifact pattern="sftp://boco:bocogodu@10.0.2.47:22/home/boco/dist-repo/repository/[artifact]-[revision].[ext]" />
-    <ivy pattern="sftp://boco:bocogodu@10.0.2.47:22/home/boco/dist-repo/repository/[module]-[revision].xml" />
-   </sftp>
-  </resolvers>
-</ivysettings></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/26/172417/">本机Ivy库的访问设置</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-26T17:24:17+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>5:24 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以下是ivysettings.xml文件内容（注意绝对路径的写法）：</p>
-
-<p><ivysettings>
-  <settings defaultCache="${ivy.settings.dir}/ivy-cache" defaultResolver="projects"/>
-  <resolvers>
-   <filesystem name="projects">
-    <artifact pattern=" f:/ dist-repo/repository/[artifact]-[revision].[ext]" />
-    <ivy pattern=" f:/ dist-repo/repository/[module]-[revision].xml" />
-   </filesystem>
-  </resolvers>
-</ivysettings></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2010/10/26/151221/">示例创建过程</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2010-10-26T15:12:21+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2010</span></span> <span class='time'>3:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在47上上传库目录；</p>
-
-<p>项目根目录下创建 build.xml、 ivy.xml、 settings文件夹（包含 ivysettings.xml文件）；</p>
-
-<p> 修改 build.xml文件：</p>
-
-<p> 配置文件位置：name=&ldquo;ivy.settings.dir&rdquo; value=&ldquo;./settings&rdquo;</p>
-
-<p>修改ivysettings.xml文件：</p>
-
-<p>resolver类型和位置：<sftp user="boco" userPassword="bocogodu" host="10.0.2.47"></p>
-
-<p>修改ivysettings.properties文件：</p>
-
-<p> repository.dir=s<a href="ftp://10.0.2.47/home/boco/dist-repo/repository">ftp://10.0.2.47/home/boco/dist-repo/repository</a></p>
+<p> 从输出可以看到，外层函数里定义的outer变量没有出现在内层函数的local namespace里，但被引用的变量bb却出现了，这一特点值得注意。</p>
 </div>
   
   
@@ -569,23 +630,23 @@ int var_b = var_a + 2;</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

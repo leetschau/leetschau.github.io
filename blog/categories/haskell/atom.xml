@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Haskell | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/haskell/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,80 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Option类型的实现方法比较]]></title>
+    <link href="http://leetschau.github.io/blog/2016/04/19/120234/"/>
+    <updated>2016-04-19T12:02:34+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/04/19/120234</id>
+    <content type="html"><![CDATA[<p>Scala的Option类型定义在
+<a href="https://github.com/scala/scala">scala/scala</a>的src/library/scala/Option.scala中：</p>
+
+<pre><code>sealed abstract class Option[+A]
+final case class Some[+A](x: A) extends Option[A]
+case object None extends Option[Nothing]
+</code></pre>
+
+<p>对应的Haskell定义是： <code>data Maybe a = Nothing | Just a</code></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[几种常用语言处理文本的效率比较]]></title>
+    <link href="http://leetschau.github.io/blog/2016/04/15/171843/"/>
+    <updated>2016-04-15T17:18:43+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/04/15/171843</id>
+    <content type="html"><![CDATA[<p>读一个37264行，大小为81MB的文本文件f4.json，计算每行的单词数，然后打印出总单词数，
+Python用时0.16秒，Ruby用时1.16秒，Haskell用时13.4秒，分别差一个数量级。
+下面是测试脚本和过程：</p>
+
+<p>wordcount.py:
+<code>
+inp = 'f4.json'
+counts = []
+with open(inp) as f:
+  for line in f:
+    counts.append(len(line.split()))
+print(sum(counts))
+</code></p>
+
+<p>wordcount.rb:
+<code>
+inp = 'f4.json'
+words = []
+File.open(inp).each do |line|
+  words.push(line.split.size)
+end
+puts words.reduce(0, :+)
+</code></p>
+
+<p>WordCount.hs:
+```
+main :: IO ()
+main = do
+input &lt;- readFile &ldquo;f4.json&rdquo;
+print $ sum(countWords input)</p>
+
+<p>countWords input = map (length.words) (lines input)
+<code>
+测试过程：
+</code>
+wc -l f4.json
+37264 f4.json</p>
+
+<p>time python wordcount.py
+1103404
+python wordsum.py  0.14s user 0.01s system 99% cpu 0.157 total</p>
+
+<p>time ruby wordsum.rb
+1103404
+ruby wordsum.rb  1.13s user 0.02s system 99% cpu 1.158 total</p>
+
+<p>time runhaskell Main.hs
+1105752
+runhaskell wordcount.hs  12.64s user 0.76s system 100% cpu 13.395 total</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Setup Haskell Develop Environment in Atom]]></title>
@@ -225,296 +299,6 @@ fmap (replicate 3) (Just 4) :: Num a =&gt; Maybe [a]
 <code>(Just 4)</code>是第二个参数<code>f a</code>，代入<code>Just 4</code>的类型<code>Maybe a</code>，
 可知<code>Functor f</code>就是<code>Maybe</code>.
 所以最终<code>f b</code>就是<code>Maybe [a]</code>。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Stack Notes]]></title>
-    <link href="http://leetschau.github.io/blog/2015/09/23/123748/"/>
-    <updated>2015-09-23T12:37:48+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/09/23/123748</id>
-    <content type="html"><![CDATA[<h1>Install</h1>
-
-<p>Install <a href="https://github.com/commercialhaskell/stack">stack</a> and start a demo yesod web server:</p>
-
-<pre><code>wget -q -O- https://s3.amazonaws.com/download.fpcomplete.com/ubuntu/fpco.key | sudo apt-key add -
-echo 'deb http://download.fpcomplete.com/ubuntu/trusty stable main'|sudo tee /etc/apt/sources.list.d/fpco.list
-sudo apt-get update &amp;&amp; sudo apt-get install stack -y
-cd ~/docs/playground
-stack new myHaskellProj yesod-sqlite  // very slow, 30 minutes or so
-stack install yesod-bin cabal-install --install-ghc
-stack build  // if it's interupteed by "FailedConnectionException s3.amazonaws.com 443" error, run this command again
-stack exec -- yesod devel
-</code></pre>
-
-<p>Now open &ldquo;<a href="http://localhost:3000/">http://localhost:3000/</a>&rdquo;.</p>
-
-<p>On Windows:</p>
-
-<p>下载stack Windows包stack-0.1.4.0-i386-windows.zip，解压，
-在解压目录中运行Git Bash（通过msysGit安装），</p>
-
-<pre><code>cd /f/ghost/tempFiles
-stack steup
-/d/Apps/stack/stack.exe new myHaskellProj yesod-sqlite
-/d/Apps/stack/stack.exe templates
-/d/Apps/stack/stack.exe install yesod-bin cabal-install --install-ghc
-/d/Apps/stack/stack.exe build
-/d/Apps/stack/stack.exe exec -- yesod devel
-</code></pre>
-
-<p>stack setup比较慢，大约需要10分钟，安装后运行不正常，放弃。</p>
-
-<h1>Run Haskell Code</h1>
-
-<p>To start a ghci, in any folder, run:</p>
-
-<pre><code>stack ghci
-Prelude&gt; putStrLn "hello world"
-</code></pre>
-
-<p>To run haskell script: in any folder, run</p>
-
-<pre><code>$ cat hello.hs
-main = putStrLn "hello world"
-$ stack runghc hello.hs
-</code></pre>
-
-<h1>Install New Library</h1>
-
-<p>For example install library &ldquo;random&rdquo;:</p>
-
-<pre><code>cabal update
-cabal install random
-</code></pre>
-
-<h1>Editor Setup</h1>
-
-<p>Ref: <a href="http://seanhess.github.io/2015/08/05/practical-haskell-editors.html">PRACTICAL HASKELL - EDITOR SETUP WITH STACK</a>.</p>
-
-<pre><code>cd ~
-stack setup
-stack install hdevtools
-stack path|grep ghc      # to get the ghc binary path used below
-</code></pre>
-
-<p>Add <code>PATH=$PATH:$HOME/.stack/programs/x86_64-linux/ghc-7.10.2/bin:$HOME/.local/bin</code> into ~/.zshenv.</p>
-
-<p>Install syntastic and &lsquo;bitc/vim-hdevtools&rsquo; plugin for vim:</p>
-
-<p>add the following 2 lines into ~/.vimrc:</p>
-
-<pre><code>Plugin 'scrooloose/syntastic'
-Plugin 'bitc/vim-hdevtools'
-</code></pre>
-
-<p>then run <code>vim +PluginInstall</code>.</p>
-
-<p>Now your .hs files will be checked when saving.</p>
-
-<p>To verify, create hello.hs as follows:</p>
-
-<pre><code>main = do
-  print "What is your name?"
-  name &lt;- getLine
-  print ("Hello " ++ name ++ "!")
-</code></pre>
-
-<p>When cursor on &ldquo;print&rdquo; in the 2nd line, run <code>:HdevtoolsType</code>
-(which equivalent to run <code>hdevtools type hello.hs 2 3</code> in shell),
-you should get &ldquo;[Char] -> IO ()&rdquo;.</p>
-
-<p>For convenient, add the following shortcuts into ~/.vimrc:</p>
-
-<pre><code>" hdevtools setup (haskell)
-au FileType haskell nnoremap &lt;buffer&gt; &lt;F3&gt; :HdevtoolsType&lt;CR&gt;
-au FileType haskell nnoremap &lt;buffer&gt; &lt;silent&gt; &lt;F4&gt; :HdevtoolsClear&lt;CR&gt;
-au FileType haskell nnoremap &lt;buffer&gt; &lt;silent&gt; &lt;F6&gt; :HdevtoolsInfo&lt;CR&gt;
-</code></pre>
-
-<p>Add &ldquo;this&rdquo; at the end of file from column 3 and save
-(which is equivalent to run <code>hdevtools check hello.hs</code> in shell),
-a &ldquo;Not in scope: ‘this’&rdquo; error will raises.</p>
-
-<p>See <a href="https://github.com/schell/hdevtools">hdevtools</a> and
-<a href="https://github.com/bitc/vim-hdevtools">bitc/vim-hdevtools</a> for more information.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Note About `Programming in Haskell`]]></title>
-    <link href="http://leetschau.github.io/blog/2013/12/16/174627/"/>
-    <updated>2013-12-16T17:46:27+08:00</updated>
-    <id>http://leetschau.github.io/blog/2013/12/16/174627</id>
-    <content type="html"><![CDATA[<h1>1.7 Exercises</h1>
-
-<ol>
-<li>How should the definition of the function qsort be modified so that it produces a reverse sorted version of a list?</li>
-</ol>
-
-
-<p> qsort :: Ord a => [a] -> [a]
- qsort [] = []
- qsort (x:xs) = qsort bigger ++ [x] ++ qsort smaller where
-     smaller = filter (&lt;=x) xs
-     bigger = filter (>x) xs</p>
-
-<h1>Type and Class</h1>
-
-<p>Recall that a type is a collection of related values. Building upon this notion, a class is a collection of types that support certain overloaded operations called methods. &ndash; Section 3.9: Basic Classes</p>
-
-<h1>Patterns Matching</h1>
-
-<p>Section 4.4, excellent explanation about tuple pattern, list pattern and integer pattern.</p>
-
-<p>Note that cons patterns must be parenthesised, because function application has higher priority than all other operators. (p34)</p>
-
-<h1>4.8 Exercises</h1>
-
-<ol>
-<li>Splits an even-lengthed list into two halves:</li>
-</ol>
-
-
-<p> halve :: [a] -> ([a], [a])</p>
-
-<p> halve x = splitAt (div (length x) 2) x</p>
-
-<ol>
-<li>safetail</li>
-</ol>
-
-
-<p> safetail :: [a] -> [a]</p>
-
-<p> &ndash; conditional expression</p>
-
-<p> safetail xs = if null xs then []</p>
-
-<pre><code>    else tail xs
-</code></pre>
-
-<p> &ndash; guarded equation</p>
-
-<p> safetail xs | null xs = []</p>
-
-<pre><code>| otherwise = tail xs
-</code></pre>
-
-<p> &ndash; pattern matching</p>
-
-<p> safetail [] = []</p>
-
-<p> safetail xs = tail xs</p>
-
-<h1>5.7 Exercies</h1>
-
-<ol>
-<li><p>sum [x**2|x&lt;-[1..100]]</p></li>
-<li><p>replicate n x = [x | t &lt;- [1..n]]</p></li>
-</ol>
-
-
-<p> (answer of textbook: replicate n x = [x|_&lt;-[1..n]]</p>
-
-<ol>
-<li>Find pythagorean triples:</li>
-</ol>
-
-
-<p> pyths n = [(x,y,z)|x&lt;-[1..n], y&lt;-[1..n], z&lt;-[1..n], x<strong>2+y</strong>2==z**2]</p>
-
-<ol>
-<li>Find perfects number:</li>
-</ol>
-
-
-<p> factors n = [x | x &lt;- [1..n-1], n <code>mod</code> x == 0]</p>
-
-<p> perfects n = [x|x&lt;-[1..n], x == sum (factors x)]</p>
-
-<h1>sat function in Chapter 8</h1>
-
-<p>The codes in section 8.1~8.3 and 8.6 doesn&rsquo;t work. The author explained it in chapter remarks(section 8.9) and the errata (Pages 74 to 78&hellip;). He also gave a monad version of &ldquo;Parser&rdquo; in his website: <a href="http://www.cs.nott.ac.uk/~gmh/Parsing.lhs">Code -> Parsing</a>. So I am afraid we have to learn some monads then come back to this interesting Haskell parser.</p>
-
-<p>Ref: <a href="http://stackoverflow.com/questions/2607498/programming-in-haskell-error-in-sat-function">http://stackoverflow.com/questions/2607498/programming-in-haskell-error-in-sat-function</a></p>
-
-<h1>Chapter 9</h1>
-
-<h2>Clear Screen</h2>
-
-<p>MyClr.hs:</p>
-
-<p> module Main where
- cls :: IO ()
- cls = putStr &ldquo;\ESC[2J&rdquo;
- bingo :: IO ()
- bingo = putStr &ldquo;bingo!\n&rdquo;
- main = do cls
-    bingo</p>
-
-<p>$ ghc MyClr.hs</p>
-
-<p>$ ./MyClr</p>
-
-<p>You have to remove the type declaration sentences.</p>
-
-<h2>StrLen</h2>
-
-<p> strLen :: IO ()
- strLen = do putStr &ldquo;Enter a string: &rdquo;
-    xs &lt;- getLine
-    putStr &ldquo;The string has &rdquo;
-    putStr (show (length xs))
-    putStrLn &ldquo; characters.&rdquo;</p>
-
-<p>Then load in ghci and run &ldquo;strLen&rdquo;.</p>
-
-<h2>goto (in ghci)</h2>
-
-<p> let goto (x,y) = putStr (&ldquo;\ESC[&rdquo; ++ show y ++ &ldquo;;&rdquo; ++ show x ++ &ldquo;H&rdquo;)</p>
-
-<p> goto (20,20)</p>
-
-<h1>Chapter 10</h1>
-
-<h2>Normal Functions and Constructor Function</h2>
-
-<p> data Shape = Circle Float | Rect Float Float</p>
-
-<p>The constructors Circle and Rect are actually constructor functions, which produce results of type Shape from arguments of type Float . The difference between normal functions and constructor functions is that the latter have no defining equations, and exist solely for the purpose of building pieces of data. The expression Circle 1.0 is just a piece of data, in the same way that 1.0 itself is just data.</p>
-
-<h2>Diferent Kinds of tree</h2>
-
-<p>The parameter type &ldquo;a&rdquo; represents the stored data.</p>
-
-<ul>
-<li><p>Store data only in leaves: data Tree a = Leaf a | Node (Tree a) (Tree a)</p></li>
-<li><p>Store data only in nodes:</p></li>
-</ul>
-
-
-<p> data Tree a = Leaf | Node (Tree a) a (Tree a)</p>
-
-<p>and:</p>
-
-<p> data Tree a = Node a [Tree a ]</p>
-
-<ul>
-<li>Store data both in leaves (data type is &ldquo;a&rdquo;) and nodes (data type is &ldquo;b&rdquo;):</li>
-</ul>
-
-
-<p> data Tree a b = Leaf a | Node (Tree a b) b (Tree a b)</p>
-
-<h1>Chapter 11</h1>
-
-<p> results ns = [res| (ls,rs) &lt;- split ns,
-      lx &lt;- results ls,
-      ry &lt;- results rs,
-      res &lt;- combine' lx ry]</p>
-
-<p>Above is a imperative-style calculation in list comprehension. The cost is you have to put your result in a list, while empty list means failure of calculation.</p>
 ]]></content>
   </entry>
   

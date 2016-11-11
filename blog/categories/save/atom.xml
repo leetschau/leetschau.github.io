@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Save | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/save/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -22,6 +22,157 @@
 
 <p>又试了"Screengrab!&ldquo;这个插件，把整个网页保存成一改png文件，效果不错，
 即使网页超出了一屏，也可以保存为一个完整的图片。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Scala Development on Linux]]></title>
+    <link href="http://leetschau.github.io/blog/2014/08/07/092400/"/>
+    <updated>2014-08-07T09:24:00+08:00</updated>
+    <id>http://leetschau.github.io/blog/2014/08/07/092400</id>
+    <content type="html"><![CDATA[<h1>vim + repl</h1>
+
+<p>This is the most light-weight solution which only <code>scala</code> and vim needed.</p>
+
+<p>First write your Scala script &ldquo;NewList.scala&rdquo;:</p>
+
+<pre><code class="scala">sealed trait List[+A]
+case object Nil extends List[Nothing]
+case class Cons[+A](head: A, tail: List[A]) extends List[A]
+
+object List {
+  def sum(ints: List[Int]): Int = ints match {
+    case Nil =&gt; 0
+    case Cons(x,xs) =&gt; x + sum(xs)
+  }
+  def apply[A](as: A*): List[A] =
+    if (as.isEmpty) Nil
+    else Cons(as.head, apply(as.tail: _*))
+  // added by me
+  def test() = {
+    println(sum(List(3,20,1,2)))
+  }
+}
+</code></pre>
+
+<p>Note there can not be package definition in the script, or <code>:load</code> will fail.</p>
+
+<p>Then start a REPL:</p>
+
+<pre><code class="bash">scala
+scala&gt; :load NewList.scala
+scala&gt; List.test
+</code></pre>
+
+<p>After modification in NewList.scala, run <code>:load ...</code> and <code>List.test</code> again.</p>
+
+<h2>Use tmux to make this process smooth</h2>
+
+<p>Create an executable shell script ~/.tmux/myscripts/refresh-scala-repl.sh:</p>
+
+<pre><code class="bash">#!/bin/bash
+tmux send-keys -t .1 ':load NewList.scala'
+tmux send-keys -t .1 Enter
+tmux send-keys -t .1 'List.test'
+tmux send-keys -t .1 Enter
+</code></pre>
+
+<p>Here &ldquo;.1&rdquo; means &ldquo;send keys to the 1st pane of the current session, current window&rdquo;.
+The full format is <code>#{session_name}:#{window_index}.#{pane_index}</code>.
+So if your editor pane is above (or on the left side of) Scala REPL pane,
+you should use &ldquo;.2&rdquo; instead of &ldquo;.1&rdquo; in above script.</p>
+
+<p>In vim, run <code>:autocmd BufWritePost *.scala silent !/home/leo/.tmux/myscripts/refresh-scala-repl.sh</code>.
+Now every time you save the Scala script,
+<code>:load</code> and <code>List.test</code> will be run automatically in Scala REPL.</p>
+
+<p>Here &ldquo;silent&rdquo; will prevent vim from redrawing the screen.</p>
+
+<p>Sometimes you have to use <code>scalac</code> &amp; <code>scala</code> to run your codes like this:</p>
+
+<pre><code class="scala">sealed trait MyOption[+A] {
+  def mymap[B](f: A =&gt; B): MyOption[B] = this match {
+    case MyNone =&gt; MyNone
+    case MySome(a) =&gt; MySome(f(a))
+  }
+}
+
+case class MySome[+A](get: A) extends MyOption[A]
+case object MyNone extends MyOption[Nothing]
+
+object MyOption {
+}
+object Main extends App{
+  assert(Some(3).mymap(_ * 2) == Some(6))
+}
+</code></pre>
+
+<p>The corresponding autocmd is rerun-option.sh:</p>
+
+<pre><code class="bash">#!/bin/bash
+tmux send-keys -t .2 'scalac MyOption.scala &amp;&amp; scala Main'
+tmux send-keys -t .2 Enter
+</code></pre>
+
+<p>Ref:</p>
+
+<p><a href="http://stackoverflow.com/questions/19313807/tmux-send-keys-syntax">http://stackoverflow.com/questions/19313807/tmux-send-keys-syntax</a></p>
+
+<p><a href="http://learnvimscriptthehardway.stevelosh.com/chapters/12.html">Autocommands in &ldquo;Learn Vimscript the Hard Way&rdquo;</a></p>
+
+<p><a href="http://vi.stackexchange.com/questions/3060/suppress-output-from-a-vim-autocomand">http://vi.stackexchange.com/questions/3060/suppress-output-from-a-vim-autocomand</a></p>
+
+<h1>Use ScalaIDE</h1>
+
+<p><a href="http://scala-ide.org/">ScalaIDE</a> is based on Eclipse,
+which contains Scala compiler and runtime as a plugin.
+So you needn&rsquo;t install Scala any more.</p>
+
+<p>It can check syntax error and code completion on the fly.
+But you have to create a Scala project, add your script in it.</p>
+
+<p>In above example, after modifying codes in editor,
+use <code>Ctrl-A</code> then <code>Ctrl-Shift-X</code> (shortcut of toolbar button &ldquo;Run Selection
+in Scala Interpreter&rdquo;, can be modified in Window -> Preferences -> General ->
+Keys: Send Selection to Scala Interpreter) to reload script
+(like <code>:load</code> in REPL). Then focus Scala Interpreter with mouse,
+and use <code>Ctrl-Up</code> then <code>Ctrl-Enter</code> to run <code>List.test</code>.</p>
+
+<h1>sbt + vim</h1>
+
+<ol>
+<li><p>Download sbt package (sbt-0.13.5.deb for Mint 17 64bit) from
+<a href="http://www.scala-sbt.org/">sbt website</a>;</p></li>
+<li><p>Install it, then start sbt repl with <code>sbt</code> in shell;</p></li>
+</ol>
+
+
+<p>This will install sbt and scala.</p>
+
+<p>Now you can run scala repl with <code>sbt console</code> in shell,
+or run <code>console</code> within sbt repl.</p>
+
+<h2>Script REPL</h2>
+
+<p>Create a file &ldquo;Hi.scala&rdquo;:</p>
+
+<pre><code>object Hi extends App {
+    println("Hi, there")
+}
+</code></pre>
+
+<p>Then run this script within sbt:</p>
+
+<pre><code>$ sbt
+...
+&gt; run
+...
+[info] Running Hi
+Hi, there
+</code></pre>
+
+<p>You can use tilde prefix to detect source change automatically,
+just use &ldquo;~run&rdquo; instead of &ldquo;run&rdquo; in above example.</p>
 ]]></content>
   </entry>
   

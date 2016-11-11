@@ -5,11 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Note About Virturalenvwrapper - Dark Matter in Cyberspace</title>
+  <title>Virtual Environment in Python - Dark Matter in Cyberspace</title>
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Installation $ sudo pip install virtualenvwrapper Add the following lines into ~/.zshenv: WORKON_HOME=~/docs/workspace/python-workspace/env-home &hellip;">
+  <meta name="description" content="virtualenv virtualenvwrapper is not file based (it depends heavily on workon).
+And it&rsquo;s setup is not very easy.
+While virtualenv can be used &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -38,7 +40,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -68,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Note About Virturalenvwrapper</h1>
+      <h1 class="entry-title">Virtual Environment in Python</h1>
     
     
       <p class="meta">
@@ -84,7 +86,37 @@
   </header>
 
 
-<div class="entry-content"><h1>Installation</h1>
+<div class="entry-content"><h1>virtualenv</h1>
+
+<p>virtualenvwrapper is not file based (it depends heavily on <code>workon</code>).
+And it&rsquo;s setup is not very easy.
+While virtualenv can be used like npm (one virtual env in one project).
+So I prefer virtualenv to virturalenvwrapper
+for managing Python project environment.</p>
+
+<p>Install it with <code>sudo pip install virtualenv</code>.</p>
+
+<p>Workflow with virtualenv:</p>
+
+<ol>
+<li><p>In a Python project root folder, run <code>virtualenv venv</code> to build the home
+folder for virtual environment, and add <code>venv</code> into .gitignore.</p></li>
+<li><p>Run <code>. venv/bin/activate</code> to activate the environment;</p></li>
+<li><p><code>pip install -r requirements.txt</code> to install dependent packages;</p></li>
+<li><p>Edit files and test project with <code>python ...</code>;</p></li>
+<li><p>Quit environment with <code>deactivate</code>;</p></li>
+</ol>
+
+
+<p>Note:</p>
+
+<p>Add <code>-p &lt;python-bin-path&gt;</code> to use alternative Python executable.
+For example, <code>virtualenv -p /usr/bin/python3 venv</code>
+to build an environment using Python 3.</p>
+
+<h1>virturalenvwrapper</h1>
+
+<h2>Installation</h2>
 
 <pre><code>$ sudo pip install virtualenvwrapper
 </code></pre>
@@ -102,7 +134,9 @@ PROJECT_HOME=~/docs/workspace/python-workspace/project-home
 <pre><code>source /usr/local/bin/virtualenvwrapper.sh
 </code></pre>
 
-<h1>Usage</h1>
+<h2>Usage</h2>
+
+<h3>For new project</h3>
 
 <p>Create a new project funcPy using Python 3.x (run in any foler):</p>
 
@@ -126,21 +160,65 @@ Use <tab> key to autocomplete after <code>workon</code>.</p>
 <p>If using the default Python version (in Ubuntu 14.04 it is 2.7)
 for your virtual environment, create the project with <code>mkproject funcPy</code>.</p>
 
-<p>To use this virtual environment in PyCharm, follow
-<a href="http://bit.ly/23b30fY">Adding Existing Virtual Environment in PyCharm 2016.1 Help</a>
-The python intepreter config is persisted in PyCharm project configuration,
+<p>To debug this project in PyCharm, open the project in PyCharm
+(get the project root folder with <code>workon funcPy &amp;&amp; echo $PWD</code>).
+In [File -> Settings -> Project: funcPy -> Project Interpreter],
+press the gear button on the right side of &ldquo;Project Interpreter&rdquo;,
+choose &ldquo;Add Local&rdquo;, select the python executable in the corresponding
+virtualenv folder (get it with <code>cdvirtualenv &amp;&amp; echo $PWD/bin/python</code>).</p>
+
+<p>The python intepreter config is persisted in PyCharm project configuration,
 so no need to use <code>workon</code> every time open the project in PyCharm.</p>
 
-<h1>Discussion</h1>
+<p>See
+<a href="http://bit.ly/23b30fY">Adding Existing Virtual Environment in PyCharm 2016.1 Help</a>
+for reference.</p>
+
+<p>Note:</p>
+
+<p>If the script has command line arguments,
+add them in [Run -> Edit Configurations -> Script parameters].</p>
+
+<h3>For existing project</h3>
+
+<pre><code>git clone git@github.com:mbr/flask-bootstrap.git
+cd flask-bootstrap
+mkvirtualenv flask-bootstrap
+setvirtualenvproject
+cd sample_app
+pip install -r requirements.txt
+mkvirtualenv testenv2
+setvirtualenvproject
+</code></pre>
+
+<p>Now there are 2 virtualenvs: flask-bootstrap and testenv2 are associated with
+project flask-bootstrap.
+If you input <code>workon</code> and press TAB, you can see both these 2 virtualenvs.
+No matter which one you choose, you will be transmitted to the root folder of
+project flask-bootstrap.</p>
+
+<p>Note: use <code>rmvirtualenv testenv2</code> to remove a virtualenv.</p>
+
+<h2>Discussion</h2>
 
 <p>There are two concepts in virturalenvwrapper.
 One is &ldquo;virtual environment&rdquo;, which has its own python executables.
 The other is &ldquo;project&rdquo;, where your source codes resides.
-They are n-to-n relationship.</p>
+They are n-to-1 relationship.
+If you specify a project-virtualenv relation with
+<code>setvirtualenvproject path-to-project-A path-to-env-X</code>,
+while the virtualenv X already has associated to project B,
+the new project A will replace the old project B.</p>
 
-<p>Why not use one folder for both project and environment?</p>
+<p>Why not use the same folder for both project and environment, like npm?</p>
 
-<p>Unlike the &ldquo;node_modules&rdquo; folder in a node.js project,
+<p>Reason 1:
+A project can associate with many virtualenvs (through <code>setvirtualenvproject</code>),
+so for example you can test your application under Python 2 and 3
+in difference virtual environments.</p>
+
+<p>Reason 2:
+Unlike the &ldquo;node_modules&rdquo; folder in a node.js project,
 Python project can&rsquo;t put packages directly into the source folder.
 Use <code>pip install the-package &amp;&amp; pip freeze &gt; requirements.txt</code> to install
 a package and save it into dependency document,
@@ -154,7 +232,7 @@ regardless your CWD.</p>
 <p>&ldquo;mkproject proj1&rdquo; will create both a &ldquo;virtual environment&rdquo; named &ldquo;proj1&rdquo;
 in $WORKON_HOME and a &ldquo;proj1&rdquo; folder in $PROJECT_HOME.
 Then go to $PROJECT_HOME/proj1,
-then activate the virtual environment proj1. So &ldquo;mkproject proj1&rdquo; equals to:</p>
+and activate the virtual environment proj1. So &ldquo;mkproject proj1&rdquo; equals to:</p>
 
 <pre><code>$ mkvirtualenv proj1
 $ mkdir $PROJECT_HOME/proj1
@@ -190,27 +268,25 @@ the virtualenv, in which is the project path.</p>
 <pre><code>$ rmvirtualenv &lt;env_name&gt;
 </code></pre>
 
-<h1>Verification</h1>
+<h2>Verification</h2>
 
 <p>In a virtualenv, all python executables are in $WORKON_HOME.</p>
 
 <pre><code>[lichao@lichao480:~] 
-% workon 
-env1 
-env2 
-proj1 
+$ workon 
+env1 env2 proj1 
 [lichao@lichao480:~] 
-% which python 
+$ which python 
 /usr/bin/python 
 [lichao@lichao480:~] 
-% workon env1 
+$ workon env1 
 (env1)[lichao@lichao480:~] 
-% which python 
+$ which python 
 /home/lichao/apps/virenv_home/env1/bin/python 
 (env1)[lichao@lichao480:~] 
-% workon env2 
+$ workon env2 
 (env2)[lichao@lichao480:~PROJECT_HOME/proj2] 
-% which python 
+$ which python 
 /home/lichao/apps/virenv_home/env2/bin/python
 </code></pre>
 </div>
@@ -269,23 +345,23 @@ proj1
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

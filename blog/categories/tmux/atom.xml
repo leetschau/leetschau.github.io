@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Tmux | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/tmux/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,237 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[启动Console后自动进入tmux]]></title>
+    <link href="http://leetschau.github.io/blog/2016/10/16/174235/"/>
+    <updated>2016-10-16T17:42:35+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/10/16/174235</id>
+    <content type="html"><![CDATA[<p>如果希望启动Console后自动进入tmux环境，可以将这个Console的起始命令设置为
+自动attach到一个名为<code>default</code>的tmux session里。</p>
+
+<p>这么做的好处是每次启动Console后，就进入了<code>default</code> session，避免每次手工attach tmux,
+坏处是这个Console彻底与tmux绑定，除了修改profile，无法进入没有tmux的状态
+（因为退出tmux也就退出了Console）。</p>
+
+<p>所以推荐的做法是除了系统自带的Console软件（Ubuntu上是<code>gnome-terminal</code>），
+再安装一个专门用来配合tmux的Console软件，我用的是<code>terminator</code>，
+大多数情况下使用terminator + tmux，只有在ssh到其他服务器上使用tmux的时候，
+启动系统自带的Console，</p>
+
+<p>配置terminator启动自动进入tmux session <em>default</em>:</p>
+
+<p>在terminator的 <em>Preferences -> Profiles -> Command</em> 标签页中：
+check <em>Run a custom command instead of my shell</em>，
+并输入 <em>Custom command</em>: <code>tmux new -A -s default</code>
+（确认已经预先安装了<code>tmux</code>）。</p>
+
+<p>但是这样配置导致无法创建新的tmux session，所以暂时不使用这种方法。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[在vim中执行shell命令的插件]]></title>
+    <link href="http://leetschau.github.io/blog/2016/07/02/024310/"/>
+    <updated>2016-07-02T02:43:10+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/07/02/024310</id>
+    <content type="html"><![CDATA[<p>需要做一个vim工具，基本功能是通过一个快捷键，把选中的内容（或者当前行）发送到指定的tmux pane中，并执行。</p>
+
+<h1>实现过程</h1>
+
+<p>目录结构：当前工作目录下有 sendcmd.vim 和 test.md 两个文件，
+前者包含实现功能的 vim 函数，后者是包含要执行命令行的数据文件。</p>
+
+<p>开发环境：tmux window 1 做sendcmd.vim开发，window 2 上下拆分为两个pane
+，上面 (ptop) 是命令行，下面的 pane (pbottom) 中用 vim 打开数据文件test.md.</p>
+
+<p>每次修改并保存sendcmd.vim后，在test.md中执行<code>:so sendcmd.vim</code>，
+然后把光标移动到要执行的命令所在的行上按<code>F3</code>键就可以看到命令被发送到ptop里的
+执行效果了。</p>
+
+<h2>格式探测</h2>
+
+<p>这一步要解决的问题是：怎样的字符串，才能被<code>tmux send-keys</code>正确地传送出去，
+并能正确的执行。</p>
+
+<p>首先要保证运行<code>tmux send-keys</code>不报错，如果报错，
+将第5行的输出拷贝到一个单独的命令行中运行，解决错误。</p>
+
+<p>这一步通过后，如果命令被传送到<code>ptop</code>后报错，根据错误日志解决之。</p>
+
+<p>sendcmd.vim：</p>
+
+<pre><code>
+function! SendCmd()
+  let curline = getline(".")
+  echom curline
+  let cmd = "tmux send-keys -t top '" . curline . "' Enter"
+  echom cmd
+  echom system(cmd)
+endfunction
+
+nnoremap &lt;F3&gt; :call SendCmd()&lt;CR&gt;
+</code></pre>
+
+<p>说明：</p>
+
+<ul>
+<li>为什么第4行中<code>curline</code>要用单引号（而不是双引号）包裹？</li>
+</ul>
+
+
+<p>因为要执行的命令中可能包含变量（如es, idx等），双引号包裹的变量会被求值，
+而我们的要求是这些变量不能被求值，要等到被发送到ptop后再被求值。由于这个原因，
+第4行包裹外层<code>tmux send-keys</code>的命令就只能用双引号包裹。</p>
+
+<ul>
+<li>vimscript如何连接字符串？</li>
+</ul>
+
+
+<p>同样参考第4行，用点（ . ）连接。</p>
+
+<ul>
+<li><code>tmux send-keys -t top</code> 可以将keys从下面的pane发给上面，
+也可以从左侧发到右侧，但如果是在右侧pane里执行这个语句，则会被发给自己。</li>
+</ul>
+
+
+<p>test.md：</p>
+
+<pre><code>es=http://192.168.100.231:9200
+api=http://192.168.100.231:8000
+idx=production
+type=Fair
+
+# get elasticsearch version
+http $es | jq '.version.number'
+
+# list all indices
+http -b GET $es'/_cat/indices?v'
+http -b GET $es'"'"'/_cat/indices?v'"'"'
+
+# list all types of a index
+http -b GET $es/$idx/_mapping|jq ".$idx.mappings|keys"
+
+# list all properties of a type
+http -b GET $es/$idx/_mapping|jq ".$idx.mappings.$type.properties|keys"
+
+# get objects count in a type
+http -b GET $es/$idx/$type/_count|jq '.count'
+http -b GET $es/$idx/$type/_count|jq '"'"'.count'"'"'
+
+# query result count
+http -b POST $es/$idx/$type/_search query:='{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}' | jq '.hits.total'
+http -b POST $es/$idx/$type/_search query:=''{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}''
+http -b POST $es/$idx/$type/_search query:='"'"'{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}'"'"'
+http -b POST $es/$idx/$type/_search query:='"'"'{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}'"'"' | jq '"'"'.hits.total'"'"'
+</code></pre>
+
+<p>通过不断尝试后，发现用<code>'"'"'</code>代替<code>'</code>就能正确的发送并执行，
+见第10,11行，20,21行，24~27行。</p>
+
+<p>下面以第10行为例分析其结构：</p>
+
+<ol>
+<li><p>第一个单引号与外层的单引号结合，包裹它们中间的内容<code>http -b GET $es</code>，
+保证里面的特殊字符（<code>$</code>）不会被求值；</p></li>
+<li><p>中间的<code>"'"</code>是一组，实现被<code>tmux</code>发送后，最终执行的命令行里仍有一个单引号
+（<code>$es</code>后面的单引号）；</p></li>
+<li><p>最后的单引号，与后面的<code>'"'"'</code>中最左边的单引号组合，
+包裹中间的内容<code>/_cat/indices?v</code>，如果没有这一组单引号，
+里面的问好就会被求值，导致命令无法执行。</p></li>
+</ol>
+
+
+<p>这一步实现了在第11、21、27行上按<code>F3</code>键可以正确执行。</p>
+
+<h2>整合进vim function</h2>
+
+<p>这一步将前面的测试结果放进vim函数中，实现在第10、20、24行上能够正确执行。</p>
+
+<p>sendcmd.vim：
+<code>
+function! SendCmd()
+  let curline = getline(".")
+  echom curline
+  let escstr = substitute(curline, "'", "'\"'\"'", 'g')
+  let cmd = "tmux send-keys -t top '" . escstr . "' Enter"
+  echom cmd
+  echom system(cmd)
+endfunction
+nnoremap &lt;F3&gt; :call SendCmd()&lt;CR&gt;
+</code></p>
+
+<h2>制作成插件</h2>
+
+<p>当功能基本定型后，可以把脚本变成插件，避免每次使用时加载。</p>
+
+<p>最简单的vim插件，只要在一个目录（tmuxcmd）里创建一个<code>plugin</code>目录，
+把.vim脚本放进去，然后把目录做成git库就行了：</p>
+
+<pre><code>mkdir -p tmuxcmd/plugin
+mv test.vim tmuxcmd/plugin/tmuxcmd.vim
+cd tmuxcmd
+git init
+git add ...; git commit -m "..."
+</code></pre>
+
+<p>在.vimrc里加入这个插件：增加一行代码：<code>Plugin 'file:///home/leo/temp/tmuxcmd'</code></p>
+
+<p>安装：<code>vim +PluginInstall</code></p>
+
+<p>安装过程实际是把代码库clone到~/.vim/bundle下，
+修改~/.vim/bundle/tmuxcmd/plugin/tmuxcmd.vim文件在新的vim编辑器中不会生效。</p>
+
+<p>本地插件需要保存一个本地目录，更简单的方法是发布到github上，再用vundle安装：</p>
+
+<ol>
+<li><p>把代码库push到github上：
+<a href="https://github.com/leetschau/tmuxcmd">leetschau/tmuxcmd</a></p></li>
+<li><p>在.vimrc中，把原来的<code>Plugin 'file:///home/leo/temp/tmuxcmd'</code>换成
+<code>Plugin 'leetschau/tmuxcmd'</code></p></li>
+</ol>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[保存Tmux屏幕输出到文件中]]></title>
+    <link href="http://leetschau.github.io/blog/2016/06/24/094511/"/>
+    <updated>2016-06-24T09:45:11+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/06/24/094511</id>
+    <content type="html"><![CDATA[<p>保存Tmux的屏幕输出分为两步：
+首先用<code>capture-pane</code>将屏幕输出保存在buffer里，
+然后用<code>save-buffer</code>将buffer内容保存到文件里。</p>
+
+<p>在<code>capture-pane</code>中可以用<code>-S</code>和<code>-E</code>指定要保存的屏幕输出的范围，
+当前屏幕的最上一行为坐标原点，标记为0，下面一行坐标是1,依次类推；
+原点的上一行坐标是-1，再上一行坐标是-2，依次类推。</p>
+
+<p>用<code>Alt-c</code>进入copy-mode后，屏幕右上角显示当前屏幕在整个pane中的坐标[X/Y]，
+其中X代表当前屏幕最高行的坐标，Y代表最早一行屏幕输出的坐标，
+根据坐标确定要保存文本的起止坐标就可以保存了。</p>
+
+<p>例如要保存第3个pane中的一段近5000行的输出，
+进入copy-mode后按<code>g</code>键，到最早的屏幕输出，右上角显示<code>[5676/5676]</code>,
+用<code>Ctrl-f</code>或者<code>J</code>键向下滚动屏幕，
+当想要保存的第一行处于屏幕最上一行时，坐标显示为<code>[5557/5676]</code>，
+将想要保存的最后一行滚动到屏幕最上一行，坐标显示为<code>[642/5676]</code>，
+切换到另一个pane里执行：</p>
+
+<pre><code>tmux capture-pane -S -5557 -E -642 -t 3
+tmux save-buffer output.log
+</code></pre>
+
+<p>这样这段输出就保存到文件output.log里了，其中<code>-t 3</code>指定了要保存的pane的序号。</p>
+
+<p>如果要保存所有历史输出，可以简写为<code>tmux capture-pane -S -</code>.</p>
+
+<p>除了新开一个pane执行tmux命令，也可以在当前pane用快捷键<code>Alt-a</code>进入tmux命令行状态
+即command-prompt，然后执行<code>capture-pane -S -5557 -E -642</code>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Persist Tmux]]></title>
@@ -29,16 +260,25 @@ comes back.</p></li>
 
 <h1>Solution</h1>
 
-<p>First make sure your tmux version >= 1.9 with <code>tmux -V</code>.
-If not, install <a href="http://libevent.org/">libevent</a>
-(download libevent-2.0.22-stable.tar.gz and install it from source)
-and <a href="https://tmux.github.io/">tmux</a>
-(download tmux-2.1.tar.gz and install it frome source).</p>
+<p>First make sure your tmux version >= 1.9 with <code>tmux -V</code>. If not, run:
+ <code>
+proxychains wget https://github.com/tmux/tmux/releases/download/2.3/tmux-2.3.tar.gz
+tar zxf tmux-2.3.tar.gz
+cd tmux-2.3
+./configure &amp;&amp; make
+sudo apt-get install libevent-dev libncurses5-dev libncursesw5-dev
+sudo apt-get remove tmux
+sudo make install
+</code></p>
 
 <p>Then install <a href="https://github.com/tmux-plugins/tpm">Tmux Plugin Manager</a>,
 <a href="https://github.com/tmux-plugins/tmux-resurrect">Tmux Resurrect</a> and
-<a href="https://github.com/tmux-plugins/tmux-continuum">tmux-continuum</a> by adding
-the following lines in the end of ~/.tmux.conf:</p>
+<a href="https://github.com/tmux-plugins/tmux-continuum">tmux-continuum</a>:</p>
+
+<pre><code>git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+</code></pre>
+
+<p>Adding the following lines in the end of ~/.tmux.conf (without running tmux server):</p>
 
 <pre><code># List of plugins
 set -g @plugin 'tmux-plugins/tpm'
@@ -52,15 +292,28 @@ set -g @continuum-restore 'on'
 run '~/.tmux/plugins/tpm/tpm'
 </code></pre>
 
+<p>and run <code>tmux source-file .tmux.conf</code>.
+Start tmux and press <code>prefix + I</code> to install all the plugins.
+When finished, press <code>prefix + Ctrl-S</code> (key shortcut for saving tmux session)
+to verifiy the installation.</p>
+
 <p>Now the tmux status will be saved to disk every 15 minutes,
-or you can save it manually with <code>prefix, Ctrl-S</code>.</p>
+or save it manually with <code>prefix, Ctrl-S</code>.</p>
 
 <p>After restarting computer, run <code>tmux</code> in console,
-and all tmux sessions, windows and panes will be restored automatically
+all tmux sessions, windows and panes will be restored automatically
 (or you can restore them manually with <code>prefix, Ctrl-R</code>).</p>
 
 <p>You can remove the temporary session with <code>tmux kill-session -t 0</code>,
 where &ldquo;0&rdquo; is the name of the temporary session.</p>
+
+<p>Note:</p>
+
+<p>For more details about tmux plugin manager (update, remove plugin, for example),
+see README.md of <a href="https://github.com/tmux-plugins/tpm">Tmux Plugin Manager</a>.</p>
+
+<p>If not install with <code>apt-get</code>, you can install <a href="http://libevent.org/">libevent</a>
+with downloading libevent-2.0.22-stable.tar.gz and install it from source.</p>
 ]]></content>
   </entry>
   
@@ -114,508 +367,6 @@ To <em>move</em> a window to another session,
 switch to the server window and run tmux command <code>move-window -t v</code>.
 To move it back, run <code>move-window -s v:shell</code>,
 where <code>v</code> is the target session name defined by <code>tmux new -s v</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Control Linux Server With Tmux on Windows Client]]></title>
-    <link href="http://leetschau.github.io/blog/2015/06/27/085109/"/>
-    <updated>2015-06-27T08:51:09+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/06/27/085109</id>
-    <content type="html"><![CDATA[<p>I&rsquo;ve tried Kitty as SSH client.
-But under tmux, the right &ldquo;Alt&rdquo; key doesn&rsquo;t work,
-while it works good with MobaXterm.</p>
-
-<p>Full screen switch: F11;</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Tmux Configurations for Unity Desktop]]></title>
-    <link href="http://leetschau.github.io/blog/2015/06/18/112729/"/>
-    <updated>2015-06-18T11:27:29+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/06/18/112729</id>
-    <content type="html"><![CDATA[<p>Verified on Ubuntu 14.04, 2015-6-18.</p>
-
-<h1>Prefix</h1>
-
-<p><code>M-f</code> will activate the Unity HUB, so use <code>M-q</code> as tmux prefix:
-<code>set -g prefix M-q</code>.</p>
-
-<h1>Get Help</h1>
-
-<ul>
-<li><p>List all shortcuts: prefix ?</p></li>
-<li><p>List all commands: <code>tmux list-commands</code></p></li>
-</ul>
-
-
-<h1>Open a new Window/Pane</h1>
-
-<p>bind -n M-/ split-window -h
-bind -n M&ndash; split-window -v
-bind -n M-n new-window</p>
-
-<h1>Resize Pane in a Window</h1>
-
-<p>Use Ctrl- arrow key to resize pane:</p>
-
-<pre><code>bind -n -r ^Left resize-pane -L 5
-bind -n -r ^Down resize-pane -D 5
-bind -n -r ^Up resize-pane -U 5
-bind -n -r ^Right resize-pane -R 5
-</code></pre>
-
-<p>Use <code>M-z</code> to maximize/restore a pane:
-<code>bind -n M-z resize-pane -Z</code>.</p>
-
-<h1>Rotate Panes in a Window</h1>
-
-<p>Use default settings: prefix + Space</p>
-
-<h1>Jump between Window and Pane</h1>
-
-<p>Alt-(1~9): jump between windows;</p>
-
-<p>Alt-h/j/k/l: jump between panes;</p>
-
-<pre><code>bind -n M-1 select-window -t 1
-bind -n M-2 select-window -t 2
-bind -n M-3 select-window -t 3
-bind -n M-4 select-window -t 4
-bind -n M-5 select-window -t 5
-bind -n M-6 select-window -t 6
-bind -n M-7 select-window -t 7
-bind -n M-8 select-window -t 8
-bind -n M-9 select-window -t 9
-
-bind -n M-k select-pane -U
-bind -n M-j select-pane -D
-bind -n M-h select-pane -L
-bind -n M-l select-pane -R
-</code></pre>
-
-<h1>Move Window</h1>
-
-<p>Moving window behaves different with i3wm.
-If the target window exists, you have to use <code>join-pane</code>, otherwise <code>break-pane</code>.</p>
-
-<p>I use <code>if-shell</code> to test if the target window exists.</p>
-
-<p>Then add target window number provided by user (%1, which means the first user-input parameter)
-after &ldquo;-t&rdquo; option of <code>join-pane</code>.
-The default target format is <code>#{session_name}:#{window_index}.#{pane_index}</code>.
-See <code>man tmux</code> for details.</p>
-
-<pre><code>bind -n M-i command-prompt -p "move current pane to window:" "if-shell 'tmux list-windows |grep \"^%1\":' 'join-pane -t:\"%1\"' 'break-pane'"
-</code></pre>
-
-<h1>Other helpful resources</h1>
-
-<p>Use <code>^A</code> to represent &ldquo;Ctrl-A&rdquo;.</p>
-
-<p>Shutdown visual alerts:</p>
-
-<pre><code>setw -g monitor-activity on
-set -g visual-activity off
-</code></pre>
-
-<h2>Commands</h2>
-
-<ul>
-<li><code>clock-mode</code>: display a large clock on the terminal</li>
-</ul>
-
-
-<h2>Shortcuts</h2>
-
-<pre><code>bind -n M-a command-prompt
-bind -n M-r command-prompt -p "rename window name to:" "rename-window '%%'"
-bind r source-file ~/.tmux.conf \; display "Reloaded!"
-</code></pre>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Develop With Tmux in Linux]]></title>
-    <link href="http://leetschau.github.io/blog/2014/05/23/094625/"/>
-    <updated>2014-05-23T09:46:25+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/05/23/094625</id>
-    <content type="html"><![CDATA[<p>tmux is a terminal multiplexer.
-Its 3-level architecture &ldquo;session-window-pane&rdquo; is very flexible and powerful.
-Sessions are independent.
-Windows are different &ldquo;tabs&rdquo; in a session.
-And panes are different parts in a window.</p>
-
-<p>The multiplexer means if different hosts <strong>attach</strong> to the same session,
-they share the same screen, the same input and output, which like they sit together,
-use the same computer, so making pair-programming a breeze.</p>
-
-<p>You can detach from a session while it&rsquo;s still kept by tmux server in background.
-This is very useful on servers.
-You use laptop attaching to a tmux server running a server machine,
-work for a while, then detach from this server,
-shutdown your laptop.
-Next time when you attach to it,
-all the works are kept from last detach, as if you didn&rsquo;t leave them.</p>
-
-<p>You can move window between sessions, which is convinient for collaboration.
-For example, Bob works on session &ldquo;bob&rdquo; and Tom works on &ldquo;tom&rdquo;,
-Bob write some codes and want Tom to complete it.
-Then he can move his window to Tom&rsquo;s session.
-If he want pair-programming with Tom,
-he can tell Tom to detach from his own session &ldquo;tom&rdquo; and attach to &ldquo;bob&rdquo;.
-When finished, Tom detach from &ldquo;bob&rdquo; and attach to &ldquo;tom&rdquo; to continue his work.</p>
-
-<p>Ref: &ldquo;tmux - Productive Mouse-Free Development&rdquo; by Brian P. Hogan.</p>
-
-<h1>Install</h1>
-
-<p>With internet connected, install tmux with <code>sudo yum install tmux</code> or <code>sudo apt-get install tmux</code>.
-Without internet connection,
-download <a href="http://pkgs.repoforge.org/tmux/tmux-1.6-1.el6.rf.x86_64.rpm">tmux package</a> on <a href="http://repoforge.org/">RepoForge</a>,
-then install it with <code>sudo rpm -ivh tmux-1.6-1.el6.rf.x86_64.rpm</code>.</p>
-
-<h1>Getting help</h1>
-
-<h2>List all binding keys</h2>
-
-<p><code>tmux list-keys</code> or use shortcuts: &ldquo;bind-key ?&rdquo;.</p>
-
-<p>So if you know a shortcut, say [prefix]!, and want know the corresponding command, you can run</p>
-
-<pre><code>tmux list-keys|grep !
-</code></pre>
-
-<p>then you get</p>
-
-<pre><code>bind-key          ! break-pane 
-</code></pre>
-
-<p>So the corresponding command is &ldquo;break-pane&rdquo;.</p>
-
-<h2>List all commands</h2>
-
-<pre><code>tmux list-commands
-</code></pre>
-
-<h1>Define tmux startup shortcuts in Xfce, Mint</h1>
-
-<p>Application Finder(Alt-F3) -> Keyboard -> Application shortcuts: Add
-    Command: exo-open &ndash;launch TerminalEmulator xfce4-terminal &ndash;fullscreen -x tmux new -s basic
-    Shortcut: Alt-[</p>
-
-<h1>Frequently used shortcuts</h1>
-
-<p>According to the defualt shortcuts and above modifications:</p>
-
-<ul>
-<li><p>List all shortcuts: prefix ?</p></li>
-<li><p>List existing sessions: tmux ls</p></li>
-<li><p>Attach to a session: tmux attach -t <session-name>, if there&rsquo;s only one window, you can use <code>tmux a</code> for short;</p></li>
-<li><p>Switch to next window: prefix n</p></li>
-<li><p>Jump to last window: prefix l (easy for jump between 2 windows)</p></li>
-<li><p>Detach from a session: prefix d</p></li>
-<li><p>Jump to previous/next session: prefix (/)</p></li>
-<li><p>Jump to last session: prefix L (easy for jump between 2 sessions)</p></li>
-<li><p>Create new window: prefix c</p></li>
-<li><p>Rename current window: prefix <comma></p></li>
-<li><p>Jump to a window according to it&rsquo;s number: prefix <num> (see tmux&rsquo;s status line to get its number)</p></li>
-<li><p>Split current window horizontally/vertically: prefix -/|</p></li>
-<li><p>Jump to another pane(sub-window): prefix h/j/k/l</p></li>
-<li><p>Jump to next pane: prefix o</p></li>
-<li><p>Maximum/Restore a pane: prefix z (tmux version >= 1.8, use <code>tmux -V</code> to get the version)</p></li>
-<li><p>Move window to another session: prefix .(period)</p></li>
-<li><p>Switch to next layout: prefix <Space></p></li>
-</ul>
-
-
-<h1>Window-Pane Management</h1>
-
-<p>You can run <code>tmux ...</code> directly within tmux-managed sessions and windows,
-no need to detach from tmux environment beforehand.
-The only exception is <code>tmux attach</code>,
-which will produce a recursive attached tmux session, and messed up things.
-All command of tmux has auto-completion, so it&rsquo;s very convenient to run tmux command within tmux window.
-The equivalent way of running tmux command without command-line(like that in vi) is using shortcut &ldquo;prefix :&rdquo;.</p>
-
-<h2>Turning a window into a pane</h2>
-
-<ul>
-<li><p>In the destination window: <code>tmux join-pane -s [source-window-number]</code>;</p></li>
-<li><p>In the source window: <code>tmux join-pane -t [destination-window-number]</code>;</p></li>
-<li><p>Specify source and destination windows both: <code>tmux join-pane -s [src-window-number] -t [dst-window-number]</code>;</p></li>
-</ul>
-
-
-<h2>Turning a pane into a window</h2>
-
-<p>Use shortcuts &ldquo;prefix, !&rdquo; in the pane.</p>
-
-<h2>Keep the window name fixed</h2>
-
-<p>Add &ldquo;set-option -g allow-rename off&rdquo; into ~/.tmux.conf.</p>
-
-<h2>Kill zombie window</h2>
-
-<p><code>tmux kill-window -t [n]</code>, where [n] is the window number.</p>
-
-<h1>Clipboard Management</h1>
-
-<h2>Select/copy/paste text with shortcuts</h2>
-
-<ol>
-<li><p>Modify default key of opening copy mode to M-c;</p></li>
-<li><p>Move cursor: h/j/k/l;</p></li>
-<li><p>Begin select: v</p></li>
-<li><p>End select and copy to clipboard: y
-or quit copy mode with <Enter>;</p></li>
-<li><p>Paste text: prefix, p</p></li>
-</ol>
-
-
-<p>To enable copy/paste between tmux buffer and system clipboard,
-install xsel, and add codes below into ~/.tmux.conf:</p>
-
-<pre><code>bind -t vi-copy y copy-pipe "xsel -i -p -b"
-bind p run "xsel -o | tmux load-buffer - ; tmux paste-buffer"
-</code></pre>
-
-<p>Here &ldquo;bind&rdquo; is the alias of &ldquo;bind-key&rdquo;.
-&ldquo;-t&rdquo; specifies the type is &ldquo;vi-copy&rdquo; instead of &ldquo;emacs-copy&rdquo;.
-In copy mode of tmux, use &ldquo;y&rdquo; to copy selected text into system clipboard,
-then paste the text with Ctrl-V in GUI application, or Shift-Ctrl-V in terminal,
-or &ldquo;p&rdquo; in vim.</p>
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/Tmux#X_clipboard_integration">X clipboard integration</a> on ArchLinux Wiki.</p>
-
-<h2>Path share between windows</h2>
-
-<p>I want to copy all files in window #1 to directory in window #2. The workflow is:</p>
-
-<pre><code>prefix 2
-tmux setb $PWD
-prefix 1
-cp * [prefix p]/
-</code></pre>
-
-<p>The trick is using <code>tmux setb</code> to copy working directory to buffer of tmux,
-then use [prefix p] to paste the path into the copy command.
-Don&rsquo;t forget the trailing slash at the end of cp command, it&rsquo;s necessary.</p>
-
-<p>If parcellite is installed, there is a little simpler way to achieve this:</p>
-
-<pre><code>prefix 2
-pwd|parcellite
-prefix 1
-cp * [Ctrl-Alt-v]/
-</code></pre>
-
-<p>You can use <code>ls -l|parcellite</code> to add command output to parcellite buffer.</p>
-
-<h2>Multiple Buffers Copy &amp; Paste</h2>
-
-<p>tmux maintains a stack of copied buffers. So you can copy multiple times, and paste selected buffers in arbitrary order, with the help of following commands: list-buffer, show-buffer, choose-buffer, save-buffer.</p>
-
-<p>Copy all the texts in the current pane with &ldquo;capture-pane&rdquo;(not including scrolled out texts).</p>
-
-<h1>Customize status bar</h1>
-
-<h2>Add battery status in tmux status bar</h2>
-
-<p>Add the following line into ~/.tmux.conf:</p>
-
-<pre><code>set -g status-right "%R #[fg=black bg=white]%Y %b %d#[fg=white bg=black] #(/home/chad/apps/getBatteryStuatus)"
-</code></pre>
-
-<p>And create a shell script named &ldquo;getBatteryStuatus&rdquo; under /home/chad/apps:</p>
-
-<pre><code>upower -i /org/freedesktop/UPower/devices/battery_BAT0|awk '/^\s*percentage:/ {print $2}'
-</code></pre>
-
-<h1>Disable Mouse Scrolling</h1>
-
-<p>Enable mouse scrolling will copy selected text into tmux clipboard.
-So it&rsquo;s impossible to copy text in tmux and paste it outside tmux environment.</p>
-
-<p>To disable it, add &ldquo;set -g mode-mouse off&rdquo; into ~/.tmux.conf.</p>
-
-<p>To scrolling window in tmux, first go into copy mode, then use Ctrl-K/J to move up/down.</p>
-
-<p>To make this smooth, add the following into .tmux.conf:</p>
-
-<pre><code># Copy mode
-unbind [
-bind -n C-j copy-mode
-bind p paste-buffer
-bind -t vi-copy 'v' begin-selection
-bind -t vi-copy 'y' copy-selection
-</code></pre>
-
-<h1>Deal with Nested Tmux Session</h1>
-
-<p>If you run <code>tmux a</code> inside a tmux window, you attach to a nested tmux session.
-If the prefix definition of both tmux are the same, you can&rsquo;t send keys to inner session directly.
-For example, if you press &ldquo;prefix d&rdquo;, if will detach from the outer session.</p>
-
-<p>How to detach from inner session?
-First press &ldquo;prefix :&rdquo;, you get the tmux command prompt of outer session.
-Then input &ldquo;send-prefix&rdquo;, press <Enter>,then press d.</p>
-
-<p>Or you can use &ldquo;send-keys&rdquo; command.
-First press &ldquo;prefix :&rdquo;, you get the tmux command prompt of outer session, like above.
-Then input &ldquo;send-keys M-q d&rdquo;, press <Enter>.
-Here we suppose your prefix is &ldquo;M-q&rdquo;.</p>
-
-<p>The format of keys after &ldquo;send-keys&rdquo; is defined in section &ldquo;KEY BINDINGS&rdquo; in <code>man tmux</code>.</p>
-
-<h1>Make tmux more convenient</h1>
-
-<p>Add the follow aliases into ~/.bash_aliases:</p>
-
-<pre><code>alias tl='tmux ls'
-alias ta='tmux attach -t'
-</code></pre>
-
-<p>You can use <Tab> for session name auto-completion after <code>ta</code>.</p>
-
-<p>Get tmux version: <code>tmux -V</code>.</p>
-
-<h1>My configuration file</h1>
-
-<pre><code>$ cat ~/.tmux.conf
-
-# Set the default terminal mode to 256color mode
-set -g default-terminal "screen-256color"
-
-# run zsh
-# set-option -g default-command "reattach-to-user-namespace -l $SHELL -l"
-
-# disable mouse scroll
-set -g mode-mouse off
-
-# fix the window name
-set-option -g allow-rename off
-
-# Setting the prefix from C-b to Alt-f
-set -g prefix M-q
-
-# Free the original Ctrl-b prefix keybinding
-unbind C-b
-
-# quick window switching, -n means no need to use prefix
-bind -n C-h select-window -t :-
-bind -n C-l select-window -t :+
-
-# quick window creation
-bind -n C-k new-window
-
-# quick pane expansion
-# bind -n M-u break-pane
-
-# quick window joining
-bind -n M-i command-prompt "join-pane -s %1"
-
-# enable vi keys.
-setw -g mode-keys vi
-
-# Set the base index for windows to 1 instead of 0
-set -g base-index 1
-
-# Set the base index for panes to 1 instead of 0
-setw -g pane-base-index 1
-
-# setting the delay between prefix and command
-set -sg escape-time 1
-#set -sg repeat-time 1000
-
-# Reload the file with Prefix r
-bind r source-file ~/.tmux.conf \; display "Reloaded!"
-
-# Split window
-bind | split-window -h
-bind - split-window -v
-
-# moving between panes
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-
-# Pane resizing, -r means you can repeat this key bindings
-bind -r H resize-pane -L 5
-bind -r J resize-pane -D 5
-bind -r K resize-pane -U 5
-bind -r L resize-pane -R 5
-
-# Copy mode
-unbind [
-bind -n C-j copy-mode
-bind p paste-buffer
-bind -t vi-copy 'v' begin-selection
-bind -t vi-copy 'y' copy-selection
-
-# Update the status bar every sixty seconds
-set -g status-interval 60
-
-# set the status line's colors
-set -g status-fg white
-set -g status-bg black
-
-# Status line left side
-set -g status-left-length 40
-set -g status-left "#[fg=green]session: #S #[fg=yellow]#I #[fg=cyan]#P"
-set -g status-utf8 on
-
-# enable activity alerts
-setw -g monitor-activity on
-set -g visual-activity off
-
-# Center the window list
-set -g status-justify centre
-
-# set the color of the window list
-setw -g window-status-fg cyan
-setw -g window-status-bg default
-setw -g window-status-attr dim
-
-# set colors for the active window tag in window list
-setw -g window-status-current-fg white
-setw -g window-status-current-bg blue
-setw -g window-status-current-attr bright
-
-# Status line right side
-set -g status-right "%R #[fg=black bg=white]%F#[fg=white bg=black] #(/home/chad/apps/myscripts/getBatteryStuatus)"
-#set -g status-right "%R #[fg=black bg=white]%Y %b %d"
-# setw -g status-right-attr bright
-
-# Command / message line
-set -g message-fg white
-set -g message-bg black
-set -g message-attr bright
-
-# Execute a command in a new window
-bind C command-prompt "new-window -n %1 '%1'"
-bind S command-prompt "new-window -n %1 'ssh %1'"
-</code></pre>
-
-<p>The last line shows that you can use parameters in key bindings. When you press prefix S, tmux propmt you to input a parameter, I input &ldquo;47&rdquo; and press <Enter>, it will open a new window named &ldquo;47&rdquo;, and run command &ldquo;ssh 47&rdquo;.</p>
-
-<p>If your .tmux.conf doesn&rsquo;t take effect, run the following command to load config file explicitly (or find errors in file):</p>
-
-<pre><code>tmux new
-tmux source-file ~/.tmux.conf
-</code></pre>
-
-<p>The format strings in status line are interpreted as the followings:</p>
-
-<ul>
-<li><p>%X: date-time sign, such as %R is time, %F is date, etc. See full list in &ldquo;FORMAT controls the output&rdquo; section in <code>man date</code>;</p></li>
-<li><h1>&hellip;: maybe the output of a shell command, or color of foreground/background, or an attribute. See full list in &ldquo;status-left&rdquo; of <code>man tmux</code>. These meta-data can be used both in status-left and status-right;</h1></li>
-</ul>
-
 ]]></content>
   </entry>
   

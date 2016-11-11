@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="Partition Disk and Install 32bit Arch Linux Create usb install key: $ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync &hellip;">
+  <meta name="description" content="Here vim-airline/vim-airline
+(formerly &ldquo;bling/vim-airline&rdquo;) is used to customize vim&rsquo;s statusline. Install with Vundle Add the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -38,7 +39,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -71,7 +72,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/05/03/105044/">Install 32bit Arch Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/06/26/180252/">Customize Vim Statusline</a></h1>
     
     
       <p class="meta">
@@ -80,134 +81,52 @@
 
 
 
-<time class='entry-date' datetime='2014-05-03T10:50:44+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>3</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:50 am</span></time>
+<time class='entry-date' datetime='2014-06-26T18:02:52+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>26</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:02 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Partition Disk and Install 32bit Arch Linux</h1>
+  <div class="entry-content"><p>Here <a href="https://github.com/vim-airline/vim-airline">vim-airline/vim-airline</a>
+(formerly &ldquo;bling/vim-airline&rdquo;) is used to customize vim&rsquo;s statusline.</p>
 
-<ol>
-<li><p>Create usb install key:</p>
+<h1>Install with Vundle</h1>
 
-<p> $ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync</p></li>
-<li><p>Startup laptop with usb key and select &ldquo;Boot Arch Linux (i686)&rdquo;;</p></li>
-<li><p>Connect wifi:</p>
+<p>Add the following lines into ~/.vimrc:</p>
 
-<p> # wpa_supplicant -B -i wlp5s0 -c &lt;(wpa_passphrase TP-LINK_PocketAP_8344C2 py25)
- # dhcpcd wlp5s0</p></li>
-<li><p>Partition disk:</p>
-
-<p> # sgdisk &ndash;zap-all /dev/sda
- # cgdisk /dev/sda    // create 20G, 50G, 20G, 50G, 20G, 50G, 20G, 50G, 105G, totally 9 partitions
- // This is a gpt partition, where can&rsquo;t install Windows, because Windows only support MBR partition
- # parted /dev/sda print   // print the partition tables
- # mkfs.ext4 /dev/sda1
- # mkfs.ext4 /dev/sda2
- # lsblk -f                // display the current partition layout</p></li>
-<li><p>Mount partition:</p>
-
-<p> # mount /dev/sda1 /mnt
- # mkdir /mnt/home
- # mount /dev/sda2 /mnt/home</p></li>
-<li><p>Select a mirror:</p>
-
-<p> # vi /etc/pacman.d/mirrorlist</p></li>
-<li><p>Install the base system: (so cool~)</p>
-
-<p> # pacstrap -i /mnt base</p></li>
-<li><p>Create fstab and chroot:</p>
-
-<p> # genfstab -U -p /mnt >> /mnt/etc/fstab
- # arch-chroot /mnt /bin/bash</p></li>
-<li><p>Set locale:</p>
-
-<p> # vi /etc/locale.gen  // uncomment en_US.UTF-8 &amp; zh_CN.UTF-8
- # locale-gen
- # echo LANG=en_US.UTF-8 > /etc/locale.conf
- # export LANG=en_US.UTF-8
- # setfont Lat2-Terminus16 (optional)</p></li>
-<li><p>Set time zone:</p>
-
-<p> # ln -s /usr/share/zoneinfo/Hongkong /etc/localtime    // now <code>date</code> command will give corrent time
- # hwclock &ndash;systohc &ndash;utc</p></li>
-<li><p>Set hostname:</p>
-
-<p> # echo blackpad > /etc/hostname
- # vi /etc/hosts</p></li>
-<li><p>Config wireless (modify the wireless name based on your machine):</p>
-
-<p> # pacman -S iw wpa_supplicant dialog wpa_actiond
- # systemctl enable <a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#x3a;&#x6e;&#101;&#116;&#x63;&#116;&#x6c;&#x2d;&#x61;&#117;&#x74;&#111;&#x40;&#119;&#x6c;&#x70;&#53;&#x73;&#x30;&#x2e;&#115;&#x65;&#x72;&#x76;&#x69;&#x63;&#x65;">&#x6e;&#x65;&#x74;&#x63;&#116;&#x6c;&#45;&#97;&#117;&#116;&#x6f;&#x40;&#x77;&#x6c;&#112;&#x35;&#x73;&#48;&#46;&#115;&#x65;&#x72;&#x76;&#105;&#99;&#101;</a></p></li>
-<li><p>Set root passwd:</p>
-
-<p> # passwd</p></li>
-<li><p>Install and configure a bootloader:</p>
-
-<p> # pacman -S gptfdisk
- # pacman -S syslinux     // install syslinux boot loader because we create gpt partition earlier. Install grub will produce an error.
- # syslinux-install_update -i -a -m
- # vi /boot/syslinux/syslinux.cfg     // modify &ldquo;APPEND root=/dev/sda1 rw&rdquo; in &ldquo;LABEL arch&rdquo; section</p></li>
-<li><p>Shutdown, unplugged usb key and restart laptop;</p></li>
-<li><p>Start wifi connection:</p>
-
-<p> # wifi-menu wlp5s0     // get interface name with <code>iw dev</code></p></li>
-</ol>
-
-
-<p>Choose a SSID, enter the key, press &ldquo;OK&rdquo;, then you can see &ldquo;Interface wlp5s0 is controlled by netctl-auto&rdquo;, use <code>ip addr</code> or <code>ping ...</code> to verify network.</p>
-
-<ol>
-<li><p>Install SSH service:</p>
-
-<p> # pacman -Syu openssh
- # systemctl start sshd
- # systemctl enable sshd.service</p></li>
-</ol>
-
-
-<h1>Install the second System</h1>
-
-<ol>
-<li><p>Start laptop with YUMI usb key;</p></li>
-<li><p>Startup a openSUSE 13.1 live dvd, install system on /dev/sda3 and /dev/sda4, reboot;</p></li>
-<li><p>startup laptop, it prints: multiple active partitions, start failed;</p></li>
-<li><p>Startup labtop with Arch USB key, delete openSUSE partitions, reboot, Arch is back;</p></li>
-<li><p>Startup a CentOS live DVD, install system on /dev/sda3 and /dev/sda4, rebuild boot loader, reboot;</p></li>
-<li><p>Startup laptop, only CentOS can start, it print &ldquo;boot error&rdquo; when choose &ldquo;Arch Linux&rdquo; to start;</p></li>
-<li><p>Startup labtop with Arch USB key, delete CentOS partitions, reboot, only a GNU Grub command line;</p></li>
-</ol>
-
-
-<p>This experiment failed.</p>
-
-<h1>Install i3</h1>
-
-<pre><code># useradd -m -s /usr/bin/bash chad
-# pacman -S xorg-server xorg-server-utils xorg-xinit
-# pacman -S dmenu i3
-# pacman -S gnome     // this big one (almost 1GB) is necessary, only gnome-shell can't work
-# pacman -S xf86-video-intel xf86-input-synaptics
-// video and touchpad driver, there will be a "could not open module intel" error without them
-// they take effect after installation without reboot
-# su - chad
-$ echo "exec i3" &gt;  ~/.xinitrc
-$ startx
+<pre><code>Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
 </code></pre>
 
-<h1>Install Chinese IM</h1>
+<h1>Customize Statusline</h1>
 
-<pre><code># pacman -S ibus-libpinyin
-# su - chad
-$ ibus-setup
+<p>Add the following 2 lines to ~/.vimrc:</p>
+
+<pre><code>set laststatus=2
+let g:airline_theme='badwolf'
 </code></pre>
 
-<p>Then select &ldquo;Chinese - Intelligent Pinyin&rdquo; under &ldquo;Input Method&rdquo; tab, and click &ldquo;Preferences&rdquo; to customize it.
-The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
-&ldquo;ibus-pinyin&rdquo; can&rsquo;t work properly.
-&ldquo;ibus-rime&rdquo; can only input traditional Chinese.</p>
+<h1>Discussion</h1>
+
+<p>List all availale themes with:</p>
+
+<pre><code>ls ~/.vim/bundle/vim-airline-themes/autoload/airline/themes
+</code></pre>
+
+<p>Use <code>:AirlineTheme dark</code> to apply theme &ldquo;dark&rdquo; on the fly in vim.</p>
+
+<p>To add full path to vim&rsquo;s statusline, add this into .vimrc:</p>
+
+<pre><code>let g:airline_section_c='%F'
+</code></pre>
+
+<p>See <code>:h laststatus</code> for the meaning of &ldquo;laststatus&rdquo;.</p>
+
+<p>See &ldquo;CUSTOMIZATION&rdquo; section of <code>:h airline</code>
+for the meaning of every section and its default contents.</p>
+
+<p>See <code>:h statusline</code> for the meaning of &ldquo;%F&rdquo; and the name of all statusline items.</p>
 </div>
   
   
@@ -220,7 +139,7 @@ The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/05/02/133411/">Gentoo Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/06/25/114456/">Run GUI Application on Remote Host</a></h1>
     
     
       <p class="meta">
@@ -229,91 +148,47 @@ The package &ldquo;ibus-sunpinyin&rdquo; is OK, too.
 
 
 
-<time class='entry-date' datetime='2014-05-02T13:34:11+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:34 pm</span></time>
+<time class='entry-date' datetime='2014-06-25T11:44:56+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:44 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Install</h1>
+  <div class="entry-content"><p>Install: <code>apt-get install xpra</code>;</p>
 
-<p>Follow <a href="http://www.gentoo.org/doc/en/handbook/handbook-x86.xml">Gentoo Linux x86 Handbook</a>.</p>
+<p>I want to run Thunderbird on host 10.32.1.81:</p>
 
-<ol>
-<li><p>Download gentoo install CD install-x86-minimal-20140415.iso from its website <a href="http://distfiles.gentoo.org/releases/x86/autobuilds/current-install-x86-minimal/">x86 minimal site</a>;</p></li>
-<li><p>Create USB installer: <code>dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync</code>;</p></li>
-<li><p>Use this usb key start the laptop;</p></li>
-<li><p>Create a wpa_supplicant conf file:</p>
+<pre><code>ssh chad@10.32.1.81 xpra start :100 --start-child=thunderbird
+xpra attach ssh:10.32.1.81:100
+</code></pre>
 
-<p> $ cat /etc/wpa_supplicant/wpa_supplicant.conf
- network={
-     ssid=&ldquo;TP-LINK&hellip;&rdquo;
-     psk=&ldquo;py&hellip;&rdquo;
-     scan_ssid=1
-     proto=WPA2
- }</p></li>
-<li><p>Connect WiFi: <code>/etc/init.d/wpa_supplicant start</code>, verify: ping another host in your wifi network;</p></li>
-<li><p>Test network with <code>ping www.baidu.com</code>, if you can&rsquo;t connect to it, config network:</p>
+<p>Now Thunderbird window appears. You can use &ldquo;Attach&rdquo; to add attachment from the disk of remote server, which means all GUIs from the &ldquo;root&rdquo; GUI can be accessed remotely.</p>
 
-<p> # ifconfig wlp5s0 down
- # ifconfig wlp5s0 192.168.1.103 broadcast 192.168.1.255 netmask 255.255.255.0 up
- # route add default gw 192.168.1.253   // get gateway IP with <code>route -n</code> on another host</p></li>
-</ol>
+<p>When it&rsquo;s done, press &ldquo;Ctrl-c&rdquo; in the terminal window to close Thunderbird window. Do not click &ldquo;close&rdquo; button, it will kill the Thunderbird window in DISPLAY 100, and you can&rsquo;t visit it any more.</p>
 
+<p>If you want visit this window later:</p>
 
-<p>If you still can&rsquo;t ping a internet website, run <code>dhcpcd wlp5s0</code> to generate nameservers(stored in /etc/resolv.conf);</p>
+<pre><code>ssh chad@10.32.1.81 xpra list    // so you get the $DISPLAY number 100
+xpra attach ssh:10.32.1.81:100   // run this command in AppFinder (Alt-F2) instead of terminal
+xpra detach ssh:81:100           // run this command in AppFinder (Alt-F2) instead of terminal
+</code></pre>
 
-<ol>
-<li><p>Partition disk;</p></li>
-<li><p>The command &ldquo;emerge-webrsync&rdquo; in step &ldquo;Configuring Portage&rdquo; which download Portage snapshot from 163.com is very slow(about 15 minutes);</p></li>
-<li><p>Config kernel manually: <code>make menuconfig</code>: Processor type and features -> Processor family: Core 2/newer Xeon, but there are many errors due to hardware info mismatch. So I give up and use &ldquo;genkernel&rdquo; utility to compile the kernel. It takes about 25 minutes;</p></li>
-<li><p><code>ls /boot/kernel*</code>: /boot/kernel-genkernel-x86-3.12.13-gentoo; <code>ls /boot/initr*</code>: /boot/initramfs-genkernel-x86-3.12.13-gentoo</p></li>
-<li><p>Install vim with <code>emerge vim</code>;</p></li>
-<li><p><code>emerge sys-boot/grub</code> is slow;</p></li>
-<li><p>After reboot, only loopback nic is detected wiht <code>ifconfig</code> command.</p>
+<p>If you want clear all:</p>
 
-<p> # modprobe wlp5s0
- modprobe: FATAL: Module wlp5s0 not found
- # ifconfig wlp5s0 up
- wlp5s0: ERROR while getting interface flags: No such device
- # dmesg | grep iwlwifi
- &hellip; request for firmware file &lsquo;iwlwifi-1000-5.ucode&rsquo; failed.
- &hellip;</p>
+<pre><code>ssh chad@10.32.1.81 xpra stop :100        // run this command on remote server
+</code></pre>
 
-<p> # genkernel &ndash;menuconfig all
- mark &ldquo;Intel Wireless WiFi MVM Firmware support&rdquo;
- Device Drivers -> Network device support (NETDEVICES) -> Wireless LAN (WLAN) -> IEEE 802.11 for Host AP -> Support downloading firmw
-                                                       -> ISDN Support -> Siemens Gigaset support
-                                                       -> Ethernet driver support: all intel ethernet drivers
- # emerge -v iwlwifi-1000-5.ucode</p></li>
-</ol>
+<p>If you want to attach to a xpra server on localhost, run <code>xpra attach :100</code>;</p>
 
+<h1>Use ssh alias</h1>
 
-<p>Start with usb key, Create a wpa_supplicant conf file;</p>
+<p>Add 81 as alias of &ldquo;<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#111;&#x3a;&#99;&#104;&#x61;&#100;&#64;&#x31;&#x30;&#x2e;&#x33;&#x32;&#x2e;&#x31;&#46;&#x38;&#x31;">&#99;&#104;&#97;&#x64;&#64;&#49;&#x30;&#x2e;&#x33;&#50;&#46;&#x31;&#46;&#56;&#49;</a>&rdquo; in ~/.ssh/config. Then you can use xpra in the following way:</p>
 
-<pre><code># /etc/init.d/wpa_supplicant start  // connect to wifi.
-# mount /dev/sda4 /mnt/gentoo  // 4.f: Mounting
-# mkdir /mnt/gentoo/boot
-# mount /dev/sda2 /mnt/gentoo/boot
-# mount -t proc proc /mnt/gentoo/proc // 6.a. Chrooting: Mounting the necessary Filesystems;
-# mount --rbind /sys /mnt/gentoo/sys
-# mount --rbind /dev /mnt/gentoo/dev
-# chroot /mnt/gentoo /bin/bash 
-# source /etc/profile
-# export PS1="(chroot) $PS1"
-# emerge sys-apps/pciutils   // install lspci
-# emerge ...      // install iwconfig
-# ifconfig -a
-wlp5s0 ...
-# emerge net-wireless/wpa_supplicant
-#ls /lib/firmware/
-// there is no "iwlwifi-1000-5.ucode microcode.dat"
-# emerge sys-kernel/linux-firmware
-# ls /lib/firmware/iwlwifi*
-/lib/firmware/iwlwifi-1000.5.ucode
-# create the wpa_supplicant.conf file
-# /etc/init.d/net.wlp5s0 start
+<pre><code>ssh 81 xpra start :111 --start-child=gedit
+xpra attach ssh:81:111
+ssh 81 xpra list
+ssh 81 xpra stop :111
 </code></pre>
 </div>
   
@@ -327,7 +202,7 @@ wlp5s0 ...
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/05/01/121138/">Package Management on Arch Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/06/24/120847/">Dual Monitors on Linux</a></h1>
     
     
       <p class="meta">
@@ -336,291 +211,303 @@ wlp5s0 ...
 
 
 
-<time class='entry-date' datetime='2014-05-01T12:11:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>12:11 pm</span></time>
+<time class='entry-date' datetime='2014-06-24T12:08:47+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:08 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Search packages: <code>pacman -Ss pkg1 pkg2 ...</code>;</p>
+  <div class="entry-content"><ul>
+<li><p>Connect VGA cable to laptop;</p></li>
+<li><p>List all monitors' name: <code>xrandr -q</code>, or <code>ls /sys/class/drm/</code> if &ldquo;-q&rdquo; doesn&rsquo;t work.</p></li>
+<li><p>Open this monitor: <code>xrandr --output VGA1 --auto</code>, now there should be same output on VGA1 and laptop screen;</p></li>
+<li><p>Put scrren of laptop (LVDS1) under the screen of 19 inches monitor (VGA1) : <code>xrandr --output LVDS1 --below VGA1 --auto</code>;</p></li>
+<li><p>Move an <a href="http://i3wm.org/">i3</a> workspace to monitor VGA1: <code>i3-msg move workspace to output VGA1</code>,
+of course you can use any monitor name instead of &ldquo;VGA1&rdquo;.
+Use a i3 shortcut instead of command to move workspace between monitors: add the following codes into ~/.i3/config</p>
 
-<p>Install packages with updated repo: <code>pacman -Syu pkg1 pkg2 ...</code>;</p>
-
-<p>Remove a package and its dependencies which is not required by other installed packages: <code>pacman -Rs pkg1</code>;</p>
-
-<p>Remove a package and leaving all its dependencies installed: <code>pacman -R pkg1</code>;</p>
-
-<p>Remove all orphaned packages: <code>pacman -Rns $(pacman -Qtdq)</code>;</p>
-
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/pacman">pacman</a> on Arch Linux.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/01/112805/">I3 Window Manager on ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-05-01T11:28:05+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>11:28 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>i3 is a good wm(window manager), it&rsquo;s powerful and easy to install. It supports system tray, app like golden-dict will have a icon in system tray after it&rsquo;s closed.</p>
-
-<h1>Install</h1>
-
-<pre><code># pacman -S xorg-server xorg-server-utils
-# pacman -S xorg-xinit
-# pacman -S dmenu
-# pacman -Syu gnome    // use `pacman -Rsc gnome` to remove package and its dependencies
-# pacman -S i3
-$ echo "exec i3" &gt;  ~/.xinitrc
-$ startx
-</code></pre>
-
-<h1>Configuration</h1>
-
-<p>Config file: ~/.i3/config.</p>
-
-<p>Define Alt key:</p>
-
-<pre><code>set $mod Mod4
-</code></pre>
-
-<p>Define Win key:</p>
-
-<pre><code>set $sup Mod1
-</code></pre>
-
-<p>Adjust the font of titlebar:</p>
-
-<pre><code>font pango:Dejavu Sans Mono 11
-</code></pre>
-
-<p>Add custom keybindings:</p>
-
-<pre><code>bindsym $sup+x exec /home/chad/apps/idea-IC-135.690/bin/idea.sh
-</code></pre>
-
-<h1>Application Autostart</h1>
-
-<p>Add start command <strong>before</strong> &ldquo;exec i3&rdquo; in ~/.xinitrc.
-For example, the following lines in ~/.xinitrc start USB stisk, clipboard and Chinese input method manager when i3wm startup:</p>
-
-<pre><code>fcitx &amp;
-parcellite &amp;
-udiskie &amp;
-xbindkeys
-exec i3
-</code></pre>
-
-<h1>Search Application</h1>
-
-<p>You can use dmenu as xfce4-appfinder on Xfce.
-For example, after install R-Studio-Desktop with <code>yaourt -S rstudio-desktop-bin</code>,
-input &lsquo;studio&rsquo; in dmenu (press Alt-D to invoke it),
-you can find the full name of RStudio Desktop is &ldquo;rstudio-bin&rdquo;.</p>
-
-<h1>Applications</h1>
-
-<h2>Terminal and File Manager</h2>
-
-<p>Xfce family is small and powerful. Install them with <code>pacman -S xfce4-terminal</code> and <code>pacman -S thunar</code>.
-xfce4-terminal is much better for eyes than Terminator.</p>
-
-<h2>Web Browser</h2>
-
-<p>Install Chromium with <code>sudo pacman -S chromium</code>.
-Install flash plugin for Chromium with <code>yaourt -S chromium-pepper-flash</code>.
-Now you can use website which need flash support, such as <a href="http://pan.baidu.com/">Baidu Netdisk</a>.</p>
-
-<h2>Text Editor</h2>
-
-<p>Clipboard-support enabled vim: gvim;</p>
-
-<h2>PDF Viewer</h2>
-
-<p>Evince is small and poweroff. Install it with <code>sudo pacman -S evince</code>.</p>
-
-<h2>Office Suite</h2>
-
-<p><a href="http://www.wps.cn/">WPS</a> is OK, but the fcitx doesn&rsquo;t work in it.</p>
-
-<p>Installed <a href="http://www.freeoffice.com/">FreeOffice</a>, it need providing Email to activate, give up.</p>
-
-<p>fcitx can be used in Abiword. But Abiword is only a word processor, no spred sheets support.</p>
-
-<h1>Wireless Card</h1>
-
-<ol>
-<li><p>Install wifi utilities: <code>pacman -S iw wpa_supplicant dialog wpa_actiond</code>;</p></li>
-<li><p>List wireless card status: <code>iwconfig</code>;</p></li>
-<li><p>Scan and Connect to hot point: <code>sudo wifi-menu</code></p></li>
-<li><p>Remember this hot point for auto-connection later (modify the wireless name based on your machine): <code>systemctl enable netctl-auto@wlp5s0.service</code>;</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/Wireless_network_configuration">Wireless network configuration</a></p>
-
-<p><a href="https://wiki.archlinux.org/index.php/Netctl">netctl</a></p>
-
-<h1>Status Bar Customization</h1>
-
-<p>For i3status, use <code>man i3status</code> to determine the configuration file position, here it&rsquo;s ~/.config/i3status/config.
-Then <code>cp /etc/i3status.conf ~/.i3status.conf</code> as template. Modify the ethernet and wireless card name in <strong>both</strong> &ldquo;order += &hellip;&rdquo; and function definition line.</p>
-
-<h1>Frequently used keybindings</h1>
-
-<p>&ldquo;M&rdquo; means $mod key, &ldquo;S&rdquo; means Shift key.</p>
-
-<ul>
-<li><p>M-d: application launcher;</p></li>
-<li><p>M-<Enter>: start a termianl;</p></li>
-<li><p>M-f: full screen current app;</p></li>
-<li><p>M-S-q: quit</p></li>
-<li><p>M-S-c: reload config without restart;</p></li>
-<li><p>M-2: jump to workspace 2;</p></li>
-<li><p>M-S-2: move application to workspace 2;</p></li>
+<pre><code>  # move workspace to left/right screen
+  bindsym $mod+Shift+Left move workspace to output left
+  bindsym $mod+Shift+Right move workspace to output right
+  bindsym $mod+Shift+Up move workspace to output up
+  bindsym $mod+Shift+Down move workspace to output down
+</code></pre></li>
+<li><p>Close a monitor: <code>xrandr --output VGA1 --off</code>;</p></li>
 </ul>
 
 
-<h1>USB Automount &amp; Unmount</h1>
+<p>These settings worked both on Xfce and <a href="http://i3wm.org/">i3 wm</a>.</p>
+</div>
+  
+  
 
-<p>See note &ldquo;Automount USB Disk on Linux&rdquo;.</p>
 
-<h1>Power Management</h1>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/23/135000/">Virtual BVT System</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>First install polkit with <code>sudo pacman -S polkit</code>, which enable normal users run power management command without root privilege (sudo).
-Then add a executable script into /usr/local/bin:</p>
 
-<pre><code>cat /usr/local/bin/pm
+
+
+<time class='entry-date' datetime='2014-06-23T13:50:00+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2014</span></span> <span class='time'>1:50 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Prerequisites</h1>
+
+<ol>
+<li><p>The host server of the environment is 10.0.2.47;</p></li>
+<li><p>Install <a href="http://www.vagrantup.com/">vagrant</a> on server 47;</p></li>
+<li><p>Add vagrant box of precise x86_64: <code>vagrant box add ...</code>;</p></li>
+<li><p>Create a directory named &ldquo;bvt-package&rdquo; under ~/warez, which contains:
+ apache-ant-1.9.3-bin.tar.bz2
+ cobertura.jar
+ hamcrest-core-1.3.jar
+ jdk-6u45-linux-x64.bin
+ jenkins-1.544.war
+ junit-4.8.1.jar
+ sonar-3.6.1.zip
+ svn_amd64_ubuntu12.04
+     libapr1_1.4.6-1_amd64.deb
+     libaprutil1_1.3.12+dfsg-3_amd64.deb
+     libdb4.8_4.8.30-11ubuntu1_amd64.deb
+     libneon27-gnutls_0.29.6-1_amd64.deb
+     libsvn1_1.6.17dfsg-3ubuntu3_amd64.deb
+     subversion_1.6.17dfsg-3ubuntu3_amd64.deb
+ unzip_6.0-4ubuntu1_amd64.deb
+ zip_3.0-4_amd64.deb</p></li>
+<li><p>The demo product codes in subversion repository is <a href="http://10.0.2.59:8118/svn/gcp/Development-Area/GNDP">GNDP</a>;</p></li>
+</ol>
+
+
+<h1>Build BVT Environment</h1>
+
+<pre><code>$ cd /home/bvt/docs
+$ take mybvt
+$ vagrant box list
+$ vagrant init precise64
+// Add the following texts into Vagrantfile after the line 'config.vm.box = "precise64":'
+  config.vm.define "bs" do |bvtserver|
+    bvtserver.vm.hostname = "bvt-server"
+    bvtserver.vm.network "private_network", ip: "192.168.50.3",
+        virtualbox__intnet: "testnet"
+    bvtserver.vm.provider :virtualbox do |vbox|
+      vbox.customize ["modifyvm", :id, "--natnet1", "10.3/16"]
+      vbox.customize ["modifyvm", :id, "--memory", 1000]
+    end
+    bvtserver.vm.provision :shell, path: "provision.sh", privileged: false
+    bvtserver.vm.network "forwarded_port", guest: 9000, host: 9000
+    bvtserver.vm.network "forwarded_port", guest: 8088, host: 8088
+  end
+$ scp -r bvt@10.0.2.47:/home/bvt/warez/bvt-package packages
+$ vagrant up bs
+</code></pre>
+
+<h1>Use This Environment</h1>
+
+<ol>
+<li><p>Open <a href="http://10.0.2.47:9000">Sonarqube website</a>, login with &ldquo;admin/admin&rdquo;, in Settings -> Qualify Profiles, add rules &ldquo;TongYong&rdquo; with import &ldquo;tyrules.xml&rdquo; on local disk (the next section its content);;</p></li>
+<li><p>Open <a href="http://10.0.2.47:8088/">Jenkins website</a>;</p></li>
+<li><p>Create Jenkins project: create a project named &ldquo;GNDP&rdquo; and add a &ldquo;shell&rdquo; build step: &ldquo;/vagrant/bvt-gndp.sh&rdquo;;</p></li>
+<li><p>Build this project;</p></li>
+<li><p>You get the build log on jenkins website and code analysis results on sonarqube website;</p></li>
+</ol>
+
+
+<h1>Needed Scripts</h1>
+
+<h2>Vagrant provision script</h2>
+
+<p>This is the environment building script executed during the vagrant provision period, so it&rsquo;s cited in Vagrantfile.</p>
+
+<pre><code>$ cat /home/bvt/docs/mybvt/provision.sh
 #!/bin/sh
-lock() {
-    i3lock
-}
 
-case "$1" in
-    lock)
-        lock
-        ;;
-    logout)
-        i3-msg exit
-        ;;
-    suspend)
-        lock &amp;&amp; systemctl suspend
-        ;;
-    hibernate)
-        lock &amp;&amp; systemctl hibernate
-        ;;
-    reboot)
-        systemctl reboot
-        ;;
-    shutdown)
-        systemctl poweroff
-        ;;
-    *)
-        echo "Usage: $0 {lock|logout|suspend|hibernate|reboot|shutdown}"
-        exit 2
-esac
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-exit 0
-$ sudo chmod 755 /usr/local/bin/pm
+sudo dpkg -i /vagrant/packages/svn_amd64_ubuntu12.04/*.deb
+sudo dpkg -i /vagrant/packages/zip_3.0-4_amd64.deb
+sudo dpkg -i /vagrant/packages/unzip_6.0-4ubuntu1_amd64.deb
+APP_HOME=/home/vagrant/apps
+mkdir $APP_HOME
+cd $APP_HOME
+chmod 755 /vagrant/packages/jdk-6u45-linux-x64.bin
+sh /vagrant/packages/jdk-6u45-linux-x64.bin
+tar jxf /vagrant/packages/apache-ant-1.9.3-bin.tar.bz2
+unzip /vagrant/packages/sonar-3.6.1.zip
+
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+export JENKINS_HOME=/home/vagrant/jenkinshome
+mkdir $JENKINS_HOME
+
+sonar-3.6.1/bin/linux-x86-64/sonar.sh start
+nohup java -jar /vagrant/packages/jenkins-1.544.war --httpPort=8088 1&gt;jenkins.log 2&gt;jenkins-err.log &amp;
 </code></pre>
 
-<p>Now using <code>pm suspend</code> to suspend, <code>pm reboot</code> to reboot, and <code>pm shutdown</code> to shutdown computer.</p>
+<h2>BVT shell script</h2>
 
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/I3#Shutdown.2C_reboot.2C_lock_screen">i3 on Arch Wiki</a>.</p>
-</div>
-  
-  
+<p>This script checkout the source code to be built, then invoke the Ant script. It&rsquo;s cited in Jenkins project definition.</p>
 
+<pre><code>$ cat /home/bvt/docs/mybvt/bvt-gndp.sh
+#!/bin/sh
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/01/093834/">Add Chinese Character Display Support on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
+export PATH=$PATH:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
 
+svnprefix='svn co --non-interactive --no-auth-cache --username bvt_common --password password'
+svnroot='http://10.0.2.59:8118/svn/gcp/Development-Area'
+prod=GNDP
+$svnprefix ${svnroot}/3-SCL/Trunk/$prod /vagrant/codes/$prod
 
+rm -rf /vagrant/codes/*.zip
+cd /vagrant/codes/$prod;  ant
+</code></pre>
 
+<h2>Ant build script</h2>
 
-<time class='entry-date' datetime='2014-05-01T09:38:34+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>9:38 am</span></time>
-        
-      </p>
-    
-  </header>
+<p>This script resides in the root folder of the source project GNDP in subversion repository.</p>
 
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project name="MyJavaProj" basedir="./" default="coverage_report"&gt;
+&lt;property name="build.dir" value="${basedir}/build" /&gt;
+&lt;target name="init"&gt;
+    &lt;delete dir="${build.dir}"/&gt;
+    &lt;mkdir dir="${build.dir}"/&gt;
+&lt;/target&gt;
 
-  <div class="entry-content"><p>If your termianl can&rsquo;t display UTF-8 character correctly, check the following:</p>
+&lt;property name="src.dir" value="${basedir}/src" /&gt;
+&lt;property name="src.class.dir" value="${build.dir}/class" /&gt;
+&lt;target name="compile-src" depends="init"&gt;
+    &lt;mkdir dir="${src.class.dir}"/&gt;
+    &lt;javac srcdir="${src.dir}" destdir="${src.class.dir}" encoding="UTF-8" debug="true"/&gt;
+&lt;/target&gt;
+&lt;taskdef classpath="cobertura.jar" resource="tasks.properties" /&gt;
+&lt;property name="instrumented.class.dir" value="${build.dir}/instrumented-class" /&gt;
+&lt;property name="cobertura.data.file" value="${instrumented.class.dir}/cobertura.ser" /&gt;
+
+&lt;target name="instrument" depends="compile-src"&gt;
+    &lt;cobertura-instrument datafile="${cobertura.data.file}" todir="${instrumented.class.dir}"&gt;
+    &lt;fileset dir="${src.class.dir}"&gt;
+        &lt;include name="**/*.class" /&gt;
+    &lt;/fileset&gt;
+    &lt;/cobertura-instrument&gt;
+&lt;/target&gt;
+
+&lt;property name="test.dir" value="${basedir}/test" /&gt;
+&lt;property name="test.class.dir" value="${build.dir}/test" /&gt;
+&lt;target name="compile-test" depends="instrument"&gt;
+    &lt;mkdir dir="${test.class.dir}"/&gt;
+    &lt;javac srcdir="${test.dir}" destdir="${test.class.dir}"&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+        &lt;/classpath&gt;
+    &lt;/javac&gt;
+&lt;/target&gt;
+
+&lt;property name="unittest.report.dir" value="${build.dir}/unittest_report" /&gt;
+&lt;property name="lib.dir" value="${basedir}/lib" /&gt;
+&lt;target name="unittest" depends="compile-test"&gt;
+    &lt;mkdir dir="${unittest.report.dir}"/&gt;
+    &lt;junit printsummary="yes" fork="yes"&gt;
+        &lt;sysproperty key="net.sourceforge.cobertura.datafile" file="${cobertura.data.file}" /&gt;
+        &lt;classpath&gt;
+            &lt;pathelement location="${instrumented.class.dir}"/&gt;
+            &lt;pathelement location="${src.class.dir}"/&gt;
+            &lt;pathelement location="${test.class.dir}"/&gt;
+            &lt;pathelement location="${src.dir}"/&gt;
+            &lt;path refid="lib.path"/&gt;
+        &lt;/classpath&gt;
+        &lt;formatter type="xml"/&gt;
+        &lt;batchtest todir="${unittest.report.dir}" haltonerror="no"&gt;
+            &lt;fileset dir="${test.dir}"&gt;
+                &lt;include name="**/*.java" /&gt;
+            &lt;/fileset&gt;
+        &lt;/batchtest&gt;
+    &lt;/junit&gt;
+&lt;/target&gt;
+
+&lt;property name="coverage.report.dir" value="${build.dir}/coverage_report" /&gt;
+&lt;target name="coverage-report" depends="unittest"&gt;
+    &lt;cobertura-report datafile="${cobertura.data.file}" srcdir="${src.dir}" destdir="${coverage.report.dir}" format="xml" /&gt;
+&lt;/target&gt;
+
+&lt;property name="sonar.jdbc.url" value="jdbc:h2:tcp://localhost:9092/sonar" /&gt;
+&lt;property name="sonar.jdbc.username" value="sonar" /&gt;
+&lt;property name="sonar.jdbc.password" value="sonar" /&gt;
+&lt;property name="sonar.projectKey" value="com.doco.gif.MyModule" /&gt;
+&lt;property name="sonar.projectName" value="My Unit Test Project Demo" /&gt;
+&lt;property name="sonar.projectVersion" value="2.1" /&gt;
+&lt;property name="sonar.language" value="java" /&gt;
+&lt;property name="sonar.sources" value="src" /&gt;
+&lt;property name="sonar.tests" value="test" /&gt;
+&lt;property name="sonar.binaries" value="${src.class.dir},${test.class.dir},${build.instrument.dir}" /&gt;
+&lt;property name="sonar.dynamicAnalysis" value="reuseReports" /&gt;
+&lt;property name="sonar.surefire.reportsPath" value="${unittest.report.dir}" /&gt;
+&lt;property name="sonar.core.codeCoveragePlugin" value="cobertura" /&gt;
+&lt;property name="sonar.cobertura.reportPath" value="${coverage.report.dir}/coverage.xml" /&gt;
+&lt;target name="sonar" depends="coverage-report"&gt;
+    &lt;taskdef classpath="sonar-ant-task-2.1.jar" uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml"/&gt;
+    &lt;sonar:sonar xmlns:sonar="antlib:org.sonar.ant" /&gt;
+&lt;/target&gt;
+&lt;/project&gt;
+</code></pre>
+
+<h2>Code Static check rules</h2>
+
+<p>This file defines the static check rules used by Sonarqube. It&rsquo;s imported manually from file &ldquo;tyrules.xml&rdquo; on local hard disk.</p>
+
+<pre><code>$ cat ~/docs/tyrules.xml
+
+&lt;?xml version="1.0" encoding="UTF-8"?&gt; 
+&lt;!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN" "http://www.puppycrawl.com/dtds/configuration_1_3.dtd"&gt; 
+&lt;module name="Checker"&gt; 
+    &lt;property name="severity" value="warning"/&gt; 
+    &lt;module name="TreeWalker"&gt; 
+        &lt;metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;module name="MethodLength"&gt; 
+            &lt;property name="max" value="200"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="NestedIfDepth"&gt; 
+            &lt;property name="max" value="5"/&gt; 
+        &lt;/module&gt; 
+        &lt;module name="CyclomaticComplexity"/&gt; 
+            &lt;module name="ParameterNumber"&gt; 
+            &lt;property name="max" value="6"/&gt; 
+        &lt;/module&gt; 
+    &lt;/module&gt; 
+    &lt;module name="StrictDuplicateCode"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="min" value="75"/&gt; 
+    &lt;/module&gt; 
+    &lt;module name="FileLength"&gt; 
+        &lt;property name="fileExtensions" value="java"/&gt; 
+        &lt;property name="max" value="1000"/&gt; 
+    &lt;/module&gt; 
+&lt;/module&gt; 
+</code></pre>
+
+<h1>For Unit Test</h1>
 
 <ol>
-<li><p>If this terminal is set to display UTF-8 character?</p>
-
-<p> $ echo -e &lsquo;\xe2\x82\xac&rsquo;
- €</p></li>
+<li>copy junit-4.*.jar, cobertura.jar and hamcrest-core-1.3.jar to $ANT_HOME/lib;</li>
 </ol>
 
-
-<p>If the euro sign can&rsquo;t be displayed, then ssh to this host via another host which can display UTF-8 character, and run this command remotely via ssh. If the euro sign displayed, it&rsquo;s verified your terminal do not support UTF-8, you have to install another UTF-8 supported terminal.</p>
-
-<p>Ref: &ldquo;My terminal doesn&rsquo;t support UTF-8&rdquo; in <a href="https://wiki.archlinux.org/index.php/locale">Locale</a> of ArchLinux Documentation.</p>
-
-<p>Otherwise it&rsquo;s the case of your settings.</p>
-
-<h1>Ubuntu</h1>
-
-<p>List all locales installed on the system:</p>
-
-<pre><code>$ locale -a
-</code></pre>
-
-<p>Test result:</p>
-
-<pre><code>$ LC_ALL=en_US.utf-8   // notice LC_ALL=en_US can't display UTF-8 charaters correctly!
-</code></pre>
-
-<p>Enable it permanently: add &ldquo;LANG=en_US.UTF-8&rdquo; or &ldquo;LC_ALL=en_US.UTF-8&rdquo; into /etc/default/locale, and refresh it:</p>
-
-<pre><code>$ sudo locale-gen
-</code></pre>
-
-<h1>Arch Linux</h1>
-
-<pre><code>$ sudo pacman -Syu vim  // install vim and xxd
-</code></pre>
-
-<h1>Convert file encodings</h1>
-
-<pre><code>$ iconv -l | GBK
-$ iconv -l | UTF-8
-$ iconv -f gbk -t utf-8 &lt;filename&gt;
-</code></pre>
 </div>
   
   
@@ -633,7 +520,7 @@ $ iconv -f gbk -t utf-8 &lt;filename&gt;
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/30/110339/">A Powerful Linux Command Line Calculator Based on Bc</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/06/20/121235/">Replay Recent Executed Commands</a></h1>
     
     
       <p class="meta">
@@ -642,193 +529,27 @@ $ iconv -f gbk -t utf-8 &lt;filename&gt;
 
 
 
-<time class='entry-date' datetime='2014-04-30T11:03:39+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:03 am</span></time>
+<time class='entry-date' datetime='2014-06-20T12:12:35+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>12:12 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Create a shell script named my-calculator.sh under ~/apps:</p>
-
-<pre><code>#!/bin/bash
-
-# Example: ./my-calculator ih od 23A+34B =&gt; echo 'ibase=16;obase=10;23A+34B' | bc
-#     where "ih" means "input is hex", "od" means "output is decimal"
-#     ./my-calculator ih oh echo 'ibase=16;obase=10;A+A' | bc
-
-if [[ $# -gt 3 ]]; then
-    echo Bad format: more than 3 arguments found
-    exit 1
-fi
-in=10
-out=10
-for op in $@; do
-    if [[ $op = 'ib' ]]; then
-        in=2
-    elif [[ $op = 'id' ]]; then
-        in=10
-    elif [[ $op = 'ih' ]]; then
-        in=16
-    elif [[ $op = 'ob' ]]; then
-        out=2
-    elif [[ $op = 'od' ]]; then
-        out=10
-    elif [[ $op = 'oh' ]]; then
-        out=16
-    else 
-        expr=$op
-    fi
-done
-echo echo \"obase=$out\;ibase=$in\;$expr\" \| bc
-echo "obase=$out;ibase=$in;$expr" | bc
-</code></pre>
-
-<p>Note: put obase BEFORE ibase, or the obase will based on ibase. For example, the result of</p>
-
-<pre><code>echo "ibase=16;obase=10;A+A" | bc
-</code></pre>
-
-<p>is 14, but not 20. After &ldquo;ibase=16&rdquo;, the &ldquo;10&rdquo; in &ldquo;obase=10&rdquo; is actually a hex, not a decimal. To avoid interfered by ibase, we should always declare obase before ibase.</p>
-
-<p>Now add &ldquo;alias mc=/home/chad/apps/my-calculator.sh&rdquo; into your ~/.zshrc, you can do hex calculation by:</p>
-
-<pre><code>$ mc ih oh A+A
-</code></pre>
-
-<p>Add hex numbers and output to decimal:</p>
-
-<pre><code>$ mc ih A+A
-</code></pre>
-
-<p>Convert a hex into decimal:</p>
-
-<pre><code>$ mc ih 23B
-</code></pre>
-
-<p>Convert a decimal to hex:</p>
-
-<pre><code>$ mc oh 23432
-</code></pre>
-
-<p>Some ordinary decimal calculation:</p>
-
-<pre><code>$ mc 234+345
-</code></pre>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/29/180645/">C++ Develop Environment With Vim on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-04-29T18:06:45+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>6:06 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>ctags</h1>
-
-<h2>Install</h2>
-
-<pre><code>$ sudo apt-get install exuberant-ctags
-</code></pre>
-
-<h2>Usage</h2>
-
-<pre><code>$ cd $PROJECT_HOME
-$ ctags -R *
-$ vi MyApp.cpp
-</code></pre>
-
-<p>Some frequently used shortcuts:</p>
-
-<ul>
-<li><p>Go to definition: Ctrl-]</p></li>
-<li><p>Jump back from definition: Ctrl-t</p></li>
-<li><p>C-w C-]: Open the definition in a horizontal split</p></li>
-<li><p>C-o/i: jump between items in jump list;</p></li>
-<li><p>gf: &ldquo;go to file&rdquo;, open the file under the cursor;</p></li>
-<li><p>gd: &ldquo;go to definition&rdquo;, go to the definition of a variable;</p></li>
+  <div class="entry-content"><ul>
+<li><p>Replay recent executed 15 commands: <code>fc -l -15</code>;</p></li>
+<li><p>Replay recent executed 15 commands in reverse order: <code>fc -lr -15</code>;</p></li>
+<li><p>Replay recent executed 15 commands without list number: <code>fc -ln -15</code>;</p></li>
+<li><p>Replay recent executed commands from &ldquo;man &hellip;&rdquo;: <code>fc -ln man</code>;</p></li>
+<li><p>Edit some last commands (from No.14 to No.24) and execute them: <code>fc -e vi 14 24</code>;</p></li>
 </ul>
 
 
-<p>Ref: <a href="http://stackoverflow.com/questions/563616/vim-and-ctags-tips-and-tricks">http://stackoverflow.com/questions/563616/vim-and-ctags-tips-and-tricks</a></p>
+<p>You can also use &ldquo;-s&rdquo; options to modify commands ant execute, see <code>man fc</code> for details.</p>
 
-<h1>Buffer explorer</h1>
-
-<h2>Install</h2>
-
-<ol>
-<li><p>Download bufexplorer-7.4.2.zip from <a href="http://www.vim.org/scripts/script.php?script_id=42">it&rsquo;s website</a>;</p></li>
-<li><p>unzip it to ~/.vim/bundle/ (you have to install pathogen before hand);</p></li>
-<li><p>restart vim;</p></li>
-</ol>
-
-
-<h2>Usage</h2>
-
-<p>:h buffer-explorer</p>
-
-<p><leader>be, <leader>bs, <leader>bv</p>
-
-<p>I defined my <leader> key to comma(let mapleader=&ldquo;,&rdquo;) in .vimrc, so open buffer explorer window with &ldquo;,be&rdquo;.</p>
-
-<h1>Tagbar</h1>
-
-<p>This plugin is for C/C++ code outline.</p>
-
-<p>Installation: Downlaod majutsushi-tagbar-v2.6.1-0-ge872e67.zip from <a href="http://majutsushi.github.io/tagbar/">it&rsquo;s website</a>, unzip to ~/.vim/bundle/ and restart vim.</p>
-
-<p>:h tagbar</p>
-
-<p>:TagbarToogle to open outline window; try <Enter>, p, <Space> in outline window.</p>
-
-<h1>c.vim</h1>
-
-<p>Download cvim.zip v6.1.1 from its <a href="http://www.vim.org/scripts/script.php?script_id=213">website</a>. Unzip it to ~/.vim/bundle.</p>
-
-<p>Add the following line  to ~/.vimrc to override the default <leader> key:</p>
-
-<pre><code>let g:C_MapLeader  = ','
-</code></pre>
-
-<p>Use &ldquo;,rc&rdquo; to save and compile. Use <code>:cn</code>, <code>:cp</code>, <code>:cfirst</code>, <code>:clast</code>, <code>:cc</code>, <code>:cclose</code>, <code>:copen</code> to traverse in quickfix list (see <code>:h quickfix</code> for full list of hotkeys).</p>
-
-<p>Use F9 or &ldquo;,rr&rdquo; to run source file.</p>
-
-<p>Use &ldquo;2. Usage without GUI&rdquo; and &ldquo; 3. Hotkeys&rdquo; in <code>:h csupport</code> for full list of hotkeys.</p>
-
-<h1>Configuration for REPL</h1>
-
-<ol>
-<li><p>Add &ldquo;:nnoremap <F5> :<C-U>make %:r &amp;&amp; ./%:r<CR>&rdquo; to ~/.vimrc;</p></li>
-<li><p>Open vim, copy the following c++ codes into it:</p>
-
-<p> using namespace std;</p>
-
-<p> int main() {
-     cout &lt;&lt; &ldquo;hello C++.\n&rdquo;;
- }</p></li>
-<li><p>Save the file, syntastic(search tag syntastic for installation and usage details) will report an error: ‘cout’ was not declared in this scope</p></li>
-<li><p>Add &ldquo;#include <iostream>&rdquo; at the beginning of the file, save it, and press <F5>, you can see the result;</p></li>
-</ol>
+<ul>
+<li>Clear history: <code>history -c</code>.</li>
+</ul>
 
 </div>
   
@@ -842,7 +563,7 @@ $ vi MyApp.cpp
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/29/114303/">Java Bitwise Operations</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/06/18/111355/">Import Subversion Repository From Subversion Dump File</a></h1>
     
     
       <p class="meta">
@@ -851,47 +572,99 @@ $ vi MyApp.cpp
 
 
 
-<time class='entry-date' datetime='2014-04-29T11:43:03+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:43 am</span></time>
+<time class='entry-date' datetime='2014-06-18T11:13:55+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:13 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Some bitwise operations in groovy shell, better install this shell via gvm.</p>
+  <div class="entry-content"><h1>Overall steps</h1>
 
-<pre><code>$ groovysh
-groovy:000&gt; bb = 205
-===&gt; 205
-groovy:000&gt; cc = -51
-===&gt; -51
-groovy:000&gt; Integer.toBinaryString(bb)
-===&gt; 11001101
-groovy:000&gt; Integer.toBinaryString(cc)
-===&gt; 11111111111111111111111111001101
-groovy:000&gt; Integer.toBinaryString(cc &gt;&gt; 2)
-===&gt; 11111111111111111111111111110011
-groovy:000&gt; Integer.toBinaryString(cc &gt;&gt;&gt; 2)
-===&gt; 111111111111111111111111110011
-groovy:000&gt; bb == (cc &amp; 0xFF)
-===&gt; true
+<ol>
+<li><p>Get dump file from <a href="FTP:">FTP:</a></p></li>
+<li><p>Build repository based on the dump file;</p></li>
+<li><p>Authorize user of this repository.</p></li>
+</ol>
+
+
+<h1>Operation details</h1>
+
+<h2>On Windows</h2>
+
+<pre><code># get dump file with TotalCmd;
+cd K:\svn
+svnadmin create ALARM
+svnadmin load ALARM &lt; f:\tmp\ALARM-dumpfile
+# add the following text into file "c:\Program Files\Apache Group\Apache2\svnaccessfile"
+    ALARM-dev=user1,user2,user3
+    ####
+    [ALARM:/Development-Area]
+    @ALARM-dev = rw
+    @QA = rw
+    @Manager = r
+    bvt_common = r
+    * = 
+    [ALARM:/Management-Area]
+    @ALARM-dev = rw
+    @QA = rw
+    @Manager = r
+    * = 
+    [ALARM:/Release-Area]
+    @ALARM-dev = rw
+    @Manager = r
+    @QA = rw
+    test = r
+    * = 
+    [ALARM:/Test-Area]
+    @ALARM-dev = r
+    @QA = rw
+    @Manager = r
+    * = 
+# add following text into file "c:\Program Files\Apache Group\Apache2\passwd"
+    user1:pwd1
+    user2:pwd2
+    user3:pwd3
 </code></pre>
 
-<p>So Java use 4 bytes to represent a integer. The left-most bit is &ldquo;1&rdquo; when the integer is a negative, otherwise the position is &ldquo;0&rdquo;.
-The &ldquo;var &amp; 0xFF&rdquo; converts the first 3 bytes to 0. In other words, this method converts var into 0~255.</p>
+<h2>On Linux</h2>
 
-<p>Conversion between binary string and integer and bytes.</p>
+<pre><code>ftp 123.xxx.xxx.xxx
+&gt; get ALARM-dumpfile
+&gt; bye
+cd $SVN_REPO_HOME
+svnadmin create ALARM
+svnadmin load ALARM &lt; ~\ALARM-dumpfile
+# edit file svnaccessfile &amp; passwd the same way with in Windows
+</code></pre>
 
-<pre><code>groovy:000&gt; aa = 45
-===&gt; 45
-groovy:000&gt; aas = Integer.toBinaryString(aa)
-===&gt; 101101
-groovy:000&gt; aa == Byte.parseByte(aas, 2)
-===&gt; true
-groovy:000&gt; aa.getClass()
-===&gt; class java.lang.Integer
-groovy:000&gt; aas.getClass()
-===&gt; class java.lang.String
+<p>Note:</p>
+
+<p>The default auth rule is &ldquo;everyone can access everything&rdquo; like the following text in svnaccessfile:</p>
+
+<pre><code>[/] 
+* = r
+@Manager = rw
+@QA = rw
+@Dev = rw
+@TEST-all = rw
+</code></pre>
+
+<p>then define more detailed rules to override the default one, notice the last line:</p>
+
+<pre><code>[ALARM:/Development-Area]
+@ALARM-dev = rw
+...
+* = 
+</code></pre>
+
+<p>But we can define auth rules in another way:</p>
+
+<pre><code>[/]
+* =
+[ALARM:/Development-Area]
+@ALARM-dev = rw
+...
 </code></pre>
 </div>
   
@@ -905,7 +678,7 @@ groovy:000&gt; aas.getClass()
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/29/093749/">Analyze Binary File in Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/06/13/155048/">Group Substitution in Vim</a></h1>
     
     
       <p class="meta">
@@ -914,96 +687,149 @@ groovy:000&gt; aas.getClass()
 
 
 
-<time class='entry-date' datetime='2014-04-29T09:37:49+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:37 am</span></time>
+<time class='entry-date' datetime='2014-06-13T15:50:48+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:50 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>On Linux there are some utility to analyze binary files, such as xxd, od, hexdump, which are much convenient and powerful than UltraEdit on Windows.</p>
+  <div class="entry-content"><p>The origin text is:</p>
 
-<pre><code>$ cat test
-abcdefg
-hijklmn
-opq
-rst
-uvw
+<p>sqoop export &ndash;columns int_id,date_time,mr_count,ecno_pollution,rscp_0,rscp_1,rscp_2,rscp_3,rscp_4,rscp_5,load_time &ndash;input-field</p>
+
+<p>The target text is:</p>
+
+<p>sqoop export &ndash;columns int_id,date_time,mr_count,ecno_pollution,rscp0,rscp1,rscp2,rscp3,rscp4,rscp5,load_time &ndash;input-field</p>
+
+<p>We want remove all underscore in &ldquo;rscp_3&rdquo;, which means converting it to &ldquo;rscp3&rdquo;. The real text has ninety more items, so we can&rsquo;t do substitutions manually. And other items also use underscore, so you can&rsquo;t only remove all underscores.</p>
+
+<p>Solution: <code>:s/rscp_\(\d\+\)/rscp\1/gc</code>.</p>
+
+<p>We use &ldquo;(&rdquo; and &ldquo;)&rdquo; to mark a group, use &ldquo;\1&rdquo; to represent it in the new strings.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/12/114812/">Join Ragged Columns Im Vim</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-06-12T11:48:12+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:48 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I need to format some texts copied from a PDF file:</p>
+
+<p>a
+ab
+abc
+cd
+e</p>
+
+<p>=>
+=>
+=>
+=>
+=></p>
+
+<p>x
+xy
 xyz
+pq
+p</p>
 
-$ xxd test
-0000000: 6162 6364 6566 670a 6869 6a6b 6c6d 6e0a  abcdefg.hijklmn.
-0000010: 6f70 710a 7273 740a 7576 770a 7879 7a0a  opq.rst.uvw.xyz.
+<p>The target form is:</p>
 
-$ xxd -b test
-0000000: 01100001 01100010 01100011 01100100 01100101 01100110  abcdef
-0000006: 01100111 00001010 01101000 01101001 01101010 01101011  g.hijk
-000000c: 01101100 01101101 01101110 00001010 01101111 01110000  lmn.op
-0000012: 01110001 00001010 01110010 01110011 01110100 00001010  q.rst.
-0000018: 01110101 01110110 01110111 00001010 01111000 01111001  uvw.xy
-000001e: 01111010 00001010                                      z.
+<p>a   => x
+ab  => xy
+abc => xyz
+cd  => pq
+e   => p</p>
 
-$ xxd -b -s 10 test
-000000a: 01101010 01101011 01101100 01101101 01101110 00001010  jklmn.
-0000010: 01101111 01110000 01110001 00001010 01110010 01110011  opq.rs
-0000016: 01110100 00001010 01110101 01110110 01110111 00001010  t.uvw.
-000001c: 01111000 01111001 01111010 00001010                    xyz.
+<p>I want to select the whole last section (x&hellip;p) in visual block mode, and paste them after the 2nd section (=>). But in visual block mode (triggered by Ctrl-v), I can&rsquo;t select all of last section. Because there&rsquo;s only one character &ldquo;p&rdquo; in the last line, so only &ldquo;x&rdquo; in the 3rd line (xyz) will be selected. The solution is set &ldquo;virtualedit&rdquo; mode to &ldquo;all&rdquo; with &ldquo;:set ve=all&rdquo;. Now the cursor is free to anywhere no matter if there&rsquo;s a character. After the joining, we have to remove all trailing spaces. So the overall process is:</p>
 
-$ xxd -b -s 0x10 test
-0000010: 01101111 01110000 01110001 00001010 01110010 01110011  opq.rs
-0000016: 01110100 00001010 01110101 01110110 01110111 00001010  t.uvw.
-000001c: 01111000 01111001 01111010 00001010                    xyz.
+<p>:set ve=all
+&lt;C-v, select and paste, ESC to normal mode>
+<select all line joined together in visual line mode>
+:&lsquo;&lt;,&rsquo;>s/\s*//g
+:set ve=</p>
+</div>
+  
+  
 
-$ xxd -b -s 3 -l 10 test
-0000003: 01100100 01100101 01100110 01100111 00001010 01101000  defg.h
-0000009: 01101001 01101010 01101011 01101100                    ijkl
 
-$ xxd -b -s 3 -l 10 -c 1 test
-0000003: 01100100  d
-0000004: 01100101  e
-0000005: 01100110  f
-0000006: 01100111  g
-0000007: 00001010  .
-0000008: 01101000  h
-0000009: 01101001  i
-000000a: 01101010  j
-000000b: 01101011  k
-000000c: 01101100  l
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/11/150101/">Ragged Array in Java</a></h1>
+    
+    
+      <p class="meta">
+        
 
-$ xxd -p -s 3 -l 10 test
-646566670a68696a6b6c
-</code></pre>
 
-<p>Compare hex and binary files line by line:</p>
 
-<pre><code>$ xxd -b -c 2 binaryfile &gt; o1
-$ xxd -c 2 binaryfile &gt; o2
-$ paste o1 o2
-0000000: 11001101 11001101  ..  0000000: cdcd  ..
-0000002: 00000000 00101110  ..  0000002: 002e  ..
-0000004: 10011000 00000011  ..  0000004: 9803  ..
-0000006: 11101011 00100000  .   0000006: eb20  . 
-0000008: 00000010 10001011  ..  0000008: 028b  ..
-000000a: 01000011 00111000  C8  000000a: 4338  C8
-000000c: 00001011 10111111  ..  000000c: 0bbf  ..
-000000e: 10011011 01100101  .e  000000e: 9b65  .e
-0000010: 10000111 00001111  ..  0000010: 870f  ..
-0000012: 00100000 00100000      0000012: 2020    
-0000014: 00000010 00011100  ..  0000014: 021c  ..
-0000016: 01111001 00000001  y.  0000016: 7901  y.
-0000018: 01110110 01011100  v\  0000018: 765c  v\
-000001a: 00000000 00011011  ..  000001a: 001b  ..
-000001c: 00101100 01111101  ,}  000001c: 2c7d  ,}
-000001e: 00010001 00011011  ..  000001e: 111b  ..
-0000020: 01100101 10001111  e.  0000020: 658f  e.
-0000022: 10100010 01010100  .T  0000022: a254  .T
-0000024: 10101000 01011011  .[  0000024: a85b  .[
-0000026: 00101100 10010011  ,.  0000026: 2c93  ,.
-0000028: 11100101 01110100  .t  0000028: e574  .t
-000002a: 00100010 11011001  ".  000002a: 22d9  ".
-000002c: 01100000 01100000  ``  000002c: 6060  ``
-000002e: 11101001 00011111  ..  000002e: e91f  ..
-0000030: 00000000 00000000  ..  0000030: 0000  ..
+
+<time class='entry-date' datetime='2014-06-11T15:01:01+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ragged array is a multi-dimensional array, whose elements has different length:</p>
+
+<pre><code>$ cat Test.java
+public class Test {
+    public static void main(String[] args) {
+        int[][] aa;
+        aa = new int[3][];  // notice the unique way of it's initialization
+        aa[0] = new int[2];
+        aa[1] = new int[4];
+        aa[2] = new int[5];
+        aa[1][3] = 34;
+        for (int i = 0; i &lt; aa.length; i++) {
+            for (int j = 0; j &lt; aa[i].length; j++) {
+                System.out.println("element aa[" + i + "][" + j + "] is: "
+                        + aa[i][j]);
+            }
+        }
+    }
+}
+$ javac Test.java
+$ java Test
+element aa[0][0] is: 0
+element aa[0][1] is: 0
+element aa[1][0] is: 0
+element aa[1][1] is: 0
+element aa[1][2] is: 0
+element aa[1][3] is: 34
+element aa[2][0] is: 0
+element aa[2][1] is: 0
+element aa[2][2] is: 0
+element aa[2][3] is: 0
+element aa[2][4] is: 0
 </code></pre>
 </div>
   
@@ -1017,7 +843,7 @@ $ paste o1 o2
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/28/201252/">Arch Linux Notes</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/06/11/143709/">Convert an Integer to a Long Value in Java</a></h1>
     
     
       <p class="meta">
@@ -1026,97 +852,37 @@ $ paste o1 o2
 
 
 
-<time class='entry-date' datetime='2014-04-28T20:12:52+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>8:12 pm</span></time>
+<time class='entry-date' datetime='2014-06-11T14:37:09+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>2:37 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>按照<a href="https://wiki.archlinux.org/index.php/Beginners%27_guide">Beginners' guide on Arch LInux</a>在虚拟机上安装了Arch Linux，文档写得非常好，首先从<a href="https://www.arcHlinux.org/download/">Arch Linux Downloads</a>下载的镜像文件archlinux-2014.04.01-dual.iso，然后在VirtualBox中新建虚拟机，加载这个镜像，然后根据"Beginners' guide on Arch Linux"一步一步做完就行了，感觉对Linux的认识又深入了。</p>
+  <div class="entry-content"><p>When you convert an integer to a long, you must convert the integer to a long before any calculations, or it will give the wrong result.</p>
 
-<p>其中配置网络部分"2.9 Configure the network"没有做，重启之后发现网络不通，又按照dhcp方法用netctl工具重做了这一节，重启后网络可用。</p>
-
-<p>大概两个半小时装好了base系统，163有arch Linux mirror，所以包下载速度很快。然后安装窗口管理器。</p>
-
-<p>首先安装X系统：pacman -S xorg-server xorg-server-utils</p>
-
-<p>然后安装display manager: pacman -S xorg-xinit</p>
-
-<p>然后安装Awesome window manager: pacman -S awesome</p>
-
-<p>安装i3: pacman -S i3</p>
-
-<p>修改.xinitrc文件，登录后执行startx命令就进入了图形界面。</p>
-
-<h1>安装SSH服务</h1>
-
-<pre><code># pacman -S openssh
-# systemctl start sshd
-# systemctl enable sshd.service
+<pre><code>$ cat Test.java
+public class Test {
+    public static void main(String[] args) {
+        int io = Integer.MAX_VALUE;
+        int ir = io + 1;
+        long la = io + 1;
+        long lb = ((long)io) + 1;
+        System.out.println("Value of int variable io is: " + io);
+        System.out.println("Value of int variable ir is: " + ir);
+        System.out.println("Value of long variable la is: " + la);
+        System.out.println("Value of long variable lb is: " + lb);
+    }
+}
+$ javac Test.java
+$ java Test
+Value of int variable io is: 2147483647
+Value of int variable ir is: -2147483648
+Value of long variable la is: -2147483648
+Value of long variable lb is: 2147483648
 </code></pre>
 
-<p>之后就可以用Kitty连接192.168.1.102:22端口了。</p>
-
-<p>用pacman安装fabric和vagrant都是最新版本，so cool.</p>
-
-<hr />
-
-<p>4月28日更新：</p>
-
-<p>按照<a href="https://wiki.archlinux.org/index.php/USB_Flash_Installation_Media">USB Flash Installation Media</a>介绍的方法，首先把U盘插到机器上，然后用</p>
-
-<pre><code>$ ls -la /dev/sd*
-</code></pre>
-
-<p>找到U盘的设备文件名：sdb</p>
-
-<p>然后用下面的命令创建了启动U盘：</p>
-
-<pre><code>$ dd bs=4M if=warez/archlinux-2014.04.01-dual.iso of=/dev/sdb &amp;&amp; sync
-</code></pre>
-
-<p>无需使用root帐号。几分钟就OK了，奇怪的是做好的U盘在笔记本（联想V480）上无法启动，在DELL PC机上却能够正常启动。</p>
-
-<p>注意/dev/sd*这个设备后面不能有数字，比如如果of=/dev/sdb1,则做出来的U盘不能启动系统。</p>
-
-<hr />
-
-<p>4月29日更新：</p>
-
-<p>晚上在家折腾Arch Linux，搞定了内核安装，主要是配置无线网络部分花了很多时间：</p>
-
-<p>netctl disable my-network
-verify: ls /etc/systemd/system/multi-user.target.wants/
-reboot
-$ iw dev
-=> wlp5s0</p>
-
-<p>$ wpa_supplicant -B -i wlp5s0 -c &lt;(wpa_passphrase TP-LINK_PocketAP_8344C2 py25)
-Successfully &hellip;</p>
-
-<p>iw dev wlp5s0 link
-凌晨之后尝试多次后又搞定了桌面环境，首先尝试I3，失败，估计是由于很多必须的组件还没有装，然后尝试enlightenment，失败，然后尝试安装完整的GNOME，这次居然成功了：</p>
-
-<pre><code> # pacman -S gnome
- # startx
-</code></pre>
-
-<p>如果报startx未找到，说明没装X环境，安装下面的包：</p>
-
-<p>lspci | grep VGA
-=> intel
-pacman -S xf86-video-intel
-pacman -S xorg-server xorg-server-utils
-pacman -S xorg-xinit</p>
-
-<hr />
-
-<p>5月1日：</p>
-
-<p>使用Win Key作为i3的Mod1键运行i3系统成功，Win+Enter启动terminal，Win+Shift+E退出i3；</p>
-
-<p>用<code>pacman -S xf86-input-synaptics</code>为K27安装触摸板驱动成功，似乎没有Mint自动装的驱动的鼠标乱跳现象；</p>
+<p>So only the 3rd form (lb) gives the right result.</p>
 </div>
   
   
@@ -1141,23 +907,23 @@ pacman -S xorg-xinit</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Format | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/format/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,74 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[用format参数获取docker Inspect输出的指定部分]]></title>
+    <link href="http://leetschau.github.io/blog/2016/09/23/110618/"/>
+    <updated>2016-09-23T11:06:18+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/09/23/110618</id>
+    <content type="html"><![CDATA[<p>参考<a href="https://golang.org/pkg/text/template/">Package template in Go programming</a>.</p>
+
+<p>基本规则：用<code>.</code>号取map的值，用<code>index</code>取数组的值。</p>
+
+<p><code>index</code>的用法：<code>index &lt;array-name&gt; &lt;index-number&gt;</code></p>
+
+<p><code>range</code>的用法：<code>{{range pipeline}} T1 {{end}}</code></p>
+
+<p>表达式<code>pipeline</code>返回值（必须是一个map或者array）的各个元素赋给<code>T1</code>中的<code>.</code>，
+例如下面的例子中，<code>{{.NetworkSettings.Networks}}</code>的返回值是一个key为<code>bridge</code>的map对象，
+它被赋给<code>T1</code>（这里是<code>{{.IPAddress}}</code>）中的<code>.</code>，所以<code>{{.IPAddress}}</code>的值是"172.31.254.3".</p>
+
+<p>示例：</p>
+
+<pre><code>root@node1:~# docker inspect angry_wing 
+[
+    {
+        "Id": "e30f58ac1610c8607205d612b4389b361c5f6745e999bb5c8086f11f4b4e5903",
+        "Config": {
+            "Hostname": "e30f58ac1610",
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "DEBIAN_FRONTEND=noninteractive",
+                "DEBCONF_NONINTERACTIVE_SEEN=true"
+            ],
+            "Entrypoint": [
+                "/entrypoint.sh"
+            ]
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "bridge": {
+                    "IPAddress": "172.31.254.3"
+                }
+            }
+        }
+    }
+]
+
+root@node1:~# docker inspect --format='{{.NetworkSettings.Networks}}' angry_wing 
+map[bridge:0xc8200aa3c0]
+
+root@node1:~# docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' angry_wing 
+172.31.254.3
+
+root@node1:~# docker inspect --format='{{.NetworkSettings.Networks.bridge.IPAddress}}' angry_wing 
+172.31.254.3
+
+root@node1:~# docker inspect --format='{{.Config.Entrypoint}}' angry_wing 
+[/entrypoint.sh]
+
+root@node1:~# docker inspect --format='{{range .Config.Entrypoint}}{{.}}{{end}}' angry_wing 
+/entrypoint.sh
+
+root@node1:~# docker inspect --format='{{index .Config.Env 0}}' angry_wing 
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+root@node1:~# docker inspect --format='{{range .Config.Env}}{{.}}; {{end}}' angry_wing 
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; DEBIAN_FRONTEND=noninteractive; DEBCONF_NONINTERACTIVE_SEEN=true;
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Format U Disk in Linux Mint]]></title>

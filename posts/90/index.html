@@ -9,9 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="生成效果如下： 原始文本： the first line; the second line; the third line; 转换后文本： the first line;
-the second line;
-the third line; 取消则是生成的逆过程，用于列表中插入新内容后用“取消-> &hellip;">
+  <meta name="description" content="Linux平台
+jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报："The VM does not support the attach mechanism"错误； C:\Users\chad> jps 1308 DeadLock
+4780 Jps C:\Users\ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -40,7 +40,7 @@ the third line; 取消则是生成的逆过程，用于列表中插入新内容�
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -73,7 +73,7 @@ the third line; 取消则是生成的逆过程，用于列表中插入新内容�
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/02/24/175138/">自动生成/取消列表编号的ahk脚本</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/05/19/145826/">Java程序线程死锁分析</a></h1>
     
     
       <p class="meta">
@@ -82,51 +82,126 @@ the third line; 取消则是生成的逆过程，用于列表中插入新内容�
 
 
 
-<time class='entry-date' datetime='2012-02-24T17:51:38+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:51 pm</span></time>
+<time class='entry-date' datetime='2012-05-19T14:58:26+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:58 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>生成效果如下：</p>
+  <div class="entry-content"><p>Linux平台
+jstack工具只对JDK6及以上有效，用jstack分析JDK5程序时报："The VM does not support the attach mechanism"错误；</p>
 
-<p>原始文本：</p>
+<p>C:\Users\chad> jps 1308 DeadLock
+4780 Jps</p>
 
-<p> the first line;</p>
+<p>C:\Users\chad> F:\Software\jdk1.6.0_27\bin\jstack.exe 1308
+2012-05-19 14:45:29
+Full thread dump Java HotSpot&trade; Client VM (20.2-b06 mixed mode):</p>
 
-<p> the second line;</p>
+<p>&hellip;</p>
 
-<p> the third line;</p>
+<h1>Found one Java-level deadlock : </h1>
 
-<p>转换后文本：</p>
+<p>&ldquo;Thread-1&rdquo;:
+ waiting to lock monitor 0x01adee04 (object 0x03c002d8, a deadlockEx.DeadLock$Friend),
+ which is held by &ldquo;Thread-0&rdquo;
+&ldquo;Thread-0&rdquo;:
+ waiting to lock monitor 0x01ae0664 (object 0x03c002e8, a deadlockEx.DeadLock$Friend),
+ which is held by &ldquo;Thread-1&rdquo;
+&hellip;
+Found 1 deadlock.</p>
+
+<p> 测试样例（来自 Deadlock on Java docs ）：
+package deadlockEx;
+public class DeadLock {
+ static class Friend {
+  private final String name;
+  public Friend(String name) {
+   this.name = name;
+  }
+  public String getName() {
+   return this.name;
+  }
+  public synchronized void bow(Friend bower) {
+   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed to me!%n&rdquo;, this.name,
+    bower.getName());
+   bower.bowBack(this);
+  }
+  public synchronized void bowBack(Friend bower) {
+   System.out.format(&ldquo;%s: %s&rdquo; + &ldquo; has bowed back to me!%n&rdquo;, this.name,
+    bower.getName());
+  }
+ }
+ public static void main(String[] args) {
+  final Friend alphonse = new Friend(&ldquo;Alphonse&rdquo;);
+  final Friend gaston = new Friend(&ldquo;Gaston&rdquo;);
+  new Thread(new Runnable() {
+   public void run() {
+    alphonse.bow(gaston);
+   }
+  }).start();
+  new Thread(new Runnable() {
+   public void run() {
+    gaston.bow(alphonse);
+   }
+  }).start();
+ }
+} HP-UX平台</p>
+
+<p>用gcore <pid>（不支持gcore的UX可用gdb <pid>?）生成dump文件，文件名为core.<pid>，用jmap将此文件转为hprof文件，再用visualVM分析；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/19/144904/">通过dump文件分析Java程序运行状态</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-19T14:49:04+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java程序的快照（dump）分为两种：thread dump, heap dump。前者记录了进程（process）中各线程（Thread）（在CPU中的）运行状态主要用来解决死锁（deadlock）问题，后者记录了Java堆的情况，主要用来分析内存泄露问题。</p>
+
+<p> 生成堆dump（heapdump）文件方法
+1. 在启动Java程序时添加参数：-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=<my_dump_path>，完整示例见文末；</p>
 
 <ol>
-<li><p>the first line;</p></li>
-<li><p>the second line;</p></li>
-<li><p>the third line;</p></li>
+<li><p>启动程序；</p></li>
+<li><p>用jps或者ps指令找到此程序pid，例如17992；</p></li>
+<li><p>运行kill -3 <pid>；</p></li>
+<li><p>在my_dump_path下可以找到生成的dump文件，文件名为java_pid<pid>.hprof.&lt;date.time>，例如：java_pid17992.hprof.20120519.141323</p></li>
 </ol>
 
 
-<p> 取消则是生成的逆过程，用于列表中插入新内容后用“取消->再次生成”的方法刷新列表编号。</p>
+<p>启动程序的完整脚本：</p>
 
-<p>生成脚本：</p>
+<h1>!/bin/sh</h1>
 
-<p> ^b::</p>
-
-<p>  clipboard =</p>
-
-<p>  SendInput, ^c</p>
-
-<p>  ClipWait</p>
-
-<p>  clipboard = my prefix %clipboard% my suffix</p>
-
-<p>  SendInput, ^v</p>
-
-<p> return</p>
-
-<p>取消脚本：</p>
+<p>JARS=&ldquo;&rdquo;
+for i in ./*.jar; do
+ JARS=&ldquo;$JARS&rdquo;:$i
+done
+JAVA_OPTS=&ldquo;-XX:+HeapDumpOnCtrlBreak -XX:HeapDumpPath=$HOME/backup&rdquo;
+exec &ldquo;${JAVA_HOME}/bin/java&rdquo; ${JAVA_OPTS} -cp $JARS com.leechau.mina.echoServer.EchoServer
+ 分析dump文件</p>
 </div>
   
   
@@ -139,7 +214,7 @@ the third line; 取消则是生成的逆过程，用于列表中插入新内容�
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2012/02/24/161925/">Putty编译过程</a></h1>
+      <h1 class="entry-title"><a href="/blog/2012/05/19/105840/">在Linux系统上查找文件</a></h1>
     
     
       <p class="meta">
@@ -148,477 +223,458 @@ the third line; 取消则是生成的逆过程，用于列表中插入新内容�
 
 
 
-<time class='entry-date' datetime='2012-02-24T16:19:25+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>4:19 pm</span></time>
+<time class='entry-date' datetime='2012-05-19T10:58:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:58 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在Win7上用Visual Studio编译putty源代码。</p>
+  <div class="entry-content"><h1>Find命令</h1>
+
+<p>格式：find &lt;指定搜索范围> &lt;指定条件> &lt;指定动作></p>
+
+<p>其中搜索范围是一个目录名，指定条件包括文件名、文件属性（修改时间所属用户等）、所在位置特点（如目录深度等）等；指定动作包括打印（-print）等；</p>
+
+<p>例如：find $HOME -name &ldquo;*.sh"，查找用户根目录下所有以.sh结尾的文件，除了按文件名查找，find还可以按文件大小、类型、所属用户、用户组、修改时间、是否为空等，还可以指定找到文件后要执行的动作， 例如下面第一个指令是找到文件后运行ls命令，第3个指令是查找文件名中有echo且不属于root的文件（可以用!表示取反）：</p>
+
+<pre><code>[godu@goduserver ~]$ find ./backup/nep -name "*echo*" -ls
+124059671 8 -rwxr-xr-x 1 godu  godu   192 5月 19 10:59 ./backup/nep/echoServerStart.sh
+[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user godu 
+[godu@goduserver ~]$ find ./backup/nep -name "*echo*" ! -user root 
+./backup/nep/echoServerStart.sh
+find /proc/&lt;pid&gt;/fd -type s（找所有socket文件）结果为空，用-type l可知此目录下所有文件都为link文件。 
+</code></pre>
+
+<p>详见：<a href="http://blog.csdn.net/ydfok/article/details/1486451">linux查找文件命令find</a></p>
+
+<h2>引号问题</h2>
+
+<p>（2013-9-4更新）</p>
+
+<p>find <dest_path> -name <name_pattern>中<name_pattern>是glob格式，而且只匹配文件名，如果想用正则表达式匹配，则需要匹配完整路径名。</p>
+
+<p>例如有这样一个文件：./CalcServer/src/com/boco/deploy/ConfigLoader.java，用<code>find . -name "Co*.java"</code>可以匹配上，但<code>find . -regex "Co.*java"</code>匹配不上，因为它只匹配了文件名，而不是包括路径的完整路径名，改为<code>find . -regex ".*Co.*java"</code>就ok了。</p>
+
+<p>参考：<a href="http://bbs.chinaunix.net/thread-612012-1-1.html">http://bbs.chinaunix.net/thread-612012-1-1.html</a></p>
+
+<h2>查找条件</h2>
+
+<p>（2013-10-17更新）</p>
+
+<h3>按时间特性查找</h3>
+
+<ul>
+<li><p>find <dest_path> -newerXY <time-expr>: 查找在某个时间点之后修改（更新，生成）的文件，例如：</p>
+
+<p>  find . -newermt &lsquo;2014-01-16 00:00&rsquo; -name &lsquo;*.py&rsquo;</p>
+
+<p>查找所有修改时间晚于1月16日0点的扩展名为py的文件。</p></li>
+<li><p>find <dest_path> -mtime -1: 查找最近一天内被更改过的文件；</p></li>
+<li><p>mtime是按天查询，"-mtime -7" 查询修改时间在7天前到现在这段时间内的文件；</p></li>
+<li><p>mmin是按分钟查询，其他与mtime一样；</p></li>
+<li><p>atime, ctime分别是access time和change time（mtime是modification time），其他与mtime一样；</p></li>
+<li><p>find <dest_path> -newer <file_name> 列出所有修改时间晚于<file_name>修改时间的文件；</p></li>
+</ul>
+
+
+<h3>查找深度限制</h3>
+
+<ul>
+<li>-maxdepth <n> 用来指定查询的目录深度，一般作为find的第一个参数；</li>
+</ul>
+
+
+<h3>查找类型限制</h3>
+
+<ul>
+<li>&ldquo;-type f&rdquo; 表示只显示文件，"-type d" 表示只查询目录；另外还有l（链接），s(socket)等类型可选；</li>
+</ul>
+
+
+<h2>指定动作</h2>
+
+<ul>
+<li><p>&ldquo;-exec&rdquo;: 格式:</p>
+
+<ul>
+<li><p>find <path> <criterion> -exec <command> {} \;
+上面{}代表被查出来的项目，<command>命令以分号结尾，但为了避免分号在不同系统中的歧义，前面加反斜杠对分号进行转义；</p></li>
+<li><p>find <path> <criterion> -exec <command> {} +
+将所有find找到的条目放在一起，由<command>一次性执行，效率比"find &hellip; \;&ldquo;版本高很多；</p></li>
+</ul>
+</li>
+<li><p>&ldquo;-print&rdquo;: 主要用来在管道命令中为其他命令传值；</p></li>
+</ul>
+
+
+<h1>Locate命令</h1>
+
+<p> 相当于find -name，但速度远快于find，因为Linux维护了一个文件列表数据库（在Ubuntu上，这个数据库文件是/var/lib/mlocate/mlocate.db），locate命令查询这个数据库给出结果。由于数据库每天更新，所以如果查询最近的更改，需要手工更新数据库：</p>
+
+<pre><code>sudo updatedb
+</code></pre>
+
+<p>注意locate的搜索结果是包含路径的，所以用locate &lsquo;abc<em>'是搜不到文件名以abc开头的文件的，必须写为"</em>abc*&ldquo;;</p>
+
+<ul>
+<li>文件名部分普通匹配：locate strom；对应Emacs中M-x locate;</li>
+</ul>
+
+
+<p>只有在这种最简形式下，可以将locate &lsquo;<em>strom</em>'简写为locate storm;</p>
+
+<ul>
+<li><p>glob匹配：locate &lsquo;<em>strom</em>.gz'，搜索所有storm*.gz文件;</p></li>
+<li><p>正则匹配：locate -r &lsquo;.<em>Storm.</em>java'，或者：locate -r &rsquo;.<em>[Gg]roovy.</em>&lsquo;;</p>
+
+<p>  在特定路径下搜索指定扩展名文件：locate -r &lsquo;.<em>warez.</em>[Vv]irtual[Bb]ox.*[rpm|deb]&rsquo;</p>
+
+<p>  用正则指定文件扩展名：locate -r &lsquo;Storm.*.java&rsquo;</p></li>
+<li><p>locate+grep效果很好，先用locate进行粗选，然后在grep中细化，如查抄版本号为2.2.0的一个Hadoop安装包：locate 2.2.0|grep hadoop，或者查找所有文件名为Groovy或者groovy的文件：locate -r &lsquo;[Gg]roovy&rsquo;|grep &lsquo;[Gg]roovy&rsquo;</p></li>
+</ul>
+
+
+<p>Ref:</p>
+
+<p><a href="http://www.kuqin.com/linux/20091009/70532.html">Linux的五个查找命令</a></p>
+
+<p><a href="http://www.linuxhaxor.net/5-ways-to-search-for-files-using-the-terminal-in-linux/">5 Ways To Search For Files Using The Terminal</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/10/112349/">Logback笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-10T11:23:49+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>11:23 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>打印logback调试信息：<configuration debug="true"></p></li>
+<li><p>自动感知文件变化：<configuration scan="true" scanPeriod="30 seconds" >，不加scanPeriod的话，默认值是1分钟，一般用默认值就行；</p></li>
+<li><p>不打印第一行格式信息：</p></li>
+<li><p>不打印调试信息：将ch.qos.logback.core.ConsoleAppender包含的<layout>改为<encoder></p></li>
+<li><p>appender的级别设置：在appender里加filter，在filter上附加level；</p></li>
+<li><p>日志中的日期格式：</p>
+
+<p>  %date{yyyy-MMM-dd;HH:mm:ss.SSS} 2012-五月-14;16:05:44.667 &hellip;
+  %date{yyyy-MM-dd;HH:mm:ss}   2012-05-14;16:05:44</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/10/100140/">Java程序的两种参数设置方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-10T10:01:40+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:01 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Java程序有两种参数传递方式，分别是虚拟机参数和程序参数，前者用java命令行参数-D设置，用System.getProperty()方法获取；后者在主类声明后面添加，用main()方法里的args[]获取。下面是演示程序。</p>
+
+<p> ServiceNameDemo.java</p>
+
+<p> public class ServiceNameDemo {</p>
+
+<p>  public static void main(String[] args) {</p>
+
+<p>   System.out.println(&ldquo;vm param is: &rdquo; + System.getProperty(&ldquo;service_name&rdquo;)</p>
+
+<pre><code> + "\r\nprogram param is: " + args[0] + " and " + args[1]); 
+</code></pre>
+
+<p>  }</p>
+
+<p> }</p>
+
+<p>下面是编译运行结果。</p>
+
+<p>F:> javac ServiceNameDemo.java
+F:> java -cp . -Dservice_name=banana ServiceNameDemo apple melon
+vm param is: banana
+program param is: apple and melon</p>
+
+<p>对应于Eclipse中的设置方法如下：</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/09/173738/">Ubuntu上安装gevent</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-09T17:37:38+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>5:37 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>安装libevent;</p>
+
+<p>安装greenlet: sudo easy_install gevent (need net access)</p>
+
+<p>bingo!</p>
+
+<p> -> python-dev -> libpython2.7</p>
+
+<p> deb包下载网站 ；</p>
+
+<p>sudo dpkg -i libpython2.7_2.7.2-5ubuntu1_i386.deb</p>
+
+<hr />
+
+<p>2013-02-16：</p>
+
+<p>Ubuntu Server 12.04上自带python 2.7，所以只要安装greenlet, libevent和gevnet就行了，</p>
+
+<p>apt-get install python-pip</p>
+
+<p>apt-get install python-dev(否则安装greenlet报错)</p>
+
+<p>pip install greenlet</p>
+
+<p>pip install gevent</p>
+
+<p>验证：</p>
+
+<p>将下面的代码保存为gex.py，然后用python gex.py运行得到结果，但gevent官网install上所述的repl方式执行失败，原因不明。</p>
+
+<p> import gevent
+ from gevent import socket
+ urls = [&lsquo;www.google.com&rsquo;, &lsquo;www.example.com&rsquo;, &lsquo;www.python.org&rsquo;]
+ jobs = [gevent.spawn(socket.gethostbyname, url) for url in urls]
+ gevent.joinall(jobs, timeout=2)
+ [job.value for job in jobs]</p>
+
+<p>本地安装方式：</p>
+
+<p>Ubuntu上：下载gevent-0.13.8.tar.gz和greenlet-0.4.0.zip（源码包）编译失败；</p>
+
+<p>Windows上：greenlet和gevent都有安装包，但在windows上安装libevent比较难，放弃；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/04/142739/">Eclipse的XML编辑器解决方案</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-04T14:27:39+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:27 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>现在使用的Eclipse SDK 3.7.2里没有XML编辑器，无法进行语法高亮，也没有格式化（按层次控制缩进量）和设计视图，很不方便。对于ant文件，可以用Ant Editor来打开，ivy文件在装了IvyDE后也有自己的编辑器，但对于其他格式的XML文件（例如logback使用的配置文件），如果使用Ant editor打开，有语法高亮和格式化（Ctrl+shift+f），但会报语法错误（因为ant文件的顶层标签必须是project），让人很不爽。所以有了下面这个解决办法：在操作系统中设置用 firstobject XML Editor 打开XML文件，然后在Eclipse中选中要打开的xml文件，右键 -> Open With -> System Editor，如果希望根据具体情况选择编辑器，可以将XML打开程序设为 F4Menu ，再在F4Menu里关联。</p>
+
+<p> firstobject XML Editor中，格式化的快捷键是F8。</p>
+
+<p> 外部编辑器有一个问题是当文件更改后需要手工在Eclipse里刷新才能生效（xml文件才会进入bin目录），所以外部编辑器不是一个理想的解决方案。</p>
+
+<p> 使用Eclipse for java developers版本自带xml编辑器；</p>
+
+<p> NetBeans也可以格式化xml文档。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/04/094939/">简化Windows上的Python运行脚本</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-05-04T09:49:39+08:00'><span class='date'><span class='date-month'>May</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:49 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>twisted的测试工具是trial，在 Dave对trial的介绍文章 中，运行测试的脚本是"trial tests/test_poetry.py"，在Windows平台上，安装twisted后，只是在$PYTHON_HOME/Scripts下有一个trial.py文件，所以直接运行上面的脚本系统会返回“无法识别的指令”，必须写成"$PYTHON_HOME/python $PYTHON_HOME/Scripts/trial.py tests/test_poetry.py"，调试时很麻烦，在$PATH中增加$PYTHON_HOME，就可以简写为"python $PYTHON_HOME/Scripts/trial.py tests/test_poetry.py"，如果希望Windows认为py文件是可运行的（类似于Unix平台的脚本中用"#!/usr/bin/python"设置执行脚本的文件），可以通过配置$PATHEXT实现，具体方法是在这个环境变量中增加".py"（与$PATH一样也是用分号隔开），就可以直接运行"trial &hellip;&ldquo;了。</p>
+
+<p>Under the hood</p>
+
+<p>执行assoc和ftype两个命令查看文件关联：</p>
+
+<p>C:\Users\chad> assoc|findstr py
+.py=Python.File
+.pyc=Python.CompiledFile
+.pyo=Python.CompiledFile
+.pyw=Python.NoConFile
+C:\Users\chad> ftype|findstr py
+Python.CompiledFile=&ldquo;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %<em>
+Python.File=&ldquo;F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %</em>
+Python.NoConFile=&ldquo;F:\Software\Python27\pythonw.exe&rdquo; &ldquo;%1&rdquo; %*</p>
+
+<p>从上面可以看到，当运行"trial &hellip;&ldquo;时，系统的处理过程是：$PATH -> $PYTHON_HOME/Scripts -> trial ->trial.py -> .py -> Python.File -> "F:\Software\Python27\python.exe&rdquo; &ldquo;%1&rdquo; %*，最终将"trial &hellip;&ldquo;转换为"F:\Software\Python27\python.exe F:\Software\Python27\Scripts\trial.py &hellip;"执行。ftype命令的结果来自注册表，例如：HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Python.File\shell\open\command。</p>
+
+<p> Windows的文件关联原理参见“ 玩转Windows 7文件关联 ”，软件 FileTypesMan 管理文件关联很好用。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/30/092136/">Flex学习笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-30T09:21:36+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:21 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>flex helloworld ;
+解压flex sdk,
+E:\Docs\flexFiles>set PATH=d:\Apps\flex_sdk_4.6\bin
+E:\Docs\flexFiles>mxmlc hello.mxml
+安装flash builder不需要改hosts文件
+blazeds hello world:
+<a href="http://blog.sina.com.cn/s/blog_4c4a24db0100gu3i.html">http://blog.sina.com.cn/s/blog_4c4a24db0100gu3i.html</a>
+要求预先安装flash builder</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/04/30/085537/">基于Eclipse+MinGW的C开发环境</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2012-04-30T08:55:37+08:00'><span class='date'><span class='date-month'>Apr</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>8:55 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下载Eclipse IDE for C/C++ Developers(CDT)和 mingw离线安装包 ；
+安装mingw，将$MINGW_DIR/bin加入到$PATH中；（实验一下）
+解压Eclipse，新建一个C project，Toolchains选择“MinGW GCC”；
+bingo!</p>
+
+<p>参考 Eclipse+CDT+MinGW开发环境配置 ；</p>
+
+<p>另外还有一个 lcc ，界面太老土，居然不能调整界面字体大小，不用了。</p>
+
+<p>2012-12-11更新：</p>
+
+<p>运行一个C HelloWorld程序需要以下步骤：</p>
 
 <ol>
-<li>安装vs2005，只安装c++和.net framework sdk即可；</li>
-<li><p>将putty-src.zip解压到e:\MyDoc\VSProjects\Putty下；</p></li>
-<li><p>用vs2005打开e:\MyDoc\VSProjects\Putty\WINDOWS\MSVC\PUTTY.DSW；</p></li>
-<li><p>打开C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\Include\Security.h，在第一行加上“#define SECURITY_WIN32”；</p></li>
-<li><p>编译putty项目；</p></li>
+<li><p>解压MinGW，并将$MINGW_DIR/bin加入到$PATH中；</p></li>
+<li><p>启动Eclipse CDT；</p></li>
+<li><p>新建一个C项目（Package Explorer的项目文件夹下出现"Includes"文件夹，证明MinGW被Eclipse找到了），在项目属性的"C/C++ Build -> Tool Chain Editor"里选MinGW；</p></li>
+<li><p>写源代码；</p></li>
+<li><p>项目上右键 -> Build Configuration -> build all，正确编译后Package Explorer的项目文件夹下应该有一个"Binaries"文件夹，里面有build生成的exe文件；</p></li>
+<li><p>项目上右键 -> Run as -> Local C/C++ Application；</p></li>
 </ol>
 
 
-<p>注：如果不做第4步，会报</p>
-
-<p> fatal error C1189: #error : You must define one of SECURITY_WIN32, SECURITY_KERNEL, or Generating Code&hellip;</p>
-
-<p>导致编译失败。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/23/192521/">移动窗口的ahk脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-23T19:25:21+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>7:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>有的程序启动后标题栏在桌面之外，造成程序窗口显示不全，而且无法拖动窗口改变位置，这时候无敌的autohotkey又可以大显身手了：</p>
-
-<p>首先看任务栏得到这个窗口的标题（这里假设为 YTubePlayer ），然后写如下脚本：</p>
-
-<p> SetTitleMatchMode, 2</p>
-
-<p> WinMove, YTubePlayer, , 20, 20</p>
-
-<p>这样窗口就移动到能够拖拽和更改大小的位置了。运行脚本的方法有两种，一是存为.ahk文件后双击运行（前提是已经将ahk与autohotkey进行了后缀关联），而是安装 SciTE4AutoHotkey ，在这个编辑器里写好脚本后直接F5运行即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/23/144902/">Ldap服务器配置记录</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-23T14:49:02+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2012</span></span> <span class='time'>2:49 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>1 Server</p>
-
-<p>使用OpenDS-2.2.1.zip。</p>
-
-<p>1.1 on Windows</p>
-
-<p>解压后运行$LDAP_HOME/setup.bat，会出现一个图形安装界面，使用默认值即可。</p>
-
-<p>管理工具在$LDAP_HOME/bat/control-panel.bat，也是图形界面，可以开启或者停止ldap服务；</p>
-
-<p>1.2 Server on Linux</p>
-
-<p>由root用户解压后运行$LDAP_HOME/setup（因为ldap默认绑定389端口，而linux/unix要求小于1024的端口只能由管理员使用）。</p>
-
-<p>2 Client</p>
-
-<p>Windows客户端是LdapBrowser，解压后运行其中的lbe.bat即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/22/170003/">MIT/GNU Scheme 笔记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-22T17:00:03+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:00 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Edwin是MIT/GNU Scheme安装包附带的一个文本编辑器，似乎是Emacs的一个变体；</p>
-
-<p>Evaluate a expression in Edwin: c-x, c-e;
-Quit Edwin: c-x, c-c;</p>
-
-<p>挂起Edwin返回到Scheme REPL模式：c-x, z（松开ctrl之后按z）</p>
-
-<p>Quit MIT/GNU Scheme: (exit)</p>
-
-<p>启动MIT/GNU Scheme REPL模式的ahk快捷键定义：</p>
-
-<p>^!s:: Run, &ldquo;C:\Program Files\MIT-GNU Scheme\bin\mit-scheme.exe&rdquo; &ndash;library &ldquo;C:\Program Files\MIT-GNU Scheme\lib&rdquo; ; Start MIT/GNU Scheme</p>
-
-<p>注：c-x表示同时按住ctrl和x键；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/09/140940/">GODU连接SSH网元的日志分析</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-09T14:09:40+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>2:09 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以下比较了登录密码正确和错误时日志的相同和不同之处。正常连接过程的日志：</p>
-
-<p> [INFO] [2012-02-09 13:56:39,067] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 管理模式，下发命令:cn id=1830753227]
-[DEBUG] [2012-02-09 13:56:39,071] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 13:56:39,074] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,075] [com.boco.godu.framework.command.CommandOpenne,984] - [NEID:1830753227;Channels:[channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]]
-[INFO] [2012-02-09 13:56:39,075] [com.boco.godu.framework.command.CommandOpenne,759] - [get channelid:52318885]
-[INFO] [2012-02-09 13:56:39,076] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] FOUND ID:52318885]
-[DEBUG] [2012-02-09 13:56:39,077] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 13:56:39,079] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] ==================PreOccupy the NE=================]
-[DEBUG] [2012-02-09 13:56:39,079] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] NEID:1830753227;;channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]
-[INFO] [2012-02-09 13:56:39,080] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 没有配置登录脚本]
-[INFO] [2012-02-09 13:56:39,080] [com.boco.godu.framework.ConnectorFactory,44] - [connecting ne with protocal:SSH]
-[INFO] [2012-02-09 13:56:39,081] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] Begin to Connection NE,10.0.2.47:22&hellip;&hellip;&hellip;&hellip;..]
-[INFO] [2012-02-09 13:56:39,081] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 开始连接网元awaitUninterruptibly127.0.0.1:8900]
-[DEBUG] [2012-02-09 13:56:39,082] [com.boco.godu.adapter.telnet.TelnetConnectorHandler,150] - [create session:10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;76]
-[INFO] [2012-02-09 13:56:39,083] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] SessionOpen,add 10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;76to sessionMap]
-[DEBUG] [2012-02-09 13:56:39,086] [org.apache.velocity.runtime.log.Log4JLogChute,168] - [ResourceManager : found com/boco/godu/adapter/proxy/internalPojo.vm with loader org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader]
-[INFO] [2012-02-09 13:56:39,093] [com.boco.godu.adapter.proxy.ssh.SshProxy,116] - [ssh client try to connect:10.0.2.47@22]
-[INFO] [2012-02-09 13:56:39,238] [com.boco.godu.adapter.proxy.ssh.SshProxy,136] - [SSH-2.0-OpenSSH_4.3&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-]
-[INFO] [2012-02-09 13:56:39,242] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] [OpenNe] Connect 10.0.2.47:22 completed!]
-[DEBUG] [2012-02-09 13:56:39,244] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step1, get NE Name]
-[DEBUG] [2012-02-09 13:56:39,244] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 2,Configure timeout]
-[INFO] [2012-02-09 13:56:39,245] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] [OpenNe] step 3, Terminal status fine]
-[DEBUG] [2012-02-09 13:56:39,245] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,247] [com.boco.godu.adapter.manager.ManagerMap,105] - [event:CONNECTION]
-[INFO] [2012-02-09 13:56:39,248] [com.boco.godu.common.util.GlobalUtil,430] - [get current platform:10_0_2_47&amp;&amp;1234&amp;&amp;0&amp;&amp;73]
-[DEBUG] [2012-02-09 13:56:39,248] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 13:56:39,249] [com.boco.godu.common.util.GlobalUtil,441] - [delete local or preoccupied ne:10_0_2_47&amp;&amp;1234&amp;&amp;0&amp;&amp;73]
-[DEBUG] [2012-02-09 13:56:39,250] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 4, remove the preoccupied ne]
-[DEBUG] [2012-02-09 13:56:39,250] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 5, config command status]
-[DEBUG] [2012-02-09 13:56:39,251] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 6,Config timeout]
-[INFO] [2012-02-09 13:56:39,251] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter LOGIN_ENDFLAG_FILTER; Class =com.boco.godu.adapter.filter.LoginEndFlagFilter]
-[INFO] [2012-02-09 13:56:39,252] [com.boco.godu.framework.command.CommandOpenne,1175] - [add connector EndFlag :>|&lt;|#|\$|%]
-[DEBUG] [2012-02-09 13:56:39,252] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] Step 7,Config login_endflag_filter]
-[INFO] [2012-02-09 13:56:39,253] [com.boco.godu.adapter.manager.ManagerMap,105] - [event:NESUBSCRIBE]
-[DEBUG] [2012-02-09 13:56:39,253] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] [OpenNe] step 8, establish pub/sub relation]
-[DEBUG] [2012-02-09 13:56:39,253] [com.boco.godu.common.util.IoSessionHelper,72] - [(0x0000004C: nio socket, client, /127.0.0.1:58043 => /127.0.0.1:8900) send 0 to messageReceive for cached bufferas buffer:2Last login: Thu Feb 9 13:55:24 2012 from goduserver
-]
-[INFO] [2012-02-09 13:56:39,254] [com.boco.godu.framework.command.CommandSetEndFlag,137] - [设置命令结束:vendor_id=1;ne_type=200;version=07B]
-[INFO] [2012-02-09 13:56:39,255] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter ChineseByteFilter; Class =com.boco.godu.adapter.filter.ChineseByteFilter]
-[INFO] [2012-02-09 13:56:39,255] [com.boco.godu.adapter.ssh.SshHandler,71] - [[76:/127.0.0.1:8900] add filter ENDFLAGFILTER; Class =com.boco.godu.adapter.filter.CmdOverFilter]
-[DEBUG] [2012-02-09 13:56:39,255] [com.boco.godu.framework.commandover.CommandOverUtils,118] - [begin verify cmdover status by ne_type=200;version=07B;vendor_id=1]
-[DEBUG] [2012-02-09 13:56:39,256] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=1]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=1 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=2]
-[DEBUG] [2012-02-09 13:56:39,257] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=2 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=3]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,131] - [STATUS=3 has empty overStatus]
-[DEBUG] [2012-02-09 13:56:39,258] [com.boco.godu.framework.commandover.CommandOverUtils,124] - [STARTING COMMAND OVER STATUS=4]
-[DEBUG] [2012-02-09 13:56:39,259] [com.boco.godu.framework.commandover.CommandOverUtils,129] - [END COMMAND OVER STATUS=4]
-[DEBUG] [2012-02-09 13:56:39,259] [com.boco.godu.framework.command.CommandSetEndFlag,202] - [命令结束表达式：{}]
-[DEBUG] [2012-02-09 13:56:39,279] [com.boco.godu.adapter.proxy.ssh.GODUSSHChannelEventListener,34] - [ssh channel receive:[91, 103, 111, 100, 117, 64, 103, 111, 100, 117, 115, 101, 114, 118, 101, 114, 32, 126, 93, 36, 32]as String:[godu@goduserver ~]$ ]
-[INFO] [2012-02-09 13:56:39,284] [com.boco.godu.adapter.filter.LoginEndFlagFilter,50] - [found login mark]
-登录密码错误时连接过程的日志： [INFO] [2012-02-09 14:00:08,073] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 管理模式，下发命令:cn id=1830753227]
-[DEBUG] [2012-02-09 14:00:08,077] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 14:00:08,078] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[INFO] [2012-02-09 14:00:08,078] [com.boco.godu.framework.command.CommandOpenne,984] - [NEID:1830753227;Channels:[channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]]
-[INFO] [2012-02-09 14:00:08,079] [com.boco.godu.framework.command.CommandOpenne,759] - [get channelid:52318885]
-[INFO] [2012-02-09 14:00:08,079] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] FOUND ID:52318885]
-[DEBUG] [2012-02-09 14:00:08,080] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[DEBUG] [2012-02-09 14:00:08,081] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] ==================PreOccupy the NE=================]
-[DEBUG] [2012-02-09 14:00:08,082] [com.boco.godu.app.server.TelnetServerHandler,56] - [[73:/10.32.1.6:56183] NEID:1830753227;;channelID=52318885;channelName=FCGBSC7-5000端口;priority=0]
-[INFO] [2012-02-09 14:00:08,082] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 没有配置登录脚本]
-[INFO] [2012-02-09 14:00:08,083] [com.boco.godu.framework.ConnectorFactory,44] - [connecting ne with protocal:SSH]
-[INFO] [2012-02-09 14:00:08,083] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] Begin to Connection NE,10.0.2.47:22&hellip;&hellip;&hellip;&hellip;..]
-[INFO] [2012-02-09 14:00:08,084] [com.boco.godu.app.server.TelnetServerHandler,71] - [[73:/10.32.1.6:56183] 开始连接网元awaitUninterruptibly127.0.0.1:8900]
-[DEBUG] [2012-02-09 14:00:08,085] [com.boco.godu.adapter.telnet.TelnetConnectorHandler,150] - [create session:10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79]
-[INFO] [2012-02-09 14:00:08,086] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] SessionOpen,add 10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79to sessionMap]
-[DEBUG] [2012-02-09 14:00:08,088] [org.apache.velocity.runtime.log.Log4JLogChute,168] - [ResourceManager : found com/boco/godu/adapter/proxy/internalPojo.vm with loader org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader]
-[INFO] [2012-02-09 14:00:08,098] [com.boco.godu.adapter.proxy.ssh.SshProxy,116] - [ssh client try to connect:10.0.2.47@22]
-[INFO] [2012-02-09 14:00:09,863] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] 关闭与网元的连接,返回到命令模式]
-[INFO] [2012-02-09 14:00:09,863] [com.boco.godu.adapter.ssh.SshHandler,71] - [[79:/127.0.0.1:8900] ====================Close NE routing information=======================10_0_2_47&amp;&amp;1234&amp;&amp;6&amp;&amp;79]
-[DEBUG] [2012-02-09 14:00:09,863] [com.boco.godu.common.util.GlobalUtil,549] - [find platform at 0 times]
-[WARN] [2012-02-09 14:00:15,595] [com.boco.godu.adapter.proxy.facade.ConnectorMonitorThread,25] - [proxy id=5d1d1a0b-aa1c-4a94-8a1d-3aade8327313 is not alive,destroy it]
-二者比较可知，不同之处主要发生在“ ssh client try to connect:10.0.2.47@22 ” 这行日志后，正常的连接过程后面是：“ SSH-2.0-OpenSSH_4.3&mdash;&mdash;&mdash;&mdash;- ”，如果密码错误则后面的日志是“ 关闭与网元的连接,返回到命令模式 ”。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/02/174801/">基于Tor网络的HTTP代理搭建过程</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-02T17:48:01+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2012</span></span> <span class='time'>5:48 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>使用工具： Vidalia , Tor and Polipo ；</p>
-
-<p>用Tor连接tor网络，vidalia是tor的图形化配置界面，但tor只提供socks5代理，需要用polipo将socks5转为http代理，以供其他程序使用，下面是搭建过程。</p>
-
-<p>第一步：安装Polipo，下载安装包（polipo-1.0.4.1-forbidden-1-win32.exe），运行之，安装在f:\Software\Polipo下，然后写配置文件（f:\Software\Polipo\polipo.conf）：</p>
-
-<p> socksParentProxy = &ldquo;localhost:9050&rdquo;</p>
-
-<p> socksProxyType = socks5</p>
-
-<p> diskCacheRoot=&ldquo;&rdquo;</p>
-
-<p> #disableLocalInterface=true</p>
-
-<p>第二步：下载 Tor Browser Bundle ，里面包括了Tor, Vidalia和一个便携版的Firefox，解压后运行Start Tor Browser.exe，出现vidalia界面：</p>
-
-<p>Vidalia Control Panal -> Settings -> General -> Proxy Application下勾选“Start a proxy &hellip;”，下面写上polipo.exe的路径，Application Arguments下面写： -c <polipo conf file path> ，如下图：</p>
-
-<p>配好后重启vidalia，验证tor和polipo运行成功的方法是命令行中运行： netstat -ano|findstr 9050 和 netstat -ano|findstr 8123 ，其中9050是tor绑定的端口，8123是polipo绑定的端口；</p>
-
-<p>第三步：配置要使用http代理的软件。</p>
-
-<p>以GreenBrowser为例：在【工具->代理->设置代理】里新建一个名为polipo，地址为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> 的代理，【工具->代理】下会多一个【polipo】项，选中它，在地址栏中输入 www.facebook.com , bingo!</p>
-
-<p>主要参考文章：</p>
-
-<p> Tor, Polipo &amp; Vidalia</p>
-
-<p>应用实例1：calibre的代理设置。</p>
-
-<p>在windows系统中设置一个名为 HTTP_PROXY 的环境变量，值为 <a href="http://127.0.0.1:8123">http://127.0.0.1:8123</a> ，然后在calibre安装目录下运行</p>
-
-<p>calibre-debug -c &ldquo;from calibre import get_proxies; print get_proxies()&rdquo;</p>
-
-<p>如果出现 Using proxies: {&lsquo;http&rsquo;: &lsquo;127.0.0.1:8123&rsquo;} 说明配置成功，启动calibre，在Preference->Miscellaneous里可以看到代理已启动。</p>
-
-<p>应用实例2：iTunes的代理设置。</p>
-
-<p>iTunes使用IE的代理设置，所以只要在IE里设置好polipo的信息（ 127.0.0.1:8123 ）就OK了，但要注意Evernote也使用IE的代理设置，所以不需要iTunes联网时不要开启IE的代理。</p>
-
-<p>应用实例3：Eclipse的代理设置。</p>
-
-<p>Active Provider: Manual;</p>
-
-<p>HTTP -> Edit, Host: 127.0.0.1, Port: 8123，如下图：</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/01/112546/">文件夹监控工具比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-02-01T11:25:46+08:00'><span class='date'><span class='date-month'>Feb</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2012</span></span> <span class='time'>11:25 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>对文件夹监控软件的要求是：能同时监控多个指定的文件夹，能够根据事件类型决定是否监控（例如是否只监控文件夹生成或者删除等），能够记录监控日志。</p>
-
-<p><a href="http://leelusoft.blogspot.com/2011/10/watch-4-folder-23.html">Watch 4 Folder</a>: 目前的版本2.3监测不到子目录文件的变化，不可用；</p>
-
-<p>FolderMonitor和TrackFolderChanges同样功能太弱；</p>
-
-<p>另有<a href="http://www.watchdirectory.net/index.html">watchDirectory</a>，收费软件，没有试；</p>
-
-<p>基于TotalCMD的文件夹监控方法：改变前用TotalCMD的<a href="http://www.totalcmd.net/plugring/diskdir_extended.html">DiskDir Extended</a>扩展为文件夹的所有子文件夹和文件做一个记录（方法见 TotalCommander的两款目录插件 ），改变后再做一次，然后用文本比较工具（例如vim diff或者notepad++的都很好用）观察变化；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/01/19/104202/">Building Android Developing Environment With Eclipse</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-01-19T10:42:02+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>10:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Prerequisite &amp; background knowledge: W. Frank Ableson: Android in Action(3rd edition, Manning, 2012), chapter 1;</p>
-
-<p> Develop environment preparation: Installing the ADT Plugin ;</p>
-
-<p> Tutorial: Hello World Tutorial (see my notes in experience android developing with Eclipse )</p>
-
-<p> Troubleshooting: Can not create a AVD for Android 4.0 ;</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/01/19/094930/">Experience Android Developing With Eclipse</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2012-01-19T09:49:30+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>19</span><span class='date-suffix'>th</span>, <span class='date-year'>2012</span></span> <span class='time'>9:49 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>This is my verification of android official Hello World Tutorial on my computer (win 7, android 4.0.3 with api level 15, eclipse helios, jdk 5).</p>
-
-<p>After &ldquo;Run the Application&rdquo; section of the tutorial, you have to wait patiently until the following logs appears in Console window:</p>
-
-<p> [2012-01-19 10:31:51 - HelloAndroid] Android Launch!</p>
-
-<p> [2012-01-19 10:31:51 - HelloAndroid] adb is running normally.</p>
-
-<p> [2012-01-19 10:31:51 - HelloAndroid] Performing org.leechau.android.helloworld.HelloAndroid activity launch</p>
-
-<p> [2012-01-19 10:31:51 - HelloAndroid] Automatic Target Mode: Preferred AVD &lsquo;my_avd&rsquo; is not available. Launching new emulator.</p>
-
-<p> [2012-01-19 10:31:51 - HelloAndroid] Launching a new emulator with Virtual Device &lsquo;my_avd&rsquo;</p>
-
-<p> [2012-01-19 10:31:52 - Emulator] emulator: warning: opening audio input failed</p>
-
-<p> [2012-01-19 10:31:52 - Emulator]</p>
-
-<p> [2012-01-19 10:31:56 - Emulator] emulator: WARNING: Unable to create sensors port: Unknown error</p>
-
-<p> [2012-01-19 10:31:56 - Emulator] emulator: emulator window was out of view and was recentered</p>
-
-<p> [2012-01-19 10:31:56 - Emulator]</p>
-
-<p> [2012-01-19 10:31:56 - HelloAndroid] New emulator found: emulator-5554</p>
-
-<p> [2012-01-19 10:31:56 - HelloAndroid] Waiting for HOME (&lsquo;android.process.acore&rsquo;) to be launched&hellip;</p>
-
-<p> [2012-01-19 10:32:32 - HelloAndroid] HOME is up on device &lsquo;emulator-5554&rsquo;</p>
-
-<p> [2012-01-19 10:32:32 - HelloAndroid] Uploading HelloAndroid.apk onto device &lsquo;emulator-5554&rsquo;</p>
-
-<p> [2012-01-19 10:32:32 - HelloAndroid] Installing HelloAndroid.apk&hellip;</p>
-
-<p> [2012-01-19 10:32:58 - HelloAndroid] Success!</p>
-
-<p> [2012-01-19 10:32:58 - HelloAndroid] Starting activity org.leechau.android.helloworld.HelloAndroid on device emulator-5554</p>
-
-<p> [2012-01-19 10:32:59 - HelloAndroid] ActivityManager: Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=org.leechau.android.helloworld/.HelloAndroid }</p>
-
-<p>and then the following window appears:</p>
-
-<p>Yes, the expected &ldquo;Hello, World&rdquo; didn&rsquo;t appear, because the screen is locked! You have to drag the ring(surrounding &ldquo;lock&rdquo; icon) to &ldquo;unlock&rdquo; icon to unlock it(using your mouse):</p>
-
-<p> -></p>
-
-<p>Then it works!</p>
+<p>存在问题：由于MinGW中不包括gdb.exe，所以只能运行程序，不能调试程序，实用价值不大，尝试codeblocks；</p>
 </div>
   
   
@@ -643,23 +699,23 @@ Quit Edwin: c-x, c-c;</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

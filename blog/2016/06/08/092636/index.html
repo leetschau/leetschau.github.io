@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>用aggregate方法处理MongoDB数据 - Dark Matter in Cyberspace</title>
+  <meta name="author" content="Li Chao">
+
+  
+  <meta name="description" content="下面的aggregate方法对Fair0606 collection做如下处理： 用$match（类似于filter）筛选出recurrence长度不小于2的document (fair). $unwind类似于flatmap,
+将每一个recurrence数组中的元素变成一个document &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://leetschau.github.io/blog/2016/06/08/092636/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Dark Matter in Cyberspace" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="/javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Dark Matter in Cyberspace</a></h1>
+  
+    <h2>The technical blog of Li Chao in Beijing</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="sitesearch" value="leetschau.github.io">
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">用aggregate方法处理MongoDB数据</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2016-06-08T09:26:36+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>9:26 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>下面的aggregate方法对Fair0606 collection做如下处理：</p>
+
+<p>用<code>$match</code>（类似于filter）筛选出recurrence长度不小于2的document (fair).</p>
+
+<p><a href="http://bit.ly/1X9uhLY">$unwind</a>类似于flatmap,
+将每一个recurrence数组中的元素变成一个document;</p>
+
+<p><a href="http://bit.ly/1UE0BTQ">$project</a>类似于map,去掉原document的<code>_id</code>,
+保留nameZHCN, website，
+创建新字段time，值为recurrence.timeStart,
+以及address，值为recurrence.address
+（路径的写法是路径名前面加$，详见Field Path and System Variables in
+<a href="http://bit.ly/1YdER3X">Aggregation Pipeline Quick Reference</a>）.</p>
+
+<p>如果希望保留recurrence.timeStart的结构，写成<code>"recurrence.timeStart": 1,</code>.</p>
+
+<p><code>$limit</code>要求只转换20个document, <code>$out</code>指定输出collection.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>db.Fair0606.aggregate([
+</span><span class='line'>  {$match: {'recurrence.1': {$exists: true}}},
+</span><span class='line'>  {$unwind: "$recurrence"},
+</span><span class='line'>  {$project: {
+</span><span class='line'>    _id: 0,
+</span><span class='line'>    nameZHCN: 1,
+</span><span class='line'>    website: 1,
+</span><span class='line'>    time: "$recurrence.timeStart",
+</span><span class='line'>    address: "$recurrence.address"}},
+</span><span class='line'>  {$limit: 20},
+</span><span class='line'>  {$out: "out1"}])</span></code></pre></td></tr></table></div></figure>
+
+
+<p>通过unwind和project，可以实现对MongoDB schema的转换，下一步可以导出为csv
+进行更复杂的数据分析，例如使用<a href="http://incanter.org/">Incanter</a>.</p>
+
+<pre><code>mongoexport --type=csv -d test -c out1 \
+--fields nameZHCN,website,time,address -o fairs.csv
+</code></pre>
+
+<p>参考：</p>
+
+<p><a href="https://docs.mongodb.com/manual/reference/operator/aggregation/">https://docs.mongodb.com/manual/reference/operator/aggregation/</a></p>
+
+<p><a href="https://github.com/clojuredatascience">Clojure for Data Science</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Li Chao</span></span>
+
+      
+
+
+
+
+<time class='entry-date' datetime='2016-06-08T09:26:36+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>8</span><span class='date-suffix'>th</span>, <span class='date-year'>2016</span></span> <span class='time'>9:26 am</span></time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/aggregate/'>aggregate</a>, <a class='category' href='/blog/categories/mongodb/'>mongodb</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://leetschau.github.io/blog/2016/06/08/092636/" data-via="" data-counturl="http://leetschau.github.io/blog/2016/06/08/092636/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/06/05/081046/" title="Previous Post: 增强版Python REPL">&laquo; 增强版Python REPL</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2016/06/08/191617/" title="Next Post: Format Python Code with autopep8">Format Python Code with autopep8 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/leetschau">@leetschau</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'leetschau',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2016 - Li Chao -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

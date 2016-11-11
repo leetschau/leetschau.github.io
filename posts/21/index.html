@@ -9,8 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="I wrote a Spark script. Now I need adding a web interface for it. Thus users can input parameters of the script in web browser, run the script,
-and &hellip;">
+  <meta name="description" content="We have 2 log files. One contains logs created in 2014.11.22, the other all in 2014.11.23.
+Each have about 240 million logs in it, with file size &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -39,7 +39,7 @@ and &hellip;">
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -72,7 +72,7 @@ and &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/27/111204/">A Spark Job Runner in Web Browser</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/01/04/173843/">Compare Users in 2 Days With Spark</a></h1>
     
     
       <p class="meta">
@@ -81,43 +81,52 @@ and &hellip;">
 
 
 
-<time class='entry-date' datetime='2014-10-27T11:12:04+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:12 am</span></time>
+<time class='entry-date' datetime='2015-01-04T17:38:43+08:00'><span class='date'><span class='date-month'>Jan</span> <span class='date-day'>4</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>5:38 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>I wrote a Spark script. Now I need adding a web interface for it. Thus users can input parameters of the script in web browser, run the script,
-and see the calculation results in browser.</p>
+  <div class="entry-content"><p>We have 2 log files. One contains logs created in 2014.11.22, the other all in 2014.11.23.
+Each have about 240 million logs in it, with file size 30GB.</p>
 
-<h1>JEE</h1>
+<p>The log in these files are like this:</p>
 
-<p>Download apache tomcat 7.0.56 core (apache-tomcat-7.0.56.tar.gz) and extract it to ~/apps;</p>
+<blockquote><p>&ldquo;460015482006002&rdquo;,&ldquo;深圳市&rdquo;,&ldquo;广东省&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;2014-12-22  16:46:04&rdquo;,&ldquo;42705&rdquo;,&ldquo;16111&rdquo;,&ldquo;460014270516111&rdquo;,&ldquo;MAP&rdquo;</p></blockquote>
 
-<p>Download Eclipse IDE for Java EE Developers (eclipse-jee-luna-SR1-linux-gtk-x86_64.tar.gz) and extract it to ~/apps;</p>
+<p>The number in the first column &ldquo;460015482006002&rdquo; represents a unique user, which is called &ldquo;IMSI&rdquo;.
+We need to find all IMSI number <strong>only</strong> exists in 2014.11.22.</p>
 
-<p>Start Eclipse IDE for Java EE Developers, build a new Web project: [File -> New -> Web -> Dynamic Web Project];</p>
+<p>Given the huge size of log files, we compute with Apache Spark.</p>
 
-<p>Specify &ldquo;Project&rdquo; as &ldquo;SparkRunner&rdquo;, &ldquo;Target runtime&rdquo; as &ldquo;Apache Tomcat v7.0&rdquo;.
-If the default runtime has not existed yet, build a new one: Type of runtime environment: Apache -> Apache Tomcat v7.0).
-Check &ldquo;Generate web.xml deployment descriptor&rdquo; at the last step and click &ldquo;Finish&rdquo;.</p>
+<p>Create only22.scala:</p>
 
-<p>Add the following texts into &ldquo;web-app&rdquo; of web.xml under $PROJECT_HOME/WebContent/WEB-INF:</p>
+<pre><code>import java.util.Date
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
-<pre><code>&lt;servlet&gt;
-    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
-    &lt;servlet-class&gt;com.boco.dm.JobRunner&lt;/servlet-class&gt;
-&lt;/servlet&gt;
-&lt;servlet-mapping&gt;
-    &lt;servlet-name&gt;JobRunner&lt;/servlet-name&gt;
-    &lt;url-pattern&gt;/JobRunner&lt;/url-pattern&gt;
-&lt;/servlet-mapping&gt;
+val SIG_DATA1 = "datamine/drawdata_20141122_cs.utf8.csv"
+val SIG_DATA2 = "datamine/drawdata_20141123_cs.utf8.csv"
+val USER_ID_POS = 1
+
+def get_users(data: String): Set[String] = {
+  val raw_data = sc.textFile(data).map(_.split("\"").toList)
+  val raw_sig_map = raw_data.filter(x =&gt; x.size &gt; 17)
+  val users = raw_sig_map.map(_(USER_ID_POS)).distinct
+  return users.toArray.toSet
+}
+
+val u1 = get_users(SIG_DATA1)
+val u2 = get_users(SIG_DATA2)
+val only22 = u1 -- u2
+scala.tools.nsc.io.File("only22.txt").writeAll(only22.toString)
 </code></pre>
 
-<p>Ref:</p>
+<p>Run it: <code>spark-shell --master spark://cloud142:7077 --driver-memory 6g --driver-cores 5 --total-executor-cores 28 --executor-memory 20g -i only22.scala</code></p>
 
-<p><a href="https://cloud.google.com/appengine/docs/java/config/webxml#About_Deployment_Descriptors">The Deployment Descriptor: web.xml</a></p>
+<p>In file only22.txt, all elements in the set are written in one line.
+So we have to replace all &ldquo;,&rdquo; with newline character: <code>sed -i 's/,/\n/g' only22.txt</code>;</p>
 </div>
   
   
@@ -130,7 +139,7 @@ Check &ldquo;Generate web.xml deployment descriptor&rdquo; at the last step and 
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/24/150059/">告警资源过滤算法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/31/101055/">将中文字符串转换为拼音首字母串</a></h1>
     
     
       <p class="meta">
@@ -139,48 +148,146 @@ Check &ldquo;Generate web.xml deployment descriptor&rdquo; at the last step and 
 
 
 
-<time class='entry-date' datetime='2014-10-24T15:00:59+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:00 pm</span></time>
+<time class='entry-date' datetime='2014-12-31T10:10:55+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:10 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>WFP算法从告警报文中挖掘出关联规则后，保存在下面的RDD data中，每一条规则包含4项：支持度、置信度、规则前项和规则后项。
-前项和后项分别是一个字符串，是一个逗号分隔的多个网元列表，
-例如一条规则(0.2, 0.3, &ldquo;a,b&rdquo;, &ldquo;c&rdquo;)表示“网元a,b上的告警导致网元c上告警发生的支持度是0.2，置信度是0.3。
-也就是a,b,c在所有告警中发生的概率是20%，当a,b已经发生时，c发生的比率是30%。</p>
+  <div class="entry-content"><p>下面的Python脚本将任意汉字和英文、数字混合字符串转换为拼音首字母组成的字符串，
+注意：有些汉字不能查找到首字母，例如"深圳东莞"的"圳"和"莞"两个字，原因不明。
+需要在vi中用"/\&lt;[A-Z]>搜索这种情况。</p>
 
-<p>在另一张资源表中，每一行包含一对网元，保存在下面的RDD res_data中，
-例如"a,c"这一行表示网元a和c有资源上的关联关系，可能是物理链路连接，可能是同一物理位置等等。</p>
+<p>实现过程是：首先尝试用unicode, utf8和gbk解码字符串，然后用GBK编码字符串，利用GBK汉字是按拼音顺序编码的原理查出其首字母。</p>
 
-<p>所谓的资源过滤就是只有在资源表中的规则才算有效规则，
-资源关系是没有顺序的，不论规则(a => c)还是(c => a)都符合(a,c)这一资源约束，
-对于规则(x1, x2, &hellip;, xm => y1, y2, &hellip;, yn)，只有前项和后项的所有笛卡尔积</p>
+<pre><code>#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-<pre><code>(x1, y1), (x1, y2), ... (x1, yn)
+def get_word_initial(inp):
+    if isinstance(inp, unicode):
+        unicode_str = inp
+    else:
+        try:
+            unicode_str = inp.decode('utf8')
+        except:
+            try:
+                unicode_str = inp.decode('gbk')
+            except:
+                print 'unknown coding'
+                return
+
+    init_list = [get_char_initial(i) for i in unicode_str]
+    return "".join(init_list)
+
+def get_char_initial(unicode1):
+    gbkStr = unicode1.encode('gbk')
+    try:
+        ord(gbkStr)
+        return gbkStr
+    except:
+        asc = ord(gbkStr[0]) * 256 + ord(gbkStr[1]) - 65536
+        if asc &gt;= -20319 and asc &lt;= -20284:
+            return 'A'
+        if asc &gt;= -20283 and asc &lt;= -19776:
+            return 'B'
+        if asc &gt;= -19775 and asc &lt;= -19219:
+            return 'C'
+        if asc &gt;= -19218 and asc &lt;= -18711:
+            return 'D'
+        if asc &gt;= -18710 and asc &lt;= -18527:
+            return 'E'
+        if asc &gt;= -18526 and asc &lt;= -18240:
+            return 'F'
+        if asc &gt;= -18239 and asc &lt;= -17923:
+            return 'G'
+        if asc &gt;= -17922 and asc &lt;= -17418:
+            return 'H'
+        if asc &gt;= -17417 and asc &lt;= -16475:
+            return 'J'
+        if asc &gt;= -16474 and asc &lt;= -16213:
+            return 'K'
+        if asc &gt;= -16212 and asc &lt;= -15641:
+            return 'L'
+        if asc &gt;= -15640 and asc &lt;= -15166:
+            return 'M'
+        if asc &gt;= -15165 and asc &lt;= -14923:
+            return 'N'
+        if asc &gt;= -14922 and asc &lt;= -14915:
+            return 'O'
+        if asc &gt;= -14914 and asc &lt;= -14631:
+            return 'P'
+        if asc &gt;= -14630 and asc &lt;= -14150:
+            return 'Q'
+        if asc &gt;= -14149 and asc &lt;= -14091:
+            return 'R'
+        if asc &gt;= -14090 and asc &lt;= -13119:
+            return 'S'
+        if asc &gt;= -13118 and asc &lt;= -12839:
+            return 'T'
+        if asc &gt;= -12838 and asc &lt;= -12557:
+            return 'W'
+        if asc &gt;= -12556 and asc &lt;= -11848:
+            return 'X'
+        if asc &gt;= -11847 and asc &lt;= -11056:
+            return 'Y'
+        if asc &gt;= -11055 and asc &lt;= -10247:
+            return 'Z'
+        return ''
+
+if __name__ == "__main__":
+    str_input='广州火车站A2c'
+    print(get_word_initial(str_input))
+</code></pre>
+
+<p>下面是一个完整的使用场景，利用上面的代码为小区的地理位置表添加ID字段。
+首先将上面的代码保存在chnInit.py中，然后相同目录下创建一个addID.py文件：</p>
+
+<pre><code>import chnInit
+import sys
+
+target = sys.argv[1]
+inclID = sys.argv[2]
+with open(target, 'r') as src:
+    with open(inclID, 'w') as dst:
+        for content in src:
+            line = content.strip()
+            cgi = line.split(' ,')[0]
+            node = line.split(' ,')[1].split(' ')[0]
+            city = line.split(' ,')[1].split(' ')[1]
+            nodeID = chnInit.get_word_initial(node)
+            cityID = chnInit.get_word_initial(city)
+            dst.write(cgi + ' ,' + city + ' ' + cityID + ' ' + node + ' ' + nodeID + '\n')
+</code></pre>
+
+<p>相同目录下保存输入文件input.csv，然后运行脚本：</p>
+
+<pre><code>$ head input.csv
+460010973309433 ,白云国际机场 广州
 ...
-(xm, y1), (xm, y2), ... (xm, yn)
+
+$ python addID.py input.csv loc_map.csv
+$ head loc_map.csv
+460010973309433 ,广州 GZ 白云国际机场 BYGJJC
+...
 </code></pre>
 
-<p>都在资源表中，才表明这一条规则通过了资源过滤。
-例如对于规则(a,b => c)，只有a与c，a与b都有资源关系（即(a,b)和(a,c)都在资源表中），这条规则才有效。</p>
+<p>根据Python文档7.2.1节："Methods of File Objects"中的描述：</p>
 
-<p>实现算法是：对于一条规则R1，求出其所有笛卡尔积R2，然后求R2与资源表的交集R3，如果</p>
+<blockquote><p>For reading lines from a file, you can loop over the file object.
+This is memory efficient, fast, and leads to simple code:</p></blockquote>
 
-<p>下面是描述这一筛选过程的Spark代码:</p>
-
-<pre><code>val data = sc.parallelize(List((0.2, 0.3, "a,b", "c"), (0.5, 0.2, "b,c", "a,d")))
-val combine_pre_suf = data.flatMap(x =&gt; (x._3.split(",").flatMap(y =&gt; (x._4.split(",").map(z =&gt; (y+","+z, x))))))
-val suf_pre = combine_pre_suf.map(x =&gt; (x._1.split(",")(1) + "," + x._1.split(",")(0), x._2))
-val double_pre_suf_rule = suf_pre ++ combine_pre_suf
-val res_data = sc.parallelize(List("a,c","b,c","c,e","c,d"))
-val res_join_double = res_data.map(x =&gt; (x,1)).join(double_pre_suf_rule)
-val rule_in_res_cnt = res_join_double.map(x =&gt; (x._2._2, x._2._1)).reduceByKey(_+_)
-val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._1._4.split(",").size == x._2)
+<pre><code>with open(target, 'r') as f:
+    for line in f:
+        ...
 </code></pre>
 
-<p>将这段代码保存在文件res-filter.script中，运行<code>spark-shell -i res-filter.script</code>。</p>
+<p>这种方式比较节省内存，适于处理大文件。
+当处理小文件时，可以用下面的方法将完整内容保存在一个变量中：</p>
+
+<pre><code>with open('workfile', 'r') as f:
+    read_data = f.read()
+</code></pre>
 </div>
   
   
@@ -193,7 +300,7 @@ val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/10/22/103838/">Swap Mouse Buttons on Linux</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/12/29/193156/">Frequent Used Commands in Mongodb Shell</a></h1>
     
     
       <p class="meta">
@@ -202,373 +309,583 @@ val flt_res_rules = rule_in_res_cnt.filter(x =&gt; x._1._3.split(",").size * x._
 
 
 
-<time class='entry-date' datetime='2014-10-22T10:38:38+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2014</span></span> <span class='time'>10:38 am</span></time>
+<time class='entry-date' datetime='2014-12-29T19:31:56+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>7:31 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>LinuxMint</h1>
+  <div class="entry-content"><p>The foloowing codes demonstrate the creation &copy;, query &reg;, update (U) and delete (D) operations on mongodb collections.</p>
 
-<p>If you login in terminal,
-add the following line into ~/.xinitrc before &ldquo;exec i3&rdquo;:</p>
+<p>It also shows how to rename collections and keys of documents.</p>
 
-<pre><code>xmodmap -e "pointer = 3 2 1"
+<pre><code>$ mongo
+db.fairs.insert({'name': 'bikeShow', 'time': '2014.12.24', 'location': 'Beijing', 'products': ['bike', 'car', 'truck']})
+db.fairs.insert({'name': 'clothShow', 'time': '2014.2.14', 'location': 'Shanghai', 'products': ['silk', 'wood', 'paper']})
+db.fairs.insert({'name': 'MyFruits', 'time': '2011.4.18', 'location': 'Guangzhou', 'products': ['berry', 'apple', 'banana']})
+
+db.newfairs.find({}, {name: 1})
+db.newfairs.find({}, {'name.chn': 1})
+
+db.fairs.renameCollection('newfairs')
+
+db.newfairs.update({}, {$rename: {'time': 'date'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'name': 'names'} }, {multi: true} )
+db.newfairs.update({}, {$rename: {'names': 'name.chn'} }, {multi: true} )
+db.newfairs.update({}, {$unset: {'date': ""}}, {multi: true})
+db.newfairs.remove({})
+db.newfairs.drop()
+exit
 </code></pre>
 
-<p>If you login with Xfce GUI,
-add above line into ~/.xsessionrc.</p>
-
-<p>If you want to change to right-hand style mouse buton,
-run the following command in console:</p>
-
-<pre><code>xmodmap -e "pointer = 1 2 3"
-</code></pre>
-
-<p>Ref: <a href="https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal">https://askubuntu.com/questions/151819/how-do-i-swap-mouse-buttons-to-be-left-handed-from-the-terminal</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/21/191239/">`Key Could Not Be Imported` Error When Full Update ArchLinux System</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-21T19:12:39+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>7:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Today I update my ArchLinux system with <code>pacman -Syu</code>, when check for package key, I got following errors:</p>
-
-<blockquote><p>:: Proceed with installation? [Y/n]
-(211/211) checking keys in keyring                                      [########################################] 100%
-downloading required keys&hellip;
-:: Import PGP key 1024D/, &ldquo;Fabio Castelli <a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#58;&#109;&#117;&#x66;&#x6c;&#x6f;&#110;&#101;&#64;&#118;&#x62;&#115;&#x69;&#109;&#112;&#x6c;&#x65;&#x2e;&#110;&#x65;&#x74;">&#x6d;&#117;&#102;&#108;&#x6f;&#x6e;&#x65;&#x40;&#x76;&#x62;&#x73;&#x69;&#x6d;&#112;&#108;&#x65;&#x2e;&#110;&#x65;&#x74;</a>&rdquo;, created: 2009-07-04? [Y/n]
-error: key &ldquo;Fabio Castelli <a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#x6f;&#x3a;&#x6d;&#x75;&#102;&#108;&#x6f;&#x6e;&#x65;&#x40;&#118;&#98;&#115;&#105;&#x6d;&#112;&#x6c;&#101;&#x2e;&#110;&#101;&#116;">&#x6d;&#117;&#x66;&#108;&#x6f;&#x6e;&#101;&#64;&#x76;&#x62;&#x73;&#105;&#x6d;&#112;&#108;&#101;&#x2e;&#x6e;&#x65;&#x74;</a>&rdquo; could not be imported
-error: required key missing from keyring
-error: failed to commit transaction (unexpected error)
-Errors occurred, no packages were upgraded.</p></blockquote>
-
-<p>The solution is pretty simple. We need to first update archlinux-keyring before proceeding to update other packages.</p>
-
-<pre><code>$ sudo pacman -Syy
-$ sudo pacman -S archlinux-keyring
-$ sudo pacman -Syu
-</code></pre>
-
-<p>Ref: <a href="http://kiawin.com/blog/2014/09/error-key-could-not-be-imported.html">Error: Key could not be imported</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/21/100928/">Notes of Data Science at the Command Line</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-21T10:09:28+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2014</span></span> <span class='time'>10:09 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>&ldquo;A Real-World Use Case&rdquo; in Chapter 1</h1>
-
-<p>In this case a GUI window need to be displayed based on data extracted from &ldquo;New York Times&rdquo;.
-So we have to connect to the VM with X forwarded: <code>ssh vagrant@localhost -p 2222 -X</code>.
-I registered the <a href="http://developer.nytimes.com/apps/myapps">NYT developer keys</a>.
-So the run following commands to extract data:</p>
-
-<pre><code>parallel -j1 --progress --delay 0.1 --results results "curl -sL 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=New+York+Fashion+Week&amp;begin_date={1}0101&amp;end_date={1}1231&amp;page={2}&amp;api-key=13fdd3f29a9479f92ef74c26166fda3a:16:60048486'" ::: {2009..2013} ::: {0..99} &gt; /dev/null
-cat results/1/*/2/*/stdout | jq -c '.response.docs[] | {date: .pub_date, type: .document_type,title: .headline.main }' | json2csv -p -k date,type,title &gt; fashion.csv
-&lt; fashion.csv Rio -ge 'g + geom_freqpoly(aes(as.Date(date), color=type), ''binwidth=7) + scale_x_date() + labs(x="date", title="Coverage of New York'' Fashion Week in New York Times")' | display
-</code></pre>
-
-<p>Now a GUI window named ImageMagick appears, and display the data in file fashion.csv.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/20/171325/">MEAN Devlopment on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-20T17:13:25+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:13 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>ArchLinux</h1>
-
-<pre><code>sudo pacman -S nodejs mongodb
-sudo systemctl enable mongodb.service
-sudo systemctl start mongodb.service
-// verify with command "mongo"
-sudo npm install -g meanio
-sudo npm install -g bower
-sudo npm install -g grunt-cli
-mean init myApp
-cd myApp &amp;&amp; npm install
-grunt
-</code></pre>
-
-<p>Now browse <a href="http://localhost:3000.">http://localhost:3000.</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/20/094427/">Virtualization With Vagrant on ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-20T09:44:27+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>20</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:44 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Firstly install Virtualbox and Vagrant:</p>
-
-<pre><code>sudo pacman -S virtualbox vagrant
-</code></pre>
-
-<p>If you met the following warning, and vagrant can&rsquo;t start:</p>
-
-<blockquote><p>The vboxdrv kernel module is not loaded.
-Either there is no module available for the current kernel (3.16.4-1-ARCH) or it failed to load.</p></blockquote>
-
-<p>run following commands to compile kernel module vboxdrv and load it:</p>
-
-<pre><code>sudo pacman -S linux-headers virtualbox-host-dkms
-sudo dkms install vboxhost/4.3.18
-sudo modprobe vboxdrv
-</code></pre>
-
-<p>Verify the module is loaded successfully with <code>lsmod |grep vboxdrv</code>.</p>
-
-<p>Ref: <a href="https://wiki.archlinux.org/index.php/VirtualBox">VirtualBox on ArchWiki</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/18/222508/">ArchLinux Sound Control on Thinkpad T440p</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-18T22:25:08+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:25 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>$ sudo pacman -S alsa-utils
-$ alsamixer
-The &ldquo;Card&rdquo; value on the left-upper corner is &ldquo;HDA Intel HDMI&rdquo;. This is not right.
-Press F6, a list appear:
--   (default)
-0   HDA Intel HDMI
-1   HDA Intel PCH
-29  ThinkPad Console Audio Control</p>
-
-<p>This means there are totally 3 playback devices. And currently &ldquo;0 HDA Intel HDMI&rdquo; is the default one.
-However this is a wrong one. The right audio output device should have &ldquo;dB gain&hellip;&rdquo; in its &ldquo;Item&rdquo; value.
-If we choose &ldquo;1 HDA Intel PCH&rdquo;, on the upper-left corner there will be a line: &ldquo;Item: Master [dB gain: 0.00]&rdquo;.
-So this is the right one, and its id is &ldquo;1&rdquo;.</p>
-
-<p>In window of this device, tab to &ldquo;Master&rdquo;, use &ldquo;m&rdquo; key to toogle its status from &ldquo;MM&rdquo; (means mute) to &ldquo;OO&rdquo; (means open this device).
-Then use up arrow key to increase its volume, until the &ldquo;dB gain&rdquo; is zero.</p>
-
-<p>Quit it with &ldquo;ESC&rdquo; key. Create a new file ~/.asoundrc:</p>
-
-<pre><code>defaults.ctl.card 1
-defaults.pcm.card 1
-</code></pre>
-
-<p>Now test it with <code>speaker-test -c 2</code>.</p>
-
-<p>Ref: &ldquo;No sound when S/PDIF video card is installed&rdquo; section in <a href="https://wiki.archlinux.org/index.php/ALSA#Troubleshooting">Advanced Linux Sound Architecture</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/174733/">Install WPS on 64bit ArchLinux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T17:47:33+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Now WPS is a 32bit application. It&rsquo;s can&rsquo;t run on 64bit ArchLinux.
-So firstly we should open the multilib repository of the system. Then install WPS with yaourt.</p>
-
-<ol>
-<li><p>Uncomment the following lines in /etc/pacman.conf:</p>
-
-<pre><code> [multilib]
- Include = /etc/pacman.d/mirrorlist
-</code></pre></li>
-<li><p>Install WPS: <code>yaourt -S wpsoffice</code>;</p></li>
-<li><p>Install printer drivers: <code>pacman -S libcups</code>;</p></li>
-<li><p>Install fonts: download wps-office_8.1.0.3724~b1p2_x86.tar.xz from WPS website, unpack it, run <code>./install_fonts</code>;</p></li>
-<li><p>Chinese input: <code>yaourt -S fcitx-wps</code>. Modify &ldquo;kingsoft-office&rdquo; with &ldquo;wpsoffice&rdquo; in pkgbuild file of fcitx-wps, because kingsoft-office doesn&rsquo;t exits now.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="https://wiki.archlinux.org/index.php/multilib">Multilib on Arch Wiki</a></p>
-
-<p><a href="https://wiki.archlinux.org/index.php/WPS_Office">WPS Office on Arch Wiki</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/16/154329/">Define Key Binding With Xbindkeys on Linux</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2014-10-16T15:43:29+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:43 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>On ArchLinux:</p>
-
-<ol>
-<li><p>Install xbindkeys: <code>pacman -S xbindkeys</code> or <code>apt-get install xbindkeys</code>;</p></li>
-<li><p>Start xbindkeys when X startup: add &ldquo;xbindkeys&rdquo; <strong>before</strong> &ldquo;exec i3&rdquo; in ~/.xinitrc;</p></li>
-<li><p>Get a template: <code>xbindkeys -d &gt; ~/.xbindkeysrc</code>;</p></li>
-<li><p>Detect key definition: <code>xbindkeys -k</code>;</p></li>
-<li><p>Add output from last command to ~/.xbindkeysrc;</p></li>
-<li><p>Reload new configs: <code>pkill xbindkeys; xbindkeys</code>;</p></li>
-<li><p>Verify the setup.</p></li>
-</ol>
-
-
-<p>Ref:</p>
+<p>You can&rsquo;t use <code>{$rename: {'name': 'name.chn'}}</code> directly for &ldquo;$rename must not be on the same path&rdquo;.</p>
 
 <ul>
-<li><p><a href="https://wiki.archlinux.org/index.php/Xbindkeys">Xbindkeys</a></p></li>
-<li><p><a href="http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/">http://www.butlerpc.net/blog/2011/01/using-xbindkeys-on-ubuntu-linux-to-remap-key-commands/</a></p></li>
+<li><p>Find docs whose &ldquo;website&rdquo; field is not null: <code>db.fairs.findOne({$where: "this.website.length &gt; 0" } )</code>;</p></li>
+<li><p>Remove all docs whose &ldquo;position&rdquo; field is an empty string: <code>db.fairs.remove( { $where: "this.position.length == 0" } )</code>;</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/29/151419/">遍历Javascript对象属性的方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-29T15:14:19+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:14 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>启动node.js命令行，创建一个最简单的对象，然后遍历其属性：</p>
+
+<pre><code>$ node
+&gt; var myobj = {k1: "p1", k2: 'p2'}
+
+&gt; for (var key in myobj) {
+... console.log(key);
+... console.log(myobj.key);
+... console.log(myobj[key]);
+... }
+k1
+undefined
+p1
+k2
+undefined
+p2
+&gt; myobj.k1
+'p1'
+
+&gt; var ak = 'k4'
+undefined
+&gt; myobj.ak = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4' }
+&gt; myobj[ak] = 'p4'
+'p4'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4' }
+
+&gt; myobj[nk] = 'p5'
+ReferenceError: nk is not defined
+    at repl:1:8
+    at REPLServer.self.eval (repl.js:110:21)
+    ...
+&gt; myobj['nk'] = 'p5'
+'p5'
+&gt; myobj
+{ k1: 'p1',
+  k2: 'p2',
+  ak: 'p4',
+  k4: 'p4',
+  nk: 'p5' }
+</code></pre>
+
+<p>点操作符 (myobj.key) 和中括号 (myobj[key]) 都能用于获取和添加对象属性，
+二者的区别在于，点操作符后面的属性名称按照字面量处理，
+中括号中的属性名称按照变量名处理。</p>
+
+<p>如果想通过变量名读写对象属性，必须用中括号操作符，
+如果想不写引号直接引用属性名称，必须用点操作符。</p>
+
+<p>搜索"javascript object dot square bracket"查找相关文章。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/29/112803/">清理/usr/local/bin目录</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-29T11:28:03+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>11:28 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>为一个用户增加可执行文件通常有两种方法，
+第一种是将可执行文件所在的目录添加到命令行自启动文件中（例如~/.profile，~/.bashrc，~/.zshenv等），
+这种方法的优点是无需root权限，绿色无污染，
+缺点是只对命令行有效，只对一个用户有效，
+并且不适用于从全局启动目录（如i3wm的dmenu命令行）中启动图形界面程序；</p>
+
+<p>另一种是把可执行文件添加到/usr/local/bin目录中，这个目录一般用来存放用户自定义的全局可执行命令，
+优缺点与上面修改自启动文件的方式相反；</p>
+
+<p>一段时间后/usr/local/bin下可能会有很多文件，清理的方法根据来源不同而不同：
+对于链接，直接删除；
+对非链接文件，用<code>dpkg -l</code>确认是否为apt-get或者dpkg安装的，然后用<code>apt-get remove</code>删除；
+如果不是上面的情况，用<code>pip list|grep &lt;filename&gt;</code>检查是否用pip安装的，若是，用<code>pip uninstall</code>删除。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/27/103944/">Run Java Program in Java Program</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-27T10:39:44+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:39 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Usually we can run shell command in Java program with <code>Runtime.getRuntime.exec(shellName);</code>.
+But if the shell command is <code>java -cp "lib/*" MainClass</code>, you can&rsquo;t get any output from &ldquo;line = reader.readLine()&rdquo;.</p>
+
+<p>You have to use ProcessBuilder instead of Runtime.exec to execute these commands.
+Maybe the reason is the double quotes after &ldquo;-cp&rdquo; option is mandatory, which are conflict with double quotes in parameters of Runtime.exec.</p>
+
+<pre><code>public static final String USER_PLUGIN_PATH = "plugins";
+public static final String USER_CLASSPATH = USER_PLUGIN_PATH + "/lib/*";
+public void runJavaProgram(String mainClass) {
+  logger.info("Running java program in class: " + mainClass);
+  try {
+    ProcessBuilder pb = new ProcessBuilder("java", "-cp", USER_CLASSPATH, mainClass);
+    pb.redirectErrorStream(true);
+    Process process = pb.start();
+    // Process process = Runtime.getRuntime().exec("java -cp " + USER_CLASSPATH + mainClass);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    String line = "";
+    String output = "";
+    while ((line = reader.readLine()) != null) {
+      logger.debug(line);
+      output += line + System.getProperty("line.separator");
+    }
+    process.waitFor();
+  } catch (IOException e) {
+    e.printStackTrace();
+  } catch (InterruptedException e) {
+    e.printStackTrace();
+  }
+}
+</code></pre>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/25/100018/">Linux System Memory Probe</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-25T10:00:18+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>10:00 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Using top</h1>
+
+<p>Run <code>top</code> then press &ldquo;M&rdquo; (which means &ldquo;Shift-m&rdquo;).
+Press &ldquo;P&rdquo; for sorting by CPU usage.
+Press &ldquo;f&rdquo; to define which columns you want to display or hide on screen.
+You can also try &ldquo;x&rdquo;, &ldquo;&lt;&rdquo;, &ldquo;>&rdquo; to demonstrate their functions.
+Using &ldquo;R&rdquo; to determine sort styles between high-to-low and low-to-high sorts.
+See &ldquo;SORTING of task window&rdquo; in section 4c of <code>man top</code> for details.</p>
+
+<h1>GUI Utility</h1>
+
+<p>On Ubuntu 14.04, press Win key then input &ldquo;system&rdquo; to run &ldquo;System Monitor&rdquo;.
+In &ldquo;Processes&rdquo; tab page, click &ldquo;Memeory&rdquo; column.</p>
+
+<h1>Using smem</h1>
+
+<p><a href="http://www.selenic.com/smem/">smem</a>  is a tool that can give numerous reports on memory usage on Linux systems.
+Install it with <code>sudo apt-get install smem</code>.</p>
+
+<p>List all process&rsquo;s memory consumption of a user with smem.</p>
+
+<p>Copy from <a href="http://www.selenic.com/smem/:">http://www.selenic.com/smem/:</a></p>
+
+<ul>
+<li><p>Show basic process information: <code>smem</code></p></li>
+<li><p>Show library-oriented view: <code>smem -m</code></p></li>
+<li><p>Show user-oriented view: <code>smem -u</code></p></li>
+<li><p>Show system view: <code>smem -R 4G -K /path/to/vmlinux -w</code></p></li>
+<li><p>Show totals and percentages: <code>smem -t -p</code></p></li>
+<li><p>Show different columns: <code>smem -c "name user pss"</code></p></li>
+<li><p>Sort by reverse RSS: <code>smem -s rss -r</code></p></li>
+<li><p>Show processes filtered by mapping: <code>smem -M libxml</code></p></li>
+<li><p>Show mappings filtered by process: <code>smem -m -P [e]volution</code></p></li>
+<li><p>Read data from capture tarball: <code>smem --source capture.tar.gz</code></p></li>
+<li><p>Show a bar chart labeled by pid: <code>smem --bar pid -c "pss uss"</code></p></li>
+<li><p>Show a pie chart of RSS labeled by name: <code>smem --pie name -s rss</code></p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/25/091714/">Mongodb Notes</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-25T09:17:14+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>9:17 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>Install</h1>
+
+<h2>Install as a service</h2>
+
+<p>Install, run and uninstall mongodb with aptitude.</p>
+
+<p>Ref:
+<a href="http://docs.mongodb.org/master/tutorial/install-mongodb-on-ubuntu/">Install MongoDB on Ubuntu</a></p>
+
+<h2>Start mongodb server as a common user</h2>
+
+<p>The default data path of Mongodb is /data/db, which you have to create as root.</p>
+
+<p>If you just want play around mongodb with some test data, you can create a temporary folder as data directory:</p>
+
+<pre><code>$ mkdir ~/docs/tmp/mongodb-repo
+$ cd ~/apps/mongodb-linux-x86_64-2.6.5
+$ bin/mongod --dbpath ~/docs/tmp/mongodb-repo
+// in a new shell
+$ ~/apps/mongodb-linux-x86_64-2.6.5/bin/mongo
+</code></pre>
+
+<p>For convenience, add <code>PATH=$HOME/apps/mongodb-linux-x86_64-2.6.5/bin:$PATH</code> into ~/.zshenvr,
+and <code>alias mongod='mongod --dbpath /home/chad/docs/tmp/mongodb-repo'</code> into ~/.bash_alias.</p>
+
+<p>Make sure the following lines exist in ~/.zshrc:</p>
+
+<pre><code>if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+</code></pre>
+
+<p>Now we can start mongo server and client anywhere in a shell.</p>
+
+<h2>Run mongod via sudo</h2>
+
+<ol>
+<li><p>Extract MongoDB package to /opt as root and <code>mkdir -p /data/db</code>;</p></li>
+<li><p>Add MongoDB path into common user&rsquo;s .zshenv: <code>PATH=$PATH:/opt/mongodb-linux-x86_64-ubuntu1404-3.0.3/bin</code>;</p></li>
+<li><p>Add <code>alias mongod='sudo env PATH=$PATH mongod'</code> into .bash_aliases;</p></li>
+</ol>
+
+
+<p>Now as a common user, start mongodb service with <code>mongod</code>, run client via <code>mongo</code>.</p>
+
+<p>Note: Do NOT add <code>alias sudo='sudo env PATH=$PATH'</code> into .bash_aliases,
+as suggested in <a href="http://stackoverflow.com/questions/257616/sudo-changes-path-why#">http://stackoverflow.com/questions/257616/sudo-changes-path-why#</a></p>
+
+<p>For this will modify sudo&rsquo;s PATH globally. And the auto-completion won&rsquo;t work.
+For example: <code>sudo apti&lt;Tab&gt;</code> can&rsquo;t be converted to <code>sudo aptitude</code>.</p>
+
+<h1>Database Management</h1>
+
+<p>First start mongo server <code>mongod</code>. Then start the client with <code>mongo</code>.
+All the following commands is running in mongo shell, whose prompt is &lsquo;> &rsquo;.</p>
+
+<p>List all existing database: <code>show dbs</code>;</p>
+
+<p>Create a new database &ldquo;meteor&rdquo; and switch to it: <code>use meteor</code>;</p>
+
+<p>Remove database &ldquo;mydb&rdquo;: <code>use mydb</code>, then <code>db.dropDatabase()</code>;</p>
+
+<h1>Backup and Restore</h1>
+
+<ul>
+<li><p>Backup a database to a directory: <code>mongodump -d &lt;db_name&gt; -o &lt;bak_dir&gt;</code>;</p></li>
+<li><p>Backup a collection: <code>mongodump -d &lt;db_name&gt; -c &lt;collection_name&gt;</code>;</p></li>
+<li><p>Restore a collection: <code>mongorestore -d &lt;target_db_name&gt; -c &lt;target_collection_name&gt; &lt;target_collection_name&gt;.bson</code>;</p></li>
 </ul>
 
 
-<p>In i3 on Ubuntu, install them with <code>sudo aptitude install xbindkeys xbacklight</code>. Others are the same.</p>
+<h2>Sync Database Remotely</h2>
 
-<p>As an example,
-add the following lines into ~/.xbindkeysrc, to increase and decrease LCD brightness of Thinkpad T440p:</p>
+<p>Here we backup database &ldquo;test&rdquo; in local mongodb,
+transfer it to a remote host (we name it &ldquo;ld&rdquo;),
+and restore this database into host&rsquo;s mongodb.</p>
 
-<pre><code>"xbacklight -dec 10"
-    XF86MonBrightnessDown
-
-"xbacklight -inc 10"
-    XF86MonBrightnessUp
+<pre><code># on local host
+cd
+mongodump -d test -c fairs
+scp -r dump ld:~/
+rm -rf dump
+# on remote host ld
+cd ~/dump
+mongorestore -d meteor test
 </code></pre>
+
+<p>In the last command, the &ldquo;meteor&rdquo; is the target database,
+the following &ldquo;test&rdquo; is a folder name contains dumped data from local host.</p>
+
+<h1>Data Refinement</h1>
+
+<ul>
+<li><p>Remove duplicated documents in a collection (&ldquo;fairs&rdquo;) based on a key (&ldquo;chnName&rdquo;):
+  <code>db.fairs.ensureIndex({chnName:1}, {unique : true, dropDups : true})</code>;</p></li>
+<li><p>map-reduce example: the &ldquo;mapReduce&rdquo; function has 3 arguments:
+  the mapper, the reducer, and the definition of input (query) and output (out).</p>
+
+<p>  The &ldquo;emit&rdquo; function has 2 arguments, the first is the &ldquo;key&rdquo;, the 2nd is the value.</p>
+
+<p>  In the following demo, the first mapReducer calculates the average of all ranks of fair with id &ldquo;54cef40a191f3bb2ef12bdf7&rdquo;,
+  the second mapReducer calculates every fair&rsquo;s average of user ranks.</p>
+
+<p>  The result of mapReduce is put into a new collection, instead of returning a object.</p>
+
+<pre><code>  &gt; db.userComments.find()
+  { "_id" : "5fSQFR4kSLGLc9nLk", "fairId" : "54cef40a191f3bb2ef12bdf7", "userId" : "gpxst3JwJNPT33maf", "rank" : 4 }
+  { "_id" : "oRmXmdPnsvSQNSNK3", "fairId" : "54cef40a191f3bb2ef12bdf7", "userId" : "yiio2r3fQ64nqAC4j", "rank" : 5 }
+  { "_id" : "DePtvHcNvwMpLPdq8", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "yiio2r3fQ64nqAC4j", "rank" : 2 }
+  { "_id" : "eX9jWZt74cHMg3jAe", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "gpxst3JwJNPT33maf", "rank" : 5 }
+  { "_id" : "xntPL4Pnyasen2jcx", "fairId" : "54cef40a191f3bb2ef12bdf8", "userId" : "bc3iNrRpN7Wdi26zP", "rank" : 4 }
+  &gt; db.userComments.mapReduce(function(){ emit(this.fairId, this.rank); },
+                              function(key, values) { return Array.avg(values); },
+                              { query: { fairId: "54cef40a191f3bb2ef12bdf7" }, out: "rank_avg" } );
+  {
+    "result" : "rank_avg",
+    "timeMillis" : 60,
+    "counts" : {
+      "input" : 2,
+      "emit" : 2,
+      "reduce" : 1,
+      "output" : 1
+    },
+    "ok" : 1
+  }
+  &gt; db.rank_avg.find()
+  { "_id" : "54cef40a191f3bb2ef12bdf7", "value" : 4.5 }
+
+  &gt; db.userComments.mapReduce(function(){ emit(this.fairId, this.rank); },
+                              function(key, values) { return Array.avg(values); },
+                              { out: "rank_avg" } );
+  &gt; db.rank_avg.find()
+  { "_id" : "54cef40a191f3bb2ef12bdf7", "value" : 4.5 }
+  { "_id" : "54cef40a191f3bb2ef12bdf8", "value" : 3.6666666666666665 }
+</code></pre></li>
+<li><p>Update a element of an array:
+<code>db.Fair.update( { "nameZHCN": /117/  }, {$set: {"recurrence.0.expomap": "ZoimfczNHGMefysvt" } } )</code>;
+Note the double quotes of &ldquo;recurrence.0.expomap&rdquo; is mandatory.</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/24/174727/">CentOS服务器根目录空间被占满的解决方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-24T17:47:27+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>5:47 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>60和61服务器根目录(/)50G空间全被占满，用<code>du -shx /*</code>查看，非挂载目录的空间加起来远达不到50GB，
+查了一下，怀疑原因是原来挂在/mnt下的data1和data2目录下的两块大容量磁盘由于某种原因没有挂载上，
+但cloudera manager管理的hadoop和hdfs系统仍然在向这两个目录下存放大文件，导致空间被耗光，
+验证方法是用<code>mount</code>命令检查/mnt下是否有挂载，如果有，将它们卸载掉，看/mnt下是否还有文件，
+有的话删除掉就好了。</p>
+
+<p>如果不是这个原因，还可能是被删除的大文件没有释放，用<code>lsof|grep "deleted"</code>检查；</p>
+
+<p>参考：</p>
+
+<p><a href="http://serverfault.com/questions/275206/disk-full-du-tells-different-how-to-further-investigate">Disk full, du tells different. How to further investigate?</a></p>
+
+<p><a href="http://serverfault.com/questions/57098/du-vs-df-difference">du vs. df difference</a></p>
+
+<p><a href="http://serverfault.com/questions/62119/how-do-i-find-out-what-is-using-up-all-the-space-on-my-partition">How do I find out what is using up all the space on my / partition?</a></p>
+
+<p><a href="http://askubuntu.com/questions/266825/what-do-i-do-when-my-root-filesystem-is-full">What do I do when my root filesystem is full?</a></p>
+
+<p><a href="http://serverfault.com/questions/513136/centos-dev-root-is-getting-full-cannot-find-disk-space-usage">Centos , /dev/root is getting full. Cannot find disk space usage</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/24/152921/">HTML笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2014-12-24T15:29:21+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2014</span></span> <span class='time'>3:29 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>HTML 布局原理</h1>
+
+<p>HTML元素分为块级元素(block element)和行内元素(inline element)，
+前者独占一行，也就是元素的头和尾会被自动加上换行符，如<div>, <h1>, <p>, <ul>, <table>等；</p>
+
+<p>后者不会独占一行，如<span>, <b>, <td>, <a>, <img>等；</p>
+
+<p>CSS布局原理：<a href="http://www.w3schools.com/css/css_boxmodel.asp">CSS Box Model</a>.</p>
+
+<p>一个CSS box从外向内分为4部分：margin, border, padding, content.
+除了最内部的内容部分(content)，其他3部分都可以设置宽度，
+其中margin是块级元素边界(border)之外的透明区域；
+border是边界线，默认宽度为0，即不可见；
+padding是内容(content)到边界之间的透明区域；</p>
+
+<p>将下面的代码保存在一个html文件中，可以看到各部分的作用：</p>
+
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;style&gt;
+    div {
+        background-color: lightgrey;
+        width: 300px;
+        padding: 15px;
+        border: 5px solid navy;
+        margin: 25px;
+    }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div&gt;Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod.
+    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt.&lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<h1>HTML5</h1>
+
+<p>测试浏览器对HTML5的支持度：用待测浏览器打开<a href="https://html5test.com/">HTML5test</a>，该网页会列出浏览器对HTML5每一项特性支持与否。</p>
+
+<h2>Semantic Element</h2>
+
+<p>Ref: <a href="http://www.w3schools.com/html/html5_semantic_elements.asp">HTML5 Semantic Elements</a></p>
 </div>
   
   
@@ -593,23 +910,23 @@ add the following lines into ~/.xbindkeysrc, to increase and decrease LCD bright
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

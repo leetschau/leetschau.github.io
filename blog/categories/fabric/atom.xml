@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Fabric | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/fabric/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,43 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Fabric中向文件写入特殊字符]]></title>
+    <link href="http://leetschau.github.io/blog/2016/05/26/001459/"/>
+    <updated>2016-05-26T00:14:59+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/05/26/001459</id>
+    <content type="html"><![CDATA[<p>场景：需要向/etc/default/docker文件追加一行文字：</p>
+
+<pre><code>DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://b53a2938.m.daocloud.io"
+</code></pre>
+
+<p>其中双引号和$是特殊字符，难度主要提现在如何转意这两个字符上。</p>
+
+<p>普通用户通过Shell达到目标的方法是：</p>
+
+<pre><code>echo "DOCKER_OPTS=\"\$DOCKER_OPTS --registry-mirror=http://b53a2938.m.daocloud.io\"" | sudo tee -a /etc/default/docker
+</code></pre>
+
+<p>root用户使用Shell的方法是：</p>
+
+<pre><code>echo "DOCKER_OPTS=\"\$DOCKER_OPTS --registry-mirror=http://b53a2938.m.daocloud.io\"" &gt;&gt; /etc/default/docker
+</code></pre>
+
+<p>Fabric的实现方法是：</p>
+
+<pre><code>sudo('echo "DOCKER_OPTS=\\\\"\\\$DOCKER_OPTS '
+     '--registry-mirror=http://b53a2938.m.daocloud.io\\\\"" '
+     '&gt;&gt; /etc/default/docker')
+</code></pre>
+
+<p>或者用raw string:</p>
+
+<pre><code>sudo(r'echo "DOCKER_OPTS=\\"\\$DOCKER_OPTS --registry-mirror='
+     r'http://b53a2938.m.daocloud.io\\"" &gt;&gt; /etc/default/docker')
+</code></pre>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Manage Website Remotely]]></title>
@@ -132,127 +169,6 @@ def distkey():
     local(&lsquo;ssh-copy-id %(user)s@%(host)s&rsquo; % env)</p>
 
 <p>You have to input password for every host. So try to use uniform password for all hosts. It will save you lots of times.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Task Management in Fabric]]></title>
-    <link href="http://leetschau.github.io/blog/2014/03/28/182817/"/>
-    <updated>2014-03-28T18:28:17+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/03/28/182817</id>
-    <content type="html"><![CDATA[<p>I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. So there are 2 strategies:</p>
-
-<ul>
-<li><p>Define global hosts, when detections over, modify the hosts to none, so report and send email will only run once;</p></li>
-<li><p>Use &ldquo;report&rdquo; as entrance, invoke detection within &ldquo;report&rdquo; task.</p></li>
-</ul>
-
-
-<h1>Global hosts style</h1>
-
-<p>fabfile.py:</p>
-
-<pre><code>from fabric.api import run, env, hosts
-import re
-
-env.hosts = ['Chad@10.0.2.47', 'chad@10.0.2.49']
-env.password = 'abaqus67'
-env['report'] = {}
-
-def checkJDK():
-    res = run('java -version')
-    cre = 'java version .*1.6.0.*Java\(TM\)'
-    return len(re.findall(cre, res, re.S)) &gt; 0
-
-def checkMem(str):
-    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
-
-def checkOS():
-    res = run('uname -a')
-    return res.split()[0]
-
-def detect():
-    host_report = {}
-    host_report['os'] = checkOS()
-    host_report['jdk'] = checkJDK()
-    env['report'][env.host] = host_report
-    env.hosts = []    # make following tasks run once
-
-def report():
-    print('Test Report:')
-    print(env.report)
-
-def sendmail():
-    print('send mail...')
-</code></pre>
-
-<p>Run it:</p>
-
-<pre><code>$ fab --hide=everything detect report sendmail
-Test Report:
-{'10.0.2.49': {'os': 'Linux', 'jdk': True}, '10.0.2.47': {'os': 'Linux', 'jdk': False}}
-send mail...
-</code></pre>
-
-<h1>&ldquo;execute&rdquo; style</h1>
-
-<p>fab2.py:</p>
-
-<pre><code>from fabric.api import run, env, task, execute
-import re
-
-def checkJDK():
-    res = run('java -version')
-    cre = 'java version .*1.6.0.*Java\(TM\)'
-    return len(re.findall(cre, res, re.S)) &gt; 0
-
-def checkMem(str):
-    re.findall('.*buffers/cache.*\d+\s+(\d+)', str)
-
-def checkOS():
-    res = run('uname -a')
-    return res.split()[0]
-
-def detect():
-    env.password = env.loginfo[env.host_string]
-    host_report = {}
-    host_report['os'] = checkOS()
-    host_report['jdk'] = checkJDK()
-    return host_report
-
-@task
-def report():
-    env.hosts= ['gcp@10.0.2.48', 'gcp@10.0.2.49', 'gcp@10.0.7.141', 'gcp@10.0.7.142', 'gcp@10.0.7.143:22']
-    pwds = ['gcp', 'gcp', 'gcp@123', 'gcp@123', 'gcp@123']
-    env.loginfo = dict(zip(env.hosts, pwds))
-    res = execute(detect, hosts=host_list)
-    print('Test Report:')
-    print(res)
-
-@task
-def sendmail():
-    print('send mail...')
-</code></pre>
-
-<p>Run it:</p>
-
-<pre><code>$ fab -f fab2.py --hide=everything report sendmail
-Test Report:
-{'gcp@10.0.2.47': {'os': 'Linux', 'jdk': False}, 'gcp@10.0.2.49': {'os': 'Linux', 'jdk': True}, ... }
-send mail...
-</code></pre>
-
-<p>You can see there is no definition and modification of global hosts, no need to maintain global variable env[&lsquo;report&rsquo;] manually in &ldquo;report&rdquo; style, and the &ldquo;detect&rdquo; function is hide from &ldquo;fab&rdquo; command line with the help of &ldquo;@task&rdquo; decorator. If you run &ldquo;fab detect&rdquo;, it will complain &ldquo;Command(s) not found&rdquo;, which provides more accurate visibility control. So I think it&rsquo;s better than the &ldquo;global hosts&rdquo; style.</p>
-
-<p>Notes:</p>
-
-<ol>
-<li><p>Yuo can add attributes to &ldquo;env&rdquo; directly like &ldquo;env.loginfo = &hellip;&rdquo; above. And use this attribute with &ldquo;env.loginfo[&hellip;]&rdquo;;</p></li>
-<li><p>The format of host string is &ldquo;user@ip:port&rdquo;, or &ldquo;user@ip&rdquo; if port is 22;</p></li>
-<li><p>The function &ldquo;execute&rdquo; returns a dict, the key is the host_string, the value is the return value of the function executed (&ldquo;detect&rdquo; in this case). The return value of &ldquo;detect&rdquo; is a dict, so the &ldquo;execute&rdquo; function returns a nested dict.</p></li>
-<li><p>the return value of &ldquo;run&rdquo; is the stdout and stderr of the remote command.</p></li>
-</ol>
-
 ]]></content>
   </entry>
   

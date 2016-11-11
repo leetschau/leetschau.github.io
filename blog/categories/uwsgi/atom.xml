@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Uwsgi | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/uwsgi/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2016-11-11T14:51:43+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[部署Python Web应用]]></title>
+    <link href="http://leetschau.github.io/blog/2016/04/28/070323/"/>
+    <updated>2016-04-28T07:03:23+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/04/28/070323</id>
+    <content type="html"><![CDATA[<h1>部署流程</h1>
+
+<h2>新部署</h2>
+
+<p>部署过程分为以下步骤：</p>
+
+<ol>
+<li><p>安装依赖组件：git, pip, virtualenv, uwsgi</p></li>
+<li><p>clone代码库(git clone)；</p></li>
+<li><p>在源代码文件夹里创建wsgi.py和uwsgi.ini文件作为uwsgi的入口和环境定义文件，
+这两个文件不要加入到版本控制系统中；</p></li>
+<li><p>创建服务启动脚本/etc/init/myapp.conf，启动服务；</p></li>
+<li><p>创建nginx服务实例：绑定监听端口，指向上一步生成的unix socket；</p></li>
+<li><p>测试并重启nginx服务。</p></li>
+</ol>
+
+
+<h2>代码更新</h2>
+
+<ol>
+<li><p>同步代码：<code>git pull</code>;</p></li>
+<li><p>重启服务：<code>sudo restart myapp</code>.</p></li>
+</ol>
+
+
+<h1>部署示例</h1>
+
+<p>以下步骤基于<a href="http://do.co/1StnidM">How To Set Up uWSGI and Nginx to Serve Python Apps on Ubuntu 14.04</a></p>
+
+<pre><code>sudo aptitude install python-dev python-pip nginx
+sudo pip install virtualenv
+mkdir -p ~/test/myapp
+cd ~/test/myapp
+virtualenv myappenv
+source myappenv/bin/activate
+pip install uwsgi
+cat &lt;&lt; EOF &gt; wsgi.py
+def application(environ, start_response):
+    start_response('200 OK', [('Content-Type', 'text/html')])
+    return ["&lt;h1 style='color:blue'&gt;Hello There!&lt;/h1&gt;"]
+EOF
+
+# uwsgi --socket 0.0.0.0:8080 --protocol=http -w wsgi
+deactivate
+cat &lt;&lt; EOF &gt; myapp.ini
+[uwsgi]
+module = wsgi:application
+
+master = true
+processes = 5
+
+socket = myapp.sock
+chmod-socket = 664
+vacuum = true
+EOF
+
+sudo cat &lt;&lt; EOF &gt; /etc/init/myapp.conf
+description "uWSGI instance to serve myapp"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+setuid your-user-name
+setgid www-data
+
+script
+cd /home/your-user-name/test/myapp
+. myappenv/bin/activate
+uwsgi --ini myapp.ini
+end script
+EOF
+
+sudo start myapp
+# ps aux|grep myapp
+# sudo stop myapp
+
+sudo cat &lt;&lt; EOF &gt; /etc/nginx/sites-available/myapp
+server {
+    listen 8080;
+    server_name 192.168.100.201;
+
+    location / {
+        include         uwsgi_params;
+        uwsgi_pass      unix:/home/your-user-name/test/myapp/myapp.sock;
+    }
+}
+EOF
+
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled
+sudo nginx -t
+sudo nginx -s reload
+</code></pre>
+]]></content>
+  </entry>
+  
+</feed>

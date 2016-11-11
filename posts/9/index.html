@@ -9,9 +9,9 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="We are running a website and a backend data management system,
-both are meteor web servers. The backend needs fetch data from the website.
-So they &hellip;">
+  <meta name="description" content="When developing in terminal you often have to open several Tmux windows
+at the same time: server: mongod, Meteor, Elasticsearch, etc&hellip;
+client: &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -40,7 +40,7 @@ So they &hellip;">
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -73,7 +73,7 @@ So they &hellip;">
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/08/11/123934/">Share One Users Collection Between Multiple Meteor Apps</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/11/02/093547/">Move Window Between Multiple Screens via Tmux</a></h1>
     
     
       <p class="meta">
@@ -82,422 +82,58 @@ So they &hellip;">
 
 
 
-<time class='entry-date' datetime='2015-08-11T12:39:34+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:39 pm</span></time>
+<time class='entry-date' datetime='2015-11-02T09:35:47+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>9:35 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>We are running a website and a backend data management system,
-both are meteor web servers.</p>
-
-<p>The backend needs fetch data from the website.
-So they have to share one database, and the same &ldquo;users&rdquo; collection for both.
-That means one can register on the website and login to the backend,
-which is obviously unacceptable.</p>
-
-<p>To distinguish users of the website and the backend,
-I choose package <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
-
-<p>All the backend users will have roles <code>['backend', 'admin']</code>,
-while website users haven&rsquo;t.</p>
-
-<p>In &ldquo;safe&rdquo; environment, backend has its own user registration entry.
-Users registered there will be given above roles automatically.</p>
-
-<p>Put the following codes into server side JavaScript files to achieve above goal
-(based on examples/rolesWithAccountsUI on meteor-roles):</p>
-
-<pre><code>var ROLE_NAME = 'editor';
-var GROUP_NAME = 'backend';
-
-Meteor.publish('mallData', function(){
-  if (Roles.userIsInRole(this.userId, ROLE_NAME, GROUP_NAME)) {
-    console.log('pass check');
-    return Mall.find();
-  } else {
-    console.log('not pass check');
-    this.stop();
-    return;
-  }
-});
-
-Meteor.startup(function () {
-  Accounts.onCreateUser(function (options, user) {
-    Roles.setRolesOnUserObj(user, ROLE_NAME, GROUP_NAME);
-    if (options.profile) {
-      user.profile = options.profile
-    }
-    return user;
-  });
-});
-
-Roles.setRolesOnUserObj = function (users, roles, group) {
-  if (!users) throw new Error ("Missing 'users' param")
-  if (!roles) throw new Error ("Missing 'roles' param")
-  if (group) {
-    if ('string' !== typeof group)
-      throw new Error ("Roles error: Invalid parameter 'group'. Expected 'string' type")
-    if ('$' === group[0])
-      throw new Error ("Roles error: groups can not start with '$'")
-
-    // convert any periods to underscores
-    group = group.replace(/\./g, '_')
-  }
-
-  // ensure arrays to simplify code
-  if (!_.isArray(users)) users = [users]
-  if (!_.isArray(roles)) roles = [roles]
-
-
-  // remove invalid roles
-  roles = _.reduce(roles, function (memo, role) {
-    if (role
-        &amp;&amp; 'string' === typeof role
-        &amp;&amp; role.trim().length &gt; 0) {
-      memo.push(role.trim())
-    }
-    return memo
-  }, [])
-
-  // if roles is empty, quit
-  if (roles.length === 0) return
-
-  // ensure all roles exist in 'roles' collection
-  existingRoles = _.reduce(Meteor.roles.find({}).fetch(), function (memo, role) {
-    memo[role.name] = true
-    return memo
-  }, {})
-  _.each(roles, function (role) {
-    if (!existingRoles[role]) {
-      Roles.createRole(role)
-    }
-  })
-
-  // ensure users is an array of objects
-  _.each(users, function (user) {
-    if ('object' !== typeof user) {
-      throw new Error("Expected 'users' argument to be an object or array of objects")
-    }
-  })
-
-
-  // Set the roles on the actual user object
-
-  if (group) {
-
-    // roles is a key/value dict object
-
-    _.each(users, function (user) {
-      user.roles = {}
-      user.roles[group] = roles
-    })
-
-  } else {
-
-    // roles is an array of strings
-
-    _.each(users, function (user) {
-      user.roles = roles
-    })
-
-  }
-
-}
-</code></pre>
-
-<p>Now any user outside &lsquo;backend&rsquo; group, or without &lsquo;editor&rsquo; role, can&rsquo;t get any data from server.</p>
-
-<p>Unfortunately Internet is unsafe at all.
-So the registration entry has to be removed from the accounts-ui:</p>
-
-<pre><code>Meteor.startup(function () {
-  Accounts.config({
-    forbidClientAccountCreation : true
-  });
-});
-</code></pre>
-
-<p>Now if you want give a website personnel rights to edit data through backend,
-first he should register on the website,
-then you define his role manually in mongo console:</p>
-
-<pre><code>&gt; db.users.find({ "emails.0.address":"user@123.com" }, { "emails":1 })
-&gt; db.users.update({_id: "PM36t6eRmuC9oELdu"}, { $set: { roles: {"backend": [ "editor" ]} } })
-</code></pre>
-
-<p>First find the id of the user (here is &ldquo;<a href="&#109;&#x61;&#105;&#x6c;&#116;&#111;&#x3a;&#117;&#115;&#101;&#114;&#64;&#x31;&#x32;&#51;&#x2e;&#99;&#111;&#109;">&#117;&#115;&#x65;&#114;&#x40;&#x31;&#50;&#51;&#46;&#x63;&#x6f;&#109;</a>&rdquo;) by his email address.
-Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRmuC9oELdu&rdquo;).</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/07/155721/">Autopubsh and Insecure Package in Meteor</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-07T15:57:21+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>3:57 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>Collection definitions in root directory</h1>
-
-<ol>
-<li><p>autopublish package exists: data can be seen and updated;</p></li>
-<li><p>Remove autopublish package: data can&rsquo;t be seen;</p></li>
-<li><p>Add publish method in server js file, and subscribe methods in client js file:
-data can be seen and updated;</p>
-
-<pre><code> # in server:
- Meteor.publish('mallData', function(){
-   return Mall.find();
- });
-
- # in client:
- Meteor.subscribe('mallData');
-</code></pre></li>
-<li><p>Remove insecure package: data can be seen, but can&rsquo;t be updated;</p></li>
-<li><p>Add an allow rule in js file in root directory: only &ldquo;status&rdquo; field can be updated.</p>
-
-<pre><code> Mall.allow({
-   update: function(userId, doc, fieldNames, modifier){
-     if ((fieldNames.length === 1) &amp;&amp;
-         (fieldNames[0] === 'status')){
-       return true;
-     }
-   }
- });
-</code></pre>
-
-<p> Meanwhile inserting and remvoing operations will be denied by the server.</p></li>
-</ol>
-
-
-<p>Ref:</p>
-
-<p><a href="http://joshowens.me/meteor-security-101/">METEOR SECURITY 101</a> by Josh Owens.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/05/125922/">Meteor实施案例</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-05T12:59:22+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>5</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:59 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h1>国外</h1>
-
-<p><a href="http://blonk.co/">blonk</a>: 找工作，移动APP，iOS, Android, 双方在感兴趣的对方上点Yes，如果匹配成功开始聊天；</p>
-
-<p><a href="https://respond.ly/">respond.ly</a>: 基于Twitter的客户服务和协作平台；</p>
-
-<p><a href="http://www.flowkey.com/en">Flowkey</a>: 教育类，钢琴在线教学，web, iOS, Android，音频对比，反馈建议，用户量：50,000+</p>
-
-<p><a href="http://versoapp.com/">verso</a>: 教育类，移动APP，iOS, Android，教师添加视频，学生写反馈，100多个国家的几千所学校；</p>
-
-<p><a href="https://beta.workpop.com/">Workpop</a>: 找/应聘小时工，Web App;</p>
-
-<p><a href="http://www.classcraft.com/">Classcraft</a>: 教学类应用，平台：Web, iOS，学习变为角色扮演，老师定义学生角色，获取经验值；</p>
-
-<p><a href="https://lookback.io/">Lookback</a>: 移动应用用户体验反馈软件，原理：屏幕录制（记录手指位置和拖动），然后发送；平台：Web, iOS, Mac, Android；</p>
-
-<p><a href="http://www.tuniliv.com/">Tuniliv</a>: 突尼斯货运与物流系统；</p>
-
-<p><a href="http://www.telescopeapp.org/">Telescope</a>: 软件平台，论坛模板；</p>
-
-<h1>国内</h1>
-
-<p><a href="http://newfairs.com">牛展网</a>: 会展服务；</p>
-
-<p><a href="http://maodou.io/">毛豆网</a>: 在线教育/外包；</p>
-
-<h1>生态系统</h1>
-
-<p>[node.js]</p>
-
-<p>[mongodb]</p>
-
-<p>[bootstrap]</p>
-
-<p>[meteoric]</p>
-
-<h1>参考资料</h1>
-
-<p><a href="http://www.quora.com/What-are-the-larger-examples-of-Meteor">What are the larger examples of Meteor?</a></p>
-
-<p><a href="http://www.jianshu.com/p/ps8C8N">关于Meteor的5个误解</a></p>
-
-<p><a href="https://www.meteor.com/case-studies/build-apps-with-meteor">https://www.meteor.com/case-studies/build-apps-with-meteor</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/02/113417/">Meteor Development Collaboration</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2015-08-02T11:34:17+08:00'><span class='date'><span class='date-month'>Aug</span> <span class='date-day'>2</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>11:34 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Meteor developer Tom and Bob are in different location.
-Tom is the main coder and Bob is the mentor.
-Their remote collaboration mode is:</p>
+  <div class="entry-content"><p>When developing in terminal you often have to open several Tmux windows
+at the same time:</p>
 
 <ul>
-<li><p>Voice talk through Moxtra/QQ/Skype;</p></li>
-<li><p>Code and browser sharing through a VPS on Internet;</p></li>
+<li><p>server: mongod, Meteor, Elasticsearch, etc&hellip;</p></li>
+<li><p>client: mongo, elasticsearch, etc&hellip;</p></li>
+<li><p>editor: template.html, template.js, router.js, server.js, etc&hellip;</p></li>
 </ul>
 
 
-<h1>VPS Configuration</h1>
+<p>In most cases, you edit in editor window, save the file,
+switch to server window to see the result,
+switch back to editor window for editing again&hellip;</p>
 
-<p>The IP address of the VPS is 100.101.102.103.
-Add a user &ldquo;nf&rdquo; as the SSH forwarding user:</p>
+<p>Now you have the second screen, say, a Windows laptop,
+ssh to your Linux machine via MobaXterm or Kitty.
+It will be more efficient if you can put the server window on the screen
+of the Windows machine, and keep editing on your Linux machine screen,
+for saving you from so many annoying switching between the screens.</p>
 
-<pre><code>useradd -m nf
-passwd nf
-</code></pre>
+<p>It&rsquo;s easy for Tmux to achieve this.
+Start a new session on your Linux machine, named as you like, for now, &ldquo;search&rdquo;.
+Start a new session in the terminal of the second screen named <code>v</code> (&ldquo;viewer for short).
+If you want to see the server and editor windows at the same time,
+switch to the server window and run <code>link-window -t v</code> (see note 1 below for details).
+Now you can switch back to the editor window,
+while keep server window on the other screen.</p>
 
-<p>To allow remote port forwarding to bind to non-loopback addresses,
-add <code>GatewayPorts yes</code> into /etc/ssh/sshd_config (NOT ssh_config),
-then <code>service ssh reload</code>.
-Without this, the listening port on VPS is bind to &ldquo;127.0.0.1&rdquo; instead of &ldquo;0.0.0.0&rdquo;.
-You can find out it with <code>netstat -lnput|grep 3000</code>, when the forwarding port is 3000.</p>
+<p>To cancel the link between the sessions,
+switch to server window and run <code>unlink-window -t v</code>.</p>
 
-<p>Before adding <code>GatewayPorts yes</code>:</p>
+<p>Note 1:</p>
 
-<pre><code>root@iZ25459xzbtZ:~# netstat -lnput|grep :3000
-tcp        0      0 127.0.0.1:10022         0.0.0.0:*               LISTEN      24588/1
-</code></pre>
+<p>If you define a &ldquo;command-prompt&rdquo; shortcut in ~/.tmux.conf:
+<code>bind -n M-a command-prompt</code>,
+run tmux command <code>linkw -t v</code> means:
+press &ldquo;M-a&rdquo;, input <code>lin&lt;Tab&gt; -t v</code> then press <Enter>.</p>
 
-<p>After adding <code>GatewayPorts yes</code>:</p>
+<p>Note 2:</p>
 
-<pre><code>root@iZ25459xzbtZ:~# netstat -lnput|grep :3000
-tcp        0      0 0.0.0.0:10022           0.0.0.0:*               LISTEN      24588/1
-</code></pre>
-
-<p>The 4th item (binding IP) is changed from loopback (127.0.0.1)
-to public interface (0.0.0.0).</p>
-
-<h1>Code editor sharing</h1>
-
-<p>Tom install tmux on his Linux OS.
-And start up a tmux session as the develop environment:</p>
-
-<pre><code>tmux new -s myWebsite
-</code></pre>
-
-<p>To make Bob ssh to his laptop, Tom need run the following command on his laptop:</p>
-
-<pre><code>ssh -g -R 10022:localhost:22 nf@100.101.102.103
-</code></pre>
-
-<p>where -g means &ldquo;Allows remote hosts to connect to local forwarded ports&rdquo;,
--R means a &ldquo;Remote&rdquo; port forwarding is created with this ssh connection
-(which means when this ssh connection closed, the port forwarding will be dropped, too).
-In &ldquo;10022:localhost:22&rdquo;, the first part is the port number on remote host,
-the second and third is the hostname and port number of local machine.</p>
-
-<p>So the whole command means:
-Tom ssh to server 100.101.102.103 as user nf,
-while creating a port forwarding.
-So all connect to 10022 on remote host, will be forwarded to Tom&rsquo;s laptop on port 22.</p>
-
-<p>After login, the forwarding tunnel is created.
-On VPS, verify port 3000 is bind to public interface instead of loopback:</p>
-
-<pre><code>netstat -lnput|grep 3000
-</code></pre>
-
-<p>Bob need run the following command to join Tom:</p>
-
-<pre><code>ssh -p 10022 tom@100.101.102.103
-tmux attch -t myWebsite
-</code></pre>
-
-<p>Notice that the user name is &ldquo;tom&rdquo; instead of &ldquo;nf&rdquo; in above command.
-And the password is tom&rsquo;s on his laptop, instead of nf&rsquo;s on the VPS.</p>
-
-<p>So if Bob want to review Tom&rsquo;s codes, he should:</p>
-
-<ol>
-<li><p>Get a VPS with a public IP &ldquo;100.101.102.103&rdquo;, create a user (say, nf);</p></li>
-<li><p>On the VPS, copy Tom&rsquo;s SSH public key into /home/nf/.ssh/authorized_keys.</p></li>
-<li><p>Let Tom run <code>ssh -g -R 10022:localhost:22 nf@100.101.102.103</code>;</p></li>
-<li><p>SSH to Tom&rsquo;s host with <code>ssh -p 10022 tom@100.101.102.103</code>;
-and start a tmux session: <code>tmux new -s foo</code>;</p></li>
-<li><p>Let Tom attach to the session: <code>tmux attach -t foo</code>;</p></li>
-<li><p>After job is done, let Tom logout from the VPS;</p></li>
-</ol>
-
-
-<h1>Web serer sharing</h1>
-
-<p>Tom run this command to create the tunnel:</p>
-
-<pre><code>ssh -g -R 3000:localhost:3000 nf@100.101.102.103
-</code></pre>
-
-<p>Bob can visit the web server with url &ldquo;100.101.102.103:3000&rdquo;.</p>
-
-<p>Ref:</p>
-
-<p><a href="http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding">http://serverfault.com/questions/379344/selecting-interface-for-ssh-port-forwarding</a></p>
-
-<p><a href="https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/">https://juliansimioni.com/blog/howto-access-a-linux-machine-behind-a-home-router-with-ssh-tunnels/</a></p>
+<p><code>link-window</code> <em>shares</em> a window between multiple sessions.
+To <em>move</em> a window to another session,
+switch to the server window and run tmux command <code>move-window -t v</code>.
+To move it back, run <code>move-window -s v:shell</code>,
+where <code>v</code> is the target session name defined by <code>tmux new -s v</code>.</p>
 </div>
   
   
@@ -510,7 +146,7 @@ and start a tmux session: <code>tmux new -s foo</code>;</p></li>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/31/160627/">Chinese Characters Can't Be Displayed Correctly in Git Log</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/31/011200/">Synchronize Data From MongoDB to Elasticsearch</a></h1>
     
     
       <p class="meta">
@@ -519,33 +155,60 @@ and start a tmux session: <code>tmux new -s foo</code>;</p></li>
 
 
 
-<time class='entry-date' datetime='2015-07-31T16:06:27+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>4:06 pm</span></time>
+<time class='entry-date' datetime='2015-10-31T01:12:00+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>31</span><span class='date-suffix'>st</span>, <span class='date-year'>2015</span></span> <span class='time'>1:12 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>On Ubuntu 14.04, <code>cat</code> can display Chinese characters correctly.
-But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t display correctly.</p>
+  <div class="entry-content"><p>Your mongo replica set and elasticsearch are hosted on 2 servers.
+The mongo server is on &ldquo;mip:mport&rdquo;.
+The ES server is on &ldquo;esip:esport&rdquo;.</p>
 
-<p>Solution:</p>
+<p>On another server, install <a href="https://github.com/mongodb-labs/mongo-connector">mongo-connector</a>
+with <code>pip install mongo-connector</code>.
+If there are some errors, it may be caused by absence of gcc.
+On Ubuntu, install them with <code>sudo apt-get install build-essential python-dev</code>.</p>
 
-<p>Run <code>export LC_ALL=en_US.UTF-8</code> before <code>git log</code>.</p>
+<pre><code>mongo-connector -m mip:mport -t esip:esport -d elastic_doc_manager --admin-username root --password rootPwd
+</code></pre>
 
-<p>If it works, add this line into /etc/environment.</p>
+<p>That&rsquo;s it!
+Now when you insert documents into MongoDB,
+you can see it on elasticsearch.</p>
 
-<p>If it doesn&rsquo;t work, run <code>export LANG=en_US.UTF-8</code>.</p>
+<p>We&rsquo;ve studied Mongo River and Mongoosatic, neither is better than this.</p>
 
-<p>If it doesn&rsquo;t work, run <code>apt-get install language-pack-en-base</code>.</p>
+<p>Note 1 (2015.11.15):</p>
 
-<p>In vim, run <code>set enc=utf-8</code>.</p>
+<p>阿里云服务器上，用普通用户es启动es服务(<code>bin/elasticsearch</code>)，同一用户启动mongo-connector后，报
+&ldquo;AttributeError: &lsquo;IndicesClient&rsquo; object has no attribute &lsquo;delete_mapping&rsquo;"错误，
+es版本为2.0，mongo-connector版本为2.1，将es版本改为1.7，mongo-connector改为1.3后，
+仍然出现这一错误，原因是MongoDB中删除了test库中的一个Collection，但ES中仍然有，就会出现这个错误，
+解决方法是清空ES的test重新同步一遍：
+<code>curl -XDELETE http://123.57.188.18:9322/test</code>.
+Ref: <a href="https://github.com/mongodb-labs/mongo-connector/issues/349">https://github.com/mongodb-labs/mongo-connector/issues/349</a></p>
 
-<p>Ref:</p>
+<p>Note 2:</p>
 
-<p><a href="http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue">http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue</a></p>
+<p>Use root to sync is unsafe.
+We create an user with &ldquo;clusterManager&rdquo; role to do this work.
+Login with root, and run:</p>
 
-<p><a href="http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim">http://stackoverflow.com/questions/5166652/how-to-view-utf-8-characters-in-vim-or-gvim</a></p>
+<pre><code>use admin
+db.createUser(
+    {
+      user: "clustermgr",
+      pwd: "cmpwd",
+      roles: [ "clusterManager" ]
+    }
+)
+</code></pre>
+
+<p>But run the command
+<code>mongo-connector -m 119.254.211.28:15515 -t localhost:9200 -d elastic_doc_manager --admin-username clustermgr --password cmpwd</code>
+will be the error <code>OperationFailure: database error: not authorized for query on local.oplog.rs</code>.</p>
 </div>
   
   
@@ -558,7 +221,7 @@ But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t disp
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/23/121622/">Development Collaboration With Pull Request</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/30/131706/">Elasticsearch River for MongoDB</a></h1>
     
     
       <p class="meta">
@@ -567,36 +230,48 @@ But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t disp
 
 
 
-<time class='entry-date' datetime='2015-07-23T12:16:22+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2015</span></span> <span class='time'>12:16 pm</span></time>
+<time class='entry-date' datetime='2015-10-30T13:17:06+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>1:17 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>Say your partner is Tom.</p>
+  <div class="entry-content"><p>According to <a href="https://www.elastic.co/blog/deprecating-rivers">Deprecating Rivers</a>,
+river is not supported any more.</p>
 
-<ol>
-<li><p>Fork Tom&rsquo;s repository;</p></li>
-<li><p>Clone your forked repository to your laptop;</p></li>
-<li><p>Commit modificatioins to your laptop repository;</p></li>
-<li><p>Push modifications to your forked repository;</p></li>
-<li><p>Send a pull request in your forked repository on github website;</p></li>
-<li><p>Tom accept your request and merges into his repository;</p></li>
-<li><p>In your laptop repository, add upstream repository as a remote source;</p></li>
-<li><p>Sync with the upstream repository with <code>git fetch</code> and <code>git merge</code>;</p></li>
-</ol>
+<h1>Mongo River</h1>
 
+<p><a href="http://backslash451.github.io/articles/Running-ElasticSearch-with-MongoDB-and-Kibana/">http://backslash451.github.io/articles/Running-ElasticSearch-with-MongoDB-and-Kibana/</a></p>
 
-<p>This is a whole cycle. Repeat above steps to collaborate with Tom.</p>
+<p>Buy a mongodb on <a href="https://www.qingcloud.com/">QingCloud</a>.
+Connect to database with
+<code>mongo 119.254.211.28:15515 --authenticationDatabase admin -u root -p nodeJS@2015</code>.
+and run <code>rs.status()</code> to verify the replica set is working.</p>
 
-<p>Ref:</p>
+<h2>Setup Elasticsearch</h2>
 
-<p><a href="http://stackoverflow.com/questions/7244321/how-to-update-github-forked-repository">How to update GitHub forked repository?</a></p>
+<p>See note &ldquo;Elasticsearch Notes&rdquo;.</p>
 
-<p><a href="https://help.github.com/articles/pushing-to-a-remote/#pushing-a-branch">Pushing to a remote</a></p>
+<h2>Setup Kibana</h2>
 
-<p><a href="https://help.github.com/articles/syncing-a-fork/">Syncing a fork</a></p>
+<p>See note &ldquo;Kibana Notes&rdquo;.</p>
+
+<h2>Install River Plugin</h2>
+
+<p>Follow <a href="https://github.com/richardwilly98/elasticsearch-river-mongodb">ichardwilly98/elasticsearch-river-mongodb</a>.</p>
+
+<p>Run <code>bin/plugin install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.9</code>
+at $ES_HOME.</p>
+
+<p>List plugins: <code>bin/plugin list</code>.
+Get help: <code>bin/plugin -h</code>.</p>
+
+<p>When install in 2.0.0, there is an error:
+<code>ERROR: Could not find plugin descriptor 'plugin-descriptor.properties' in plugin zip</code>.
+For now, use elasticsearch 1.7.3 with river.</p>
+
+<p>List plugins in v1.7.3: <code>sudo /usr/share/elasticsearch/bin/plugin --list</code>.</p>
 </div>
   
   
@@ -609,7 +284,7 @@ But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t disp
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/22/082040/">Running Meteor and Node App on Ubuntu 14.04 VPS</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/29/204739/">Session Management in Web Browser</a></h1>
     
     
       <p class="meta">
@@ -618,48 +293,33 @@ But in <code>vi</code> and <code>less</code> Chinese characters can&rsquo;t disp
 
 
 
-<time class='entry-date' datetime='2015-07-22T08:20:40+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2015</span></span> <span class='time'>8:20 am</span></time>
+<time class='entry-date' datetime='2015-10-29T20:47:39+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:47 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Setup Environment with MUP</h1>
+  <div class="entry-content"><p>Session is a group of tabs, which is relevant to a specific problem,
+for example: how to use ElasticSearch with MongoDB,
+or background information about TV show &ldquo;The Wire&rdquo;.</p>
 
-<p>On your laptop, install mup with <code>npm install -g mup</code>.
-In a new directory, create a mup project with <code>mup init</code>.
-Set &ldquo;setupMongo&rdquo;, &ldquo;setupNode&rdquo; and &ldquo;setupPhantom&rdquo; to &ldquo;true&rdquo; in mup.json,
-and run <code>mup setup</code>.</p>
+<h1>Firefox</h1>
 
-<h1>Run Apps</h1>
+<p>Save: right click on the tab bar and select &ldquo;Bookmark All Tabs&rdquo; (Shift + Ctrl + D);</p>
 
-<p>To install the <strong>first</strong> Meteor app, <code>mup deploy</code>.</p>
+<p>Restore: click &ldquo;Show your bookmarks&rdquo; button on toolbar,
+navigate to the folder and click &ldquo;Open all Tabs&rdquo; at the bottom.</p>
 
-<p>To install the second (there has been a Meteor app is running) or more,
-set &ldquo;setupMongo&rdquo;, &ldquo;setupNode&rdquo; and &ldquo;setupPhantom&rdquo; to &ldquo;false&rdquo; in mup.json,
-change &ldquo;appname&rdquo;, &ldquo;app&rdquo; and values in &ldquo;env&rdquo; accordingly.
-Finally run <code>mup deploy</code>.</p>
+<h1>Chrome</h1>
 
-<p>For Node app, first get the source code with git,
-then run it with forever, which is installed by mup:</p>
+<p>Install extension &ldquo;Session Buddy&rdquo;.
+It will help you to save and restore all open tabs as a &ldquo;Session&rdquo;.</p>
 
-<pre><code>aptitude install git
-git clone ... projHome
-cd projHome
-npm install
-# confirm port number in config.js
-forever start app.js  # when the main script is "app.js"
-</code></pre>
-
-<p>Get the app status with <code>forever list</code>.
-If the app can&rsquo;t start, print logs with <code>forever logs 1</code>
-(if the target app&rsquo;s index in <code>forever list</code> is 1).</p>
-
-<h1>Setup Routes</h1>
-
-<p>Note: MUP requires Node v0.10.36 or later.
-So do NOT install node with <code>aptitude install nodejs</code>.</p>
+<p>To sync sessions between browsers of different hosts,
+use &ldquo;Settings -> Export&rdquo; to save the session into a json file,
+copy this file to the target host,
+use &ldquo;Settings -> Import&rdquo; to import the session.</p>
 </div>
   
   
@@ -672,7 +332,7 @@ So do NOT install node with <code>aptitude install nodejs</code>.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/18/005622/">基于ionic的移动网页开发</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/29/200553/">将Meteor应用完整从1.2版本降级到1.1版本</a></h1>
     
     
       <p class="meta">
@@ -681,42 +341,34 @@ So do NOT install node with <code>aptitude install nodejs</code>.</p>
 
 
 
-<time class='entry-date' datetime='2015-07-18T00:56:22+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>18</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:56 am</span></time>
+<time class='entry-date' datetime='2015-10-29T20:05:53+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:05 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p><a href="https://github.com/meteoric/meteor-ionic/blob/master/GUIDE.md">meteor-ionic Guide</a>是整体框架的说明。</p>
+  <div class="entry-content"><p>当前版本的mup不支持Meteor 1.2，对1.1支持很好。
+一位开发者用<code>meteor update</code>升级了Meteor,然后push到代码库中，
+其他开发者同步代码后发现无法使用mup部署，
+这个问题不能简单地使用<code>meteor --releae 1.1</code>处理，
+因为从1.1到1.2，Metoer很多核心包的版本发生了变化，并增删了很多包，
+<code>meteor --release 1.1</code>只能还原Meteor自身版本，
+无法还原核心包，必须将.meteor目录下所有文件复原。</p>
 
-<p>文档中心：
-<a href="http://ionicframework.com/docs/">Ionic Documentation</a>，
-常用的包括界面组件<a href="http://ionicframework.com/docs/components/">CSS Components</a>和
-图标库<a href="http://ionicons.com/">ionicons</a>（可以输入名称搜索对应图标，如"telephone", &ldquo;home"等）。</p>
+<p>使用git的patch功能可以方便地实现针对一个目录的复原。
+首先找到包含正确文件（旧Meteor版本和包定义）的commit，例如 15c9f125630，
+然后找到要复原的目标commit，一般是develop branch的HEAD，例如 f13b84f6c55，
+做一个反向patch：<code>git diff f13b84f6c55 15c9f125630 .meteor &gt; reverseDotMeteor.patch</code>;</p>
 
-<h1>Header, Footer字体太小问题</h1>
+<p>正常的<code>git diff</code>是旧版本在前，新版本在后，这样生成的patch反映的是文件内容随着时间发生的改变，
+这里将新的commit放在前面，生成的patch就能起到回到过去的作用。</p>
 
-<p>在<head>&hellip;</head>里增加下面两行代码：</p>
+<p>checkout目标commit并加载patch: <code>git apply reverseDotMeteor.patch</code>.</p>
 
-<pre><code>&lt;meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"&gt;
-&lt;link href='http://fonts.googleapis.com/css?family=Roboto:400,300,500' rel='stylesheet' type='text/css'&gt;
-</code></pre>
+<p>测试mup是否能正常工作，如果能，提交修改。</p>
 
-<h1>Header上登录注册按钮覆盖退回按钮问题</h1>
-
-<p>下面的代码不会出现覆盖问题：</p>
-
-<pre><code>  &lt;div class="col text-right"&gt;
-    &lt;button class="button button-clear button-stable"&gt;登录&lt;/button&gt;
-    &lt;button class="button button-clear button-stable"&gt;注册&lt;/button&gt;
-  &lt;/div&gt;
-</code></pre>
-
-<p>如果在<code>&lt;div class="col text-right"&gt;</code>外面加上一层<code>&lt;div class="bar bar-header bar-positive"&gt;</code>，
-则会覆盖"headerButtonLeft"中定义的返回按钮。</p>
-
-<p>另：`` 中可以添加path（返回指定route）和text（按钮说明文字）属性。</p>
+<p>参考：<a href="http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between">http://stackoverflow.com/questions/1191282/how-to-see-the-changes-between-two-commits-without-commits-in-between</a></p>
 </div>
   
   
@@ -729,7 +381,7 @@ So do NOT install node with <code>aptitude install nodejs</code>.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/10/065540/">Manage Nodejs App With Forever</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/29/112248/">Kibana Notes</a></h1>
     
     
       <p class="meta">
@@ -738,36 +390,38 @@ So do NOT install node with <code>aptitude install nodejs</code>.</p>
 
 
 
-<time class='entry-date' datetime='2015-07-10T06:55:40+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>10</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>6:55 am</span></time>
+<time class='entry-date' datetime='2015-10-29T11:22:48+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>11:22 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p><a href="https://github.com/foreverjs/forever">forever</a> is</p>
+  <div class="entry-content"><p>Following <a href="https://www.elastic.co/guide/en/kibana/current/getting-started.html">Getting Started with Kibana</a>.</p>
 
-<blockquote><p>A simple CLI tool for ensuring that a given script runs continuously.</p></blockquote>
+<h1>Setup Kibana</h1>
 
-<p>For now it only supports nodejs scripts.</p>
+<p>Download kibana tar package file (kibana-4.2.0-linux-x64.tar.gz) and extract to $KIBANA_HOME.
+Modify $KIBANA_HOME/config/kibana.yml, uncomment
+<code>elasticsearch.url: "http://localhost:9200"</code> (if elasticsearch server is on localhost).
+Start server with <code>bin/kibana</code>.</p>
 
-<p>It provides functions like <code>nohup</code> in shell, but much more.</p>
+<h1>Import Data</h1>
 
-<p>To start your script, run <code>forever start -w app.js</code> instead of <code>node app.js</code>.
-The &ldquo;-w&rdquo; option will watch the file changes.</p>
+<p>Import accounts with <code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json</code>
+instead of <code>curl -XPOST 'localhost:9200/bank/_bulk?pretty' --data-binary @accounts.json</code>.</p>
 
-<p>So update website is simply run <code>git pull ...</code> on your production host,
-forever will find the changes in your sources and restart server
-(like Meteor app in develop mode).</p>
+<pre><code>curl -XPOST 'localhost:9200/accounts/account/_bulk?pretty' --data-binary @accounts.json
+head -1 accounts.json
+{"index":{"_id":"1"}}
 
-<p>List all running forever managed scripts with <code>forever list</code>.</p>
+curl -XPOST 'localhost:9200/shakespeare/_bulk?pretty' --data-binary @shakespeare.json
+head -1 shakespeare.json
+{"index":{"_index":"shakespeare","_type":"act","_id":0}}
+</code></pre>
 
-<p>Find out their logs location with <code>forever logs</code>.
-Then you can use <code>tail -f</code> to watch the log of a script in real time.</p>
-
-<p>Print the log of a script with <code>forever logs &lt;script-index&gt;</code>,
-for example:<code>forever logs 0</code>.
-You get the index from the output of <code>forever logs</code>.</p>
+<p>So if the index and type is not defined in json file,
+it should be defined when imported with curl.</p>
 </div>
   
   
@@ -780,7 +434,7 @@ You get the index from the output of <code>forever logs</code>.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2015/07/07/103347/">Transport JavaScript Objects Between Meteor Pages via URI</a></h1>
+      <h1 class="entry-title"><a href="/blog/2015/10/29/080601/">Validate Data Defined by Simple-Schema</a></h1>
     
     
       <p class="meta">
@@ -789,51 +443,154 @@ You get the index from the output of <code>forever logs</code>.</p>
 
 
 
-<time class='entry-date' datetime='2015-07-07T10:33:47+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:33 am</span></time>
+<time class='entry-date' datetime='2015-10-29T08:06:01+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>8:06 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><h1>Tips</h1>
+  <div class="entry-content"><p>// the object need to be validate according to the schema:
+var fair = { &hellip; };
+var mycon = NewfairsCore.Schemas.Fair.namedContext();</p>
 
-<ul>
-<li><p>object -> String -> object:
-JSON.stringify -> encodeURI -> | another page | -> decodeURI -> JSON.parse</p></li>
-<li><p>Use &ldquo;&amp;&rdquo; to connect multiple query items in uri;</p></li>
-</ul>
+<p>// this method returns true if the object is valid according to the schema
+// or false if it is not:
+mycon.validate(fair);</p>
+
+<p>// this method lists all invalid keys:
+mycon.invalidKeys();</p>
+</div>
+  
+  
 
 
-<h1>Code Demo</h1>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/28/102957/">Play Meteor With Elasticsearch</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>On page 1:</p>
 
-<pre><code>var filterObj = { year: '2016', pos: '中国' };
-var filterStr = JSON.stringify(filterObj);
-var enc = encodeURI(filterStr);
-console.log(enc);
-var myRoute = "/results/2015/pages/1?type=basic&amp;filter=" + enc
-Router.go(myRoute);
+
+
+<time class='entry-date' datetime='2015-10-28T10:29:57+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>10:29 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Install elasticsearch;</p>
+
+<p>Follow the instructions in <a href="https://github.com/andrewreedy/meteor-elasticsearch">meteor-elasticsearch</a></p>
+
+<p>Choose plugin version according to
+<a href="https://github.com/richardwilly98/elasticsearch-river-mongodb.">https://github.com/richardwilly98/elasticsearch-river-mongodb.</a></p>
+
+<p>Get elasticsearch version: <code>curl -XGET 'localhost:9200'</code></p>
+
+<p>So mongo river plugin version 2.0.9 is installed:</p>
+
+<pre><code>cd /usr/share/elasticsearch
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --remove com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.0
+sudo bin/plugin --install com.github.richardwilly98.elasticsearch/elasticsearch-river-mongodb/2.0.9
 </code></pre>
 
-<p>On page 2:</p>
+<p>Start elasticsearch server: <code>sudo /usr/share/elasticsearch/bin/elasticsearch --default.path.conf=/etc/elasticsearch/</code></p>
 
-<pre><code>var queryType = this.params.query.type;
-var filterStr = this.params.query.filter;
-var dec = decodeURI(filterStr);
-var filterObj = JSON.parse(dec);
-console.log(filterObj);
-</code></pre>
+<p>Create a Meteor app with external mongodb connection, and verify it;</p>
 
-<h1>Ref</h1>
+<p>Add ES package: <code>meteor add bigdata:elasticsearch</code>;</p>
 
-<ul>
-<li><p>matejkramny&rsquo;s answer in <a href="http://stackoverflow.com/questions/1086404/string-to-object-in-js">String to object in JS</a>;</p></li>
-<li><p><a href="http://www.w3schools.com/jsref/jsref_decodeuri.asp">JavaScript decodeURI() Function</a>;</p></li>
-<li><p>vartec&rsquo;s answer in <a href="http://stackoverflow.com/questions/724526/how-to-pass-multiple-parameters-in-a-querystring">How to pass multiple parameters in a querystring</a>;</p></li>
-</ul>
+<p>Add the setting file &ldquo;settings.json&rdquo;;</p>
 
+<p>Start the meteor server: <code>MONGO_URL="mongodb://user:pwd@ip:port/db" meteor --settings settings.json</code></p>
+
+<p>Problem: the ES variable is undefined.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/27/120807/">Customize Dell Ubuntu Laptop Turn Off Screen and Lock</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-27T12:08:07+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>12:08 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In [System Settings -> Brightness &amp; Lock],
+set &ldquo;Turn screen off when inactive for&rdquo; to &ldquo;Never&rdquo; and turn off &ldquo;Lock&rdquo;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/25/213630/">Fix GUI App Start Failure With No Display Found</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2015-10-25T21:36:30+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>25</span><span class='date-suffix'>th</span>, <span class='date-year'>2015</span></span> <span class='time'>9:36 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>When running <code>gitg</code> in Ubuntu terminal, I got errors below:</p>
+
+<blockquote><p><strong> (gitg:29283): WARNING </strong>: Could not open X display</p>
+
+<p>(gitg:29283): Gtk-WARNING **: cannot open display: localhost:10.0</p></blockquote>
+
+<p>Solution: check you $DISPLAY value, if it&rsquo;s not &ldquo;:0.0&rdquo;,
+run <code>export DISPLAY=:0.0</code>.</p>
+
+<p>Ref: <a href="http://askubuntu.com/questions/438451/could-not-open-display-null-error-how-can-i-fix-this">http://askubuntu.com/questions/438451/could-not-open-display-null-error-how-can-i-fix-this</a></p>
+
+<p>To test keycode of the same key in different OS,
+I ssh to my Linux laptop with Kitty on Windows.
+When I run <code>xev</code>, I got an error:
+<code>xev: unable to open display ''</code>.</p>
+
+<p>If you ssh to a remote server, and</p>
 </div>
   
   
@@ -858,23 +615,23 @@ console.log(filterObj);
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

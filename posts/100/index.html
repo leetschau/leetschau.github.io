@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下： IoConnector connector = new NioSocketConnector(50); ConnectFuture connFuture = &hellip;">
+  <meta name="description" content="由于制表符的不定长特性，在纯文本显示时经常出现不能对齐的问题，因此一般需要转换为空格，Ultraedit有这个功能，但实际上Notepad2也有这个能力： 选中要转换的文字后【Edit->Convert->Untabify Selection】。
+">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -38,7 +39,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -71,7 +72,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/07/07/112831/">IoConnector和IoSession的关系以及上挂Filter的区别</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/24/174145/">制表符转换为空格</a></h1>
     
     
       <p class="meta">
@@ -80,758 +81,105 @@
 
 
 
-<time class='entry-date' datetime='2011-07-07T11:28:31+08:00'><span class='date'><span class='date-month'>Jul</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:28 am</span></time>
+<time class='entry-date' datetime='2011-09-24T17:41:45+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:41 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>IoConnector是Mina框架下的网络接收端，当它与服务端建立连接后返回一个代表连接的IoSession，具体过程如下：</p>
+  <div class="entry-content"><p>由于制表符的不定长特性，在纯文本显示时经常出现不能对齐的问题，因此一般需要转换为空格，Ultraedit有这个功能，但实际上Notepad2也有这个能力：</p>
 
-<p>  IoConnector connector = new NioSocketConnector(50);</p>
+<p>选中要转换的文字后【Edit->Convert->Untabify Selection】。</p>
+</div>
+  
+  
 
-<p>  ConnectFuture connFuture = connector.connect(new InetSocketAddress(ip, port));</p>
 
-<p>  boolean b = connFuture.awaitUninterruptibly(10000);</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/24/145213/">Map的putAll方法验证</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p>  if (b) {</p>
 
-<p>   IoSession session = connFuture.getSession();</p>
 
-<p>   &hellip;</p>
+
+<time class='entry-date' datetime='2011-09-24T14:52:13+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>24</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:52 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下面的程序验证了Map的putAll方法的行为特性，代码如下：</p>
+
+<p> import java.util.HashMap;</p>
+
+<p> public class Map_putAllTest {</p>
+
+<p>  public static void main(String[] args){</p>
+
+<p>  //两个map具有不同的key</p>
+
+<p>  HashMap map1=new HashMap();</p>
+
+<p>  map1.put(&ldquo;1&rdquo;, &ldquo;A&rdquo;);</p>
+
+<p>  HashMap map2 = new HashMap();</p>
+
+<p>  map2.put(&ldquo;2&rdquo;, &ldquo;B&rdquo;);</p>
+
+<p>  map2.put(&ldquo;3&rdquo;, &ldquo;C&rdquo;);</p>
+
+<p>  map1.putAll(map2);</p>
+
+<p>  System.out.println(map1);</p>
+
+<p>  //两个map具有重复的key</p>
+
+<p>  HashMap map3=new HashMap();</p>
+
+<p>  map3.put(&ldquo;1&rdquo;, &ldquo;A&rdquo;);</p>
+
+<p>  HashMap map4 = new HashMap();</p>
+
+<p>  map4.put(&ldquo;1&rdquo;, &ldquo;B&rdquo;);</p>
+
+<p>  map4.put(&ldquo;3&rdquo;, &ldquo;C&rdquo;);</p>
+
+<p>  map3.putAll(map4);</p>
+
+<p>  System.out.println(map3);</p>
 
 <p>  }</p>
-
-<p>也就是用IoConnector的connect方法得到一个ConnectFuture，再用此ConnectFuture的getSession方法得到IoSession。</p>
-
-<p>本质上Filter是与连接（也就是IoSession）相关联的，但由于下面的两个原因，导致需要在Connector上定义filter链。</p>
-
-<p>首先是filter链需要在连接建立前就要定义好，这样才能实现“一建立连接就做某事”这种功能，在已经存在的Session（也就是连接）上挂filter显然无法达到这种效果；</p>
-
-<p>其次是Connector每与服务端建立一个连接就会生成一个Session，且这些Session的行为具有很大的相似性，也就是上面的filter一般也是一样的，这样为多个session定义相同的一组filter显然是一种dirty work；</p>
-
-<p>简而言之，就是Connector上挂filter链属于“配置”定义，而session上挂filter链属于“运行时”定义，当连接关闭（断开）后，这个filter链也就不存在了。</p>
-
-<p>下面是二者挂filter链的具体方法。</p>
-
-<p>对于Connector：</p>
-
-<p>  DefaultIoFilterChainBuilder chain = IoConnector.getFilterChain();</p>
-
-<p>  chain. addLast (String name, IoFilter filter);</p>
-
-<p>对于session：</p>
-
-<p>  IoFilterChain chain = session.getFilterChain();</p>
-
-<p>  chain. addLast (String name, IoFilter filter);</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/28/145204/">更新ivy资源库的自动化脚本</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-28T14:52:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:52 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>为产品库添加一个新jar包需要下面几个步骤：</p>
-
-<ol>
-<li><p>根据jar包名字，从maven库里得到依赖定义字符串；</p></li>
-<li><p>将该字符串加上配置说明和下载脚本（参见笔记“依赖管理常用vim脚本”）；</p></li>
-<li><p>将已下载条目备份文件（installed.txt）另存为old.bpk；</p></li>
-<li><p>将build.xml中的下载条目插入到installed.txt中（按字母顺序排列）；</p></li>
-<li><p>用新的下载脚本替换build.xml中原有的下载脚本；</p></li>
-<li><p>运行ant命令将jar包下载到产品库中；</p></li>
-<li><p>在ivy.xml中加入依赖条目，解析之；</p></li>
-</ol>
-
-
-<p>以下是上面1~5步的自动化脚本。</p>
-
-<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
-
-<p> # Purpose:  download jars to public repo</p>
-
-<p> # Author:  Li Chao</p>
-
-<p> # Created:  28-06-2011</p>
-
-<p> #</p>
-
-<p> # Demonstration:</p>
-
-<p> # install Apache Log4j 1.2</p>
-
-<p> #  1. from mvnrepository.com we got the dep string:</p>
-
-<p> #   <dependency org="log4j" name="log4j" rev="1.2.16"/></p>
-
-<p> #  2. modify dep_str in this file with above dep string:</p>
-
-<p> #  3. run this file, copy modified dep string:</p>
-
-<p> #   <dependency org="log4j" name="log4j" rev="1.2.16" conf="compile->master"/></p>
-
-<p> #  4. open a shell and run ant cmd to download jars of log4j</p>
-
-<p> #  5. paste modified dep string to ivy.xml and resolve it</p>
-
-<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
-
-<p> #!/usr/bin/env python</p>
-
-<p> import os, re</p>
-
-<p> dep_str = &lsquo;<dependency org="log4j" name="log4j" rev="1.2.16"/>&rsquo;</p>
-
-<p> cmd_pattern = &lsquo;&lt;ivy:install.+from=&ldquo;\${from.resolver}&rdquo; to=&ldquo;\${to.resolver}&rdquo;/>&rsquo;</p>
-
-<p> script = &lsquo;build.xml&rsquo;</p>
-
-<p> def conv_str():</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>   covert dep_str to custom_ivy_dep string and ivy_install string;</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>  custom_ivy_dep = dep_str.replace(&lsquo;/>&rsquo;,&lsquo; conf=&ldquo;compile->master&rdquo;/>&rsquo;)</p>
-
-<p>  print &lsquo;Copy the following String:\n%s&rsquo; %custom_ivy_dep</p>
-
-<p>  keys = re.findall(r'&ldquo;\S+&rdquo;&lsquo;, dep_str)</p>
-
-<p>  if len(keys)!=3:</p>
-
-<p>   raise Exception(&lsquo;Format wrong of input string!&rsquo;)</p>
-
-<p>  global ivy_install</p>
-
-<p>  ivy_install = &lsquo;&lt;ivy:install organisation=%s module=%s revision=%s &rsquo;\</p>
-
-<pre><code>  'from="${from.resolver}" to="${to.resolver}"/&gt;' %tuple(keys) 
-</code></pre>
-
-<p> def do_bpk():</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>   create backup file(filename: installed.txt/old.bpk):</p>
-
-<pre><code>1 extract old install string from build.xml; 
-
-2 delete old.bpk if it exists; 
-
-3 rename installed.txt to old.bpk; 
-
-4 read old.bpk file, insert old install string and create installed.txt file; 
-</code></pre>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>  installed = &lsquo;installed.txt&rsquo;</p>
-
-<p>  old_bpk =&lsquo;old.bpk&rsquo;</p>
-
-<p>  xml_file = open(script)</p>
-
-<p>  global xml_str</p>
-
-<p>  xml_str = xml_file.read()</p>
-
-<p>  xml_file.close()</p>
-
-<p>  old_install = re.findall(cmd_pattern, xml_str, re.M)[0]</p>
-
-<p>  print &lsquo;old install string is:\n%s&rsquo; %old_install</p>
-
-<p>  if os.path.exists(old_bpk): os.remove(old_bpk)</p>
-
-<p>  if os.path.exists(installed):</p>
-
-<p>   os.rename(installed, old_bpk)</p>
-
-<p>  else:</p>
-
-<p>   raise Exception(&lsquo;%s does not exist!&rsquo;%installed)</p>
-
-<p>  installed_file = open(old_bpk)</p>
-
-<p>  installed_items = installed_file.read()</p>
-
-<p>  installed_file.close()</p>
-
-<p>  all_items = installed_items.split(&lsquo;\n&rsquo;)</p>
-
-<p>  all_items.append(old_install)</p>
-
-<p>  all_items.sort()</p>
-
-<p>  bpk_file = open(installed,&lsquo;w&rsquo;)</p>
-
-<p>  bpk_file.write( &lsquo;\n&rsquo;.join(all_items) )</p>
-
-<p>  bpk_file.close()</p>
-
-<p> def build_script():</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>   modify install script(build.xml): replace old install string with new one</p>
-
-<p>  &ldquo;&rdquo;"</p>
-
-<p>  xml_file = open(script,&lsquo;w&rsquo;)</p>
-
-<p>  new_xml = re.sub(cmd_pattern, ivy_install, xml_str)</p>
-
-<p>  xml_file.write(new_xml)</p>
-
-<p>  xml_file.close()</p>
-
-<p> def main():</p>
-
-<p>  conv_str()</p>
-
-<p>  do_bpk()</p>
-
-<p>  build_script()</p>
-
-<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
-
-<p>  main()</p>
-
-<p>代码中的技术点包括：</p>
-
-<ol>
-<li><p>格式化字符串的生成方法：%后面必须接一个tuple；</p></li>
-<li><p>如何使用正则表达式进行文本的搜索（findall）和替换(sub)；</p></li>
-<li><p>字符串的join方法进行list的组合，也可以用reduce方法： total_str = reduce(lambda x,y:x+y, str_list)</p></li>
-</ol>
-
-
-<p>  但用join方法更简洁。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/27/154047/">数码照片按拍摄时间分文件夹保存</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-27T15:40:47+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:40 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>拍摄的大量数码照片需要根据拍摄的时间分别放到不同的文件夹里，例如2011年6月27日拍摄的照片要放在名为“2011-6-27”的文件夹里。拍摄时间是根据文件的“最后修改时间”属性确定的，因为“创建时间”属性是会随着文件的拷贝而变化的，不能作为拍摄时间的根据。当然如果用画图或者photoshop修改了照片，那么 “最后修改时间”属性也不是拍摄时间了，但文件的【属性->摘要->照片拍照时间】项仍能显示出真实的拍照时间，但如何取这个属性尚不清楚，故本文不涉及。下面是源代码： </h2>
-
-<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
-
-<p> # Author:  Li Chao</p>
-
-<p> # Created:  27-06-2011</p>
-
-<p> #</p>
-
-<p> # Purpose: 将相机SD卡上的照片按照拍摄日期放入硬盘上当前目录下的不同的文件夹中。</p>
-
-<p> #</p>
-
-<p> # Usage:</p>
-
-<p> # step 1: 将本文件拷贝到目标文件夹中；</p>
-
-<p> # step 2: 在这个文件夹下新建一个run.bat，内容如下：</p>
-
-<p> #   python arrangePhotos.py [photo_path] [last_backup_date]</p>
-
-<p> #   第1个参数是SD卡里照片所在文件夹路径，第二个参数是已备份的最后日期；</p>
-
-<p> # step 3: 运行run.bat</p>
-
-<p> #</p>
-
-<p> # Example: python arrangePhotos.py h:/transfer/pics 2011-06-10</p>
-
-<p> #&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;-</p>
-
-<p> #!/usr/bin/env python</p>
-
-<p> import sys, os, time, shutil</p>
-
-<p> from datetime import date</p>
-
-<p> def main():</p>
-
-<p>  photos_path = sys.argv[1]</p>
-
-<p>  last_bp = time.strptime(sys.argv[2], &ldquo;%Y.%m.%d&rdquo;)</p>
-
-<p>  last_bp_epoch = time. mktime (last_bp)</p>
-
-<p>  for item in os.listdir(photos_path):</p>
-
-<p>   modif_time = os.path. getmtime (os.path.join(photos_path,item))</p>
-
-<p>   if modif_time - last_bp_epoch &lt;= 3600*24 :</p>
-
-<pre><code>continue 
-</code></pre>
-
-<p>   cre_date_obj = date.fromtimestamp(modif_time)</p>
-
-<p>   cre_date = cre_date_obj.strftime(&ldquo;%Y.%m.%d&rdquo;)</p>
-
-<p>   if not os.path.exists(cre_date):</p>
-
-<pre><code>os.mkdir(cre_date) 
-
-print '\n%s' %cre_date 
-</code></pre>
-
-<p>   shutil.copy2(os.path.join(photos_path,item), cre_date)</p>
-
-<pre><code>print '.', 
-</code></pre>
-
-<p> if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:</p>
-
-<p>  main()</p>
-
-<hr />
-
-<p> 对源代码的解释：</p>
-
-<ol>
-<li>时区问题：</li>
-</ol>
-
-
-<p>  由于time.mktime()方法和os.path.getmtime()都是以1970-1-1 08:00:00为起点，因此将这些时间数转换为日期、时间时，一定要用time.localtime()方法，如果用time.gmtime()，则会得到错误的值，下面这段代码演示了两种方法的区别：</p>
-
-<p> import time</p>
-
-<p> gm_sec = time.gmtime(0)</p>
-
-<p> print gm_sec</p>
-
-<p> gm = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, gm_sec)</p>
-
-<p> print &lsquo;UTC start point is %s&rsquo; %gm</p>
-
-<p> lc_sec = time.localtime(0)</p>
-
-<p> print lc_sec</p>
-
-<p> lc = time.strftime(&lsquo;%Y-%m-%d, %X&rsquo;, lc_sec)</p>
-
-<p> print &lsquo;local time start point is %s&rsquo; %lc</p>
-
-<p> second_day = time.mktime(time.strptime(&lsquo;1970-1-2&rsquo;, &ldquo;%Y-%m-%d&rdquo;))</p>
-
-<p> print &lsquo;second day is %s hours after first day&rsquo; %(second_day/3600)</p>
-
-<p>输出为：</p>
-
-<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
-
-<p> UTC start point is 1970-01-01, 00:00:00</p>
-
-<p> time.struct_time(tm_year=1970, tm_mon=1, tm_mday=1, tm_hour=8, tm_min=0, tm_sec=0, tm_wday=3, tm_yday=1, tm_isdst=0)</p>
-
-<p> local time start point is 1970-01-01, 08:00:00</p>
-
-<p> second day is 16.0 hours after first day</p>
-
-<p>加粗的部分表明东8区的时间起点是1970-1-1 08:00:00。</p>
-
-<ol>
-<li>为什么修改时间要比最后一次备份时间多一天（即24小时，3600*24秒）？</li>
-</ol>
-
-
-<p> 例如最后一次备份时间是2011年6月27日，last_bp_epoch的值对应于27日0点0分，当处理一张2011年6月27日晚11点拍摄的照片时，modif_time - last_bp_epoch = 23 hour，这张照片已经备份过了，不应该再次备份，因此modif_time - last_bp_epoch > 24hour时才需要备份；</p>
-
-<ol>
-<li>怎样让print语句的输出不换行？</li>
-</ol>
-
-
-<p> 在字符串后面加逗号即可。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/27/102352/">语音朗读软件使用小记</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-27T10:23:52+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>27</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:23 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>最先下的是“方正畅听2008”，但装上之后发现根本不能正常朗读，发出来的声音伴有巨大的杂音，完全听不清。</p>
-
-<p>后来使用了小众软件推荐的“随读”，语音引擎选用了Neospeech的中文-Liang，输出设为“16kHz 16Bit Stereo”。没有导出为MP3功能（通过插件可以导出MP3），只能朗读txt文件。</p>
-
-<p>再后来又试用了免费的eSpeak，以及NextUp出品的TextAloud，综合比较TextAloud是最优秀的，其中的批量转换MP3功能尤其值得称道。</p>
-
-<p>语音引擎方面，通过使用发现，中文的Lily（女声）和Liang（男声）效果最好，Wang（男声）和Hui（女声）效果一般，英文的Bridget和Julie似乎都不错。
-另：[NeoSpeech.TTS][女声].NeoSpeech.Chinese.Lily.zip安装后的破解方法如下（不破解的话会在每次朗读前加一小段说明）：
-打开安装目录C:\Program Files\VW\VT\Lily\M16-SAPI5\data-common\verify下新建一个文本文件：verification.txt，写入：
-License:effacee1e9a0c118ca2dd64bdf6a66c3cc3d82fbee5a11f7002cb600ec1900e8de006e8f00152800adc100f14a0115d5:*:VoiceText:0:1:Nextup:WindowsNT2KXP::;
-&mdash; Label Print &mdash;
-CODE: VoiceText-02FF-278E-8AE6
-Site name: Nextup
-Host ID: *
-Expiration Date: unlimited
-Maximum Channel: 1
-Operating System: WindowsNT2KXP
-保存后重新启动朗读软件即可，无需重启系统。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/23/114908/">Notepad++手工配色</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-23T11:49:08+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>11:49 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Notepad++的手工配色相对比较智能，对于其内置的语言，在【设置->语言格式设置】中进行，【选择主题】中可以选择不同的配色主题，确定主题后，在【语言】中选择要修改的语言，在【格式名称】中选择修改那种元素，然后修改颜色和字体；对于非内置语言，则需要使用其内置的"User Defined Languages"对话框；对于一种新语言，首先从网上下载其语法高亮模板，然后再根据自己的要求使用这个对话框修改，直到满意为止。具体来说：</p>
-
-<ol>
-<li><p>下载语法高亮文件（xml文件），如果notepad++当前文件夹下没有 userDefineLang.xml 这个文件，将下载的文件放在此文件夹（与notepad++.exe同目录）下，并命名为userDefineLang.xml，如果已经有这个文件，则把下载内容追加到 userDefineLang.xml 末尾；</p></li>
-<li><p>启动Notepad++，【视图->自定义语言对话框】打开"User Defined Languages"对话框，在【自定义语言】下应该有刚才添加的语言；</p></li>
-<li><p>如果没有，用【Import】按钮导入下载的XML文件；</p></li>
-<li><p>对不满意的配色和内容进行修改，然后用【Export】导出，以备将来再次导入；</p></li>
-</ol>
-
-
-<p>修改的方法参见帮助文档的"User Defined Languages"一节，简单地说，能够定制的特性有：普通文本的前/背景色，关键字集合的内容和前/背景色，代码折叠的开始、结束标志，注释的样式和颜色，数字的颜色，运算符的内容和颜色，以上所有内容的字体、字号，转义符号的定义（避免"aa\&ldquo;bb"被解析成一对半字符串）等；</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/22/094253/">关于段落格式重排</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-22T09:42:53+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>9:42 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>段落重排是指：指定左边界（left margin）和右边界（right margin），所有文本都从左边界开始，到右边界结束（换行），超出的插入换行符（折行），不足的删除换行符补足，在此基础上，还可以指定对齐方式（左对齐、右对齐、居中、填充），以及悬挂缩进（hanging indent）值，也就是从第二行开始的左边界，从而实现更为精细的段落格式控制。</p>
-
-<p>在Ultraedit中，要做段落重排，首先要在【格式->段落格式化->段落设置/格式化】对话框中设定前述参数，然后选中要重排的文本，用【格式->段落格式重排】就可以实现重排。下面是实例演示（使用等宽字体才能保证右对齐的效果）：</p>
-
-<p>原始文本：</p>
-
-<p> The idea of supersymmetry was the key to the</p>
-
-<p> creation of</p>
-
-<p> supergravity, but the concept had actually originated years earlier with theorists</p>
-
-<p>重排后：</p>
-
-<p> 左边界0，右边界40：</p>
-
-<p> The idea of supersymmetry was the key to</p>
-
-<p> the creation of supergravity, but the</p>
-
-<p> concept had actually originated years</p>
-
-<p> earlier with theorists</p>
-
-<p>左边界4，右边界45：</p>
-
-<p>  The idea of supersymmetry was the key to</p>
-
-<p>  the creation of supergravity, but the</p>
-
-<p>  concept had actually originated years</p>
-
-<p>  earlier with theorists</p>
-
-<p> 左边界4，右边界45，悬挂缩进2：</p>
-
-<p>  The idea of supersymmetry was the key to</p>
-
-<p>  the creation of supergravity, but the</p>
-
-<p>  concept had actually originated years</p>
-
-<p>  earlier with theorists</p>
-
-<p> 左边界0，右边界45，右对齐：</p>
-
-<p> The idea of supersymmetry was the key to the</p>
-
-<p> creation of supergravity, but the concept had</p>
-
-<p>   actually originated years earlier with</p>
-
-<p> theorists</p>
-
-<p> Notepad++的 TextFX插件也有重排功能（TestFX->TextFX Edit->ReWrap），但只能指定右边界，重排功能与UE相比偏弱。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/21/095608/">删除源代码文件里的注释和空行</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-21T09:56:08+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>9:56 am</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>有时需要对大量的源代码文件做删除空行和注释的操作，手工处理效率会很低，可以用cloc工具（ <a href="http://cloc.sourceforge.net">http://cloc.sourceforge.net</a> ）来完成。</p>
-
-<p>例如要处理d:\godu21\GODU_Server\GODU_V2.1\src\下所有的源代码文件，将去掉空行和注释的新文件放在f:\Software\cloc-1.53下：</p>
-
-<p>第一步：将cloc.exe文件拷贝到f:\Software\cloc-1.53下；</p>
-
-<p>第二步：在f:\Software\cloc-1.53下启动命令行，并运行：cloc &ndash;strip-comments=nj d:\godu21\GODU_Server\GODU_V2.1\src</p>
-
-<p>命令格式为：cloc [options] src_path，cloc将处理后的文件放在当前目录下。命令中“&ndash;strip-comments=”后面是新文件的扩展名，例如原文件是ConnectKeyFilter.java，则处理后的对应文件为f:\Software\cloc-1.53\ConnectKeyFilter.java.nj。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/06/15/155932/">Java和Groovy脚本互相调用实例</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-06-15T15:59:32+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:59 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>本实例是GODU动态脚本的一个技术简化版，演示了java调groovy，groovy又调java的运行过程。 测试用例：  package  com.boco.godu.integration;</p>
-
-<p> import  java.util.HashMap;
- import  java.util.Map;
- import  org.apache.log4j.Logger;
- import  org.junit.After;
- import  org.junit.AfterClass;
- import  org.junit.Before;
- import  org.junit.BeforeClass;
- import  org.junit.Test;
- import  com.boco.godu.gapi.ConnManager;
- import  com.boco.godu.gapi.Constants;
- import  com.boco.godu.gapi.IConnection;
- import  com.boco.godu.gapi.IResult;</p>
-
-<p> public  class  SimpleExpScriptTest {
-    private  static  final  Logger  logger  = Logger
-     . getLogger (SimpleExpScriptTest.  class  );
-    private  IConnection  conn ;</p>
-
-<p>   @Before
-    public  void  setUp()  throws  Exception {
-     conn  = ConnManager. getDataConn ( &ldquo;10.0.2.47&rdquo; , 1234,
-       &ldquo;&lt; aa ><7001><administrator><autocmd>&rdquo; ,  &ldquo;goduapp&rdquo; ,
-      Constants.  TYPE_DATA_CMD_SYNC  , 5);
-  }</p>
-
-<p>   @After
-    public  void  tearDown()  throws  Exception {
-     conn .close();
-  }</p>
-
-<p>   @Test
-    public  void  testImport()  throws  Exception {
-    Map&lt;String, String> params =  new  HashMap&lt;String, String>();
-    params.put(  &ldquo;cmd1&rdquo; ,  &ldquo;ls&rdquo; );
-    params.put(  &ldquo;id&rdquo; , 3);</p>
-
-<pre><code>IResult result =  conn .execScript( "ImportEx" , params); 
-</code></pre>
-
-<p>  }
- }</p>
-
-<p> Java代码：
-IConnection.java
- package  com.boco.godu.gapi;
-  public  interface  IConnection {
-   &hellip;&hellip;// other method definition
-     public  IResult execScript (String name, Map&lt;String, Object> params)<br/>
-       throws  Exception;
-  }</p>
-
-<p>GoduDataConnection.java
-  package  com.boco.godu.gapi.conn;
-  public  class  GoduDataConnection  extends  AbstractConnection {
-  &hellip;&hellip;// Other IConnection Methods
-     public  IResult execScript(String name, Map&lt;String, Object> params)<br/>
-       throws  Exception {
-    String[] roots =  new  String[] {  &ldquo;e:/MyDoc/Project/GoduScript&rdquo;  };
-    GroovyScriptEngine gse =  new  GroovyScriptEngine(roots);
-    Binding binding =  new  Binding();
-     for  (Entry&lt;String, Object> item : params.entrySet()) {
-     binding.setVariable(item.getKey(), item.getValue());
-    }
-    GapiIosessionUtils giu =  new  GapiIosessionUtils();
-    binding.setVariable(  &ldquo;giu&rdquo; , giu );
-    gse.run(name, binding);
-    System.  out  .println(binding.getVariable(  &ldquo;result&rdquo; )); // 运行结果是这里输出“11”，即3*2+5。
-     return  null  ;
-   }</p>
-
-<p>  }</p>
-
-<p>GapiIosessionUtils.java</p>
-
-<p> package  com.boco.godu.gapi.util;
-  public  class  GapiIosessionUtils {
-  &hellip;&hellip;// other method
-    public  int  testM(  int  x,  int  y) {
-     return  x * 2 + y;
-   }
- }</p>
-
-<p> groovy代码：</p>
-
-<p>e:\MyDoc\Project\GoduScript\ImportEx</p>
-
-<p> def send(cmd){</p>
-
-<p> def result = giu.testM(cmd,5);</p>
-
-<p> return result;</p>
 
 <p> }</p>
 
-<p> result = send(id)</p>
+<p>保存为F:\Map_putAllTest.java，编译和运行结果如下：</p>
 
-<p> 运行过程
-测试用例 ->GoduDataConnection.java -> groovy代码 -> GapiIosessionUtils.java；</p>
+<p> F:>javac Map_putAllTest.java</p>
 
-<p> 总结
-binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiIosessionUtils对象，id是int型数据）在groovy脚本里直接使用，可以出现在脚本的任何地方，且无需声明类型，无需使用import导入定义该变量的类（例如对于giu来说，如果在java代码中，需要import com.boco.godu.gapi.util.GapiIosessionUtils）。</p>
+<p> 注意：Map_putAllTest.java 使用了未经检查或不安全的操作。</p>
+
+<p> 注意：要了解详细信息，请使用 -Xlint:unchecked 重新编译。</p>
+
+<p> F:>java Map_putAllTest</p>
+
+<p> {3=C, 2=B, 1=A}</p>
+
+<p> {3=C, 1=B}</p>
+
+<p> F:></p>
+
+<p>上例说明A.putAll(B)方法就是将B的内容全部放入A中，如果有重复的key1，则用B中key1对应的value（B.get(key1)）覆盖A中key1对应的value。</p>
 </div>
   
   
@@ -844,7 +192,7 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/06/15/083504/">Srt文件的时间轴平移处理</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/22/124103/">Terracotta的Unable to Find Communications Stack问题解决方法</a></h1>
     
     
       <p class="meta">
@@ -853,18 +201,18 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
 
 
 
-<time class='entry-date' datetime='2011-06-15T08:35:04+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>15</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:35 am</span></time>
+<time class='entry-date' datetime='2011-09-22T12:41:03+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>22</span><span class='date-suffix'>nd</span>, <span class='date-year'>2011</span></span> <span class='time'>12:41 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>有时srt字幕文件与视频文件的时间不完全吻合，有一个时间差，这就需要对srt文件的时间轴进行平移，具备这个功能的软件很多，比如：Subtitle Tool, subresync, sabbu, Sub Station Alpha等；但最方便的还是在线处理，下面这两个网站都是专门做字幕文件的时间轴处理的：</p>
+  <div class="entry-content"><p>2008-05-27 10:17:26,358 INFO - Unable to find communications stack. ConnectionID(2.33fc6df7282c4217854f022429b230e1) not found. &hellip;</p>
 
-<p><a href="http://subshifter.bitsnbites.eu/">http://subshifter.bitsnbites.eu/</a></p>
+<p>这个错误的原因是由于之前连Terracotta的客户端在老的Terracotta服务down了以后一直重连，这个新的Terracotta起来后收到的是重连请求，由于新的TC不知道这个重连的具体情况，所以打印了这条日志，解决方法是关闭客户端的重连请求。详见：</p>
 
-<p><a href="http://subtitle.ss-birthdayreminder.com/">http://subtitle.ss-birthdayreminder.com/</a></p>
+<p> <a href="http://forums.terracotta.org/forums/posts/list/1092.page">http://forums.terracotta.org/forums/posts/list/1092.page</a></p>
 </div>
   
   
@@ -877,7 +225,7 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/06/14/175307/">Terracotta启动命令说明</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/09/21/113615/">线程显示不全的解决方法</a></h1>
     
     
       <p class="meta">
@@ -886,31 +234,336 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
 
 
 
-<time class='entry-date' datetime='2011-06-14T17:53:07+08:00'><span class='date'><span class='date-month'>Jun</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>5:53 pm</span></time>
+<time class='entry-date' datetime='2011-09-21T11:36:15+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>11:36 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>terracotta的启动命令是：
- nohup  $TC_INSTALL_DIR/bin/start-  tc  -server.sh 1>/  dev  /null 2>/  dev  /null &amp;</p>
+  <div class="entry-content"><p>云南现场GODU服务器型号为 SunOS 5.10，即solaris 10，用ps -ef不能显示全部的线程名，只能显示第一行，要显示完整线程名需要用下面的命令：</p>
 
-<p>nohup是后台运行程序（即使终端退出也继续运行程序）；</p>
+<p> /usr/ucb/ps -auwwx|grep java</p>
 
-<p>$TC_INSTALL_DIR/bin/start-tc-server.sh 是要运行的程序；</p>
+<p> godu  7729 0.1 3.523351362257000 ?  S 8ÔÂ 19 860:07 /usr/jdk/instances/jdk1.5.0/bin/java -server -Xms2048m -Xmx2048m -XX:NewSize=512m -XX:MaxNewSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dcom.sun.management.jmxremote -Dtc.install-root=./.. -cp ./../lib/tc.jar com.tc.server.TCServerMain</p>
 
-<p>Unix的标准输入（STDIN）、标准输出（STDOUT）、标准错误（STDERR）分别用数字0、1和2表示，">&ldquo;是重定向符，&rdquo;/dev/null"类似于windows的回收站，只不过进去的信息就出不来了（被称为字节黑洞），所以连起来就是：</p>
+<p>所以看terracotta线程不能只看有没有terracotta，还要看是否存在TCServerMain</p>
+</div>
+  
+  
 
-<p>在后台运行terracotta程序，屏蔽标准输出和标准错误，即使用户退出也继续运行。</p>
 
-<p>参考：</p>
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/16/181313/">Ftp常用命令</a></h1>
+    
+    
+      <p class="meta">
+        
 
-<p> nohup的含义</p>
 
-<p> What does “> /dev/null 2>&amp;1″ mean?</p>
 
-<p> 1>/dev/null 2>/dev/null 跟在命令行后面，什么目的？</p>
+
+<time class='entry-date' datetime='2011-09-16T18:13:13+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>6:13 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+<li><p>open: 连接远端服务器，例如open 10.0.2.47；</p></li>
+<li><p>pwd: 获取远端当前目录；</p></li>
+<li><p>put: 上传文件；</p></li>
+<li><p>get: 下载文件；get pwd.ldif</p></li>
+<li><p>bin: 进入binary传输模式；</p></li>
+<li><p>hash: 传输过程中显示打印#；</p></li>
+<li><p>lcd: 改变本地文件夹，例如：lcd d:\</p></li>
+<li><p>lpwd: 显示本地当前目录；</p></li>
+<li><p>bye: 与远端服务器断开连接；</p></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/16/160414/">打包与压缩</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-16T16:04:14+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>4:04 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>zip and unzip</h1>
+
+<ul>
+<li><p>压缩web文件夹到web.zip文件中，不包括web中所有.svn文件夹：zip web.zip -r web -x &lsquo;<em>.svn/</em>&rsquo;</p></li>
+<li><p>追加新目录到已有压缩文件中：zip web.zip -r newdir，如果需要在web.zip的dir1/subdir/subsubdir下增加一个文件new.xml，新建dir1/subdir/subsubdir，将new.xml拷贝过去形成dir1/subdir/subsubdir/new.xml，然后zip web.zip -r dir1，web.zip中dir1/subdir/subsubdir下的其他文件不受影响；</p></li>
+<li><p>解压缩到指定文件夹：unzip web.zip -d dst_extract_dir</p></li>
+<li><p>解压web.zip中的top/sub/aa.js文件到当前目录下，保留目录结构：</p>
+
+<p>  unzip web.zip top/sub/aa.js</p></li>
+<li><p>解压web.zip中的top/sub/aa.js文件到指定目录下，保留目录结构：</p>
+
+<p>  unzip web.zip top/sub/aa.js -d dst_extract_dir</p></li>
+<li><p>解压web.zip中的top/sub/aa.js文件到指定目录下，不保留目录结构（文件直接放在指定目录下，没有top/sub文件夹）：</p>
+
+<p>  unzip -j web.zip top/sub/aa.js -d dst_extract_dir</p>
+
+<p>  unzip -j build/GcpCollector.zip GcpCollector/lib/core/GcpServerCore.jar -d integral_test/lib</p></li>
+<li><p>读取jar包的meta info: unzip -p target.jar META-INF/MANIFEST.MF （-p选项将文件内容输出到stdout上）</p></li>
+</ul>
+
+
+<h1>压缩与解压命令：gzip/zip/gunzip/unzip</h1>
+
+<p>压缩/解压缩gz文件：gzip/gunzip filename</p>
+
+<p>二者默认在压缩/解压后删除原始文件，如果想要保留的话用-c选项：</p>
+
+<p>gzip -c myfile.txt > myfile.gz</p>
+
+<p>gunzip -c test.tar.gz > test.tar</p>
+
+<p>gzcat test.tar.gz > test.tar（gzcat&lt;=>gunzip -c，linux不支持此命令）；</p>
+
+<h1>查看压缩包里文件清单的命令</h1>
+
+<ul>
+<li><p>tar -t</p></li>
+<li><p>gzip -l</p></li>
+<li><p>unzip -l web.zip</p></li>
+<li><p>unzip -l web.zip | less 适用于文件内容比较多，且需要查看某一部分的情况</p></li>
+<li><p>less web.zip</p></li>
+</ul>
+
+
+<p>tar -tvf只能显示tar文件和tar文件打成的gz包中的内容，如果是 直接用gzip压缩文件，tar -t是无效的，要用：</p>
+
+<p>gzip -l filename.gz</p>
+
+<p>来查看文件清单。</p>
+
+<h1>打包和解包命令：tar</h1>
+
+<p>压缩当前目录里的所有文件到/home/test/kk.tar文件中：</p>
+
+<pre><code>tar -cvf /home/test/kk.tar * 
+</code></pre>
+
+<p>将当前目录里的aa和bb两个文件打包到kk.tar中：</p>
+
+<pre><code>tar -cvf /home/test/kk.tar aa bb 
+</code></pre>
+
+<p>将s3目录下的所有文件打包到k3.tar.gz中（Solaris不支持-z选项）：</p>
+
+<pre><code>tar -zcvf k3.tar.gz s3/* 
+</code></pre>
+
+<p>查看k3.tar.gz的内容：</p>
+
+<pre><code>tar -tvf k3.tar.gz 
+</code></pre>
+
+<p>输出为：</p>
+
+<p>-rw-rw-r&ndash; test/test  10240 2011-10-14 03:05:15 s3/aa
+-rw-rw-r&ndash; test/test  11 2011-10-13 09:30:43 s3/bb</p>
+
+<p>即包括s3目录也打进了压缩包里；</p>
+
+<p>将/home/test/ss/tt.tar解压到/home/test/s3下（要求s3文件夹已存在）：</p>
+
+<pre><code>tar -xvf /home/test/ss/tt.tar -C /home/test/s3 
+</code></pre>
+
+<p>若不用-C指定解压目录，则解压到当前目录下；</p>
+
+<p>tar参数说明：</p>
+
+<p>-c表示创建tar文件；-x表示解压文件；-v表示verbose，即显示处理过程；-f要求后面紧跟要处理的tar文件的文件名；-z表示用gzip压缩生成的tar文件；</p>
+
+<p>Solaris的tar命令没有-z选项，不能用tar -zxvf命令解压gz文件，必须先用：</p>
+
+<p>gunzip filename.gz（或者gzip -d filename.gz）</p>
+
+<p>解压成tar包，然后用tar -xvf解包。</p>
+
+<p>附：</p>
+
+<p>下面是将terracotta-2.7.2目录下的所有内容打包后在tc272-2目录里解压的过程：</p>
+
+<p>[godu@goduserver terracotta-2.7.2]$ tar -cvf /home/godu/tc272.tar *</p>
+
+<p>[godu@goduserver terracotta-2.7.2]$ cd
+[godu@goduserver ~]$ mkdir tc272-2
+[godu@goduserver ~]$ cd tc272-2
+[godu@goduserver tc272-2]$ tar -xvf /home/godu/tc272.tar</p>
+
+<p>这个过程除了生成一个tar文件外，等价于将terracotta-2.7.2目录下的所有内容拷贝到tc272-2目录里：</p>
+
+<p>[godu@goduserver ~]$ mkdir tc272-2</p>
+
+<p>[godu@goduserver ~]$ cp -r terracotta-2.7.2/* tc272-2/</p>
+
+<p>删除tc272-2目录：</p>
+
+<p>[godu@goduserver ~]$ rm -r tc272-2</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/14/140127/">调整chm文件的字体大小</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-14T14:01:27+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:01 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>例如要将chm文件中的字体调到最大，打开IE浏览器，页面->文字大小->最大。</p>
+
+<p>在Win7上试验通过。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/13/110504/">Eclipse中source Folder定义错误的解决方法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-13T11:05:04+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:05 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在使用新的Eclipse打开旧的workspace时有时会出现source folder定义错误的情况，例如原本的定义是名为src的source folder下有包名为org.apache，现在被Eclipse解析为source folder（或者普通folder）为src/org，apache为包名，这样下面程序编译都会出错，解决方法是：直接打开该工程的.classpath文件，找到名为 src/org的 classpathentry条目 删除，然后在Eclipse中刷新工程，这时src会变为一个普通folder，右键之，选择Build Path->Use as Source Folder，OK。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/09/102412/">Windows7下MSN和Outlook最小化解决办法</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-09T10:24:12+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:24 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Windows7下outlook、msn这些软件最小化的默认行为行为都是最小化到任务栏，而不是托盘区，很占地方，下面的方法让它们隐藏到托盘区，且可以用快捷键恢复窗口。</p>
+
+<h1>最小化到托盘区</h1>
+
+<p>Outlook到托盘区比较简单，就是在托盘区图标上右键，选【最小化时隐藏】即可。msn相对复杂些，首先找到msnmsgr.exe这个文件右键->属性->兼容性，勾选“以兼容模式运行这个程序”，在下拉列表里选“Windows Vista”。这样用Alt+F4（或点击关闭按钮）关闭MSN后，托盘区就会出现MSN的图标了。</p>
+
+<h1>恢复窗口</h1>
+
+<p>用autohotkey脚本（见笔记“激活托盘区程序的ahk脚本”），且需要首先自定义托盘区图标的显示规则，让outlook/msn图标始终显示。</p>
+
+<hr />
+
+<p>2013-01-05更新：</p>
+
+<p>Outlook最小化后用Executor激活，MSN用MSNLite，可以自定义显示/隐藏面板快捷键；</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/09/09/102328/">破解Excel文件打开密码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-09-09T10:23:28+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>9</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:23 am</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>使用了Passware Password Recovery Kit Enterprise(v10.3.2585)，这个软件的优点是能够破解多种密码，CPU占有率低，上手快，易于制定密码规则。</p>
 </div>
   
   
@@ -935,23 +588,23 @@ binding的setVariable中定义的变量（如giu是com.boco.godu.gapi.util.GapiI
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

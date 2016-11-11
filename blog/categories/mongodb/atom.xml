@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Mongodb | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/mongodb/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,57 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[用aggregate方法处理MongoDB数据]]></title>
+    <link href="http://leetschau.github.io/blog/2016/06/08/092636/"/>
+    <updated>2016-06-08T09:26:36+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/06/08/092636</id>
+    <content type="html"><![CDATA[<p>下面的aggregate方法对Fair0606 collection做如下处理：</p>
+
+<p>用<code>$match</code>（类似于filter）筛选出recurrence长度不小于2的document (fair).</p>
+
+<p><a href="http://bit.ly/1X9uhLY">$unwind</a>类似于flatmap,
+将每一个recurrence数组中的元素变成一个document;</p>
+
+<p><a href="http://bit.ly/1UE0BTQ">$project</a>类似于map,去掉原document的<code>_id</code>,
+保留nameZHCN, website，
+创建新字段time，值为recurrence.timeStart,
+以及address，值为recurrence.address
+（路径的写法是路径名前面加$，详见Field Path and System Variables in
+<a href="http://bit.ly/1YdER3X">Aggregation Pipeline Quick Reference</a>）.</p>
+
+<p>如果希望保留recurrence.timeStart的结构，写成<code>"recurrence.timeStart": 1,</code>.</p>
+
+<p><code>$limit</code>要求只转换20个document, <code>$out</code>指定输出collection.</p>
+
+<pre><code>db.Fair0606.aggregate([
+  {$match: {'recurrence.1': {$exists: true}}},
+  {$unwind: "$recurrence"},
+  {$project: {
+    _id: 0,
+    nameZHCN: 1,
+    website: 1,
+    time: "$recurrence.timeStart",
+    address: "$recurrence.address"}},
+  {$limit: 20},
+  {$out: "out1"}])
+</code></pre>
+
+<p>通过unwind和project，可以实现对MongoDB schema的转换，下一步可以导出为csv
+进行更复杂的数据分析，例如使用<a href="http://incanter.org/">Incanter</a>.</p>
+
+<pre><code>mongoexport --type=csv -d test -c out1 \
+--fields nameZHCN,website,time,address -o fairs.csv
+</code></pre>
+
+<p>参考：</p>
+
+<p><a href="https://docs.mongodb.com/manual/reference/operator/aggregation/">https://docs.mongodb.com/manual/reference/operator/aggregation/</a></p>
+
+<p><a href="https://github.com/clojuredatascience">Clojure for Data Science</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[MongoDB Schema Analysis]]></title>
@@ -30,10 +81,10 @@ add <code>alias variety='/home/leo/apps/node-v5.4.1-linux-x64/bin/variety'</code
 into ~/.bash_aliases.</p>
 
 <p>The production database is connected with
-<code>mongo 192.168.10.89:27017/production -u dba -p dba</code>.
+<code>mongo 192.168.10.89:27017/production -u user -p password</code>.
 To analyze it, run:</p>
 
-<pre><code class="bash">variety production/Fair --host 192.168.10.89 --port 27017 --username dba --password dba
+<pre><code class="bash">variety production/Fair --host 192.168.10.89 --port 27017 --username user --password password
 </code></pre>
 
 <p>Note you can&rsquo;t use <code>-u</code> instead of <code>--username</code> above.</p>
@@ -42,7 +93,7 @@ To analyze it, run:</p>
 
 <p>Download variety.js from it&rsquo;s repo and run:</p>
 
-<pre><code class="bash">mongo 192.168.10.89:27017/production -u dba -p dba --eval "var collection = 'Fair'" variety.js
+<pre><code class="bash">mongo 192.168.10.89:27017/production -u user -p password --eval "var collection = 'Fair'" variety.js
 +------------------------------------------------------------------------------------------------------------------------------+
 | key                                              | types                              | occurrences | percents               |
 | ------------------------------------------------ | ---------------------------------- | ----------- | ---------------------- |
@@ -53,7 +104,7 @@ To analyze it, run:</p>
 
 <p>Verify it with mongo shell:</p>
 
-<pre><code class="bash">mongo 192.168.10.89:27017/production -u dba -p dba                                                                                                 
+<pre><code class="bash">mongo 192.168.10.89:27017/production -u dba -p password
 &gt; db.Fair.count()
 9316
 &gt; db.Fair.find({'recurrence._id': {$exists: true}}).count()
@@ -297,154 +348,6 @@ Get help: <code>bin/plugin -h</code>.</p>
 For now, use elasticsearch 1.7.3 with river.</p>
 
 <p>List plugins in v1.7.3: <code>sudo /usr/share/elasticsearch/bin/plugin --list</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Share One Users Collection Between Multiple Meteor Apps]]></title>
-    <link href="http://leetschau.github.io/blog/2015/08/11/123934/"/>
-    <updated>2015-08-11T12:39:34+08:00</updated>
-    <id>http://leetschau.github.io/blog/2015/08/11/123934</id>
-    <content type="html"><![CDATA[<p>We are running a website and a backend data management system,
-both are meteor web servers.</p>
-
-<p>The backend needs fetch data from the website.
-So they have to share one database, and the same &ldquo;users&rdquo; collection for both.
-That means one can register on the website and login to the backend,
-which is obviously unacceptable.</p>
-
-<p>To distinguish users of the website and the backend,
-I choose package <a href="https://github.com/alanning/meteor-roles">alanning/meteor-roles</a>.</p>
-
-<p>All the backend users will have roles <code>['backend', 'admin']</code>,
-while website users haven&rsquo;t.</p>
-
-<p>In &ldquo;safe&rdquo; environment, backend has its own user registration entry.
-Users registered there will be given above roles automatically.</p>
-
-<p>Put the following codes into server side JavaScript files to achieve above goal
-(based on examples/rolesWithAccountsUI on meteor-roles):</p>
-
-<pre><code>var ROLE_NAME = 'editor';
-var GROUP_NAME = 'backend';
-
-Meteor.publish('mallData', function(){
-  if (Roles.userIsInRole(this.userId, ROLE_NAME, GROUP_NAME)) {
-    console.log('pass check');
-    return Mall.find();
-  } else {
-    console.log('not pass check');
-    this.stop();
-    return;
-  }
-});
-
-Meteor.startup(function () {
-  Accounts.onCreateUser(function (options, user) {
-    Roles.setRolesOnUserObj(user, ROLE_NAME, GROUP_NAME);
-    if (options.profile) {
-      user.profile = options.profile
-    }
-    return user;
-  });
-});
-
-Roles.setRolesOnUserObj = function (users, roles, group) {
-  if (!users) throw new Error ("Missing 'users' param")
-  if (!roles) throw new Error ("Missing 'roles' param")
-  if (group) {
-    if ('string' !== typeof group)
-      throw new Error ("Roles error: Invalid parameter 'group'. Expected 'string' type")
-    if ('$' === group[0])
-      throw new Error ("Roles error: groups can not start with '$'")
-
-    // convert any periods to underscores
-    group = group.replace(/\./g, '_')
-  }
-
-  // ensure arrays to simplify code
-  if (!_.isArray(users)) users = [users]
-  if (!_.isArray(roles)) roles = [roles]
-
-
-  // remove invalid roles
-  roles = _.reduce(roles, function (memo, role) {
-    if (role
-        &amp;&amp; 'string' === typeof role
-        &amp;&amp; role.trim().length &gt; 0) {
-      memo.push(role.trim())
-    }
-    return memo
-  }, [])
-
-  // if roles is empty, quit
-  if (roles.length === 0) return
-
-  // ensure all roles exist in 'roles' collection
-  existingRoles = _.reduce(Meteor.roles.find({}).fetch(), function (memo, role) {
-    memo[role.name] = true
-    return memo
-  }, {})
-  _.each(roles, function (role) {
-    if (!existingRoles[role]) {
-      Roles.createRole(role)
-    }
-  })
-
-  // ensure users is an array of objects
-  _.each(users, function (user) {
-    if ('object' !== typeof user) {
-      throw new Error("Expected 'users' argument to be an object or array of objects")
-    }
-  })
-
-
-  // Set the roles on the actual user object
-
-  if (group) {
-
-    // roles is a key/value dict object
-
-    _.each(users, function (user) {
-      user.roles = {}
-      user.roles[group] = roles
-    })
-
-  } else {
-
-    // roles is an array of strings
-
-    _.each(users, function (user) {
-      user.roles = roles
-    })
-
-  }
-
-}
-</code></pre>
-
-<p>Now any user outside &lsquo;backend&rsquo; group, or without &lsquo;editor&rsquo; role, can&rsquo;t get any data from server.</p>
-
-<p>Unfortunately Internet is unsafe at all.
-So the registration entry has to be removed from the accounts-ui:</p>
-
-<pre><code>Meteor.startup(function () {
-  Accounts.config({
-    forbidClientAccountCreation : true
-  });
-});
-</code></pre>
-
-<p>Now if you want give a website personnel rights to edit data through backend,
-first he should register on the website,
-then you define his role manually in mongo console:</p>
-
-<pre><code>&gt; db.users.find({ "emails.0.address":"user@123.com" }, { "emails":1 })
-&gt; db.users.update({_id: "PM36t6eRmuC9oELdu"}, { $set: { roles: {"backend": [ "editor" ]} } })
-</code></pre>
-
-<p>First find the id of the user (here is &ldquo;<a href="&#x6d;&#x61;&#105;&#108;&#x74;&#x6f;&#58;&#117;&#115;&#x65;&#114;&#x40;&#x31;&#x32;&#51;&#x2e;&#x63;&#111;&#x6d;">&#117;&#x73;&#101;&#x72;&#64;&#49;&#50;&#51;&#46;&#99;&#111;&#x6d;</a>&rdquo;) by his email address.
-Then add group and roles to the user (say the id of the user is &ldquo;PM36t6eRmuC9oELdu&rdquo;).</p>
 ]]></content>
   </entry>
   

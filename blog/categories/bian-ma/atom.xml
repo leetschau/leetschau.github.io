@@ -4,7 +4,7 @@
   <title><![CDATA[Category: 编码 | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/bian-ma/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -65,71 +65,81 @@
     <link href="http://leetschau.github.io/blog/2012/06/19/163003/"/>
     <updated>2012-06-19T16:30:03+08:00</updated>
     <id>http://leetschau.github.io/blog/2012/06/19/163003</id>
-    <content type="html"><![CDATA[<p>中文出现乱码，首先需要查看字符串编码和解码的方法是否一致，其次检查Linux的LANG环境变量中的编码是否匹配程序的编解码方法。</p>
+    <content type="html"><![CDATA[<p>中文出现乱码，首先需要查看字符串编码和解码的方法是否一致，
+其次检查Linux的LANG环境变量中的编码是否匹配程序的编解码方法。</p>
 
 <p>建议统一编码为UTF-8，对应的bash脚本：export LANG=zh_CN.UTF-8</p>
 
-<p>编码是字符串转换为字节数组（二进制串），解码是逆过程，charset指定了其中转换/逆转换的方式（见 字符编解码的故事 ）。就Java而言，用指定的charset（例如UTF-8）对字符串编码用"byte[] dst = input_string.getBytes(&ldquo;UTF-8&rdquo;);&ldquo;实现，解码用“String dst = new String(input_byte_array, "UTF-8&rdquo;);”实现；</p>
+<p>编码是字符串转换为字节数组（二进制串），解码是逆过程，
+charset指定了其中转换/逆转换的方式（见 字符编解码的故事 ）。就Java而言，
+用指定的charset（例如UTF-8）对字符串编码用<code>byte[] dst = input_string.getBytes("UTF-8");</code>实现，
+解码用“String dst = new String(input_byte_array, &ldquo;UTF-8&rdquo;);”实现；</p>
 
-<p>如果编码使用“byte[] dst = input_string.getBytes()”，则具体的编码方式依赖于操作系统，存在编码错误的风险，解码用“String dst = new String(input_byte_array);”也存在解码错误的风险，所以在编/解码过程中最好明确指定使用的charset。</p>
+<p>如果编码使用<code>byte[] dst = input_string.getBytes()</code>，则具体的编码方式依赖于操作系统，
+存在编码错误的风险，解码用<code>String dst = new String(input_byte_array);</code>也存在解码错误的风险，
+所以在编/解码过程中最好明确指定使用的charset。</p>
 
 <p>下面的代码将字节数组转换为16进制字节码字符串，以便观察不同的charset如何影响生成的字节码。</p>
 
-<p> public class MQReceiver {
- public static void main(String[] args) {
-  byte[] buf = mq.recvTextMessage(); // receive msg from mq
-  if (buf != null) {
-   String hexRes = bytes2HexString(buf);
-   System.out.println(hexRes);
-   System.out.println(getChnBytes(hexRes));
-   String bufstr = new String(buf,&ldquo;UTF-8&rdquo;);
-   System.out.println(&ldquo;Recv alarm: &rdquo; + bufstr);
-  } else {
-   System.out.println(&ldquo;buf: &rdquo; + buf);
-  }
- }</p>
+<pre><code>public class MQReceiver { 
+ public static void main(String[] args) { 
+  byte[] buf = mq.recvTextMessage(); // receive msg from mq 
+  if (buf != null) { 
+   String hexRes = bytes2HexString(buf); 
+   System.out.println(hexRes); 
+   System.out.println(getChnBytes(hexRes)); 
+   String bufstr = new String(buf,"UTF-8"); 
+   System.out.println("Recv alarm: " + bufstr); 
+  } else { 
+   System.out.println("buf: " + buf); 
+  } 
+ } 
 
-<p> public static String bytes2HexString(byte[] b) {
-  String ret = &ldquo;&rdquo;;
-  for (int i = 0; i &lt; b.length; i++) {
-   String hex = Integer.toHexString(b[i] &amp; 0xFF);
-   if (hex.length() == 1) {
-    hex = &lsquo;0&rsquo; + hex;
-   }
-   ret += hex.toUpperCase();
-  }
-  return ret;
- }
- public static String getChnBytes(String input) {
-  String sflag = &ldquo; &lt;FM_ALARM_MSG.AlarmText> &rdquo;;
-  String eflag = &ldquo;&lt;/FM_ALARM_MSG.AlarmText>&rdquo;;
-  byte[] start = sflag.getBytes();
-  byte[] end = eflag.getBytes();
-  String ss = bytes2HexString(start);
-  String se = bytes2HexString(end);
-  int beginIndex = input.indexOf(ss) + ss.length();
-  int endIndex = input.indexOf(se);
-  return input.substring(beginIndex, endIndex);
- }
-}</p>
+
+ public static String bytes2HexString(byte[] b) { 
+  String ret = ""; 
+  for (int i = 0; i &lt; b.length; i++) { 
+   String hex = Integer.toHexString(b[i] &amp; 0xFF); 
+   if (hex.length() == 1) { 
+    hex = '0' + hex; 
+   } 
+   ret += hex.toUpperCase(); 
+  } 
+  return ret; 
+ } 
+ public static String getChnBytes(String input) { 
+  String sflag = " &lt;FM_ALARM_MSG.AlarmText&gt; "; 
+  String eflag = "&lt;/FM_ALARM_MSG.AlarmText&gt;"; 
+  byte[] start = sflag.getBytes(); 
+  byte[] end = eflag.getBytes(); 
+  String ss = bytes2HexString(start); 
+  String se = bytes2HexString(end); 
+  int beginIndex = input.indexOf(ss) + ss.length(); 
+  int endIndex = input.indexOf(se); 
+  return input.substring(beginIndex, endIndex); 
+ } 
+} 
+</code></pre>
 
 <p>其中getChnBytes方法从下面的字符数组中找到汉字，提取出来，以便于观察汉字部分编码的变化，</p>
 
-<p> &lt;FM_ALARM_MSG.EventTime>2012-06-20 14:39:51&lt;/FM_ALARM_MSG.EventTime> &lt;FM_ALARM_MSG.AlarmText> 检查数据库连接产生异常&lt;/FM_ALARM_MSG.AlarmText><C_FP0></C_FP0></p>
+<pre><code>&lt;FM_ALARM_MSG.EventTime&gt;2012-06-20 14:39:51&lt;/FM_ALARM_MSG.EventTime&gt; &lt;FM_ALARM_MSG.AlarmText&gt; 检查数据库连接产生异常&lt;/FM_ALARM_MSG.AlarmText&gt;&lt;C_FP0&gt;&lt;/C_FP0&gt; 
+</code></pre>
 
 <p>例如UTF-8的“ 检查数据库连接产生异常”编码输出如下：</p>
 
-<p> E6A380
-E69FA5
-E695B0
-E68DAE
-E5BA93
-E8BF9E
-E68EA5
-E4BAA7
-E7949F
-E5BC82
-E5B8B8</p>
+<pre><code>E6A380 
+E69FA5 
+E695B0 
+E68DAE 
+E5BA93 
+E8BF9E 
+E68EA5 
+E4BAA7 
+E7949F 
+E5BC82 
+E5B8B8 
+</code></pre>
 
 <p>注： 快典网 可以在线查看汉字的各种编码。</p>
 ]]></content>

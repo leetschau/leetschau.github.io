@@ -9,7 +9,8 @@
   <meta name="author" content="Li Chao">
 
   
-  <meta name="description" content="在window server 2003 下，利用apache2.2.11+tomcat6+terracotta 群集不能复制session（http://forums.terracotta.org/forums/posts/list/2342.page%EF%BC%89 &hellip;">
+  <meta name="description" content="前置步骤 解压derby安装包；网络模式下作为Server需要运行$DERBY_HOME/bin/startNetworkServer.bat，内嵌模式下不需求运行此文件； 内嵌模式下
+使用$DERBY_HOME/bin/ij.bat创建数据库：connect ‘jdbc:derby:e:// &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -38,7 +39,7 @@
   <header role="banner"><hgroup>
   <h1><a href="/">Dark Matter in Cyberspace</a></h1>
   
-    <h2>A notes repository for Meteor.js, data mining, Linux, etc.</h2>
+    <h2>The technical blog of Li Chao in Beijing</h2>
   
 </hgroup>
 
@@ -71,7 +72,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/10/14/153811/">一台服务器上部署多个Terracotta的方法</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/29/141322/">SQuirrel SQL Client 连接 Derby 数据库过程</a></h1>
     
     
       <p class="meta">
@@ -80,18 +81,79 @@
 
 
 
-<time class='entry-date' datetime='2011-10-14T15:38:11+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:38 pm</span></time>
+<time class='entry-date' datetime='2011-12-29T14:13:22+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:13 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>在window server 2003 下，利用apache2.2.11+tomcat6+terracotta 群集不能复制session（<a href="http://forums.terracotta.org/forums/posts/list/2342.page%EF%BC%89">http://forums.terracotta.org/forums/posts/list/2342.page%EF%BC%89</a>
-其中提到更新服务器配置的方法：
-bin/tim-get.sh upgrade tc-config.xml
-实际upgrade应为update；
-但doc指出tim是Terracotta integration module，应该与启动服务器配置无关。</p>
+  <div class="entry-content"><p>前置步骤
+ 解压derby安装包；网络模式下作为Server需要运行$DERBY_HOME/bin/startNetworkServer.bat，内嵌模式下不需求运行此文件；
+ 内嵌模式下
+使用$DERBY_HOME/bin/ij.bat创建数据库：connect ‘jdbc:derby:e://mydoc//derbyfiles//godu;create=true’;</p>
+
+<p>或者使用Squirrel SQL创建数据库：首先安装内嵌驱动：</p>
+
+<p>Name: Apache Derby Embedded</p>
+
+<p>Example URL: jdbc:derby:path;</p>
+
+<p>Website URL: <a href="http://db.apache.org/derby/">http://db.apache.org/derby/</a></p>
+
+<p>Extra Class Path: f:\Software\db-derby-10.6.2.1-bin\lib\derby.jar（点击"List Drivers"）</p>
+
+<p>Class Name: org.apache.derby.jdbc.EmbeddedDriver</p>
+
+<p>然后创建数据库：</p>
+
+<p>Name: derby@localhost</p>
+
+<p>Driver: Apache Derby Embedded</p>
+
+<p>URL: jdbc:derby:e:/mydoc/derbyfiles/godu;create=true;（如果不新建数据库，create=false）</p>
+
+<p>user name &amp; password留空</p>
+
+<p>确定后在Objects/derby@localhost/APP/TABLE下就可以看到NE表了，之后就可以使用SQL语句创建表格、插入数据了，derby似乎没有“用户”的概念：
+create table conn(id int primary key, name varchar(20), protocol varchar(20), ip varchar(20), port int);  // 建表</p>
+
+<p>insert into conn values(1,&lsquo;10024723&rsquo;, &lsquo;telnet&rsquo;, &lsquo;10.0.2.47&rsquo;, 23);    // 插入记录</p>
+
+<p>update conn set id=10024723 where name=&lsquo;10024723&rsquo;;      // 修改记录</p>
+
+<p>alter table conn add password varchar(20);      // 插入新列</p>
+
+<p>update conn set username=&lsquo;godu&rsquo;,password=&lsquo;godu&rsquo; where id=10025022;    // 更新多个字段值</p>
+
+<p>drop table ne;            // 删除表</p>
+
+<p>内嵌式数据库与访问它的程序使用同一个JVM，所以当Squirrel SQL打开某个内嵌数据库时，ij.bat或者应用程序（通过JDBC）就不能访问该库；</p>
+
+<p> 网络模式下
+安装Apache Derby Client驱动程序：</p>
+
+<p>名字：Apache Derby Client；</p>
+
+<p>地址示例：jdbc:derby://<server>[:<port>]/<databaseName>[;<URL attribute>=<value>]；</p>
+
+<p>网站地址：<a href="http://db.apache.org/derby%EF%BC%9B">http://db.apache.org/derby%EF%BC%9B</a></p>
+
+<p>类路径：derbyclient-10.7.1.1.jar完整路径；</p>
+
+<p>类名：org.apache.derby.jdbc.ClientDriver；</p>
+
+<p>创建连接Derby数据库的别名：</p>
+
+<p>名字：derby@67；</p>
+
+<p>驱动程序：Apache Derby Client；</p>
+
+<p>地址：jdbc:derby://10.0.3.67:1527/godu;create=true;</p>
+
+<p>用户名：godu</p>
+
+<p>密码：godu</p>
 </div>
   
   
@@ -104,7 +166,7 @@ bin/tim-get.sh upgrade tc-config.xml
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/10/13/095912/">修改Linux系统端口LAST_ACK状态的持续时间</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/23/181747/">使用Eclipse的clojure Plugins</a></h1>
     
     
       <p class="meta">
@@ -113,20 +175,14 @@ bin/tim-get.sh upgrade tc-config.xml
 
 
 
-<time class='entry-date' datetime='2011-10-13T09:59:12+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>13</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:59 am</span></time>
+<time class='entry-date' datetime='2011-12-23T18:17:47+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>6:17 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>如果一台Linux服务器上某端口出现LAST_ACK状态，说明是客户端主动与它断开连接，服务器在等待客户端发送ACK+1，如果客户端没有发送，过一段时间服务器会自动断连接，这里“一段时间”的长度可以用sysctl命令设置（下面是设置为10s）：</p>
-
-<p> sysctl -w net.inet.ip.rtexpire=10</p>
-
-<p> sysctl -w net.inet.ip.rtminexpire=10</p>
-
-<p>sysctl命令可以对Linux系统进行多方面的配置，列出所有可配置项的命令是sysctl -a，详细使用方法可以man sysctl查看。</p>
+  <div class="entry-content"><p>ctrl+enter</p>
 </div>
   
   
@@ -139,7 +195,7 @@ bin/tim-get.sh upgrade tc-config.xml
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/10/12/190217/">定制bash命令提示符</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/23/145425/">Terracotta 2.7.2 Admin Console Guide</a></h1>
     
     
       <p class="meta">
@@ -148,27 +204,14 @@ bin/tim-get.sh upgrade tc-config.xml
 
 
 
-<time class='entry-date' datetime='2011-10-12T19:02:17+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>12</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>7:02 pm</span></time>
+<time class='entry-date' datetime='2011-12-23T14:54:25+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>23</span><span class='date-suffix'>rd</span>, <span class='date-year'>2011</span></span> <span class='time'>2:54 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>使用shell时经常要知道当前路径，如果将它写在提示符里很节省很多敲pwd的动作，方法是在启动文件(.bash_profile, .bashrc)里加上：</p>
-
-<p>export PS1=&ldquo;[\u@\h \w]\$ &rdquo;</p>
-
-<p>效果如下：</p>
-
-<p>[godu@NOP2-HWXX /opt/godu/terracotta-2.7.2]$ pwd
-/opt/godu/terracotta-2.7.2</p>
-
-<p>如果想持久化此效果，在~/.bash_profile文件（如果没有新建之）里追加上面的export语句。</p>
-
-<p>说明：</p>
-
-<p>PS1是bash里表示命令提示符的环境变量，\u表示用户名，\h表示host name，\w表示完整路径名，\W表示当前路径名，\$表示提示符（更多选项google"bash prompt ps1"）。以上在Solaris 10和CentOS 6中验证。</p>
+  <div class="entry-content"><p><a href="http://www.terracotta.org/confluence/display/docs27/Admin+Console+Guide#AdminConsoleGuide-Roots">http://www.terracotta.org/confluence/display/docs27/Admin+Console+Guide#AdminConsoleGuide-Roots</a></p>
 </div>
   
   
@@ -181,7 +224,7 @@ bin/tim-get.sh upgrade tc-config.xml
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/10/11/144518/">用Notepad++构建轻量级Scala开发环境</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/21/092746/">几款文件加密工具</a></h1>
     
     
       <p class="meta">
@@ -190,109 +233,38 @@ bin/tim-get.sh upgrade tc-config.xml
 
 
 
-<time class='entry-date' datetime='2011-10-11T14:45:18+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>11</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:45 pm</span></time>
+<time class='entry-date' datetime='2011-12-21T09:27:46+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>21</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>9:27 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>构建过程类似于笔记“ 基于Notepad++和Tcc的C语言开发环境 ”，只是把tcc换成 scala-2.9.1，从Scala官网下载最新版 scala-2.9.1.final.zip，解压后形成目录f:\Software\scala-2.9.1.final。</p>
+  <div class="entry-content"><p>Disguise Folder <a href="http://www.thewindowsclub.com/hide-secret-folders-disguise-folders-windows">http://www.thewindowsclub.com/hide-secret-folders-disguise-folders-windows</a>
+ <a href="http://www.freewaregenius.com/disguise-and-hide-your-sensitive-folders-with-disguise-folders-for-windows-7/">http://www.freewaregenius.com/disguise-and-hide-your-sensitive-folders-with-disguise-folders-for-windows-7/</a></p>
 
-<p> 【插件->NppExec->Execute】打开Execute窗口，输入：</p>
+<p> Easy File Locker
+v1.3, Freeware，需要安装。</p>
 
-<p> NPP_SAVE</p>
+<p>功能：可设置文件（夹）是否可读、可写、可删除、可见，实现机制是在操作系统驱动一级阻止未授权的读、写或者删除操作，而文件（夹）本身没有任何改变，因此当此软件被卸载，或者磁盘被没有安装此软件的系统读取时，被隐藏（或保护）的文件将失去保护，与普通文件一样。软件设置密码后，没有密码将不能打开软件，也不能卸载软件。</p>
 
-<p> cd &ldquo;$(CURRENT_DIRECTORY)&rdquo;
-&ldquo;f:\Software\scala-2.9.1.final\bin\scalac.bat&rdquo; &ldquo;$(FULL_CURRENT_PATH)&rdquo;
-&ldquo;f:\Software\scala-2.9.1.final\bin\scala.bat&rdquo; &ldquo;$(NAME_PART)&rdquo;</p>
+<p>总结：不存在加解密过程，读写速度快，万一忘了密码也能找回数据（卸下硬盘挂在别的机器上，或者用PE系统启动），多用户切换不知道有没有隐藏功能？属于轻量级隐藏加密，适合于隐藏一些将自己的电脑短期借给别人用的场景；
+ TrueCrypt
+v7.1, open source, 绿色软件（使用高级特性需安装）；</p>
 
-<p> 点Save保存此脚本为”Run Scala“；第一行脚本表示保存文件，第二行将当前目录设为源代码所在目录，第三行脚本编译scala源文件，第4行运行编译后的class文件；</p>
+<p>功能：有两种工作方式：文件方式和操作系统方式，文件方式类似于虚拟光驱，加载一个文件成为虚拟磁盘，操作系统方式下可以建立一个加密的操作系统；</p>
 
-<p> 后面的给这个脚本添加快捷键部分与设置tcc相同，不赘述。</p>
-</div>
-  
-  
+<p>总结：多重密码保护，可以生成隐藏操作系统，加密强度高，忘了密码数据就彻底别指望找回来了，适合于保护那些宁可销毁也不能泄露的数据；
+ FireWall
+v0.1.8, 商业软件，免费版有功能限制；</p>
 
+<p>功能：没有GUI，所有功能都集中在资源管理器的右键菜单里。对文件（夹）加密，加密后文件（夹）名称不变，内容变为乱码；</p>
 
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2011/10/07/141255/">文件夹同步软件比较</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-<time class='entry-date' datetime='2011-10-07T14:12:55+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:12 pm</span></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>比较软件列表
- Toucan: GNU/GPL, 绿色；</p>
-
-<p> Allway Sync免费版: ASF；</p>
-
-<p>GoodSync: GS, proprietary ware;</p>
-
-<p> TotalCommander: TC, proprietary ware;</p>
-
-<p>Microsoft SyncToy: ST;</p>
-
-<p>Super Flexible File Synchronizer Pro v5.54a: SFFS，proprietary ware;</p>
-
-<p> SyncBackPro: proprietary ware, SBP;</p>
-
-<p>Areca: 开源，绿色，适用于“备份”，不适用于“同步”，因为Areca中的“Repository"相当于同步目标位置，Source相当于同步源，但它会在Repo里自动加一个全数字组成的子目录，它的强大之处是可以像SVN一样记录每次备份的历史，为备份加密，备份前后可以执行脚本；</p>
-
-<p>Free File Sync: 开源，绿色，有多种同步模式，但好像不支持智能盘符； 过滤器
-同步软件的过滤器最好具有复杂逻辑判断能力，例如：将文件夹A备份到文件夹B，去除其中>500MB的文件，但其中FA, FB除外（也就是说FA,FB仍然要备份）。</p>
-
-<p>以下是各软件的过滤器比较：</p>
-
-<p>Toucan：可以用"Rules"定义；</p>
-
-<p>ASF: 有文件大小定义，但试用后达不到预期目标；</p>
-
-<p>GS: 没有文件大小定义，只有文件名定义；</p>
-
-<p>TC: 没有过滤器功能；</p>
-
-<p>SBP: 似乎有，但似乎很复杂；</p>
-
-<p>SFFS: 过滤器功能很强大，包括Include/Exclude列表、尺寸大小、时间戳等多种方式过滤；</p>
-
-<p> 任务导出/导入
-如果没有复杂逻辑筛选功能，但具备任务的导入/导出功能，那么仍然可以满足前面提到的复杂备份要求，办法是手工定义文件排除列表，然后导出任务，这样系统或者软件重装后只要导入先前定义好的任务列表即可。</p>
-
-<p>目前试用的有：</p>
-
-<p>GS: 手工生成排除列表的功能比较直观好用，也具备导入/导出任务功能；</p>
-
-<p>ASF, SFFS也具备导入/导出任务功能；
- 智能盘符
-GS不具备；</p>
-
-<p>ASF具备；</p>
-
-<p>SFFS可以在路径名中直接写盘符，例如：U52:\Backup\PersonalFinance</p>
-
-<p>还可以勾选如下选项：Edit Profile->Advanced Settings->Job->Right-hand volume must be:&hellip;</p>
-
-<p> 同步记录文件夹
-很多同步软件会在同步目标文件夹下生成一些特殊的文件夹，例如GoodSync会生成gs_data文件夹，ASF生成_SYNCAPP文件夹，ST在源和目标文件夹下都生成一个SyncToy*.dat文件，很不好，这方面Toucan和SFFS做的比较好，不生成任何额外的文件夹。
+<p>实验后发现实时加密功能似乎无效，还是我不会用？
+ AxCrypt
+开源软件，试用了便携版，只能加密文件，不能加密文件夹，加密后生成一个axx文件，需手工删除原始文件，解密时选中axx文件输入密码即可。适合加密小文件；
  总结
-Toucan是一款全功能（同步、备份、加密）软件，能过滤，能自己写脚本，支持在命令行下运行，不在文件夹下新建记录文件（夹），无需安装，推荐。使用方法详见"Settings->Help"，备份Calibre书库用Sync->Mirror方法备份，这种模式下即使目标比源新时也用源覆盖目标，保证绝对的单向备份。</p>
+对于视频文件夹的隐藏和保护，不宜使用TrueCrypt，因为这样的文件夹体积一般在10G~100G的量级，如果加密为一个文件，其巨大的体积即使不使人生疑，也很容易被当做无用文件删除掉；也不宜使用FireWall，因为对这些文件主要是隐藏而不是对其内容进行加密，且对大文件加解密也比较费时间。</p>
 </div>
   
   
@@ -305,7 +277,7 @@ Toucan是一款全功能（同步、备份、加密）软件，能过滤，能�
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/10/07/100515/">Everything搜索笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/16/093206/">在Chrome和Firefox之间同步书签</a></h1>
     
     
       <p class="meta">
@@ -314,31 +286,22 @@ Toucan是一款全功能（同步、备份、加密）软件，能过滤，能�
 
 
 
-<time class='entry-date' datetime='2011-10-07T10:05:15+08:00'><span class='date'><span class='date-month'>Oct</span> <span class='date-day'>7</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:05 am</span></time>
+<time class='entry-date' datetime='2011-12-16T09:32:06+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>16</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:32 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>搜索选项
-Search目录下有4个选项，分别是Match Case, Match Whole Word, Match Path和Enable Regex，其中的Match Path是指当搜索目标为C:\时，所有C盘下的文件都会被找到。
- 在特定目录中查找
-Everything认为多个关键词之间的空格表示 AND 关系，所以可以用这个约定实现特定目录中的查找： （全部或者部分） 路径名&lt;空格>keyword 。</p>
+  <div class="entry-content"><p>二者之间用html文件作为中介实现书签同步。</p>
 
-<p>例如对于F:\warez\Develop\Java\java_ee_sdk-5_01-solaris-i586.bin文件，如下方法都能找到：</p>
+<p>Import / Export bookmarks in Chrome: Wrench Button -> Bookmarks -> Bookmark manager(Ctrl+Shift+O) -> Organize -> Import bookmarks from HTML file/ Export bookmarks to HTML file;</p>
 
-<p> java solaris</p>
+<p>Import / Export bookmarks in Firefox: &ldquo;Firefox&rdquo; Button(upper left corner of the browser window) -> Bookmarks -> Show All Bookmarks(Ctrl+Shift+B) -> Import and Backup -> Import bookmarks from HTML file/ Export bookmarks to HTML file;</p>
 
-<p> java solaris bin</p>
+<p> 验证版本：Chrome: 15.0, Firefox: 8.0.1;</p>
 
-<p> f:\warez solaris</p>
-
-<p> java<em>solaris</em></p>
-
-<p> java* solaris</p>
-
-<p>但 java*solaris 是查不到的，因为这个表达式要求文件名必须以solaris结尾。</p>
+<p> 这个方法的好处是简单易行，无需使用任何同步工具，不受Chrome和Firefox版本的限制，可以双向同步。</p>
 </div>
   
   
@@ -351,7 +314,7 @@ Everything认为多个关键词之间的空格表示 AND 关系，所以可以�
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/09/30/092720/">D-Link DSL无线路由器设置笔记</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/14/105928/">Evernote中搜索笔记的方法</a></h1>
     
     
       <p class="meta">
@@ -360,17 +323,16 @@ Everything认为多个关键词之间的空格表示 AND 关系，所以可以�
 
 
 
-<time class='entry-date' datetime='2011-09-30T09:27:20+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>9:27 am</span></time>
+<time class='entry-date' datetime='2011-12-14T10:59:28+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:59 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>怎样修改无线网卡的SSID值
-首先登录：<a href="http://192.168.1.1/">http://192.168.1.1/</a>
-高级配置->基本配置，修改SSID后点“应用”即可。 备份无线网卡的配置
-管理->备份配置</p>
+  <div class="entry-content"><p>如果要精确匹配，用双引号括起来，例如在搜索框里输入“start.suffix”，会搜出包含单独的start的笔记，要搜只含“start.suffix”的笔记，应该在搜索框里输入“"start.suffix"”；</p>
+
+<p>搜索多个关键词可以用空格隔开；</p>
 </div>
   
   
@@ -383,7 +345,7 @@ Everything认为多个关键词之间的空格表示 AND 关系，所以可以�
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/09/29/153200/">Uname指令</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/14/104208/">Jvm提供的状态监控指令</a></h1>
     
     
       <p class="meta">
@@ -392,61 +354,31 @@ Everything认为多个关键词之间的空格表示 AND 关系，所以可以�
 
 
 
-<time class='entry-date' datetime='2011-09-29T15:32:00+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:32 pm</span></time>
+<time class='entry-date' datetime='2011-12-14T10:42:08+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>14</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>10:42 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>以下是一台Solaris 10服务器的配置信息，
- bash-3.00$ uname -a
-SunOS NOP2-HWXX 5.10 Generic_138888-03 sun4u sparc SUNW,Sun-Fire-15000
-bash-3.00$ uname -i
-SUNW,Sun-Fire-15000
-bash-3.00$ uname -m
-sun4u
-bash-3.00$ uname -n
-NOP2-HWXX
-bash-3.00$ uname -p
-sparc
-bash-3.00$ uname -r
-5.10
-bash-3.00$ uname -s
-SunOS
-bash-3.00$ uname -v
-Generic_138888-03
-bash-3.00$ uname -X
-System = SunOS
-Node = NOP2-HWXX
-Release = 5.10
-KernelID = Generic_138888-03
-Machine = sun4u
-BusType = <unknown>
-Serial = <unknown>
-Users = <unknown>
-OEM# = 0
-Origin# = 1
-NumCPU = 16
- 下面分别解释uname各选项含义：</p>
+  <div class="entry-content"><p>jps
+类似于unix的ps指令，为其他监控工具提供进程标识（PID）； jstat
+对[1]的补充如下：jstat使用-gc参数时，返回的结果包含如下项目：</p>
 
-<p> -a 全部显示；</p>
+<p> S0C S1C S0U S1U EC EU OC OU PC PU YGC YGCT FGC FGCT GCT</p>
 
-<p> -i 显示name of platform；</p>
+<p> 其中S0C表示Survivor0的容量（Capacity），S0U表示Survivor0已使用的空间（Utilization），单位都是KB （详见 <a href="http://docs.oracle.com/javase/6/docs/technotes/tools/share/jstat.html">http://docs.oracle.com/javase/6/docs/technotes/tools/share/jstat.html</a> ）。</p>
 
-<p> -m 显示机器的硬件名称；</p>
+<p>如果不关心值大小，而是已使用占容量百分比，则使用-gcutil参数，另外还有-class和-compiler参数可以监控对应线程类和编译器的行为。 jinfo
+jinfo -flags <PID>用来查看某进程（用jps查出进程号PID）的JVM参数；</p>
 
-<p> -n 显示此机器在网络中的节点名称（node name）；</p>
+<p> jstack
+jstack -m 29517 jmap
+jmap -histo 29517</p>
 
-<p> -p 显示此机器的ISA（Instruction Set Architechture，指令集框架）或者处理器（processor）名称；上文的SPARC是Sun公司的微处理器商标名；</p>
+<p>jmap -heap 29517</p>
 
-<p> -r 显示操作系统的release level（可以理解为版本号？）；</p>
-
-<p> -s 默认选项，显示操作系统名称；</p>
-
-<p> -v 显示操作系统内核ID；</p>
-
-<p> -X 分行显示操作系统相关的各项参数名称和值，注意最后一行的CPU核数；</p>
+<p>[1] 周志明：深入理解JAVA虚拟机，机械工业出版社，2011第4.2.2节。</p>
 </div>
   
   
@@ -459,7 +391,7 @@ NumCPU = 16
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/09/29/151901/">SunOS与Solaris系统的对应关系</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/12/01/142739/">在包一级定制log4j日志输出</a></h1>
     
     
       <p class="meta">
@@ -468,18 +400,86 @@ NumCPU = 16
 
 
 
-<time class='entry-date' datetime='2011-09-29T15:19:01+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>3:19 pm</span></time>
+<time class='entry-date' datetime='2011-12-01T14:27:39+08:00'><span class='date'><span class='date-month'>Dec</span> <span class='date-day'>1</span><span class='date-suffix'>st</span>, <span class='date-year'>2011</span></span> <span class='time'>2:27 pm</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>下文绝大部分译自维基百科Solaris词条的“历史”部分：</p>
+  <div class="entry-content"><p>软件开发和维护过程中，日志是必不可少的工具，对于一个10万行规模的产品，要分析它的某一部分，最简单的方法是将log4j配置文件的rootLogger的输出级别设置为debug，但这样将使产品的所有部分的debug信息都输出，一方面会对产品性能产生巨大影响，另一方面所关心部分的debug信息会淹没在其他debug日志里，比较好的解决方法是 将这一部分的debug日志单独输出到一个新的日志文件里进行分析 ，下面 以指令平台为例说明实现方法。原始的log4j.properties文件如下：</p>
 
-<p> <a href="http://en.wikipedia.org/wiki/Solaris_">http://en.wikipedia.org/wiki/Solaris_</a>(operating_system)#History</p>
+<p> log4j.rootLogger=INFO,stdout,R,errorlogger</p>
 
-<p>1987年，AT&amp;T与Sun公司宣布合作开发当时市场上最流行的类Unix操作系统（BSD, System V, Xenix）的融合版：Unix System V Release 4，即SVR4。1991年9月4日，Sun宣布用基于SVR4的系统替代使用中的SunOS 4，它的内部名称是SunOS 5，市场名称是Solaris 2。除了SunOS 4.1.x被命名为Solaris 1之外，Solaris仅指基于SVR4的SunOS 5.0及其以后的版本。SunOS的minor version被包含进了Solaris的release number中，例如：Solaris 2.4对应于SunOS 5.4，Solaris2.6之后，Sun去掉了主版本号2（类似与JDK 1.5变成了JDK 5），所以Solaris 7对应于SunOS 5.7，目前最新的SunOS 5.10对应于Solaris 10。</p>
+<p> log4j.appender.stdout=org.apache.log4j.ConsoleAppender</p>
+
+<p> log4j.appender.stdout.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.stdout.layout.ConversionPattern=[%p] [%d] [%c - %L] - [%m]%n</p>
+
+<p> log4j.appender.stdout.Threshold=INFO</p>
+
+<p> log4j.appender.R=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.R.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.R.layout.ConversionPattern=[%p] [%d] [%c - %L] - [%m]%n</p>
+
+<p> log4j.appender.R.Threshold=INFO</p>
+
+<p> log4j.appender.R.File=../log/godu.log</p>
+
+<p> log4j.appender.R.MaxFileSize=20MB</p>
+
+<p> log4j.appender.R.MaxBackupIndex=5</p>
+
+<p> log4j.appender.errorlogger=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.errorlogger.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.errorlogger.layout.ConversionPattern=[%p] [%d] [%c] - [%m]%n</p>
+
+<p> log4j.appender.errorlogger.Threshold=ERROR</p>
+
+<p> log4j.appender.errorlogger.File=../log/error.log</p>
+
+<p> log4j.appender.errorlogger.MaxFileSize=20MB</p>
+
+<p> log4j.appender.errorlogger.MaxBackupIndex=5</p>
+
+<p>可以看到这里定义了3个rootLogger（默认输出级别是INFO）：stdout向屏幕输出，R记录普通信息（指向godu.log，输出级别为INFO），errorlogger指向error.log，用来记录错误日志（ERROR及以上级别的日志）。现在我们要分析鉴权部分的工作过程，鉴权类都在com.boco.godu.framework.auth包里，要将这个包下所有类的debug信息输出到auth.log里。实现方法是在配置文件中增加一个专门处理auth包的logger：</p>
+
+<p> log4j.logger.com.boco.godu.framework.auth=DEBUG,authDebuger</p>
+
+<p> log4j.additivity.com.boco.godu.framework.auth=false</p>
+
+<p> log4j.appender.authDebuger=org.apache.log4j.RollingFileAppender</p>
+
+<p> log4j.appender.authDebuger.File=../log/auth.log</p>
+
+<p> log4j.appender.authDebuger.Append=false</p>
+
+<p> log4j.appender.authDebuger.MaxFileSize=2MB</p>
+
+<p> log4j.appender.authDebuger.MaxBackupIndex=10</p>
+
+<p> log4j.appender.authDebuger.layout=org.apache.log4j.PatternLayout</p>
+
+<p> log4j.appender.authDebuger.layout.ConversionPattern=%d{MM-dd HH:mm:ss,SSS} %t %c,%L %p - %m%n</p>
+
+<p>所以， 包一级定制logger的方法是 ：</p>
+
+<p> log4j.logger.<full package name>=OUTPUT_LEVEL, logger_name</p>
+
+<p>此logger的appender, layout的定义方法与rootLogger一样。上面第二行的作用是 避免详细日志写入rootLogger日志 ，否则新产生的大量debug日志会将之前已有的godu.log（以及godu.log.1等）冲掉，在现场环境下尤其要注意。它的一般形式是：</p>
+
+<p> log4j.additivity.<full package name>=false</p>
+
+<p> 这样就保证了auth包的debug日志不写入godu.log，additivity的默认值是true，所以如果不定义additivity，默认debug日志分别写入godu.log和auth.log中。实验发现指定rootLogger的输出级别（log4j.appender.R.Threshold=INFO）也可以避免debug日志写入godu.log里，但定义additivity更明确，是更好的方法。</p>
+
+<p>除了用来输出详细日志， 包一级定制还有一个用处：屏蔽输出 。如果不需要某些包的日志，只要将它的输出级别调高就可以了。例如我们不想看到mina包的info日志，只有mina报错才写日志，可以做如下处理：</p>
+
+<p> log4j.logger.org.apache.mina=WARN</p>
 </div>
   
   
@@ -492,7 +492,7 @@ NumCPU = 16
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2011/09/28/112244/">Unix系统的用户和用户组</a></h1>
+      <h1 class="entry-title"><a href="/blog/2011/11/30/084314/">Windows的自动登录和隐藏用户</a></h1>
     
     
       <p class="meta">
@@ -501,18 +501,100 @@ NumCPU = 16
 
 
 
-<time class='entry-date' datetime='2011-09-28T11:22:44+08:00'><span class='date'><span class='date-month'>Sep</span> <span class='date-day'>28</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>11:22 am</span></time>
+<time class='entry-date' datetime='2011-11-30T08:43:14+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>30</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>8:43 am</span></time>
         
       </p>
     
   </header>
 
 
-  <div class="entry-content"><p>下面三篇文章写得不错：</p>
+  <div class="entry-content"><p>Launch Regedit. #r -> regedit
+1. Navigate to: HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\winlogon
+ Set: AutoAdminLogon = 1 (1 means enable auto login, 0 means disable it.)
+ Tip: Try Regedit&rsquo;s 编辑->查找: AutoAdminLogon.
+2. Check for the existence of a REG_SZ type entry called DefaultUserName. If exists, the value should be the user who you wish to logon automatically. If not exists, then right-click in the right pane, 新建->字符串值, name it &ldquo;DefaultUserName&rdquo;. Set the string value to the required UserName.</p>
 
-<p><a href="http://fedora.linuxsir.org/main/?q=node/91">Linux 用户（user）和用户组（group）管理概述</a>；
-<a href="http://fedora.linuxsir.org/main/?q=node/98">用户（User）和用户组（Group）配置文件详解</a>：
-<a href="http://fedora.linuxsir.org/main/?q=node/106">Linux 用户管理工具介绍</a>：</p>
+<p>以上方法在Windows7旗舰版上通过验证。</p>
+
+<p>可选步骤：</p>
+
+<ol>
+<li><p>如果想为默认登录用户添加密码：Create a new String Value called DefaultPassword and set it as you want;</p></li>
+<li><p>If your Windows 7 Machine has joined a domain, then create a String Value called DefaultDomainName and set its value as that domain name;</p></li>
+</ol>
+
+
+<p>上面的方法可以实现隐藏用户：创建一个新用户public，将其设为DefaultUserName，然后AutoAdminLogon设为1，这样开机就自动进入了public用户，只能用“切换用户”功能进入自己使用的用户，只要给自己使用的用户加上密码就可以阻止别人使用了。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2011/11/29/143328/">Linux中新建用户</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+<time class='entry-date' datetime='2011-11-29T14:33:28+08:00'><span class='date'><span class='date-month'>Nov</span> <span class='date-day'>29</span><span class='date-suffix'>th</span>, <span class='date-year'>2011</span></span> <span class='time'>2:33 pm</span></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>使用默认配置创建用户</h1>
+
+<pre><code>useradd -p mypwd -m &lt;username&gt; 
+</code></pre>
+
+<p>-p指定用户密码，-m创建用户$HOME目录；</p>
+
+<h1>将此用户加入sudo组（可以使用sudo命令）</h1>
+
+<ul>
+<li><p>Ubuntu: <code>adduser &lt;username&gt; sudo</code></p></li>
+<li><p>CentOS and RHEL: 用<code>visudo -f /etc/sudoers</code> 指令打开/etc/sudoers文件，在文件末尾追加下面的一行</p>
+
+<p>  <username> ALL=(ALL) ALL</p></li>
+</ul>
+
+
+<p>用<code>groups &lt;username&gt;</code>查看uername属于哪些组；</p>
+
+<p>如果只是临时用一次root权限，可以不加入sudoer，而是执行：</p>
+
+<pre><code>su -c "&lt;root_command&gt;" root 
+</code></pre>
+
+<p>指令外边的双引号不能省略。</p>
+
+<h1>查看useradd指令的默认值</h1>
+
+<pre><code>useradd -D
+</code></pre>
+
+<p>设置默认Shell（保存在 /etc/default/useradd中的SHELL值里）：</p>
+
+<pre><code>useradd -D -s /bin/bash 
+</code></pre>
+
+<p>也可以为某一用户单独指定参数：</p>
+
+<pre><code>adduser [-u uid][-g group][-d home][-s shell] 
+</code></pre>
+
+<p>详见man useradd。</p>
 </div>
   
   
@@ -537,23 +619,23 @@ NumCPU = 16
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2016/04/09/204200/">Note About Rest Client</a>
+        <a href="/blog/2016/11/11/114228/">Ubuntu 14.04 Apt Update Failure</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/29/183444/">MongoDB Schema Analysis</a>
+        <a href="/blog/2016/11/05/083438/">Use Matplotlib in Python 3 on Ubuntu</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/075937/">Toggle Syntastic Mode to Speedup Vim</a>
+        <a href="/blog/2016/10/31/171345/">理解IP地址和CIDR</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/21/004603/">Persist Tmux</a>
+        <a href="/blog/2016/10/25/110137/">保证Docker的输入参数可执行</a>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/17/140426/">Git Submodule的同步问题</a>
+        <a href="/blog/2016/10/20/113258/">为vim增加undo功能</a>
       </li>
     
   </ul>

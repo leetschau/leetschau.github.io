@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Plugin | Dark Matter in Cyberspace]]></title>
   <link href="http://leetschau.github.io/blog/categories/plugin/atom.xml" rel="self"/>
   <link href="http://leetschau.github.io/"/>
-  <updated>2016-04-09T20:50:36+08:00</updated>
+  <updated>2016-11-11T14:51:43+08:00</updated>
   <id>http://leetschau.github.io/</id>
   <author>
     <name><![CDATA[Li Chao]]></name>
@@ -12,6 +12,202 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Multiple Cursors in Vim]]></title>
+    <link href="http://leetschau.github.io/blog/2016/10/02/223400/"/>
+    <updated>2016-10-02T22:34:00+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/10/02/223400</id>
+    <content type="html"><![CDATA[<p>Use plugin <a href="https://github.com/terryma/vim-multiple-cursors">vim-multiple-cursors</a>.</p>
+
+<p>Install this plugin with adding <code>Plugin 'terryma/vim-multiple-cursors'</code>
+into .vimrc.</p>
+
+<p>The default key mappings is C-n for start multiple cursors and move to next,
+C-p for previous, C-x to skip, and <ECS> for quit.
+For C-n conflicts with nerdtree, modify the nerdtree trigger to <code>C-i</code>:
+<code>
+nnoremap &lt;C-i&gt; :NERDTreeTabsToggle&lt;CR&gt;
+</code></p>
+
+<p>Note:</p>
+
+<p>Do <strong>not</strong> map &lsquo;next/previous&rsquo; to C-j/k as follows:</p>
+
+<pre><code>" multiple cursors configs
+let g:multi_cursor_next_key='&lt;C-j&gt;'
+let g:multi_cursor_prev_key='&lt;C-k&gt;'
+</code></pre>
+
+<p>for C-j/k is mapped to keys jumping between windows.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[在vim中执行shell命令的插件]]></title>
+    <link href="http://leetschau.github.io/blog/2016/07/02/024310/"/>
+    <updated>2016-07-02T02:43:10+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/07/02/024310</id>
+    <content type="html"><![CDATA[<p>需要做一个vim工具，基本功能是通过一个快捷键，把选中的内容（或者当前行）发送到指定的tmux pane中，并执行。</p>
+
+<h1>实现过程</h1>
+
+<p>目录结构：当前工作目录下有 sendcmd.vim 和 test.md 两个文件，
+前者包含实现功能的 vim 函数，后者是包含要执行命令行的数据文件。</p>
+
+<p>开发环境：tmux window 1 做sendcmd.vim开发，window 2 上下拆分为两个pane
+，上面 (ptop) 是命令行，下面的 pane (pbottom) 中用 vim 打开数据文件test.md.</p>
+
+<p>每次修改并保存sendcmd.vim后，在test.md中执行<code>:so sendcmd.vim</code>，
+然后把光标移动到要执行的命令所在的行上按<code>F3</code>键就可以看到命令被发送到ptop里的
+执行效果了。</p>
+
+<h2>格式探测</h2>
+
+<p>这一步要解决的问题是：怎样的字符串，才能被<code>tmux send-keys</code>正确地传送出去，
+并能正确的执行。</p>
+
+<p>首先要保证运行<code>tmux send-keys</code>不报错，如果报错，
+将第5行的输出拷贝到一个单独的命令行中运行，解决错误。</p>
+
+<p>这一步通过后，如果命令被传送到<code>ptop</code>后报错，根据错误日志解决之。</p>
+
+<p>sendcmd.vim：</p>
+
+<pre><code>
+function! SendCmd()
+  let curline = getline(".")
+  echom curline
+  let cmd = "tmux send-keys -t top '" . curline . "' Enter"
+  echom cmd
+  echom system(cmd)
+endfunction
+
+nnoremap &lt;F3&gt; :call SendCmd()&lt;CR&gt;
+</code></pre>
+
+<p>说明：</p>
+
+<ul>
+<li>为什么第4行中<code>curline</code>要用单引号（而不是双引号）包裹？</li>
+</ul>
+
+
+<p>因为要执行的命令中可能包含变量（如es, idx等），双引号包裹的变量会被求值，
+而我们的要求是这些变量不能被求值，要等到被发送到ptop后再被求值。由于这个原因，
+第4行包裹外层<code>tmux send-keys</code>的命令就只能用双引号包裹。</p>
+
+<ul>
+<li>vimscript如何连接字符串？</li>
+</ul>
+
+
+<p>同样参考第4行，用点（ . ）连接。</p>
+
+<ul>
+<li><code>tmux send-keys -t top</code> 可以将keys从下面的pane发给上面，
+也可以从左侧发到右侧，但如果是在右侧pane里执行这个语句，则会被发给自己。</li>
+</ul>
+
+
+<p>test.md：</p>
+
+<pre><code>es=http://192.168.100.231:9200
+api=http://192.168.100.231:8000
+idx=production
+type=Fair
+
+# get elasticsearch version
+http $es | jq '.version.number'
+
+# list all indices
+http -b GET $es'/_cat/indices?v'
+http -b GET $es'"'"'/_cat/indices?v'"'"'
+
+# list all types of a index
+http -b GET $es/$idx/_mapping|jq ".$idx.mappings|keys"
+
+# list all properties of a type
+http -b GET $es/$idx/_mapping|jq ".$idx.mappings.$type.properties|keys"
+
+# get objects count in a type
+http -b GET $es/$idx/$type/_count|jq '.count'
+http -b GET $es/$idx/$type/_count|jq '"'"'.count'"'"'
+
+# query result count
+http -b POST $es/$idx/$type/_search query:='{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}' | jq '.hits.total'
+http -b POST $es/$idx/$type/_search query:=''{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}''
+http -b POST $es/$idx/$type/_search query:='"'"'{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}'"'"'
+http -b POST $es/$idx/$type/_search query:='"'"'{"bool":{"must":[{"query_string":{"query":"五金机械"}}]}}'"'"' | jq '"'"'.hits.total'"'"'
+</code></pre>
+
+<p>通过不断尝试后，发现用<code>'"'"'</code>代替<code>'</code>就能正确的发送并执行，
+见第10,11行，20,21行，24~27行。</p>
+
+<p>下面以第10行为例分析其结构：</p>
+
+<ol>
+<li><p>第一个单引号与外层的单引号结合，包裹它们中间的内容<code>http -b GET $es</code>，
+保证里面的特殊字符（<code>$</code>）不会被求值；</p></li>
+<li><p>中间的<code>"'"</code>是一组，实现被<code>tmux</code>发送后，最终执行的命令行里仍有一个单引号
+（<code>$es</code>后面的单引号）；</p></li>
+<li><p>最后的单引号，与后面的<code>'"'"'</code>中最左边的单引号组合，
+包裹中间的内容<code>/_cat/indices?v</code>，如果没有这一组单引号，
+里面的问好就会被求值，导致命令无法执行。</p></li>
+</ol>
+
+
+<p>这一步实现了在第11、21、27行上按<code>F3</code>键可以正确执行。</p>
+
+<h2>整合进vim function</h2>
+
+<p>这一步将前面的测试结果放进vim函数中，实现在第10、20、24行上能够正确执行。</p>
+
+<p>sendcmd.vim：
+<code>
+function! SendCmd()
+  let curline = getline(".")
+  echom curline
+  let escstr = substitute(curline, "'", "'\"'\"'", 'g')
+  let cmd = "tmux send-keys -t top '" . escstr . "' Enter"
+  echom cmd
+  echom system(cmd)
+endfunction
+nnoremap &lt;F3&gt; :call SendCmd()&lt;CR&gt;
+</code></p>
+
+<h2>制作成插件</h2>
+
+<p>当功能基本定型后，可以把脚本变成插件，避免每次使用时加载。</p>
+
+<p>最简单的vim插件，只要在一个目录（tmuxcmd）里创建一个<code>plugin</code>目录，
+把.vim脚本放进去，然后把目录做成git库就行了：</p>
+
+<pre><code>mkdir -p tmuxcmd/plugin
+mv test.vim tmuxcmd/plugin/tmuxcmd.vim
+cd tmuxcmd
+git init
+git add ...; git commit -m "..."
+</code></pre>
+
+<p>在.vimrc里加入这个插件：增加一行代码：<code>Plugin 'file:///home/leo/temp/tmuxcmd'</code></p>
+
+<p>安装：<code>vim +PluginInstall</code></p>
+
+<p>安装过程实际是把代码库clone到~/.vim/bundle下，
+修改~/.vim/bundle/tmuxcmd/plugin/tmuxcmd.vim文件在新的vim编辑器中不会生效。</p>
+
+<p>本地插件需要保存一个本地目录，更简单的方法是发布到github上，再用vundle安装：</p>
+
+<ol>
+<li><p>把代码库push到github上：
+<a href="https://github.com/leetschau/tmuxcmd">leetschau/tmuxcmd</a></p></li>
+<li><p>在.vimrc中，把原来的<code>Plugin 'file:///home/leo/temp/tmuxcmd'</code>换成
+<code>Plugin 'leetschau/tmuxcmd'</code></p></li>
+</ol>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Vim Snippet Plugins]]></title>
@@ -98,7 +294,7 @@ So I adopted <code>noremap &lt;leader&gt;1 1gt</code> style based on
 <a href="http://superuser.com/questions/410982/in-vim-how-can-i-quickly-switch-between-tabs">In vim, how can I quickly switch between tabs?</a>.</p>
 
 <p>Mapping long Ex commands with <code>cabbrev</code> is a very useful for convenient.
-Use <Space> instead of <Tab> to enable abbreviation in <code>cabbrev</code>.
+Use <Space> or <Enter> instead of <Tab> to enable abbreviation in <code>cabbrev</code>.
 See <code>:h :ca</code>, <a href="http://stackoverflow.com/questions/117150/can-i-re-map-commands-in-vim">Can I (re-) map commands in vim?</a>
 and <a href="http://stackoverflow.com/questions/3878692/aliasing-a-command-in-vim">Aliasing a command in vim</a>
 for details.</p>
@@ -158,99 +354,21 @@ and run <code>vim +PluginClean +PluginInstall +qa</code>.</p>
 </table>
 
 
-<p>In &ldquo;:Gstatus&rdquo; window, you can use &ldquo;-&rdquo; to add a file in/out stage area,
-use &ldquo;cc&rdquo; to commit, use &ldquo;g?&rdquo; to see all available actions.</p>
+<h2>In Gstatus</h2>
+
+<p>In &ldquo;:Gst&rdquo; window, you can use
+&ldquo;-&rdquo; to add/remove a file in/out stage area,
+&ldquo;cc&rdquo; to commit,
+&ldquo;U&rdquo; to reset (discard local changes), you may need reload the file with <code>:e</code>
+&ldquo;dv&rdquo; to diff in vertical split,
+&ldquo;ds&rdquo; or &ldquo;D&rdquo; to diff in horizontal split (<code>:q</code> to quit from diff)
+&ldquo;g?&rdquo; to see all available actions.</p>
 
 <p>To see the file changes history: <code>:Git log --stat</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Add Vim Mode for Eclipse With Vrapper]]></title>
-    <link href="http://leetschau.github.io/blog/2014/04/23/113830/"/>
-    <updated>2014-04-23T11:38:30+08:00</updated>
-    <id>http://leetschau.github.io/blog/2014/04/23/113830</id>
-    <content type="html"><![CDATA[<h1>Installation</h1>
 
-<p>Install vrapper 0.42.0 in market place of eclipse.</p>
+<h1>Working with nerdtree</h1>
 
-<h2>Install with proxy (in Linux)</h2>
-
-<ol>
-<li><p>Run commands:</p>
-
-<p> $ cd $ECLIPSE_HOME
- $ export http_proxy=<a href="http://127.0.0.1:8087">http://127.0.0.1:8087</a>
- $ export https_proxy=<a href="http://127.0.0.1:8087">http://127.0.0.1:8087</a>
- $ ./eclipse</p></li>
-<li><p>After eclipse startup, install vrapper as usual. The proxy will work for eclipse automatically. Uninstall vrapper and other plugin in main menu of eclipse -> Help -> About Eclipse -> Installation Details.</p></li>
-</ol>
-
-
-<h1>Usage</h1>
-
-<p>Ref: <a href="http://vrapper.sourceforge.net/documentation">Vrapper Documentation</a></p>
-
-<ul>
-<li>Configuration file: ~/.vrapperrc</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Development With Vim on Multiple Layers Project]]></title>
-    <link href="http://leetschau.github.io/blog/2013/06/28/091322/"/>
-    <updated>2013-06-28T09:13:22+08:00</updated>
-    <id>http://leetschau.github.io/blog/2013/06/28/091322</id>
-    <content type="html"><![CDATA[<h1>ctrlp</h1>
-
-<p>Install <a href="https://github.com/kien/ctrlp.vim">ctrlp</a> with vundle:</p>
-
-<pre><code>Plugin 'ctrlp.vim'
-</code></pre>
-
-<p>It is more powerful, faster than FuzzyFinder, and easier to install and use.</p>
-
-<p>Use <Ctrl-P> to search files recursively under current folder.</p>
-
-<p>In the search results window, you have 2 ways to open the selected file:</p>
-
-<ul>
-<li><p>press <Enter> to open file in current window,</p></li>
-<li><p>press <Ctrl-O> to choose how to open the file, for example &ldquo;h&rdquo; to open it in a new horizontal window.</p></li>
-</ul>
-
-
-<h1>FuzzyFinder</h1>
-
-<p><a href="https://github.com/vim-scripts/FuzzyFinder">FuzzyFinder</a> (created by Takeshi NISHIDA)
-is a powerful search tool like &ldquo;go to everything&rdquo; in sublime text 2.
-Command-T is a similar tool. But it need ruby and have to compile it.</p>
-
-<p>L9 plugin (also created by Takeshi NISHIDA) is needed to use this plugin.</p>
-
-<h2>Search and Open File</h2>
-
-<h3>CoverageFile Mode</h3>
-
-<p>This mode is invoked by command :FufCoverageFile.
-It includes all files in current working directory and subdirectories.
-Note it only matches characters in one name.</p>
-
-<p>Say you have a file at ./abc/def/stu.xyz,
-you can find it with &ldquo;suyz&rdquo;, &ldquo;sxyz&rdquo; or any combinations of characters in &ldquo;stu.xyz&rdquo;.
-But &ldquo;ads&rdquo; and &ldquo;des&rdquo; will match nothing.
-You can find it with partial name, in this case &ldquo;d/s&rdquo; will get stu.xyz.</p>
-
-<p>Add <code>nnoremap &lt;C-o&gt; :FufCoverageFile&lt;CR&gt;</code> in ~/.vimrc to map ctrl-o to invoke Coverage File command,
-then input the filename pattern, then press <CR>.
-Cancel it with <ESC> key.</p>
-
-<h3>File Mode</h3>
-
-<p>This mode is invoked by command :FufFile.
-It only includes files in current working directory, without files in subdirectories (so not very useful).</p>
+<p>Add <code>Plugin 'Xuyuanp/nerdtree-git-plugin'</code> into .vimrc.</p>
 ]]></content>
   </entry>
   

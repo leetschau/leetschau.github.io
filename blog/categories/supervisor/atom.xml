@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Supervisor | Dark Matter in Cyberspace]]></title>
+  <link href="http://leetschau.github.io/blog/categories/supervisor/atom.xml" rel="self"/>
+  <link href="http://leetschau.github.io/"/>
+  <updated>2016-11-11T14:51:43+08:00</updated>
+  <id>http://leetschau.github.io/</id>
+  <author>
+    <name><![CDATA[Li Chao]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[基于Flask的Python微服务]]></title>
+    <link href="http://leetschau.github.io/blog/2016/04/29/104211/"/>
+    <updated>2016-04-29T10:42:11+08:00</updated>
+    <id>http://leetschau.github.io/blog/2016/04/29/104211</id>
+    <content type="html"><![CDATA[<h1>收发JSON报文</h1>
+
+<p>下面基于Flask实现了最简单的JSON报文收发功能，收到请求后打印出内容，
+重新组织后返回给客户端。
+使用Flask的request.get_json()接收HTTP POST中的JSON报文，
+使用json.dumps()发送JSON报文：</p>
+
+<p>创建并启动服务：
+```
+cat &lt;&lt; EOF > server.py
+from flask import Flask, request
+import json</p>
+
+<p>app = Flask(<strong>name</strong>)</p>
+
+<p>@app.route(&lsquo;/api/<user>/<uuid>&rsquo;, methods=[&lsquo;GET&rsquo;, &lsquo;POST&rsquo;])
+def add_message(user, uuid):
+  content = request.get_json()
+  print(content)
+  return json.dumps({&ldquo;user&rdquo;: user, &ldquo;uuid&rdquo;: uuid})</p>
+
+<p>if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:
+  app.run(host= &lsquo;0.0.0.0&rsquo;, port=3000, debug=True)
+EOF</p>
+
+<p>python server.py
+```</p>
+
+<p>用httpie和jq测试：
+<code>http POST localhost:3000/api/chad/097aa543 head:='{"a1":"bb","c3":"dd"}' body=theBody | jq '.user'</code></p>
+
+<h1>一个简单的Python微服务实现</h1>
+
+<p>下面这个服务接收HTTP请求发送来的shell脚本，执行之，并根据用户需求返回控制台输出。
+为了保证服务器的安全，生产环境中的这类服务需要校验客户端身份，
+并为传入的命令设置白名单。</p>
+
+<p>服务器接收的url包括mode和uuid两个字段，mode分exec和poll两种情况，
+前者要求服务器开始执行Post body中的指令，后者查看当前运行指令的控制台输出。
+uuid可以用于验证客户端合法性，例如客户端以"调用者+时间戳"并加密后生成uuid，
+服务器验证调用者和时间戳的有效性。</p>
+
+<p>服务端的配置项包括服务监听的端口以及返回控制台输出的行数。</p>
+
+<p>创建并启动服务：
+```
+cat &lt;&lt; EOF > server.py
+from flask import Flask, request
+import json
+from subprocess import Popen, PIPE
+from threading import Thread
+from queue import Queue</p>
+
+<p>PORT = 3000
+CMD_LINE_NUM = 3</p>
+
+<p>app = Flask(<strong>name</strong>)
+output_q = Queue(CMD_LINE_NUM)
+cmd_q = []</p>
+
+<p>def save_newest_output(p, queue, cmds):
+    while p.poll() is None:
+        line = p.stdout.readline().decode().strip()  # blocking read
+        if queue.full():
+            queue.get()   # abandon old output silently
+        queue.put(line)
+    cmds.clear()</p>
+
+<p>@app.route(&lsquo;/api/<mode>/<uuid>&rsquo;, methods=[&lsquo;GET&rsquo;, &lsquo;POST&rsquo;])
+def run_cmd(mode, uuid):
+    if mode == &lsquo;exec&rsquo;:
+        if len(cmd_q) > 0:
+            return json.dumps({&ldquo;mode&rdquo;: mode, &ldquo;status&rdquo;: &ldquo;busy&rdquo;})
+        cmd = request.get_json()[&lsquo;cmd&rsquo;]
+        proc = Popen(cmd, shell=True, stdout=PIPE)
+        cmd_q.append(proc)
+        t = Thread(target=save_newest_output, args=(proc, output_q, cmd_q))
+        t.daemon = True
+        t.start()
+        return json.dumps({&ldquo;mode&rdquo;: mode, &ldquo;status&rdquo;: &ldquo;accepted&rdquo;})
+    if mode == &lsquo;poll&rsquo; and len(cmd_q) > 0:
+        lines = []
+        while not output_q.empty():
+            line = output_q.get_nowait()
+            lines.append(line)
+        return json.dumps({&ldquo;mode&rdquo;: mode,
+                           &ldquo;status&rdquo;: &ldquo;running&rdquo;,
+                           &ldquo;output&rdquo;: &lsquo;\n&rsquo;.join(lines)
+                           })
+    return json.dumps({&ldquo;mode&rdquo;: mode, &ldquo;status&rdquo;: &ldquo;finished&rdquo;})</p>
+
+<p>if <strong>name</strong> == &lsquo;<strong>main</strong>&rsquo;:
+    app.run(host=&lsquo;0.0.0.0&rsquo;, port=PORT, debug=True)
+EOF
+python server.py
+```
+Shell脚本在一个单独的进程中运行，并由一个独立的Thread读取它的输出，
+保证HTTP服务不会被阻塞。</p>
+
+<p>测试客户端：
+<code>
+cat &lt;&lt; EOF &gt; test.py
+from time import sleep
+for i in range(28, 49):
+    print(i, flush=True)
+    sleep(2)
+EOF
+http POST localhost:3000/api/exec/097aa543 cmd='python3 test.py'    # accepted
+http POST localhost:3000/api/exec/097aa543 cmd='python3 test.py'    # busy
+http POST localhost:3000/api/poll/097aa543         # realtime output: 30, 31, 32
+sleep 10
+http POST localhost:3000/api/poll/097aa543         # realtime output: 37, 38, 39
+sleep 40
+http POST localhost:3000/api/poll/097aa543         # status: finished
+http POST localhost:3000/api/exec/097aa543 cmd='python3 test.py'    # accepted
+</code></p>
+
+<p>为了保证输出不会被缓存，需要在print函数中增加<code>flush=True</code>，只有Python 3支持，
+所以运行测试脚本时需要用<code>python3 test.py</code>.</p>
+
+<p>在Python 3.4.3, Flask 0.10.1上测试通过。</p>
+
+<h1>服务管理</h1>
+
+<p>这里使用<a href="http://supervisord.org/">Supervisor</a>管理Python进程，
+相比于Monit, start-stop-daemon等工具，它的优点是不依赖pidfile，配置方便，
+提供日志输出，文档写得好。</p>
+]]></content>
+  </entry>
+  
+</feed>
