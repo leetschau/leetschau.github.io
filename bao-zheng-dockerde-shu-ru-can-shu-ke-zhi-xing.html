@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="docker, entrypoint, command, Tech, " />
+
+<meta property="og:title" content="保证Docker的输入参数可执行 "/>
+<meta property="og:url" content="/bao-zheng-dockerde-shu-ru-can-shu-ke-zhi-xing.html" />
+<meta property="og:description" content="写Docker的entrypoint时有个问题是： Docker启动后如果用户的cmd参数以可执行命令开头， 这个命令覆盖entrypoint中的可执行命令，否则执行的是entrypoint cmd。 怎样实现entrypoint对cmd是否可执行的判断？ appropriate/docker-curl中的 latest/entrypoint.sh脚本给出了一种实现方法： 1 2 3 4 5 6 7 8 9#!/bin/sh set -e # Prepend &#34;curl&#34; if the first argument is not an executable if ! type -- &#34;$1&#34; &amp;&gt; /dev/null; then set -- curl &#34;$@&#34; fi exec &#34;$@&#34; 这段脚本的功能是：如果用户在run这个image时，cmd是以可执行命令（或者文件 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2016-10-25T10:36:57+08:00" />
+<meta property="" content="2016-10-25T10:36:57+08:00" />
+<meta name="twitter:title" content="保证Docker的输入参数可执行 ">
+<meta name="twitter:description" content="写Docker的entrypoint时有个问题是： Docker启动后如果用户的cmd参数以可执行命令开头， 这个命令覆盖entrypoint中的可执行命令，否则执行的是entrypoint cmd。 怎样实现entrypoint对cmd是否可执行的判断？ appropriate/docker-curl中的 latest/entrypoint.sh脚本给出了一种实现方法： 1 2 3 4 5 6 7 8 9#!/bin/sh set -e # Prepend &#34;curl&#34; if the first argument is not an executable if ! type -- &#34;$1&#34; &amp;&gt; /dev/null; then set -- curl &#34;$@&#34; fi exec &#34;$@&#34; 这段脚本的功能是：如果用户在run这个image时，cmd是以可执行命令（或者文件 …">
+
+        <title>保证Docker的输入参数可执行  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/bao-zheng-dockerde-shu-ru-can-shu-ke-zhi-xing.html"> 保证Docker的输入参数可执行  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>写Docker的entrypoint时有个问题是：
+Docker启动后如果用户的cmd参数以可执行命令开头，
+这个命令覆盖entrypoint中的可执行命令，否则执行的是<code>entrypoint cmd</code>。</p>
+<p>怎样实现entrypoint对cmd是否可执行的判断？</p>
+<p><a href="https://github.com/appropriate/docker-curl">appropriate/docker-curl</a>中的
+latest/entrypoint.sh脚本给出了一种实现方法：</p>
+<table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+<span class="nb">set</span> -e
+
+<span class="c1"># Prepend &quot;curl&quot; if the first argument is not an executable</span>
+<span class="k">if</span> ! <span class="nb">type</span> -- <span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span> <span class="p">&amp;</span>&gt; /dev/null<span class="p">;</span> <span class="k">then</span>
+  <span class="nb">set</span> -- curl <span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span>
+<span class="k">fi</span>
+
+<span class="nb">exec</span> <span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span>
+</pre></div>
+</td></tr></table>
+
+<p>这段脚本的功能是：如果用户在run这个image时，cmd是以可执行命令（或者文件）开头
+（例如cmd是<code>curl www.google.com</code>），那么执行这个cmd，否则
+（例如cmd是<code>www.google.com</code>）给这个cmd前面加上<code>curl</code>再执行。</p>
+<p>根据<a href="http://linuxcommand.org/lc3_man_pages/seth.html">set manpage</a>，
+上面脚本第2行<code>set -e</code>的意思是如果执行过程中出现错误直接退出。</p>
+<p>第5行用于判断cmd的第一部分是否为可执行命令，如果是跳到最后一行直接执行cmd整体，
+否则在<code>$@</code>前面加上<code>curl</code>，然后再执行。</p>
+<p>第5行中的<code>--</code>的作用是避免<code>$1</code>以横杠开头时干扰<code>type</code>的判断，在bash中做如下实验：</p>
+<div class="highlight"><pre><span></span>$ <span class="nb">type</span> ls <span class="p">&amp;</span>&gt; /dev/null         <span class="c1"># return 0</span>
+$ <span class="nb">type</span> -p ls <span class="p">&amp;</span>&gt; /dev/null     <span class="c1"># return 0</span>
+$ <span class="nb">type</span> -- -p ls <span class="p">&amp;</span>&gt; /dev/null  <span class="c1"># return 1</span>
+</pre></div>
+
+
+<p>可以看到，当cmd是<code>-p ls</code>时（第2条语句），如果不加<code>--</code>，
+整个<code>type -p ls</code>的返回结果是0（因为<code>-p</code>被当成了<code>type</code>的选项），
+但<code>-p</code>显然不是可执行命令，所以<code>--</code>是必需的。</p>
+<p><code>&amp;</code>将命令变为后台运行，<code>&gt; /dev/null</code>去掉所有输出，二者组合起来的意思是：
+不要任何输出，只告诉我命令执行是否成功了（返回值0表示成功，否则表示失败）。
+做如下实验（假设当前目录下有<code>docs</code>子目录，没有<code>aaa</code>子目录）：</p>
+<div class="highlight"><pre><span></span>cd docs
+cd docs &amp;
+cd docs &amp;&gt;/dev/null
+cd aaa
+cd aaa &amp;
+cd aaa &amp;&gt;/dev/null
+</pre></div>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2016-10-25T10:36:57+08:00">Oct 25, 2016</time>
+
+<h4>Last Updated</h4>
+<time datetime="2016-10-25T10:36:57+08:00">Oct 25, 2016</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#command-ref">command
+                    <span>2</span>
+</a></li>
+                <li><a href="/tags.html#docker-ref">docker
+                    <span>10</span>
+</a></li>
+                <li><a href="/tags.html#entrypoint-ref">entrypoint
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

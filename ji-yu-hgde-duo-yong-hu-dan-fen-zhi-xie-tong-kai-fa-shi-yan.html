@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="collaborate, Hg, Tech, " />
+
+<meta property="og:title" content="基于hg的多用户单分支协同开发试验 "/>
+<meta property="og:url" content="/ji-yu-hgde-duo-yong-hu-dan-fen-zhi-xie-tong-kai-fa-shi-yan.html" />
+<meta property="og:description" content="协同方法 在所有开发人员中指定一个Server，类似于svn repo。其他人（Client）的代码是server的副本，修改、测试稳定后立即合并回server（最好通过server的pull方法实现，比client push更保险），server将client提交的更新与自己的更新合并（merge）后立即push回client，要注意的是server在pull之前要确保working directory中没有未提交的更改（未完成功能，用&#34;hg st&#34;命令的输出是否为空来检验，为空说明没有未完成功能），因为merge后必须提交一个“合并版本”到版本库，如果有未完成功能，也会被提交到版本库中。 A和B在同步过代码后，如果A提交了新changeset，而此期间B没有提交过，则A可以把变化push给B，这时B不需要merge，只update即可，update后可以用hg log -l 1 -v查看哪些文件发生了变化，以及A的提交说明； 整个协同过程中不需要新建branch或者bookmark，估计是最简单的分布式版本控制系统的协同模型。 试验过程 Server（username: Li Chao）新建一个repo，添加文件，提交changeset …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2013-04-25T12:43:02+08:00" />
+<meta property="" content="2013-04-25T12:43:02+08:00" />
+<meta name="twitter:title" content="基于hg的多用户单分支协同开发试验 ">
+<meta name="twitter:description" content="协同方法 在所有开发人员中指定一个Server，类似于svn repo。其他人（Client）的代码是server的副本，修改、测试稳定后立即合并回server（最好通过server的pull方法实现，比client push更保险），server将client提交的更新与自己的更新合并（merge）后立即push回client，要注意的是server在pull之前要确保working directory中没有未提交的更改（未完成功能，用&#34;hg st&#34;命令的输出是否为空来检验，为空说明没有未完成功能），因为merge后必须提交一个“合并版本”到版本库，如果有未完成功能，也会被提交到版本库中。 A和B在同步过代码后，如果A提交了新changeset，而此期间B没有提交过，则A可以把变化push给B，这时B不需要merge，只update即可，update后可以用hg log -l 1 -v查看哪些文件发生了变化，以及A的提交说明； 整个协同过程中不需要新建branch或者bookmark，估计是最简单的分布式版本控制系统的协同模型。 试验过程 Server（username: Li Chao）新建一个repo，添加文件，提交changeset …">
+
+        <title>基于hg的多用户单分支协同开发试验  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/ji-yu-hgde-duo-yong-hu-dan-fen-zhi-xie-tong-kai-fa-shi-yan.html"> 基于hg的多用户单分支协同开发试验  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<h1>协同方法</h1>
+<p>在所有开发人员中指定一个Server，类似于svn repo。其他人（Client）的代码是server的副本，修改、测试稳定后立即合并回server（最好通过server的pull方法实现，比client push更保险），server将client提交的更新与自己的更新合并（merge）后立即push回client，要注意的是server在pull之前要确保working directory中没有未提交的更改（未完成功能，用"hg st"命令的输出是否为空来检验，为空说明没有未完成功能），因为merge后必须提交一个“合并版本”到版本库，如果有未完成功能，也会被提交到版本库中。</p>
+<p>A和B在同步过代码后，如果A提交了新changeset，而此期间B没有提交过，则A可以把变化push给B，这时B不需要merge，只update即可，update后可以用hg log -l 1 -v查看哪些文件发生了变化，以及A的提交说明；</p>
+<p>整个协同过程中不需要新建branch或者bookmark，估计是最简单的分布式版本控制系统的协同模型。</p>
+<h1>试验过程</h1>
+<p>Server（username: Li Chao）新建一个repo，添加文件，提交changeset，Client（username: chadOnPC）clone此repo，修改其中一个文件，与此同时Li Chao修改了另一个文件，chadOnPC将修改push回笔记本，Li Chao合并两部分修改，再修改这两个文件，push到Client，由于这期间Client没有修改，所以只要update就把Server push的内容更新到了working directory中。</p>
+<p>========== Server ================</p>
+<p>c:\tmp\HgRepo&gt;hg init 
+// 新建两个文件：forChadLaptop.txt和forChadPC.txt并写一些内容在文件里 
+c:\tmp\HgRepo&gt;hg add <em>.txt 
+c:\tmp\HgRepo&gt;hg stat 
+A forChadLaptop.txt 
+A forChadPC.txt 
+c:\tmp\HgRepo&gt;hg ci -m "first checkin" 
+c:\tmp\HgRepo&gt;hg log 
+changeset: 0:fd200857b086 
+tag:   tip 
+user:  Li Chao 
+date:  Thu Apr 25 11:32:24 2013 +0800 
+summary:  first checkin 
+c:\tmp\HgRepo&gt;hg heads 
+changeset: 0:fd200857b086 
+tag:   tip 
+user:  Li Chao 
+date:  Thu Apr 25 11:32:24 2013 +0800 
+summary:  first checkin 
+c:\tmp\HgRepo&gt;hg serve 
+listening at http://chadlaptop:8000/ (bound to </em>:8000) 
+=========== Client ============== 
+E:\lc\clonedRepo&gt;hg clone http://chadlaptop:8000/ 
+... 
+E:\lc\clonedRepo&gt;hg log 
+changeset: 0:fd200857b086 
+tag:   tip 
+user:  Li Chao 
+date:  Thu Apr 25 11:32:24 2013 +0800 
+files:  forChadLaptop.txt forChadPC.txt 
+description: 
+first checkin 
+E:\lc\clonedRepo&gt;hg st 
+// edit file "forChadPC.txt" 
+E:\lc\clonedRepo&gt;hg st 
+M forChadPC.txt 
+E:\lc\clonedRepo&gt;hg ci -m "first on pc" 
+forChadPC.txt 
+committed changeset 1:2c5fbbb6645b 
+E:\lc\clonedRepo&gt;hg log 
+changeset: 1:2c5fbbb6645b 
+tag:   tip 
+user:  chadOnPC 
+date:  Thu Apr 25 11:42:09 2013 +0800 
+files:  forChadPC.txt 
+description: 
+first on pc 
+changeset: 0:fd200857b086 
+user:  Li Chao 
+date:  Thu Apr 25 11:32:24 2013 +0800 
+files:  forChadLaptop.txt forChadPC.txt 
+description: 
+first checkin 
+/<strong> 需要在被push的repo的.hg/hgrc文件中增加如下内容（如果文件不存在新建之）： 
+ * [web] 
+ * push_ssl = false 
+ * allow_push = * 
+</strong>/ 
+E:\lc\clonedRepo&gt;hg push http://chadlaptop:8000/ 
+pushing to http://chadlaptop:8000/ 
+searching for changes 
+1 changesets found 
+remote: adding changesets 
+remote: adding manifests 
+remote: adding file changes 
+remote: added 1 changesets with 1 changes to 1 files 
+============= Server ================== 
+// 修改forChadLaptop.txt文件 
+c:\tmp\HgRepo&gt;hg st 
+M forChadLaptop.txt // 修改被感知到 
+c:\tmp\HgRepo&gt;hg heads 
+changeset: 1:2c5fbbb6645b 
+tag:   tip 
+user:  chadOnPC 
+date:  Thu Apr 25 11:42:09 2013 +0800 
+summary:  first on pc // 与push之前笔记本上"hg heads"命令相比，head变成了push过来的那个changeset 
+c:\tmp\HgRepo&gt;hg st 
+M forChadLaptop.txt // push不改变working dirctory中的文件 
+c:\tmp\HgRepo&gt;hg ci -m "second commit on laptop" 
+created new head 
+c:\tmp\HgRepo&gt;hg heads 
+changeset: 2:42809e7d6c58 
+tag:   tip 
+parent:  0:fd200857b086 
+user:  Li Chao 
+date:  Thu Apr 25 11:54:05 2013 +0800 
+summary:  second commit on laptop 
+changeset: 1:2c5fbbb6645b 
+user:  chadOnPC 
+date:  Thu Apr 25 11:42:09 2013 +0800 
+summary:  first on pc  // head变成了两个 
+c:\tmp\HgRepo&gt;hg branch 
+default   // branch始终只有default一个 
+c:\tmp\HgRepo&gt;hg merge 
+1 files updated, 0 files merged, 0 files removed, 0 files unresolved 
+(branch merge, don't forget to commit) 
+c:\tmp\HgRepo&gt;hg st 
+M forChadPC.txt  // merge命令改变了working directory中文件的内容 
+c:\tmp\HgRepo&gt;hg ci -m "merge from pc" 
+c:\tmp\HgRepo&gt;hg log 
+changeset: 3:ba028970a1d0 
+tag:   tip 
+parent:  2:42809e7d6c58 
+parent:  1:2c5fbbb6645b 
+user:  Li Chao 
+date:  Thu Apr 25 11:57:17 2013 +0800 
+summary:  merge from pc 
+changeset: 2:42809e7d6c58 
+parent:  0:fd200857b086 
+user:  Li Chao 
+date:  Thu Apr 25 11:54:05 2013 +0800 
+summary:  second commit on laptop 
+changeset: 1:2c5fbbb6645b 
+user:  chadOnPC 
+date:  Thu Apr 25 11:42:09 2013 +0800 
+summary:  first on pc 
+changeset: 0:fd200857b086 
+user:  Li Chao 
+date:  Thu Apr 25 11:32:24 2013 +0800 
+summary:  first checkin 
+=========== Client =====================</p>
+<p>E:\lc\clonedRepo&gt;hg serve</p>
+<p>=========== Server ===================</p>
+<p>c:\tmp\HgRepo&gt;hg push http://china-a9598ee91:8000/</p>
+<p>...</p>
+<p>=========== Client ===============</p>
+<p>E:\lc\clonedRepo&gt;hg update // 由于Client没有同时修改代码，所以不需要merge，update即可</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2013-04-25T12:43:02+08:00">Apr 25, 2013</time>
+
+<h4>Last Updated</h4>
+<time datetime="2013-04-25T12:43:02+08:00">Apr 25, 2013</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#collaborate-ref">collaborate
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#hg-ref">Hg
+                    <span>11</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

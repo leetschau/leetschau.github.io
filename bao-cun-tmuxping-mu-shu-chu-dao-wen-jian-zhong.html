@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="tmux, buffer, Tech, " />
+
+<meta property="og:title" content="保存Tmux屏幕输出到文件中 "/>
+<meta property="og:url" content="/bao-cun-tmuxping-mu-shu-chu-dao-wen-jian-zhong.html" />
+<meta property="og:description" content="保存Tmux的屏幕输出分为两步： 首先用capture-pane将屏幕输出保存在buffer里， 然后用save-buffer将buffer内容保存到文件里。 在capture-pane中可以用-S和-E指定要保存的屏幕输出的范围， 当前屏幕的最上一行为坐标原点，标记为0，下面一行坐标是1,依次类推； 原点的上一行坐标是-1，再上一行坐标是-2，依次类推。 用Alt-c进入copy-mode后，屏幕右上角显示当前屏幕在整个pane中的坐标[X/Y]， 其中X代表当前屏幕最高行的坐标，Y代表最早一行屏幕输出的坐标， 根据坐标确定要保存文本的起止坐标就可以保存了。 例如要保存第3个pane中的一段近5000行的输出， 进入copy-mode后按g键，到最早的屏幕输出，右上角显示[5676/5676], 用Ctrl-f或者J键向下滚动屏幕， 当想要保存的第一行处于屏幕最上一行时，坐标显示为[5557/5676]， 将想要保存的最后一行滚动到屏幕最上一行，坐标显示为[642 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2016-06-24T08:57:43+08:00" />
+<meta property="" content="2016-06-24T08:57:43+08:00" />
+<meta name="twitter:title" content="保存Tmux屏幕输出到文件中 ">
+<meta name="twitter:description" content="保存Tmux的屏幕输出分为两步： 首先用capture-pane将屏幕输出保存在buffer里， 然后用save-buffer将buffer内容保存到文件里。 在capture-pane中可以用-S和-E指定要保存的屏幕输出的范围， 当前屏幕的最上一行为坐标原点，标记为0，下面一行坐标是1,依次类推； 原点的上一行坐标是-1，再上一行坐标是-2，依次类推。 用Alt-c进入copy-mode后，屏幕右上角显示当前屏幕在整个pane中的坐标[X/Y]， 其中X代表当前屏幕最高行的坐标，Y代表最早一行屏幕输出的坐标， 根据坐标确定要保存文本的起止坐标就可以保存了。 例如要保存第3个pane中的一段近5000行的输出， 进入copy-mode后按g键，到最早的屏幕输出，右上角显示[5676/5676], 用Ctrl-f或者J键向下滚动屏幕， 当想要保存的第一行处于屏幕最上一行时，坐标显示为[5557/5676]， 将想要保存的最后一行滚动到屏幕最上一行，坐标显示为[642 …">
+
+        <title>保存Tmux屏幕输出到文件中  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/bao-cun-tmuxping-mu-shu-chu-dao-wen-jian-zhong.html"> 保存Tmux屏幕输出到文件中  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>保存Tmux的屏幕输出分为两步：
+首先用<code>capture-pane</code>将屏幕输出保存在buffer里，
+然后用<code>save-buffer</code>将buffer内容保存到文件里。</p>
+<p>在<code>capture-pane</code>中可以用<code>-S</code>和<code>-E</code>指定要保存的屏幕输出的范围，
+当前屏幕的最上一行为坐标原点，标记为0，下面一行坐标是1,依次类推；
+原点的上一行坐标是-1，再上一行坐标是-2，依次类推。</p>
+<p>用<code>Alt-c</code>进入copy-mode后，屏幕右上角显示当前屏幕在整个pane中的坐标[X/Y]，
+其中X代表当前屏幕最高行的坐标，Y代表最早一行屏幕输出的坐标，
+根据坐标确定要保存文本的起止坐标就可以保存了。</p>
+<p>例如要保存第3个pane中的一段近5000行的输出，
+进入copy-mode后按<code>g</code>键，到最早的屏幕输出，右上角显示<code>[5676/5676]</code>,
+用<code>Ctrl-f</code>或者<code>J</code>键向下滚动屏幕，
+当想要保存的第一行处于屏幕最上一行时，坐标显示为<code>[5557/5676]</code>，
+将想要保存的最后一行滚动到屏幕最上一行，坐标显示为<code>[642/5676]</code>，
+切换到另一个pane里执行：</p>
+<div class="highlight"><pre><span></span>tmux capture-pane -S -5557 -E -642 -t 3
+tmux save-buffer output.log
+</pre></div>
+
+
+<p>这样这段输出就保存到文件output.log里了，其中<code>-t 3</code>指定了要保存的pane的序号。</p>
+<p>如果要保存所有历史输出，可以简写为<code>tmux capture-pane -S -</code>.</p>
+<p>除了新开一个pane执行tmux命令，也可以在当前pane用快捷键<code>Alt-a</code>进入tmux命令行状态
+即command-prompt，然后执行<code>capture-pane -S -5557 -E -642</code>.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2016-06-24T08:57:43+08:00">Jun 24, 2016</time>
+
+<h4>Last Updated</h4>
+<time datetime="2016-06-24T08:57:43+08:00">Jun 24, 2016</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#buffer-ref">buffer
+                    <span>6</span>
+</a></li>
+                <li><a href="/tags.html#tmux-ref">tmux
+                    <span>9</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="GAPI, 同步锁, Tech, " />
+
+<meta property="og:title" content="GAPI的同步返回实现方法 "/>
+<meta property="og:url" content="/gapide-tong-bu-fan-hui-shi-xian-fang-fa.html" />
+<meta property="og:description" content="GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。 测试用例： public class SimpleExpScriptTest { private IConnection conn; @Test public void testPWD() throws Exception { conn = ConnFactory.getInstance().getConnection(Constants.PORT_CONNECT_GODU_DATA); conn.setSyncType(Constants.TYPE_DATA_CMD_SYNC); if (conn.getConnection(&#34;&lt;7001&gt;&#34;, &#34;goduapp&#34;, &#34;10.0.2 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2011-07-26T09:16:57+08:00" />
+<meta property="" content="2011-07-26T09:16:57+08:00" />
+<meta name="twitter:title" content="GAPI的同步返回实现方法 ">
+<meta name="twitter:description" content="GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。 测试用例： public class SimpleExpScriptTest { private IConnection conn; @Test public void testPWD() throws Exception { conn = ConnFactory.getInstance().getConnection(Constants.PORT_CONNECT_GODU_DATA); conn.setSyncType(Constants.TYPE_DATA_CMD_SYNC); if (conn.getConnection(&#34;&lt;7001&gt;&#34;, &#34;goduapp&#34;, &#34;10.0.2 …">
+
+        <title>GAPI的同步返回实现方法  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/gapide-tong-bu-fan-hui-shi-xian-fang-fa.html"> GAPI的同步返回实现方法  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>GAPI 所基于 MINA 是一个异步网络通信框架，因此要实现 API 调用的同步方式返回，需要采用锁机制，即在主线程启动 filter 后进入“睡眠”状态， 当filter 处理任务完毕后唤醒主线程继续运行。具体实现的方法如下（以 execScript() 方法为例）。</p>
+<p>测试用例：</p>
+<p>public class SimpleExpScriptTest { </p>
+<p>private IConnection conn; </p>
+<p>@Test </p>
+<p>public void testPWD() throws Exception { </p>
+<p>conn = ConnFactory.getInstance().getConnection(Constants.PORT_CONNECT_GODU_DATA); </p>
+<p>conn.setSyncType(Constants.TYPE_DATA_CMD_SYNC); </p>
+<p>if (conn.getConnection("<aa>&lt;7001&gt;<administrator><autocmd>", "goduapp", "10.0.2.47", 1234, 100)) { </p>
+<div class="highlight"><pre><span></span>System.out.println(&quot;Connect GODU OK!&quot;);
+</pre></div>
+
+
+<p>} </p>
+<p>conn.sendGoduCmd("settelnetcodec switch=y"); </p>
+<p>conn.set_script_timeout(500); </p>
+<p>Map<String, Object> params = new HashMap<String, Object>(); </p>
+<p>params.put("user_name", "test"); </p>
+<p>params.put("old_pwd", "godu123"); </p>
+<p>params.put("new_pwd", "testgodu"); </p>
+<p>IResult result = conn. execScript ("-1200187081", "script/PWD", "", params); </p>
+<p>System.out.println("***result is:\n" + result.getString()); </p>
+<p>} </p>
+<p>} </p>
+<p>execScript 方法：</p>
+<p>package com.boco.godu.gapi.conn; </p>
+<p>import ... </p>
+<p>public class GoduDataConnection extends AbstractConnection { </p>
+<p>private static final GapiLogger logger = LogUtils.getLogger(this.getClass().getName()); </p>
+<p>private final Object lock = new Object(); //对象锁 </p>
+<p>public IResult execScript(String ne_id, String scriptPath, String name, Map<String, Object> params) throws ... { </p>
+<p>// check if connected GODU successfully </p>
+<p>... </p>
+<p>// parse script file </p>
+<p>GoduScript gs = new GoduScript(scriptPath, script_buffer_size, params); </p>
+<p>// add execute_script filter </p>
+<p>session.getFilterChain().addBefore(...); </p>
+<p>// open NE </p>
+<p>... </p>
+<p>// 在执行完脚本或者超时之前阻止代码继续运行，在ExecScriptFilter.messageReceived方法中解锁 </p>
+<p>GapiIosessionUtils. lockSession (session, lock , script_timeout ); </p>
+<p>GoduReturnResult res = new GoduReturnResult(); </p>
+<p>String script_result = (String) session.getAttribute( </p>
+<div class="highlight"><pre><span></span>      ExecScriptFilter.EXEC_SCRIPT_RESULT, &quot;&quot;);
+</pre></div>
+
+
+<p>res.setArrays(script_result.getBytes()); </p>
+<p>int return_status = (Integer) session.getAttribute( </p>
+<div class="highlight"><pre><span></span>      ExecScriptFilter.EXEC_SCRIPT_RETURN_STATUS, 0);
+</pre></div>
+
+
+<p>res.setReturnStatus(return_status); </p>
+<p>return res; </p>
+<p>} </p>
+<p>} </p>
+<p>这样代码运行到lockSession时暂停，直到超时时间到，或者被其他线程上持有同一个锁的“唤醒”方法唤醒，这实现了同步方式的前一半：下面是同步方式的后一半：filter执行脚本完毕后唤醒主线程继续运行： </p>
+<p>package com.boco.godu.gapi.mina.filter.data; </p>
+<p>import ... </p>
+<p>public class ExecScriptFilter extends AGapiFilter { </p>
+<p>@Override </p>
+<p>public void messageReceived(NextFilter nextFilter, IoSession session, </p>
+<div class="highlight"><pre><span></span>     Object message) throws Exception {
+</pre></div>
+
+
+<p>... </p>
+<p>if (...) { // 如果脚本执行完毕： </p>
+<div class="highlight"><pre><span></span>...
+
+GapiIosessionUtils. unlockSession (session);
+
+return;
+</pre></div>
+
+
+<p>} </p>
+<p>... </p>
+<p>} </p>
+<p>} </p>
+<p>那么 lockSession 和 unlockSession 方法又是如何实现的呢，继续往下看： </p>
+<p>public class GapiIosessionUtils { </p>
+<p>public static void lockSession(final IoSession session, final Object lock , final int timeout ) throws ... { </p>
+<p>try { </p>
+<div class="highlight"><pre><span></span>if (session.isConnected() &amp;&amp; !session.isClosing()) {
+
+ long beforeLockTime = System.currentTimeMillis();
+
+ session.setAttribute(GoduFilterConstants. GODU_DATA_LOCK , lock );
+
+ session.getConfig().setBothIdleTime(timeout);
+
+ ThreadUtil. waitIt ( lock , timeout * 1000 + 1000);
+
+ long afterLockTime = System.currentTimeMillis();
+
+ logger.debug(&quot;lockTime=&quot; + (afterLockTime - beforeLockTime) + &quot;ms&quot;);
+
+}
+</pre></div>
+
+
+<p>} catch (Exception e) { </p>
+<div class="highlight"><pre><span></span><span class="nt">e</span><span class="p">.</span><span class="nc">printStackTrace</span><span class="o">();</span>
+
+<span class="nt">logger</span><span class="p">.</span><span class="nc">error</span><span class="o">(</span><span class="s2">&quot;lockSession exception: &quot;</span><span class="o">,</span> <span class="nt">e</span><span class="o">);</span>
+
+<span class="nt">throw</span> <span class="nt">new</span> <span class="nt">GapiException</span><span class="o">(</span><span class="nt">e</span><span class="o">);</span>
+</pre></div>
+
+
+<p>} </p>
+<p>} </p>
+<p>public static void unlockSession(final IoSession session) throws ... { </p>
+<p>try { </p>
+<div class="highlight"><pre><span></span>if (session.isConnected() &amp;&amp; !session.isClosing()) {
+
+ Object status = session.getAttribute(GoduFilterConstants. GODU_DATA_LOCK );
+
+ ThreadUtil.notifyIt(status);
+
+}
+</pre></div>
+
+
+<p>} catch (Exception e) { </p>
+<div class="highlight"><pre><span></span>...
+</pre></div>
+
+
+<p>} </p>
+<p>} </p>
+<p>} </p>
+<p>可以看到加锁的时候将锁（lock对象）放在了session的一个attribute上，解锁的时候从这个attribute上取出这个锁，然后解锁。这里用到的 冻结线程的 waitIt 方法以及唤醒线程的 notifyIt 方法实现如下： </p>
+<p>package com.boco.godu.common.util; </p>
+<p>public class ThreadUtil { </p>
+<p>public static void  waitIt  (final Object o, final long time) { </p>
+<p>synchronized (o) { </p>
+<div class="highlight"><pre><span></span>try {
+
+ if (time == -1) {
+
+  o.wait();
+
+ } else {
+
+  o.wait(time);
+
+ }
+
+} catch (InterruptedException iex) {
+
+ iex.printStackTrace();
+
+}
+</pre></div>
+
+
+<p>} </p>
+<p>} </p>
+<p>public static void  notifyIt (final Object o) {  </p>
+<p>synchronized (o) { </p>
+<div class="highlight"><pre><span></span> o.notifyAll();
+</pre></div>
+
+
+<p>} </p>
+<p>} </p>
+<p>} </p>
+<p>当代码到 o.wait(time); 时进入阻塞状态（停止运行，实际上是java.lang.Object.wait()方法），直到下列情况之一出现： </p>
+<ol>
+<li>
+<p>超时时间time到； </p>
+</li>
+<li>
+<p>被唤醒，也就是调用同一个对象的notifyAll方法（即java.lang.Object.notifyAll()方法）。</p>
+</li>
+</ol>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2011-07-26T09:16:57+08:00">Jul 26, 2011</time>
+
+<h4>Last Updated</h4>
+<time datetime="2011-07-26T09:16:57+08:00">Jul 26, 2011</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#gapi-ref">GAPI
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#tong-bu-suo-ref">同步锁
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

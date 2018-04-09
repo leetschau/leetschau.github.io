@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="design pattern, Java, Tech, " />
+
+<meta property="og:title" content="关于职责链模式 "/>
+<meta property="og:url" content="/guan-yu-zhi-ze-lian-mo-shi.html" />
+<meta property="og:description" content="参考wiki上 Example -&gt; Java部分的Logger实例，这个实现方法比之前我在GODU中的实现更好，因为Logger的实现类只要实现自己对消息的处理即可，完全不必关心其他事情，而我的实现里AuthUnit实现了抽象类AFuncUnit，在其processRequest方法处理处理消息，还要加上向后传递的动作： next.writeMessage(msg); Logger之所以能实现“自动”向后传递，是因为客户处理消息时调用的是Logger.message(msg)方法，而实际处理消息的方法是writeMessage(msg)方法，message(msg)方法分两步：首先是处理消息，然后是向后传递： next.message(msg); 它使用的是抽象父类的message方法，而不是直接调用next.writeMessage(msg)方法。 writeMessage被子类实现，所以是abstract protected，而message是对外接口，所以是public。 完整代码： package chainofresp; abstract class Logger { public static …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2013-03-20T12:02:46+08:00" />
+<meta property="" content="2013-03-20T12:02:46+08:00" />
+<meta name="twitter:title" content="关于职责链模式 ">
+<meta name="twitter:description" content="参考wiki上 Example -&gt; Java部分的Logger实例，这个实现方法比之前我在GODU中的实现更好，因为Logger的实现类只要实现自己对消息的处理即可，完全不必关心其他事情，而我的实现里AuthUnit实现了抽象类AFuncUnit，在其processRequest方法处理处理消息，还要加上向后传递的动作： next.writeMessage(msg); Logger之所以能实现“自动”向后传递，是因为客户处理消息时调用的是Logger.message(msg)方法，而实际处理消息的方法是writeMessage(msg)方法，message(msg)方法分两步：首先是处理消息，然后是向后传递： next.message(msg); 它使用的是抽象父类的message方法，而不是直接调用next.writeMessage(msg)方法。 writeMessage被子类实现，所以是abstract protected，而message是对外接口，所以是public。 完整代码： package chainofresp; abstract class Logger { public static …">
+
+        <title>关于职责链模式  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/guan-yu-zhi-ze-lian-mo-shi.html"> 关于职责链模式  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>参考<a href="https://en.wikipedia.org/wiki/Chain-of-responsibility_pattern">wiki</a>上 Example -&gt; Java部分的Logger实例，这个实现方法比之前我在GODU中的实现更好，因为Logger的实现类只要实现自己对消息的处理即可，完全不必关心其他事情，而我的实现里AuthUnit实现了抽象类AFuncUnit，在其processRequest方法处理处理消息，还要加上向后传递的动作：</p>
+<p>next.writeMessage(msg);</p>
+<p>Logger之所以能实现“自动”向后传递，是因为客户处理消息时调用的是Logger.message(msg)方法，而实际处理消息的方法是writeMessage(msg)方法，message(msg)方法分两步：首先是处理消息，然后是向后传递：</p>
+<p>next.message(msg);</p>
+<p>它使用的是抽象父类的message方法，而不是直接调用next.writeMessage(msg)方法。</p>
+<p>writeMessage被子类实现，所以是abstract protected，而message是对外接口，所以是public。</p>
+<p>完整代码：</p>
+<p>package chainofresp; 
+ abstract class Logger { 
+  public static int ERR = 3; 
+  public static int NOTICE = 5; 
+  public static int DEBUG = 7; 
+  protected int mask; 
+  // The next element in the chain of responsibility 
+  protected Logger next; 
+  public void setNext(Logger log) { 
+   next = log; 
+  } 
+  public void message(String msg, int priority) { 
+   if (priority &lt;= mask) { 
+    writeMessage(msg); 
+   } 
+   if (next != null) { 
+    next.message(msg, priority); 
+   } 
+  } 
+  abstract protected void writeMessage(String msg); 
+ } 
+ class StdoutLogger extends Logger { 
+  public StdoutLogger(int mask) { 
+   this.mask = mask; 
+  } 
+  protected void writeMessage(String msg) { 
+   System.out.println("Writing to stdout: " + msg); 
+  } 
+ } 
+ class EmailLogger extends Logger { 
+  public EmailLogger(int mask) { 
+   this.mask = mask; 
+  } 
+  protected void writeMessage(String msg) { 
+   System.out.println("Sending via email: " + msg); 
+  } 
+ } 
+ class StderrLogger extends Logger { 
+  public StderrLogger(int mask) { 
+   this.mask = mask; 
+  } 
+  protected void writeMessage(String msg) { 
+   System.err.println("Sending to stderr: " + msg); 
+  } 
+ } 
+ public class ChainOfResponsibilityExample { 
+  private static Logger createChain() { 
+   // Build the chain of responsibility 
+   Logger logger = new StdoutLogger(Logger.DEBUG); 
+   Logger logger1 = new EmailLogger(Logger.NOTICE); 
+   logger.setNext(logger1); 
+   Logger logger2 = new StderrLogger(Logger.ERR);<br>
+   logger1.setNext(logger2); 
+   return logger; 
+  } 
+  public static void main(String[] args) { 
+   Logger chain = createChain(); 
+   // Handled by StdoutLogger (level = 7) 
+   chain.message("Entering function y.", Logger.DEBUG); 
+   // Handled by StdoutLogger and EmailLogger (level = 5) 
+   chain.message("Step1 completed.", Logger.NOTICE); 
+   // Handled by all three loggers (level = 3) 
+   chain.message("An error has occurred.", Logger.ERR); 
+  } 
+ } 
+ /<em> 
+ The output is: 
+  Writing to stdout: Entering function y. 
+  Writing to stdout: Step1 completed. 
+  Sending via e-mail: Step1 completed. 
+  Writing to stdout: An error has occurred. 
+  Sending via e-mail: An error has occurred. 
+  Writing to stderr: An error has occurred. 
+ </em>/</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2013-03-20T12:02:46+08:00">Mar 20, 2013</time>
+
+<h4>Last Updated</h4>
+<time datetime="2013-03-20T12:02:46+08:00">Mar 20, 2013</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#design-pattern-ref">design pattern
+                    <span>3</span>
+</a></li>
+                <li><a href="/tags.html#java-ref">Java
+                    <span>106</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

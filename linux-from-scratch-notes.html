@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="linux, system, build, Tech, " />
+
+<meta property="og:title" content="Linux From Scratch Notes "/>
+<meta property="og:url" content="/linux-from-scratch-notes.html" />
+<meta property="og:description" content="Linux from Scratch (LFS) version: 7.5. Host: Dell PC, ArchLinux. Partition Scheme The host is GPT, so use cgdisk to create 2 new partitions (after 2 existing partitions): root 10GB, and swap 4GB. When asked for partition type, input &#34;L&#34;, it will list all type code, where code of …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2014-09-19T15:24:19+08:00" />
+<meta property="" content="2014-09-19T15:24:19+08:00" />
+<meta name="twitter:title" content="Linux From Scratch Notes ">
+<meta name="twitter:description" content="Linux from Scratch (LFS) version: 7.5. Host: Dell PC, ArchLinux. Partition Scheme The host is GPT, so use cgdisk to create 2 new partitions (after 2 existing partitions): root 10GB, and swap 4GB. When asked for partition type, input &#34;L&#34;, it will list all type code, where code of …">
+
+        <title>Linux From Scratch Notes  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/linux-from-scratch-notes.html"> Linux From Scratch Notes  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>Linux from Scratch (LFS) version: 7.5.</p>
+<p>Host: Dell PC, ArchLinux. </p>
+<h1>Partition Scheme</h1>
+<p>The host is GPT, so use <code>cgdisk</code> to create 2 new partitions (after 2 existing partitions): root 10GB, and swap 4GB.
+When asked for partition type, input "L", it will list all type code, where code of linux swap is 8200.
+Reboot and build as root:</p>
+<div class="highlight"><pre><span></span>mkfs.ext4 /dev/sda3
+mkswap /dev/sda4
+export LFS=/mnt/lfs
+mkdir -pv $LFS
+mount -v -t ext4 /dev/sda3 $LFS
+swapon -v /dev/sda4
+mkdir $LFS/sources
+chmod -v a+wt $LFS/sources
+mkdir -v $LFS/tools
+groupadd lfs
+useradd -s /bin/bash -g lfs -m -k /dev/null lfs
+passwd lfs
+chown -R lfs:lfs $LFS
+chown -v lfs $LFS/tools
+ln -sv $LFS/tools /
+chown -v lfs $LFS/sources
+su - lfs
+
+cat &gt; ~/.bash_profile &lt;&lt; &quot;EOF&quot;
+exec env -i HOME=$HOME TERM=$TERM PS1=&#39;\u:\w\$ &#39; /bin/bash
+EOF
+cat &gt; ~/.bashrc &lt;&lt; &quot;EOF&quot;
+set +h
+umask 022
+LFS=/mnt/lfs
+LC_ALL=POSIX
+LFS_TGT=$(uname -m)-lfs-linux-gnu
+PATH=/tools/bin:/bin:/usr/bin
+export LFS LC_ALL LFS_TGT PATH
+EOF
+
+wget -O wget-list http://www.linuxfromscratch.org/lfs/downloads/stable/wget-list
+wget -i wget-list -P $LFS/sources
+
+cd $LFS
+tar xf sources/binutils-2.24.tar.bz2
+cd binutils-2.24
+./configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror 
+make
+mkdir -v /tools/lib
+ln -sv lib /tools/lib64
+make install
+cd $LFS
+tar xf sources/gcc-4.8.2.tar.bz2
+tar xf sources/mpfr-3.1.2.tar.xz
+tar xf sources/gmp-5.1.3.tar.xz
+tar xf sources/mpc-1.0.2.tar.xz
+mv mpfr* mpfr
+mv gmp* gmp
+mv mpc* mpc
+mv mpfr gmp mpc gcc-4.8.2
+cd gcc-4.8.2
+cat &gt; runme.sh &lt;&lt;EOF
+for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+do
+    cp -uv $file{,.orig}
+    sed -e &#39;s@/lib\(64\)\?\(32\)\?/ld@/tools&amp;@g&#39; \
+        -e &#39;s@/usr@/tools@g&#39; $file.orig &gt; $file
+    echo &#39;
+#undef STANDARD_STARTFILE_PREFIX_1
+#undef STANDARD_STARTFILE_PREFIX_2
+#define STANDARD_STARTFILE_PREFIX_1 &quot;/tools/lib/&quot;
+#define STANDARD_STARTFILE_PREFIX_2 &quot;&quot;&#39; &gt;&gt; $file
+    touch $file.orig
+done
+EOF
+chmod 755 runme.sh
+./runme.sh
+</pre></div>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2014-09-19T15:24:19+08:00">Sep 19, 2014</time>
+
+<h4>Last Updated</h4>
+<time datetime="2014-09-19T15:24:19+08:00">Sep 19, 2014</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#build-ref">build
+                    <span>4</span>
+</a></li>
+                <li><a href="/tags.html#linux-ref">linux
+                    <span>149</span>
+</a></li>
+                <li><a href="/tags.html#system-ref">system
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

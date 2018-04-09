@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="scala, pattern matching, Tech, " />
+
+<meta property="og:title" content="Scala的模式匹配 "/>
+<meta property="og:url" content="/scalade-mo-shi-pi-pei.html" />
+<meta property="og:description" content="下面是一个RDD，每一个元素是一个Array，这个Array由几个tuple组成， 现在需要将其中第二个元素是13的tuple（比如(-36522769,13)）的一个元素后面追加字符串&#34;.000&#34;，其余不变， 实现方法如下： val data = RDD[Array[(String, Int)]] = RDD( Array((-36522769,13), (8014,14), (2014-09-19 00:10:47,17), (3,18), (FF-693960651,134)), Array((-905910021.0000000000,13), (200,14), (2014-09-19 00:02:11,17), (3,18), (FF--112226702,134)), Array((-2033866158.0000000000 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2014-12-16T17:05:44+08:00" />
+<meta property="" content="2014-12-16T17:05:44+08:00" />
+<meta name="twitter:title" content="Scala的模式匹配 ">
+<meta name="twitter:description" content="下面是一个RDD，每一个元素是一个Array，这个Array由几个tuple组成， 现在需要将其中第二个元素是13的tuple（比如(-36522769,13)）的一个元素后面追加字符串&#34;.000&#34;，其余不变， 实现方法如下： val data = RDD[Array[(String, Int)]] = RDD( Array((-36522769,13), (8014,14), (2014-09-19 00:10:47,17), (3,18), (FF-693960651,134)), Array((-905910021.0000000000,13), (200,14), (2014-09-19 00:02:11,17), (3,18), (FF--112226702,134)), Array((-2033866158.0000000000 …">
+
+        <title>Scala的模式匹配  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/scalade-mo-shi-pi-pei.html"> Scala的模式匹配  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>下面是一个RDD，每一个元素是一个Array，这个Array由几个tuple组成，
+现在需要将其中第二个元素是13的tuple（比如(-36522769,13)）的一个元素后面追加字符串".000"，其余不变，
+实现方法如下：</p>
+<div class="highlight"><pre><span></span>val data = RDD[Array[(String, Int)]] = RDD(
+        Array((-36522769,13), (8014,14), (2014-09-19 00:10:47,17), (3,18), (FF-693960651,134)),
+        Array((-905910021.0000000000,13), (200,14), (2014-09-19 00:02:11,17), (3,18), (FF--112226702,134)),
+        Array((-2033866158.0000000000,13), (200,14), (2014-09-19 00:07:12,17), (3,18), (FF--112226702,134)),
+        Array((1712341836.0000000000,13), (200,14), (2014-09-19 00:07:06,17), (3,18), (FF--112226702,134)),
+        Array((-896432680.0000000000,13), (8014,14), (2014-09-19 00:12:17,17), (3,18), (FF-693960651,134)),
+        Array((-1205034451.0000000000,13), (200,14), (2014-09-19 00:07:21,17), (3,18), (FF--112226702,134)),
+        Array((-2117505875.0000000000,13), (15089,14), (2014-09-19 00:41:47,17), (2,18), (FF-1139491304,134)))
+
+val res = data.map(x =&gt; x.map { case (y,13) =&gt; (y + &quot;.000&quot;, 13)
+                                case z =&gt; z
+                              })
+</pre></div>
+
+
+<p>如果把13变为一个变量，比如<code>val BAD_NUM = 13</code>, 这时直接改写为<code>case (y, BAD_NUM) =&gt; ...</code>，将出现错误，
+因为解析器将BAD_NUM视为一个自由变量，而不是外部等于13的那个变量，解决方法是用反引号把BAD_NUM扩起来，写为：</p>
+<div class="highlight"><pre><span></span>case (y, `BAD_NUM`) =&gt; (y + &quot;.000&quot;, BAD_NUM)
+</pre></div>
+
+
+<p>推荐文章：</p>
+<p><a href="http://kerflyn.wordpress.com/2011/02/14/playing-with-scalas-pattern-matching/">Playing with Scala’s pattern matching</a>;</p>
+<p><a href="http://docs.scala-lang.org/tutorials/tour/pattern-matching.html">Pattern Matching in Scala Documenation</a></p>
+<p><a href="http://docs.scala-lang.org/cheatsheets/">Pattern matching section in Scala cheatsheet</a></p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2014-12-16T17:05:44+08:00">Dec 16, 2014</time>
+
+<h4>Last Updated</h4>
+<time datetime="2014-12-16T17:05:44+08:00">Dec 16, 2014</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#pattern-matching-ref">pattern matching
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#scala-ref">scala
+                    <span>19</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

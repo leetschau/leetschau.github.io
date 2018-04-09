@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="jstat, jps, Java, jinfo, jvm, Tech, " />
+
+<meta property="og:title" content="jvm提供的状态监控指令 "/>
+<meta property="og:url" content="/jvmti-gong-de-zhuang-tai-jian-kong-zhi-ling.html" />
+<meta property="og:description" content="jps 类似于unix的ps指令，为其他监控工具提供进程标识（PID）； jstat 对[1]的补充如下：jstat使用-gc参数时，返回的结果包含如下项目： S0C S1C S0U S1U EC EU OC OU PC PU YGC YGCT FGC FGCT GCT 其中S0C表示Survivor0的容量（Capacity），S0U表示Survivor0已使用的空间（Utilization），单位都是KB （详见 http://docs.oracle.com/javase/6/docs/technotes/tools/share/jstat.html ）。 如果不关心值大小，而是已使用占容量百分比，则使用-gcutil参数，另外还有-class和-compiler参数可以监控对应线程类和编译器的行为。 jinfo jinfo -flags …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2011-12-14T10:42:08+08:00" />
+<meta property="" content="2011-12-14T10:42:08+08:00" />
+<meta name="twitter:title" content="jvm提供的状态监控指令 ">
+<meta name="twitter:description" content="jps 类似于unix的ps指令，为其他监控工具提供进程标识（PID）； jstat 对[1]的补充如下：jstat使用-gc参数时，返回的结果包含如下项目： S0C S1C S0U S1U EC EU OC OU PC PU YGC YGCT FGC FGCT GCT 其中S0C表示Survivor0的容量（Capacity），S0U表示Survivor0已使用的空间（Utilization），单位都是KB （详见 http://docs.oracle.com/javase/6/docs/technotes/tools/share/jstat.html ）。 如果不关心值大小，而是已使用占容量百分比，则使用-gcutil参数，另外还有-class和-compiler参数可以监控对应线程类和编译器的行为。 jinfo jinfo -flags …">
+
+        <title>jvm提供的状态监控指令  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/jvmti-gong-de-zhuang-tai-jian-kong-zhi-ling.html"> jvm提供的状态监控指令  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>jps 
+类似于unix的ps指令，为其他监控工具提供进程标识（PID）； jstat 
+对[1]的补充如下：jstat使用-gc参数时，返回的结果包含如下项目：</p>
+<p>S0C S1C S0U S1U EC EU OC OU PC PU YGC YGCT FGC FGCT GCT </p>
+<p>其中S0C表示Survivor0的容量（Capacity），S0U表示Survivor0已使用的空间（Utilization），单位都是KB （详见 http://docs.oracle.com/javase/6/docs/technotes/tools/share/jstat.html ）。</p>
+<p>如果不关心值大小，而是已使用占容量百分比，则使用-gcutil参数，另外还有-class和-compiler参数可以监控对应线程类和编译器的行为。 jinfo 
+jinfo -flags <PID>用来查看某进程（用jps查出进程号PID）的JVM参数；</p>
+<p>jstack 
+jstack -m 29517 jmap 
+jmap -histo 29517</p>
+<p>jmap -heap 29517</p>
+<p>[1] 周志明：深入理解JAVA虚拟机，机械工业出版社，2011第4.2.2节。</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2011-12-14T10:42:08+08:00">Dec 14, 2011</time>
+
+<h4>Last Updated</h4>
+<time datetime="2011-12-14T10:42:08+08:00">Dec 14, 2011</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#java-ref">Java
+                    <span>106</span>
+</a></li>
+                <li><a href="/tags.html#jinfo-ref">jinfo
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#jps-ref">jps
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#jstat-ref">jstat
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#jvm-ref">jvm
+                    <span>4</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

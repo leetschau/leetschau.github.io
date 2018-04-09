@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="Python, functional programming, Tech, " />
+
+<meta property="og:title" content="Converting an imperative algorithm into functional style "/>
+<meta property="og:url" content="/converting-an-imperative-algorithm-into-functional-style.html" />
+<meta property="og:description" content="Question and Python Solution The follow is a question I posted on stackoverflow.com and the Python imperative style solution: I wrote a simple procedure to calculate the average of the test coverage of some specific packages in a Java project. The raw data in a huge html file is …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2013-09-29T17:20:20+08:00" />
+<meta property="" content="2013-09-29T17:20:20+08:00" />
+<meta name="twitter:title" content="Converting an imperative algorithm into functional style ">
+<meta name="twitter:description" content="Question and Python Solution The follow is a question I posted on stackoverflow.com and the Python imperative style solution: I wrote a simple procedure to calculate the average of the test coverage of some specific packages in a Java project. The raw data in a huge html file is …">
+
+        <title>Converting an imperative algorithm into functional style  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/converting-an-imperative-algorithm-into-functional-style.html"> Converting an imperative algorithm into functional style  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<h1>Question and Python Solution</h1>
+<p>The follow is a question I posted on stackoverflow.com and
+the Python imperative style solution:</p>
+<p>I wrote a simple procedure to calculate the average of the test coverage of some
+specific packages in a Java project.
+The raw data in a huge html file is like this: </p>
+<div class="highlight"><pre><span></span><span class="nt">&lt;body&gt;</span> 
+package pkg1 <span class="nt">&lt;line_coverage&gt;</span>11/111,<span class="nt">&lt;branch_coverage&gt;</span>44/444<span class="nt">&lt;end&gt;</span> 
+package pkg2 <span class="nt">&lt;line_coverage&gt;</span>22/222,<span class="nt">&lt;branch_coverage&gt;</span>55/555<span class="nt">&lt;end&gt;</span> 
+package pkg3 <span class="nt">&lt;line_coverage&gt;</span>33/333,<span class="nt">&lt;branch_coverage&gt;</span>66/666<span class="nt">&lt;end&gt;</span> 
+... 
+<span class="nt">&lt;/body&gt;</span>
+</pre></div>
+
+
+<p>Given the specified packages "pkg1" and "pkg3", for example,
+the average line coverage is: </p>
+<div class="highlight"><pre><span></span>(11+33)/(111+333)
+</pre></div>
+
+
+<p>and average branch coverage is: </p>
+<div class="highlight"><pre><span></span>(44+66)/(444+666)
+</pre></div>
+
+
+<p>I wrote the follow procedure to get the result and it works well.
+But how to implement this calculation in a functional style?
+Something like "(x,y) for x in ... for b in ... if...".
+I know a little Erlang, Haskell and Clojure,
+So solutions in these languages are also appreciated. Thanks a lot! </p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span> 
+<span class="kn">import</span> <span class="nn">re</span> 
+<span class="n">datafile</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;d&gt;11/23d&gt;34/89d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&gt;25/65e&gt;13/25e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&gt;36/92f&gt;19/76&#39;</span><span class="p">)</span> 
+<span class="n">core_pkgs</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span> 
+<span class="n">covered_lines</span><span class="p">,</span> <span class="n">total_lines</span><span class="p">,</span> <span class="n">covered_branches</span><span class="p">,</span> <span class="n">total_branches</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span> 
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">datafile</span><span class="p">:</span> 
+    <span class="k">for</span> <span class="n">pkg</span> <span class="ow">in</span> <span class="n">core_pkgs</span><span class="p">:</span> 
+        <span class="n">ptn</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;.*&#39;</span><span class="o">+</span><span class="n">pkg</span><span class="o">+</span><span class="s1">&#39;.*&#39;</span><span class="o">+</span><span class="s1">&#39;&gt;(\d+)/(\d+).*&gt;(\d+)/(\d+).*&#39;</span><span class="p">)</span> 
+        <span class="n">match</span> <span class="o">=</span> <span class="n">ptn</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> 
+        <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> 
+            <span class="n">cvln</span><span class="p">,</span> <span class="n">tlln</span><span class="p">,</span> <span class="n">cvbh</span><span class="p">,</span> <span class="n">tlbh</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span> 
+            <span class="n">covered_lines</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cvln</span><span class="p">)</span> 
+            <span class="n">total_lines</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tlln</span><span class="p">)</span> 
+            <span class="n">covered_branches</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cvbh</span><span class="p">)</span> 
+            <span class="n">total_branches</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tlbh</span><span class="p">)</span> 
+<span class="k">print</span> <span class="s1">&#39;Line coverage:&#39;</span><span class="p">,</span> <span class="s1">&#39;{:.2%}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">covered_lines</span> <span class="o">/</span> <span class="n">total_lines</span><span class="p">)</span> 
+<span class="k">print</span> <span class="s1">&#39;Branch coverage:&#39;</span><span class="p">,</span> <span class="s1">&#39;{:.2%}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">covered_branches</span><span class="o">/</span><span class="n">total_branches</span><span class="p">)</span>
+</pre></div>
+
+
+<h1>Functional Style Solution in Clojure</h1>
+<div class="highlight"><pre><span></span><span class="p">(</span><span class="kd">defn </span><span class="nv">extract-data</span> 
+ <span class="s">&quot;extract 4 integer from a string line according to a package name&quot;</span> 
+ <span class="p">[</span><span class="nv">pkg</span> <span class="nv">line</span><span class="p">]</span> 
+ <span class="p">(</span><span class="nb">map</span> <span class="nv">read-string</span> 
+  <span class="p">(</span><span class="k">rest </span><span class="p">(</span><span class="k">first </span>
+    <span class="p">(</span><span class="nf">re-seq</span> 
+    <span class="p">(</span><span class="nf">re-pattern</span> 
+    <span class="p">(</span><span class="nb">str</span> <span class="nv">pkg</span> <span class="s">&quot;.*&gt;(\\d+)/(\\d+).*&gt;(\\d+)/(\\d+)&quot;</span><span class="p">))</span> 
+    <span class="nv">line</span><span class="p">)))))</span> 
+<span class="p">(</span><span class="kd">defn </span><span class="nv">scan-lines-by-pkg</span> 
+ <span class="s">&quot;scan all string lines and extract all data as integer sequences </span>
+<span class="s"> according to package names&quot;</span> 
+ <span class="p">[</span><span class="nv">pkgs</span> <span class="nv">lines</span><span class="p">]</span> 
+ <span class="p">(</span><span class="nb">filter</span> <span class="nv">seq</span> <span class="p">(</span><span class="k">for</span> <span class="p">[</span><span class="nv">pkg</span> <span class="nv">pkgs</span> 
+     <span class="nv">line</span> <span class="nv">lines</span><span class="p">]</span> 
+    <span class="p">(</span><span class="nf">extract-data</span> <span class="nv">pkg</span> <span class="nv">line</span><span class="p">))))</span> 
+<span class="p">(</span><span class="kd">defn </span><span class="nb">sum</span><span class="nv">-data</span> 
+ <span class="s">&quot;add all data in valid lines together&quot;</span> 
+ <span class="p">[</span><span class="nv">pkgs</span> <span class="nv">lines</span><span class="p">]</span> 
+ <span class="p">(</span><span class="nb">apply</span> <span class="nb">map</span> <span class="nv">+</span> <span class="p">(</span><span class="nf">scan-lines-by-pkg</span> <span class="nv">pkgs</span> <span class="nv">lines</span><span class="p">)))</span> 
+<span class="p">(</span><span class="kd">defn </span><span class="nv">get-percent</span> 
+ <span class="p">[</span><span class="nv">covered</span> <span class="nb">all</span><span class="p">]</span> 
+ <span class="p">(</span><span class="nb">str</span> <span class="p">(</span><span class="nf">format</span> <span class="s">&quot;%.2f&quot;</span> <span class="p">(</span><span class="nb">float</span> <span class="p">(</span><span class="nf">/</span> <span class="p">(</span><span class="nf">*</span> <span class="nv">covered</span> <span class="mi">100</span><span class="p">)</span> <span class="nb">all</span><span class="p">)))</span> <span class="s">&quot;%&quot;</span><span class="p">))</span> 
+<span class="p">(</span><span class="kd">defn </span><span class="nv">get-cov</span> 
+ <span class="p">[</span><span class="nv">pkgs</span> <span class="nv">lines</span><span class="p">]</span> 
+ <span class="p">{</span><span class="ss">:line-cov</span> <span class="p">(</span><span class="nb">apply</span> <span class="nv">get-percent</span> <span class="p">(</span><span class="nb">take </span><span class="mi">2</span> <span class="p">(</span><span class="nb">sum</span><span class="nv">-data</span> <span class="nv">pkgs</span> <span class="nv">lines</span><span class="p">)))</span> 
+ <span class="ss">:branch-cov</span> <span class="p">(</span><span class="nb">apply</span> <span class="nv">get-percent</span> <span class="p">(</span><span class="nb">drop </span><span class="mi">2</span> <span class="p">(</span><span class="nb">sum</span><span class="nv">-data</span> <span class="nv">pkgs</span> <span class="nv">lines</span><span class="p">)))})</span> 
+<span class="p">(</span><span class="nf">get-cov</span> <span class="p">[</span><span class="s">&quot;d&quot;</span> <span class="s">&quot;f&quot;</span><span class="p">]</span> <span class="p">[</span><span class="s">&quot;abc&quot;</span> <span class="s">&quot;d&gt;11/23d&gt;34/89d&quot;</span> <span class="s">&quot;e&gt;25/65e&gt;13/25e&quot;</span> <span class="s">&quot;f&gt;36/92f&gt;19/76&quot;</span><span class="p">])</span> 
+</pre></div>
+
+
+<h1>clojure solutions with load file and command line args</h1>
+<div class="highlight"><pre><span></span>core-pkgs=...+...+...
+clojure get-cov.clj $core-pkgs
+(def s (slurp &quot;frame-summary.html&quot;))
+(use &#39;clojure.string)
+(def lines (split s #&quot;\n&quot;))
+</pre></div>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2013-09-29T17:20:20+08:00">Sep 29, 2013</time>
+
+<h4>Last Updated</h4>
+<time datetime="2013-09-29T17:20:20+08:00">Sep 29, 2013</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#functional-programming-ref">functional programming
+                    <span>9</span>
+</a></li>
+                <li><a href="/tags.html#python-ref">Python
+                    <span>108</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

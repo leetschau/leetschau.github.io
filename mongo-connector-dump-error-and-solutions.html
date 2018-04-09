@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="mongo-connector, Tech, " />
+
+<meta property="og:title" content="mongo-connector Dump Error and Solutions "/>
+<meta property="og:url" content="/mongo-connector-dump-error-and-solutions.html" />
+<meta property="og:description" content="When I synchronize data from a mongodb to a elasticsearch server with mongo-connector -m 192.168.100.3:27017 -t http://192.168.100.24:9200 -d elastic_doc_manager --admin-username root --password xxx, the mongo-connector process quit with the following logs in &#34;mongo-connector.log&#34; (all texts behind &#34;BulkIndexError&#34; are in the …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2016-01-09T19:26:44+08:00" />
+<meta property="" content="2016-01-09T19:26:44+08:00" />
+<meta name="twitter:title" content="mongo-connector Dump Error and Solutions ">
+<meta name="twitter:description" content="When I synchronize data from a mongodb to a elasticsearch server with mongo-connector -m 192.168.100.3:27017 -t http://192.168.100.24:9200 -d elastic_doc_manager --admin-username root --password xxx, the mongo-connector process quit with the following logs in &#34;mongo-connector.log&#34; (all texts behind &#34;BulkIndexError&#34; are in the …">
+
+        <title>mongo-connector Dump Error and Solutions  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/mongo-connector-dump-error-and-solutions.html"> mongo-connector Dump Error and Solutions  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>When I synchronize data from a mongodb to a elasticsearch server with
+<code>mongo-connector -m 192.168.100.3:27017 -t http://192.168.100.24:9200
+ -d elastic_doc_manager --admin-username root --password xxx</code>,
+the mongo-connector process quit with the following logs in
+"mongo-connector.log" (all texts behind "BulkIndexError" are in the same line,
+I rearrange the line for easy to understand):</p>
+<div class="highlight"><pre><span></span>2016-01-09 19:05:52,457 [CRITICAL] mongo_connector.oplog_manager:543 - Exception during collection dump
+Traceback (most recent call last):
+  File &quot;/usr/local/lib/python2.7/dist-packages/mongo_connector/oplog_manager.py&quot;, line 495, in do_dump upsert_all(dm)
+  ...
+BulkIndexError: (u&#39;10 document(s) failed to index.&#39;,
+  [
+    {
+      u&#39;index&#39;: {
+        u&#39;status&#39;: 400,
+        u&#39;_type&#39;: u&#39;Fair&#39;,
+        u&#39;_id&#39;: u&#39;4zWhZTJnqPCd2RK93&#39;,
+        u&#39;error&#39;: {
+          u&#39;caused_by&#39;: {
+            u&#39;reason&#39;: u&#39;unknown property [latitude]&#39;,
+            u&#39;type&#39;: u&#39;illegal_argument_exception&#39;},
+            u&#39;reason&#39;: u&#39;failed to parse [recurrence.location]&#39;,
+            u&#39;type&#39;: u&#39;mapper_parsing_exception&#39;},
+            u&#39;_index&#39;: u&#39;staging&#39;
+      }
+    },
+    ...
+  ]
+</pre></div>
+
+
+<p>When mongo-connector parse a document with <code>_id: 4zWhZTJnqPCd2RK93</code>
+in Collection "Fair", it "failed to parse [recurrence.location]".
+From <code>_index: staging</code>, we know collection Fair is in mongodb database "staging".</p>
+<p>List all "recurrence.location" of each document in staging database:</p>
+<div class="highlight"><pre><span></span>$ mongo <span class="m">192</span>.168.100.3:27017/staging -u xxx -p xxx
+foba:PRIMARY&gt; db.Fair.find<span class="o">({}</span>, <span class="o">{</span><span class="s2">&quot;recurrence.location&quot;</span>: <span class="m">1</span><span class="o">})</span>
+<span class="o">{</span> <span class="s2">&quot;_id&quot;</span> : <span class="s2">&quot;h7Lo3hGLrFGEb6BK7&quot;</span>, <span class="s2">&quot;recurrence&quot;</span> : <span class="o">[</span> <span class="o">{</span> <span class="s2">&quot;location&quot;</span> : <span class="o">{</span> <span class="s2">&quot;latitude&quot;</span> : <span class="m">22</span>.53, <span class="s2">&quot;longitude&quot;</span> : <span class="m">114</span>.06 <span class="o">}</span> <span class="o">}</span> <span class="o">]</span> <span class="o">}</span>
+<span class="o">{</span> <span class="s2">&quot;_id&quot;</span> : <span class="s2">&quot;Kd2e9w58P7vAScLDL&quot;</span>, <span class="s2">&quot;recurrence&quot;</span> : <span class="o">[</span> <span class="o">{</span> <span class="s2">&quot;location&quot;</span> : <span class="s2">&quot;&quot;</span> <span class="o">}</span> <span class="o">]</span> <span class="o">}</span>
+<span class="o">{</span> <span class="s2">&quot;_id&quot;</span> : <span class="s2">&quot;4zWhZTJnqPCd2RK93&quot;</span>, <span class="s2">&quot;recurrence&quot;</span> : <span class="o">[</span> <span class="o">{</span> <span class="s2">&quot;location&quot;</span> : <span class="o">{</span> <span class="s2">&quot;latitude&quot;</span> : <span class="m">22</span>.53, <span class="s2">&quot;longitude&quot;</span> : <span class="m">114</span>.06 <span class="o">}</span> <span class="o">}</span> <span class="o">]</span> <span class="o">}</span>
+</pre></div>
+
+
+<p>It's now clear that the exception in synchronization is caused by
+different structure of "recurrence.location".</p>
+<p>To guarantee mongo-connector synchronizing successfully,
+you must keep all document in a collection share the same schema.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2016-01-09T19:26:44+08:00">Jan 9, 2016</time>
+
+<h4>Last Updated</h4>
+<time datetime="2016-01-09T19:26:44+08:00">Jan 9, 2016</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#mongo-connector-ref">mongo-connector
+                    <span>2</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

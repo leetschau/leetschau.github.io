@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content=", Tech, " />
+
+<meta property="og:title" content="Mina读写事件的发生顺序 "/>
+<meta property="og:url" content="/minadu-xie-shi-jian-de-fa-sheng-shun-xu.html" />
+<meta property="og:description" content="这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。 import java.net.InetSocketAddress; import org.apache.mina.transport.socket.SocketAcceptor; import org.apache.mina.transport.socket.nio.NioSocketAcceptor; public class Main { public static void main(String[] args) throws Exception { SocketAcceptor acceptor = new NioSocketAcceptor(); acceptor.getFilterChain().addLast(&#34;myfilter1&#34;, new MyFilter1()); acceptor.getFilterChain …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2012-03-31T11:33:20+08:00" />
+<meta property="" content="2012-03-31T11:33:20+08:00" />
+<meta name="twitter:title" content="Mina读写事件的发生顺序 ">
+<meta name="twitter:description" content="这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。 import java.net.InetSocketAddress; import org.apache.mina.transport.socket.SocketAcceptor; import org.apache.mina.transport.socket.nio.NioSocketAcceptor; public class Main { public static void main(String[] args) throws Exception { SocketAcceptor acceptor = new NioSocketAcceptor(); acceptor.getFilterChain().addLast(&#34;myfilter1&#34;, new MyFilter1()); acceptor.getFilterChain …">
+
+        <title>Mina读写事件的发生顺序  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/minadu-xie-shi-jian-de-fa-sheng-shun-xu.html"> Mina读写事件的发生顺序  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>这个Mina Echo Server包括服务器主类Main, 两个Filter类：MyFilter1, MyFilter2, 和一个handler类：EchoProtocolHandler。</p>
+<p>import java.net.InetSocketAddress;</p>
+<p>import org.apache.mina.transport.socket.SocketAcceptor;</p>
+<p>import org.apache.mina.transport.socket.nio.NioSocketAcceptor;</p>
+<p>public class Main {</p>
+<p>public static void main(String[] args) throws Exception {</p>
+<p>SocketAcceptor acceptor = new NioSocketAcceptor();</p>
+<p>acceptor.getFilterChain().addLast("myfilter1", new MyFilter1());</p>
+<p>acceptor.getFilterChain().addLast("myfilter2", new MyFilter2());</p>
+<p>acceptor.setHandler(new EchoProtocolHandler());</p>
+<p>acceptor.bind(new InetSocketAddress(8293));</p>
+<p>System.out.println("Listening on port " + PORT);</p>
+<p>}</p>
+<p>}</p>
+<p>import org.apache.mina.core.filterchain.IoFilter;</p>
+<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
+<p>import org.apache.mina.core.session.IdleStatus;</p>
+<p>import org.apache.mina.core.session.IoSession;</p>
+<p>import org.apache.mina.core.write.WriteRequest;</p>
+<p>import org.slf4j.Logger;</p>
+<p>import org.slf4j.LoggerFactory;</p>
+<p>public class MyFilter1 implements IoFilter {</p>
+<p>private static final Logger LOGGER = LoggerFactory</p>
+<p>.getLogger(MyFilter1.class);</p>
+<p>public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+<p>Object message) throws Exception {</p>
+<p>LOGGER.info("MessageReceived!");</p>
+<p>nextFilter.messageReceived(session, message);</p>
+<p>}</p>
+<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
+<p>WriteRequest writeRequest) throws Exception {</p>
+<p>LOGGER.info("messageSent!");</p>
+<p>nextFilter.messageSent(session, writeRequest);</p>
+<p>}</p>
+<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
+<p>WriteRequest writeRequest) throws Exception {</p>
+<p>LOGGER.info("filterWrite!");</p>
+<p>nextFilter.filterWrite(session, writeRequest);</p>
+<p>}</p>
+<p>// some other methods must implemented.</p>
+<p>}</p>
+<p>import org.apache.mina.core.filterchain.IoFilter;</p>
+<p>import org.apache.mina.core.filterchain.IoFilterChain;</p>
+<p>import org.apache.mina.core.session.IdleStatus;</p>
+<p>import org.apache.mina.core.session.IoSession;</p>
+<p>import org.apache.mina.core.write.WriteRequest;</p>
+<p>import org.slf4j.Logger;</p>
+<p>import org.slf4j.LoggerFactory;</p>
+<p>public class MyFilter2 implements IoFilter {</p>
+<p>private static final Logger LOGGER = LoggerFactory</p>
+<p>.getLogger(MyFilter2.class);</p>
+<p>public void messageReceived(NextFilter nextFilter, IoSession session,</p>
+<p>Object message) throws Exception {</p>
+<p>LOGGER.info("MessageReceived!");</p>
+<p>nextFilter.messageReceived(session, message);</p>
+<p>}</p>
+<p>public void messageSent(NextFilter nextFilter, IoSession session,</p>
+<p>WriteRequest writeRequest) throws Exception {</p>
+<p>LOGGER.info("messageSent!");</p>
+<p>nextFilter.messageSent(session, writeRequest);</p>
+<p>}</p>
+<p>public void filterWrite(NextFilter nextFilter, IoSession session,</p>
+<p>WriteRequest writeRequest) throws Exception {</p>
+<p>LOGGER.info("filterWrite!");</p>
+<p>nextFilter.filterWrite(session, writeRequest);</p>
+<p>}</p>
+<p>// some other methods must implemented. </p>
+<p>}</p>
+<p>import org.apache.mina.core.buffer.IoBuffer;</p>
+<p>import org.apache.mina.core.service.IoHandlerAdapter;</p>
+<p>import org.apache.mina.core.session.IoSession;</p>
+<p>import org.slf4j.Logger;</p>
+<p>import org.slf4j.LoggerFactory;</p>
+<p>public class EchoProtocolHandler extends IoHandlerAdapter {</p>
+<p>private static final Logger LOGGER = LoggerFactory</p>
+<p>.getLogger(EchoProtocolHandler.class);</p>
+<p>@Override</p>
+<p>public void exceptionCaught(IoSession session, Throwable cause) {</p>
+<p>session.close(true);</p>
+<p>}</p>
+<p>@Override</p>
+<p>public void messageReceived(IoSession session, Object message)</p>
+<p>throws Exception {</p>
+<p>LOGGER.info("Received : " + message);</p>
+<p>session.write(((IoBuffer) message).duplicate());</p>
+<p>}</p>
+<p>@Override</p>
+<p>public void messageSent(IoSession session, Object message) {</p>
+<p>LOGGER.info("messageSent " + message);</p>
+<p>}</p>
+<p>}</p>
+<p>用XShell运行telnet localhost 8293，发一个字符串"hi"，运行结果如下：</p>
+<p>Listening on port 8293</p>
+<p>[INFO] [2012-03-31 14:03:38,575] [com.leechau.mina.echoServer.MyFilter1] - [MessageReceived!]</p>
+<p>[INFO] [2012-03-31 14:03:38,576] [com.leechau.mina.echoServer.MyFilter2] - [MessageReceived!]</p>
+<p>[INFO] [2012-03-31 14:03:38,577] [com.leechau.mina.echoServer.EchoProtocolHandler] - [Received : HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
+<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter2] - [filterWrite!]</p>
+<p>[INFO] [2012-03-31 14:03:38,578] [com.leechau.mina.echoServer.MyFilter1] - [filterWrite!]</p>
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter1] - [messageSent!]</p>
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.MyFilter2] - [messageSent!]</p>
+<p>[INFO] [2012-03-31 14:03:38,580] [com.leechau.mina.echoServer.EchoProtocolHandler] - [messageSent HeapBuffer[pos=0 lim=4 cap=2048: 68 69 0D 0A]]</p>
+<p>可以看到messageReceived事件从Filter链顶端传播到handler；filterWrite事件发生在handler开始发送消息，但还未写入socket时，仅对Filter链有效，不作用于handler，从链尾向链首传播；messageSent事件发生在socket已被写入之后，从链顶端传播到handler；</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2012-03-31T11:33:20+08:00">Mar 31, 2012</time>
+
+<h4>Last Updated</h4>
+<time datetime="2012-03-31T11:33:20+08:00">Mar 31, 2012</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

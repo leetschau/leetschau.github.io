@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="Python, shell, Tech, " />
+
+<meta property="og:title" content="Run Shell Commands in Python "/>
+<meta property="og:url" content="/run-shell-commands-in-python.html" />
+<meta property="og:description" content="os.system If it&#39;s unnecessary to save command output into a variable, this is the way most convenient, and similar with run shell command directly. The output of the command will be printed to console in realtime, and return the command&#39;s return value. You can use space and pipe in …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2014-01-03T11:13:21+08:00" />
+<meta property="" content="2014-01-03T11:13:21+08:00" />
+<meta name="twitter:title" content="Run Shell Commands in Python ">
+<meta name="twitter:description" content="os.system If it&#39;s unnecessary to save command output into a variable, this is the way most convenient, and similar with run shell command directly. The output of the command will be printed to console in realtime, and return the command&#39;s return value. You can use space and pipe in …">
+
+        <title>Run Shell Commands in Python  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/run-shell-commands-in-python.html"> Run Shell Commands in Python  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<h1>os.system</h1>
+<p>If it's unnecessary to save command output into a variable,
+this is the way most convenient,
+and similar with run shell command directly.
+The output of the command will be printed to console in realtime,
+and return the command's return value.
+You can use space and pipe in command:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">system</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">system</span><span class="p">(</span><span class="s1">&#39;vmstat 3 3&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">system</span><span class="p">(</span><span class="s1">&#39;ls -l|grep D&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<h1>subprocess.call</h1>
+<p>This is the recommended way to run shell commands in Python
+compared with old-fashioned os module.</p>
+<p>It's a realtime method, which means you can get the shell output on the fly,
+compared with following <code>subprocess.check_output</code> method,
+which collect all output in its return value.</p>
+<p>It's a blocking method, compared with the following <code>subprocess.Popen</code> method,
+for <code>subprocess.call</code> is implemented by <code>subprocess.Popen(...).wait()</code>.
+See http://stackoverflow.com/questions/21936597/blocking-and-non-blocking-subprocess-calls
+for details.</p>
+<p>It returns the return value of the command, for example:</p>
+<div class="highlight"><pre><span></span>ret = subprocess.call(&#39;ls -l&#39;)
+</pre></div>
+
+
+<p>where <code>ret==0</code>, while</p>
+<div class="highlight"><pre><span></span>ret = subprocess.call(&#39;cd aaa&#39;)
+</pre></div>
+
+
+<p><code>ret=2</code> when there isn't "aaa" subfolder under CWD.</p>
+<p>For ease of use, write a shorthand function:</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ret</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s1">&#39;Exec cmd </span><span class="si">%s</span><span class="s1"> error, return value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">ret</span><span class="p">)))</span>
+</pre></div>
+
+
+<p>Then you can simply use "run(cmd)" as a shell interface.
+"run" print command stdout and stderr to console stdout,
+and if there's something wrong during execution, we interrupt it.</p>
+<h1>subprocess.check_output</h1>
+<p>A more safe way to run shell command is using "check_output" function.
+If the return value if not 0, a exception raised, otherwise return the command output.</p>
+<div class="highlight"><pre><span></span><span class="err">$</span> <span class="n">cat</span> <span class="n">myrun</span><span class="o">.</span><span class="n">py</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="err">$</span> <span class="n">python</span> <span class="o">-</span><span class="n">i</span> <span class="n">myrun</span><span class="o">.</span><span class="n">py</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="s1">&#39;ls -l|grep donno&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ret</span>
+<span class="s1">&#39;drwxr-xr-x 6 chad chad 4096 Jan 26 18:18 donno-0.1.10</span><span class="se">\n</span><span class="s1">-rw-r--r-- 1 chad chad 8716 Jan 27 15:53 donno-0.1.10.tar.gz</span><span class="se">\n</span><span class="s1">&#39;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="s1">&#39;cd aaa&#39;</span><span class="p">)</span>
+<span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span><span class="p">:</span> <span class="mi">1</span><span class="p">:</span> <span class="n">cd</span><span class="p">:</span> <span class="n">can</span><span class="s1">&#39;t cd to aaa</span>
+<span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+  <span class="n">File</span> <span class="s2">&quot;&lt;stdin&gt;&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">1</span><span class="p">,</span> <span class="ow">in</span> <span class="o">&lt;</span><span class="n">module</span><span class="o">&gt;</span>
+  <span class="n">File</span> <span class="s2">&quot;shtest.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">3</span><span class="p">,</span> <span class="ow">in</span> <span class="n">run</span>
+    <span class="k">return</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+  <span class="n">File</span> <span class="s2">&quot;/usr/lib/python2.7/subprocess.py&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">544</span><span class="p">,</span> <span class="ow">in</span> <span class="n">check_output</span>
+    <span class="k">raise</span> <span class="n">CalledProcessError</span><span class="p">(</span><span class="n">retcode</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">output</span><span class="p">)</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span> <span class="n">Command</span> <span class="s1">&#39;cd aaa&#39;</span> <span class="n">returned</span> <span class="n">non</span><span class="o">-</span><span class="n">zero</span> <span class="nb">exit</span> <span class="n">status</span> <span class="mi">2</span>
+</pre></div>
+
+
+<h1>subprocess.Popen</h1>
+<p>If you want some more powerful tools, use this. You can't use pipe directly in this form. Instead, You have to use subprocess.PIPE:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">lsres</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s1">&#39;ls&#39;</span><span class="p">,</span><span class="s1">&#39;-l&#39;</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">grepres</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s1">&#39;grep&#39;</span><span class="p">,</span> <span class="s1">&#39;Do&#39;</span><span class="p">],</span> <span class="n">stdin</span><span class="o">=</span><span class="n">lsres</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">res</span> <span class="o">=</span> <span class="n">grepres</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+</pre></div>
+
+
+<p>communicate() interact with process: Send data to stdin. Read data from stdout and stderr, until end-of-file is reached. Wait for process to terminate. It returns a tuple (stdoutdata, stderrdata).</p>
+<h2>Full solution of running shell command</h2>
+<p>If you want realtime output, while saving output and return code in variables, you should use Popen:</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">Popen</span><span class="p">,</span> <span class="n">PIPE</span><span class="p">,</span> <span class="n">STDOUT</span>
+<span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;vmstat 2 3&#39;</span>
+<span class="n">cmd2</span> <span class="o">=</span> <span class="s1">&#39;exit 3&#39;</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">close_fds</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">STDOUT</span><span class="p">)</span>
+
+<span class="n">line</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="k">while</span> <span class="n">p</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">out</span><span class="o">==</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span> <span class="o">+</span> <span class="n">out</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;--------</span><span class="se">\n</span><span class="s1">ret is: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The Popen.stdout is a file object, so its "read(size)" method here means read every 1 byte.
+"close_fds=True" is maybe unnecessary, but I keep it for safe.</p>
+<h1>os.popen</h1>
+<p>Use this form if you want to save command output.</p>
+<div class="highlight"><pre><span></span>&gt;&gt;&gt; retfile = os.popen(&#39;pwd&#39;)
+&gt;&gt;&gt; ret = retfile.read() 
+&gt;&gt;&gt; ret 
+&#39;/home/lichao\n&#39; 
+&gt;&gt;&gt; retfile 
+&lt;open file &#39;pwd&#39;, mode &#39;r&#39; at 0xb74aad30&gt;
+</pre></div>
+
+
+<p>or write it more compact:</p>
+<div class="highlight"><pre><span></span>&gt;&gt;&gt; result = os.popen(&#39;ls|grep enex&#39;).read()
+</pre></div>
+
+
+<h2>Deprecated</h2>
+<ul>
+<li>
+<p>commands.getoutput()</p>
+</li>
+<li>
+<p>commands.getstatusoutput()</p>
+</li>
+</ul>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2014-01-03T11:13:21+08:00">Jan 3, 2014</time>
+
+<h4>Last Updated</h4>
+<time datetime="2014-01-03T11:13:21+08:00">Jan 3, 2014</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#python-ref">Python
+                    <span>108</span>
+</a></li>
+                <li><a href="/tags.html#shell-ref">shell
+                    <span>40</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

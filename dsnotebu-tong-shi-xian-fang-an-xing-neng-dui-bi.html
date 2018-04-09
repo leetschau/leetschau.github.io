@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="powershell, bash, dsnote, time, timeit, Tech, " />
+
+<meta property="og:title" content="dsnote不同实现方案性能对比 "/>
+<meta property="og:url" content="/dsnotebu-tong-shi-xian-fang-an-xing-neng-dui-bi.html" />
+<meta property="og:description" content="测试标准：在1699个文本文件中搜索 logon，查看总用时。 PowerShell 和 Bash 版本 dsnote 性能对比 测试环境：cygwin in Windows 10 测试过程： $ time powershell -f apps/dsnote/donshell.ps1 s logon powershell -f apps/dsnote/donshell.ps1 s logon 0.00s user 0.01s system 2% cpu 0.571 total $ time ~/apps/dsnote/donshell.sh s …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2017-08-06T12:32:27+08:00" />
+<meta property="" content="2017-08-06T12:32:27+08:00" />
+<meta name="twitter:title" content="dsnote不同实现方案性能对比 ">
+<meta name="twitter:description" content="测试标准：在1699个文本文件中搜索 logon，查看总用时。 PowerShell 和 Bash 版本 dsnote 性能对比 测试环境：cygwin in Windows 10 测试过程： $ time powershell -f apps/dsnote/donshell.ps1 s logon powershell -f apps/dsnote/donshell.ps1 s logon 0.00s user 0.01s system 2% cpu 0.571 total $ time ~/apps/dsnote/donshell.sh s …">
+
+        <title>dsnote不同实现方案性能对比  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/dsnotebu-tong-shi-xian-fang-an-xing-neng-dui-bi.html"> dsnote不同实现方案性能对比  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>测试标准：在1699个文本文件中搜索 <em>logon</em>，查看总用时。</p>
+<h1>PowerShell 和 Bash 版本 dsnote 性能对比</h1>
+<p>测试环境：cygwin in Windows 10</p>
+<p>测试过程：</p>
+<div class="highlight"><pre><span></span>$ <span class="nb">time</span> powershell -f apps/dsnote/donshell.ps1 s logon
+powershell -f apps/dsnote/donshell.ps1 s logon  <span class="m">0</span>.00s user <span class="m">0</span>.01s system <span class="m">2</span>% cpu <span class="m">0</span>.571 total
+$ <span class="nb">time</span> ~/apps/dsnote/donshell.sh s logon
+/home/lee_c/apps/dsnote/donshell.sh s logon  <span class="m">0</span>.36s user <span class="m">0</span>.55s system <span class="m">100</span>% cpu <span class="m">0</span>.933 total
+</pre></div>
+
+
+<p>测试结果：
+多次测试 Powershell 版稳定在 0.5 ~ 0.6 秒，bash 版稳定在 0.9 ~ 1 秒。</p>
+<h1>Winodws版本搜索方案对比</h1>
+<p>测试环境：Powershell in Windows 10</p>
+<p>基于Powershell的搜索实现：</p>
+<div class="highlight"><pre><span></span>$res = &quot;$repo\*$noteFileExt&quot;
+foreach ($kw in $items) {
+  $res = Select-String -Path $res -Pattern $kw | % { $_.Path } | Get-Unique
+  if ($res.Length -eq 0) {
+    Write-Host Nothing match.
+    return
+  }
+}
+</pre></div>
+
+
+<p>基于<a href="https://github.com/monochromegane/the_platinum_searcher">pt</a>的搜索实现：</p>
+<div class="highlight"><pre><span></span>$res = $repo
+foreach ($kw in $items) {
+  $res = @(pt /i /l $kw $res)
+  if ($res.length -eq 0) {
+    Write-Host Nothing match.
+    return
+  }
+}
+</pre></div>
+
+
+<p>测试过程：</p>
+<div class="highlight"><pre><span></span>PS&gt; Measure-Command { C:\apps\cygRoot\home\lee_c\apps\dsnote\donshell.ps1 s logon }
+</pre></div>
+
+
+<p>测试结果：
+多次测试 Powershell 版稳定在 200ms ~ 230ms 间，pt 版稳定在 210ms ~ 240ms 间，
+另外 Powershell 版本中 <code>Select-String</code> 如果加 <code>-SimpleMatch</code> 参数，
+运行时间反而增加到了 300ms 左右。</p>
+<p>Powershell版本没有外部依赖，性能也不错，决定用它代替之前的pt版本。</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2017-08-06T12:32:27+08:00">Aug 6, 2017</time>
+
+<h4>Last Updated</h4>
+<time datetime="2017-08-06T12:32:27+08:00">Aug 6, 2017</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#bash-ref">bash
+                    <span>3</span>
+</a></li>
+                <li><a href="/tags.html#dsnote-ref">dsnote
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#powershell-ref">powershell
+                    <span>2</span>
+</a></li>
+                <li><a href="/tags.html#time-ref">time
+                    <span>7</span>
+</a></li>
+                <li><a href="/tags.html#timeit-ref">timeit
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

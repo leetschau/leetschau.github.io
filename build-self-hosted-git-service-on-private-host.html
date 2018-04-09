@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="gogs, ubuntu, Tech, " />
+
+<meta property="og:title" content="Build Self-hosted Git Service on Private Host "/>
+<meta property="og:url" content="/build-self-hosted-git-service-on-private-host.html" />
+<meta property="og:description" content="Today I followed the instructions on Install from binary, download the gogs binary for Linux amd64 with tar.gz extension to a vagrant virtual host on ThinkCenter (IP address 172.18.0.244). Extract it to ~/apps/gogs folder: sudo useradd -m -p $(openssl passwd -1 mygitpwd) git su - git …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2018-03-08T15:53:36+08:00" />
+<meta property="" content="2018-03-26T10:09:53+08:00" />
+<meta name="twitter:title" content="Build Self-hosted Git Service on Private Host ">
+<meta name="twitter:description" content="Today I followed the instructions on Install from binary, download the gogs binary for Linux amd64 with tar.gz extension to a vagrant virtual host on ThinkCenter (IP address 172.18.0.244). Extract it to ~/apps/gogs folder: sudo useradd -m -p $(openssl passwd -1 mygitpwd) git su - git …">
+
+        <title>Build Self-hosted Git Service on Private Host  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/build-self-hosted-git-service-on-private-host.html"> Build Self-hosted Git Service on Private Host  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>Today I followed the instructions on <a href="https://gogs.io/docs/installation/install_from_binary">Install from binary</a>,
+download the gogs binary for Linux amd64 with tar.gz extension to
+a vagrant virtual host on <em>ThinkCenter</em> (IP address <em>172.18.0.244</em>).
+Extract it to <em>~/apps/gogs</em> folder:</p>
+<div class="highlight"><pre><span></span>sudo useradd -m -p $(openssl passwd -1 mygitpwd) git
+su - git
+mkdir apps; cd apps
+tar xf /vagrant/gogs0.11.34.tar.gz
+cd gogs
+./gogs web    # or use another port with &#39;-port 3001&#39;
+</pre></div>
+
+
+<p>Open <em>172.18.0.244:3000</em> in browser, modify the following install parameters:</p>
+<div class="highlight"><pre><span></span>Database Type: SQLite3
+Domain: 172.18.0.244
+Application URL: http://172.18.0.244:3000/
+</pre></div>
+
+
+<p>Then click <em>Install Gogs</em> to install Gogs service.
+After that click <em>Sign up now</em> to register a new user <em>leo</em>.
+This user will be the administrator of the gogs system.</p>
+<h1>Run as Daemon</h1>
+<p>According to <a href="https://gogs.io/docs/intro/faqs#how-do-i-run-gogs-at-startup-with-systemd%3F">How do I run Gogs at startup with Systemd?</a>.</p>
+<p>Modify the following items in <code>$GOGS_HOME/scripts/systemd/gogs.service</code>:</p>
+<div class="highlight"><pre><span></span>WorkingDirectory=/home/git/apps/gogs
+ExecStart=/home/git/apps/gogs/gogs web
+</pre></div>
+
+
+<p>And comment out <code>After=mariadb.service mysqld.service ...</code>,
+for here we use SQLite3 instead of mariadb, etc.</p>
+<p>Copy the file into folder <code>/etc/systemd/system</code> and run:</p>
+<div class="highlight"><pre><span></span>sudo systemctl enable gogs
+sudo systemctl start gogs
+</pre></div>
+
+
+<p>There's also an <em>init.d</em> <a href="https://github.com/gogits/gogs/blob/master/scripts/init/debian/gogs">script</a>
+provided, which is more complicated to configure than the systemd equivalent.</p>
+<p>Note:</p>
+<p>Don't use existing user as the gogs <em>Run User</em>.
+Thus the normal SSH connection will be interfered by Gogs.</p>
+<h1>Backup and Restore</h1>
+<p>Backup: <code>./gogs backup</code> and save the created file in the current folder:
+<em>gogs-backup-xxx.zip</em>.</p>
+<p>Restore: <code>./gogs restore --from="gogs-backup-xxx.zip"</code>.</p>
+<p>Notice that the user name of the backup and restore must be the same,
+or the restore will failed.</p>
+<p>Follow <a href="https://discuss.gogs.io/t/how-to-backup-restore-and-migrate/991">How to backup, restore and migrate</a>
+for details.</p>
+<h1>Clone with SSH</h1>
+<p>After adding the client's SSH public key in Gogs <em>Your Settings &gt; SSH Keys</em>,
+I could push an existing repository to Gogs:</p>
+<div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">remote</span> <span class="n">add</span> <span class="n">gogs</span> <span class="n">git</span><span class="mf">@172.18.0.244</span><span class="o">:</span><span class="n">leo</span><span class="o">/</span><span class="n">programming</span><span class="o">-</span><span class="n">style</span><span class="p">.</span><span class="n">git</span>
+<span class="n">git</span> <span class="n">push</span> <span class="n">gogs</span> <span class="n">master</span>
+</pre></div>
+
+
+<p>And clone it from Gogs:
+<code>git clone git@172.18.0.244:leo/programming-style.git</code>.</p>
+<p>Under the hood, Gogs add something like the following lines to file
+<em>~/.ssh/authorized_keys</em> of user <em>git</em>:</p>
+<div class="highlight"><pre><span></span>command=&quot;/home/git/apps/gogs/gogs serv key-1 --config=&#39;/home/git/apps/gogs/custo
+m/conf/app.ini&#39;&quot;,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty
+ ssh-rsa &lt;your-pub-key&gt;
+</pre></div>
+
+
+<p>So if you can't push via ssh, check if the contents in <em>authorized_keys</em> is
+generated correctly.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2018-03-08T15:53:36+08:00">Mar 8, 2018</time>
+
+<h4>Last Updated</h4>
+<time datetime="2018-03-26T10:09:53+08:00">Mar 26, 2018</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#gogs-ref">gogs
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#ubuntu-ref">ubuntu
+                    <span>56</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

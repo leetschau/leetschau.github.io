@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="CentOS, linux, iptables, Tech, " />
+
+<meta property="og:title" content="Configure Firewalls on Linux "/>
+<meta property="og:url" content="/configure-firewalls-on-linux.html" />
+<meta property="og:description" content="The firewall in CentOS is the &#34;iptables&#34; service. List all rules: iptables -nvL You can get all chains and all rules of each chain. iptables rules are described in several &#34;chains&#34;. The default chains are &#34;INPUT&#34;, &#34;FORWARD&#34; and &#34;OUTPUT&#34;. The INPUT chain is most concerned. It defines which ports of …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2013-12-23T14:08:12+08:00" />
+<meta property="" content="2013-12-23T14:08:12+08:00" />
+<meta name="twitter:title" content="Configure Firewalls on Linux ">
+<meta name="twitter:description" content="The firewall in CentOS is the &#34;iptables&#34; service. List all rules: iptables -nvL You can get all chains and all rules of each chain. iptables rules are described in several &#34;chains&#34;. The default chains are &#34;INPUT&#34;, &#34;FORWARD&#34; and &#34;OUTPUT&#34;. The INPUT chain is most concerned. It defines which ports of …">
+
+        <title>Configure Firewalls on Linux  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/configure-firewalls-on-linux.html"> Configure Firewalls on Linux  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>The firewall in CentOS is the "iptables" service.</p>
+<h1>List all rules: iptables -nvL</h1>
+<p>You can get all chains and all rules of each chain.</p>
+<p>iptables rules are described in several "chains".
+The default chains are "INPUT", "FORWARD" and "OUTPUT".</p>
+<p>The INPUT chain is most concerned.
+It defines which ports of this host are allowed/denied to be visited by the outside world,
+which IPs are allowed/denied to visit this host.</p>
+<p>Add a rule to deny all visits to port 27017:</p>
+<div class="highlight"><pre><span></span>iptables -A INPUT -p tcp --dport 27017 -j DROP
+</pre></div>
+
+
+<p>To delete this rule, first use <code>iptables -L INPUT --line-number</code> to get the line number of the rule, such as "2",
+then delete it with <code>iptables -D INPUT 2</code>.</p>
+<p>Ref:</p>
+<p><a href="http://linux.vbird.org/linux_server/0250simple_firewall.php#netfilter">9.3 Linux 的封包過濾軟體：iptables</a> of "鳥哥的 Linux 私房菜".</p>
+<h1>Control iptables service</h1>
+<ul>
+<li>service iptables start|stop|restart</li>
+</ul>
+<h1>Open a port (port 9000 in this case)for incoming connection:</h1>
+<p>Add the following line <strong>right after</strong> the line "-A INPUT -i lo -j ACCEPT" in file /etc/sysconfig/iptables:</p>
+<div class="highlight"><pre><span></span>-A INPUT -i eth0 -p tcp --dport 9000 -j ACCEPT
+</pre></div>
+
+
+<p>where "INPUT" is a <chain_name> you can get in above list operation. -i is the incoming interface name, -p means protocol, --dport means "destination port", -j means target name. See man iptables for details.</p>
+<p>Note 1:
+The position is important. The rules will be processed in line order of the file.
+If there is a match for a rule, no other rules (rules below this rule) will be
+processed for that IP packet in your case.</p>
+<p>Note 2:
+After saving the rule file,
+you need restart service to validate the modification.
+Use the list command above to see your modification.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2013-12-23T14:08:12+08:00">Dec 23, 2013</time>
+
+<h4>Last Updated</h4>
+<time datetime="2013-12-23T14:08:12+08:00">Dec 23, 2013</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#centos-ref">CentOS
+                    <span>24</span>
+</a></li>
+                <li><a href="/tags.html#iptables-ref">iptables
+                    <span>2</span>
+</a></li>
+                <li><a href="/tags.html#linux-ref">linux
+                    <span>149</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

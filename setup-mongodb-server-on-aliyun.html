@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="auth, mongodb, meteor, aliyun, Tech, " />
+
+<meta property="og:title" content="Setup MongoDB Server on Aliyun "/>
+<meta property="og:url" content="/setup-mongodb-server-on-aliyun.html" />
+<meta property="og:description" content="For version 3.0. Install On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract: wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz cd /opt tar zxf ~/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz mkdir -p /data/db Authentication Management Start mongod without auth …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2015-03-05T18:11:33+08:00" />
+<meta property="" content="2015-03-05T18:11:33+08:00" />
+<meta name="twitter:title" content="Setup MongoDB Server on Aliyun ">
+<meta name="twitter:description" content="For version 3.0. Install On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract: wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz cd /opt tar zxf ~/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz mkdir -p /data/db Authentication Management Start mongod without auth …">
+
+        <title>Setup MongoDB Server on Aliyun  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/setup-mongodb-server-on-aliyun.html"> Setup MongoDB Server on Aliyun  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>For version 3.0.</p>
+<h1>Install</h1>
+<p>On VPS (ip: 123.56.18.18), download MongoDB binary package for Ubuntu 14.04 and extract:</p>
+<div class="highlight"><pre><span></span>wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+cd /opt
+tar zxf ~/mongodb-linux-x86_64-ubuntu1404-3.0.3.tgz
+mkdir -p /data/db
+</pre></div>
+
+
+<h1>Authentication Management</h1>
+<p>Start mongod without auth on VPS (ip: 123.56.18.18): <code>mongod</code>;</p>
+<p>Connect to server with <code>mongo 123.56.18.18</code>;
+Create system user administrator:</p>
+<div class="highlight"><pre><span></span>use admin
+db.createUser(
+    {
+      user: &quot;superuser&quot;,
+      pwd: &quot;12345678&quot;,
+      roles: [ &quot;root&quot; ]
+    }
+)
+</pre></div>
+
+
+<p>Create user in current database: </p>
+<div class="highlight"><pre><span></span>use products
+db.createUser({user: &quot;dba&quot;, pwd: &quot;dba&quot;, roles: [&quot;readWrite&quot;]})
+show users
+</pre></div>
+
+
+<p>Verify with <code>db.getUsers()</code>.</p>
+<p>Create a production config file mongo.conf:</p>
+<div class="highlight"><pre><span></span>net:
+  #bindIp: 10.251.212.248
+  port: 15515
+systemLog:
+  destination: file
+  path: &quot;mongo.log&quot;
+  logAppend: true
+security:
+  authorization: enabled
+</pre></div>
+
+
+<p>Stop and restart mongod with <code>nohup mongod --config mongo.conf &amp;</code>;</p>
+<p>Connect to server as a database user: <code>mongo 123.56.18.18:15515/products -u niufair -p nfsecret</code>.
+You can <code>show collections</code>, <code>db.doc.insert()</code>, etc.</p>
+<p>Start Meteor app with <code>MONGO_URL="mongodb://niufair:nfsecret@123.56.18.18:15515/products" meteor</code>.</p>
+<p>Connect to server as administrator: <code>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin</code>.</p>
+<p>Use <code>db.getUsers()</code> (or <code>show users</code>) and <code>db.dropUser("username")</code> to list and remove the user.</p>
+<h2>Create a new database under authentication</h2>
+<p>Say we want to create a new database named "bakdb":</p>
+<div class="highlight"><pre><span></span>mongo 123.56.18.18:15515/admin -u leo -p leoisadmin
+use bakdb
+db.createUser({user: &quot;niufair&quot;, pwd: &quot;nfsecret&quot;, roles: [&quot;readWrite&quot;]})
+</pre></div>
+
+
+<p>Verify: <code>mongo -u niufair -p nfsecret 123.56.18.18:15515/bakdb</code>;</p>
+<p>Ref:</p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication-without-bypass/">Enable Authentication after Creating the User Administrator</a></p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-user-to-database/">Add a User to a Database</a></p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/add-admin-user/">Create an Administrative User with Unrestricted Access</a></p>
+<p><a href="http://docs.mongodb.org/manual/tutorial/enable-authentication/">Enable Client Access Control</a></p>
+<p><a href="http://docs.mongodb.org/manual/reference/built-in-roles/">Built-In Roles</a></p>
+<p>http://stackoverflow.com/questions/4881208/how-to-put-username-password-in-mongodb</p>
+<h1>MMS</h1>
+<p>Connect mongodb server without authentication: <code>mongo &lt;ip&gt;:&lt;port&gt;</code>;</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2015-03-05T18:11:33+08:00">Mar 5, 2015</time>
+
+<h4>Last Updated</h4>
+<time datetime="2015-03-05T18:11:33+08:00">Mar 5, 2015</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#aliyun-ref">aliyun
+                    <span>2</span>
+</a></li>
+                <li><a href="/tags.html#auth-ref">auth
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#meteor-ref">meteor
+                    <span>47</span>
+</a></li>
+                <li><a href="/tags.html#mongodb-ref">mongodb
+                    <span>24</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

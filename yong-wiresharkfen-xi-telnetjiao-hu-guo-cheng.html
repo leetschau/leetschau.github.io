@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="tshark, Wireshark, monitor, Tech, " />
+
+<meta property="og:title" content="用Wireshark分析Telnet交互过程 "/>
+<meta property="og:url" content="/yong-wiresharkfen-xi-telnetjiao-hu-guo-cheng.html" />
+<meta property="og:description" content="Windows系统下 用XShell作为Telnet客户端连接47服务器，整个过程可以用Wireshark（验证版本：1.6.5）完整地记录下来。 Wireshark-&gt;Capture-&gt;Interface中设置要监视的网卡； Wireshark-&gt;Capture-&gt;Options-&gt;Capture Filter后写要监控的目标主机IP地址，这里写： host 10.0.2.47 ； Wireshark-&gt;Capture-&gt;Start； 启动XShell连接47：Xshell:&gt; telnet 10.0.2.47 ； Wireshark将显示整个交互过程（见下图），可以看到主界面分为3部分，上面按时间顺序列出了每次交互的数据包（packet）；中间是这个数据包的详细内容，第一层Frame 14（xx层？）是xxx，第二层Ethernet II（链路层）主要由源和目标主机的网卡（Mac）地址组成，用ifconfig -a …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2012-03-15T09:34:17+08:00" />
+<meta property="" content="2012-03-15T09:34:17+08:00" />
+<meta name="twitter:title" content="用Wireshark分析Telnet交互过程 ">
+<meta name="twitter:description" content="Windows系统下 用XShell作为Telnet客户端连接47服务器，整个过程可以用Wireshark（验证版本：1.6.5）完整地记录下来。 Wireshark-&gt;Capture-&gt;Interface中设置要监视的网卡； Wireshark-&gt;Capture-&gt;Options-&gt;Capture Filter后写要监控的目标主机IP地址，这里写： host 10.0.2.47 ； Wireshark-&gt;Capture-&gt;Start； 启动XShell连接47：Xshell:&gt; telnet 10.0.2.47 ； Wireshark将显示整个交互过程（见下图），可以看到主界面分为3部分，上面按时间顺序列出了每次交互的数据包（packet）；中间是这个数据包的详细内容，第一层Frame 14（xx层？）是xxx，第二层Ethernet II（链路层）主要由源和目标主机的网卡（Mac）地址组成，用ifconfig -a …">
+
+        <title>用Wireshark分析Telnet交互过程  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/yong-wiresharkfen-xi-telnetjiao-hu-guo-cheng.html"> 用Wireshark分析Telnet交互过程  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>Windows系统下 
+用XShell作为Telnet客户端连接47服务器，整个过程可以用Wireshark（验证版本：1.6.5）完整地记录下来。</p>
+<p>Wireshark-&gt;Capture-&gt;Interface中设置要监视的网卡；</p>
+<p>Wireshark-&gt;Capture-&gt;Options-&gt;Capture Filter后写要监控的目标主机IP地址，这里写： host 10.0.2.47 ；</p>
+<p>Wireshark-&gt;Capture-&gt;Start；</p>
+<p>启动XShell连接47：Xshell:> telnet 10.0.2.47 ；</p>
+<p>Wireshark将显示整个交互过程（见下图），可以看到主界面分为3部分，上面按时间顺序列出了每次交互的数据包（packet）；中间是这个数据包的详细内容，第一层Frame 14（xx层？）是xxx，第二层Ethernet II（链路层）主要由源和目标主机的网卡（Mac）地址组成，用ifconfig -a(Linux)或者ipconfig /all(windows)可以验证，第3层（网络层）是IP协议报头，主要包括源和目标的IP地址等，第4层（传输层）是TCP协议报头，主要包括源和目标的端口号、包序列号等，第5层（应用层）是Telnet数据；主界面的下部是此数据包的具体内容，以16进制显示。</p>
+<p>连接后首先进行选项协商，然后传输数据，下面以“是否回显”为例详细说明协商过程，图中10.0.2.47是Telnet Server，10.32.1.56是Client。</p>
+<p>第14步S要求C回显：ff fd 01，即IAC DO ECHO（见上图）；</p>
+<p>第17步C回答S客户端不回显：ff fc 01，即IAC WONT ECHO；</p>
+<p>第19步S通知C服务端将回显：ff fb 01，即IAC WILL ECHO；</p>
+<p>第20步C同意服务端回显：ff fd 01，即IAC DO ECHO；</p>
+<p>选项协商中各种搭配的具体含义参见“ The Telnet Protocol ”；</p>
+<p>更改XSehll窗口尺寸引起的window size negotiation：</p>
+<p>ff fa 1f 00 62 00 1b ff f0，即IAC SB 31(Options: Window Size) 98 27 IAC SE</p>
+<p>转换为Telnet语句：</p>
+<p>Suboption Begin: Negotiate About window size</p>
+<p>Width: 98 Height: 27</p>
+<p>Command: Suboption End</p>
+<p>命令行用法</p>
+<p>C:\Program Files\Wireshark&gt;tshark -D 
+1. \Device\NPF_{4DF0B9FD-57A8-43FC-9EC9-354B454E475D} (VMware Virtual Ethernet Adapter) 
+2. \Device\NPF_{CA8CAD23-7ADD-4F2B-8A77-1E9E6810FE38} (Broadcom NetLink (TM) Gigabit Ethernet Driver) 
+3. \Device\NPF_{53720D33-0B96-48DB-A977-07A0EC43F65B} (VMware Virtual Ethernet Adapter)</p>
+<p>tshark -f "host 10.0.2.47" -i 2 -c 20 -w myfile</p>
+<p>用wireshark打开myfile</p>
+<p>用tshark -F可以看到snoop好像是可以在solaris上打开的输入监控文件格式
+ Linux下 
+47上目前的操作系统是Red Hat Enterprise Linux Server release 5.4，安装tshark需要 libsmi-0.4.5-2.el5.x86_64.rpm 和 wireshark-1.0.15-1.el5_6.4.x86_64.rpm 两个包，安装过程很简单，首先将这个包上传到47上，然后执行：</p>
+<p>rpm -ivh libsmi-0.4.5-2.el5.x86_64.rpm </p>
+<p>rpm -ivh wireshark-1.0.15-1.el5_6.4.x86_64.rpm </p>
+<p>verify: </p>
+<p>[root@goduserver tool]# whereis tshark 
+tshark: /usr/sbin/tshark /usr/share/man/man1/tshark.1.gz </p>
+<p>rpm包下载站点： pkgs.org ，备用站点： http://rpm.pbone.net/ </p>
+<p>获取网卡列表：</p>
+<p>[root@goduserver tool]# tshark -D 
+1. eth3 
+2. ... </p>
+<p>获取监测数据： </p>
+<p>[root@goduserver help]# tshark -i eth3 -w myoutput host 10.32.1.59 </p>
+<p>普通用户权限不够无法进行监测：</p>
+<p>[godu@goduserver ~]$ tshark -i eth3 host 10.32.1.59 </p>
+<p>Capturing on eth3</p>
+<p>tshark: The capture session could not be initiated (socket: Operation not permitted)...</p>
+<p>读取监测数据：</p>
+<p>[root@goduserver tool]# tshark -r myoutput -x -V </p>
+<p>将监测数据保存为文本：</p>
+<p>[root@goduserver tool]# tshark -r myoutput -x -V &gt; mytxt </p>
+<p>或者将myoutput下载到PC上用Wireshark分析；</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2012-03-15T09:34:17+08:00">Mar 15, 2012</time>
+
+<h4>Last Updated</h4>
+<time datetime="2012-03-15T09:34:17+08:00">Mar 15, 2012</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#monitor-ref">monitor
+                    <span>4</span>
+</a></li>
+                <li><a href="/tags.html#tshark-ref">tshark
+                    <span>2</span>
+</a></li>
+                <li><a href="/tags.html#wireshark-ref">Wireshark
+                    <span>5</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

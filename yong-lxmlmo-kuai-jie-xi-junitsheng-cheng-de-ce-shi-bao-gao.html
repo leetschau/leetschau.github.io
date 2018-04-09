@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="JUnit, Python, xPath, lxml, HTML, zip, Tech, " />
+
+<meta property="og:title" content="用lxml模块解析JUnit生成的测试报告 "/>
+<meta property="og:url" content="/yong-lxmlmo-kuai-jie-xi-junitsheng-cheng-de-ce-shi-bao-gao.html" />
+<meta property="og:description" content="JUnit的测试结果首先保存在xml文档中，然后生成html格式的测试报告，这份报告中的数据是用一段javascript代码根据 xml文档的数据 计算出来的，因此我们要获取测试结果数据，就只能分析html文档，这方面lxml模块（codespeak.net/lxml/）的功能比较令人满意，利用lxml的xpath语法可以方便地得到某个标签的内容，下面是一个分析样例文本： &lt;!DOCTYPE HTML PUBLIC &#34;-//W3C//DTD HTML 4.01 Transitional//EN&#34;&gt; Unit Test Results. ...(1000多行) Unit Test Results. Summary TestsFailuresErrorsSuccess rateTime 240240.00%0.155 ... 效果见下图 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2011-01-11T10:08:23+08:00" />
+<meta property="" content="2011-01-11T10:08:23+08:00" />
+<meta name="twitter:title" content="用lxml模块解析JUnit生成的测试报告 ">
+<meta name="twitter:description" content="JUnit的测试结果首先保存在xml文档中，然后生成html格式的测试报告，这份报告中的数据是用一段javascript代码根据 xml文档的数据 计算出来的，因此我们要获取测试结果数据，就只能分析html文档，这方面lxml模块（codespeak.net/lxml/）的功能比较令人满意，利用lxml的xpath语法可以方便地得到某个标签的内容，下面是一个分析样例文本： &lt;!DOCTYPE HTML PUBLIC &#34;-//W3C//DTD HTML 4.01 Transitional//EN&#34;&gt; Unit Test Results. ...(1000多行) Unit Test Results. Summary TestsFailuresErrorsSuccess rateTime 240240.00%0.155 ... 效果见下图 …">
+
+        <title>用lxml模块解析JUnit生成的测试报告  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/yong-lxmlmo-kuai-jie-xi-junitsheng-cheng-de-ce-shi-bao-gao.html"> 用lxml模块解析JUnit生成的测试报告  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>JUnit的测试结果首先保存在xml文档中，然后生成html格式的测试报告，这份报告中的数据是用一段javascript代码根据 xml文档的数据 计算出来的，因此我们要获取测试结果数据，就只能分析html文档，这方面lxml模块（codespeak.net/lxml/）的功能比较令人满意，利用lxml的xpath语法可以方便地得到某个标签的内容，下面是一个分析样例文本：</p>
+<p>&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"&gt; </p>
+<p><html xmlns:lxslt="http://xml.apache.org/xslt" xmlns:stringutils="xalan://org.apache.tools.ant.util.StringUtils"> </p>
+<p><head> </p>
+<p><META http-equiv="Content-Type" content="text/html; charset=US-ASCII"> </p>
+<p><title>Unit Test Results.</title> </p>
+<p><script type="text/javascript" language="JavaScript"> </p>
+<p>...(1000多行) </p>
+<p></script> </p>
+<p></head> </p>
+<p><body> </p>
+<p><a name="top"></a> </p>
+<p><h1>Unit Test Results.</h1> </p>
+<p><table width="100%"> </p>
+<p><tr> </p>
+<p><td align="left"></td><td ....</td> </p>
+<p></tr> </p>
+<p></table> </p>
+<p><hr size="1"> </p>
+<p><h2>Summary</h2> </p>
+<p><table class="details" border="0" cellpadding="5" cellspacing="2" width="95%"> </p>
+<p><tr valign="top"> </p>
+<p><th>Tests</th><th>Failures</th><th>Errors</th><th>Success rate</th><th>Time</th> </p>
+<p></tr> </p>
+<p><tr valign="top" class="Error"> </p>
+<p><td>24</td><td>0</td><td>24</td><td>0.00%</td><td>0.155</td> </p>
+<p></tr> </p>
+<p></table> </p>
+<p><table ...> </p>
+<p><tr ...> </p>
+<p></tr> </p>
+<p></table> </p>
+<p>... </p>
+<p></body> </p>
+<p></html> </p>
+<p>效果见下图：</p>
+<p>解析html的目的是取出文本中黑体字表示的数据。</p>
+<p>解析函数是：</p>
+<p>from lxml import html </p>
+<p>def parseJUnitReport(html_filename): </p>
+<p>html_doc = html.parse(html_filename).getroot() </p>
+<p>res_tbl = html_doc.xpath("//html//body//table")[1] </p>
+<p>test_item_names = [k.text for k in res_tbl.xpath('.//tr//th')] # list comprehension </p>
+<p>test_datasets = [k.text for k in res_tbl.xpath('.//tr//td')] </p>
+<p>return dict(zip(test_item_names,test_datasets)) </p>
+<p>测试代码：</p>
+<p>aa = 'e:\BVT\GODU-BVT\GCIF\build\GAPI\build\result\junit\junit-noframes.html' </p>
+<p>print build.parseJUnitReport(aa) </p>
+<p>运行结果如下：</p>
+<p>{'Failures': '0', 'Tests': '24', 'Errors': '24', 'Success rate': '0.00%', 'Time': '0.155'} </p>
+<p>从解析函数可以看到：</p>
+<p>导入lxml.html后，其parse方法的参数是一个文件路径字符串，用xpath()方法得到的是一个包含<body>内所有的<table>的list，由于目标table位于第二位，所以取[1]得到table对象res_tbl，然后在它的下面取<tr>里的<th>，得到标题行，对于每个得到的节点，需要用它的text属性得到文本内容，这里使用了list的comprehension功能，用一行代码就取到每个元素的text属性并组成了新的list（test_item_names和test_datasets），然后用zip方法将两个list组合成了一个list，再用dict方法将list转换成了字典。</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2011-01-11T10:08:23+08:00">Jan 11, 2011</time>
+
+<h4>Last Updated</h4>
+<time datetime="2011-01-11T10:08:23+08:00">Jan 11, 2011</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#html-ref">HTML
+                    <span>8</span>
+</a></li>
+                <li><a href="/tags.html#junit-ref">JUnit
+                    <span>10</span>
+</a></li>
+                <li><a href="/tags.html#lxml-ref">lxml
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#python-ref">Python
+                    <span>108</span>
+</a></li>
+                <li><a href="/tags.html#xpath-ref">xPath
+                    <span>2</span>
+</a></li>
+                <li><a href="/tags.html#zip-ref">zip
+                    <span>4</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

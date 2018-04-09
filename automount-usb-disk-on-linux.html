@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="automount, usb, arch, Tech, " />
+
+<meta property="og:title" content="Automount USB Disk on Linux "/>
+<meta property="og:url" content="/automount-usb-disk-on-linux.html" />
+<meta property="og:description" content="ArchLinux Install: sudo pacman -S udiskie; Start service: run udiskie &amp; manually when system startup, or add &#34;udiskie &amp;&#34; into ~/.xinitrc; Now when you plug USB key into computer, it will be automount to /media folder. Unmount USB disk Create an executable script in /usr/local/bin: $ cat /usr/local/bin/unmount …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2014-09-03T11:06:42+08:00" />
+<meta property="" content="2014-09-03T11:06:42+08:00" />
+<meta name="twitter:title" content="Automount USB Disk on Linux ">
+<meta name="twitter:description" content="ArchLinux Install: sudo pacman -S udiskie; Start service: run udiskie &amp; manually when system startup, or add &#34;udiskie &amp;&#34; into ~/.xinitrc; Now when you plug USB key into computer, it will be automount to /media folder. Unmount USB disk Create an executable script in /usr/local/bin: $ cat /usr/local/bin/unmount …">
+
+        <title>Automount USB Disk on Linux  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/automount-usb-disk-on-linux.html"> Automount USB Disk on Linux  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<h1>ArchLinux</h1>
+<p>Install: <code>sudo pacman -S udiskie</code>;</p>
+<p>Start service: run <code>udiskie &amp;</code> manually when system startup,
+or add "udiskie &amp;" into ~/.xinitrc;</p>
+<p>Now when you plug USB key into computer, it will be automount to /media folder.</p>
+<h2>Unmount USB disk</h2>
+<p>Create an executable script in /usr/local/bin:</p>
+<div class="highlight"><pre><span></span>$ cat /usr/local/bin/unmount
+<span class="c1">#!/bin/sh</span>
+
+<span class="c1"># Global variables</span>
+<span class="nv">TITLE</span><span class="o">=</span><span class="s2">&quot;Unmount Utility&quot;</span>
+<span class="nv">COLUMNS</span><span class="o">=</span><span class="m">3</span> <span class="c1"># TARGET,SOURCE,FSTYPE</span>
+<span class="c1">#IFS=$&#39;\n&#39;</span>
+
+<span class="c1"># Populate list of unmountable devices</span>
+<span class="nv">deviceList</span><span class="o">=(</span><span class="k">$(</span>findmnt -Do TARGET,SOURCE,FSTYPE <span class="p">|</span> grep -e <span class="s2">&quot;sd[b-z]&quot;</span><span class="k">)</span><span class="o">)</span>
+<span class="nv">deviceCount</span><span class="o">=</span><span class="k">$((</span><span class="si">${#</span><span class="nv">deviceList</span><span class="p">[@]</span><span class="si">}</span> <span class="o">/</span> <span class="nv">$COLUMNS</span><span class="k">))</span>
+
+<span class="c1"># Start of program output</span>
+<span class="nb">echo</span> <span class="nv">$TITLE</span>
+
+<span class="c1"># Display list of devices that can be unmounted</span>
+<span class="k">for</span> <span class="o">((</span><span class="nv">device</span><span class="o">=</span><span class="m">0</span><span class="p">;</span> device&lt;<span class="si">${#</span><span class="nv">deviceList</span><span class="p">[@]</span><span class="si">}</span><span class="p">;</span> <span class="nv">device</span><span class="o">+=</span>COLUMNS<span class="o">))</span>
+<span class="k">do</span>
+  <span class="nb">printf</span> <span class="s2">&quot;%4s)   %-25s%-13s%-10s\n&quot;</span><span class="se">\</span>
+    <span class="s2">&quot;</span><span class="k">$((</span><span class="nv">$device</span> <span class="o">/</span> <span class="nv">$COLUMNS</span><span class="k">))</span><span class="s2">&quot;</span><span class="se">\</span>
+    <span class="s2">&quot;</span><span class="si">${</span><span class="nv">deviceList</span><span class="p">[</span><span class="nv">$device</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="se">\</span>
+    <span class="s2">&quot;</span><span class="si">${</span><span class="nv">deviceList</span><span class="p">[</span><span class="k">$((</span><span class="nv">$device</span> <span class="o">+</span> <span class="m">1</span><span class="k">))</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="se">\</span>
+    <span class="s2">&quot;</span><span class="si">${</span><span class="nv">deviceList</span><span class="p">[</span><span class="k">$((</span><span class="nv">$device</span> <span class="o">+</span> <span class="m">2</span><span class="k">))</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="k">done</span>
+
+<span class="nb">printf</span> <span class="s2">&quot;%4s)   Exit\n&quot;</span> <span class="s2">&quot;x&quot;</span>
+
+<span class="c1"># Get input from user</span>
+<span class="nb">read</span> -p <span class="s2">&quot;Choose a menu option: &quot;</span> input
+
+<span class="c1"># Input validation</span>
+<span class="k">if</span> <span class="o">[</span> <span class="s2">&quot;</span><span class="nv">$input</span><span class="s2">&quot;</span> <span class="o">=</span> <span class="s2">&quot;X&quot;</span> <span class="o">]</span> <span class="o">||</span> <span class="o">[</span> <span class="s2">&quot;</span><span class="nv">$input</span><span class="s2">&quot;</span> <span class="o">=</span> <span class="s2">&quot;x&quot;</span> <span class="o">]</span>
+<span class="k">then</span>
+  <span class="nb">echo</span> <span class="s2">&quot;Exiting&quot;</span>
+  <span class="nb">exit</span> <span class="m">0</span>
+<span class="k">fi</span>
+
+<span class="k">if</span> <span class="o">((</span> <span class="nv">$input</span>&gt;<span class="o">=</span><span class="m">0</span> <span class="o">))</span> <span class="o">&amp;&amp;</span> <span class="o">((</span> <span class="nv">$input</span>&lt;<span class="nv">$deviceCount</span> <span class="o">))</span>
+<span class="k">then</span>
+  <span class="nb">echo</span> <span class="s2">&quot;Unmounting: </span><span class="si">${</span><span class="nv">deviceList</span><span class="p">[</span><span class="k">$((</span><span class="nv">$input</span> <span class="o">*</span> <span class="nv">$deviceCount</span><span class="k">))</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+  sudo umount <span class="s2">&quot;</span><span class="si">${</span><span class="nv">deviceList</span><span class="p">[</span><span class="k">$((</span><span class="nv">$input</span> <span class="o">*</span> <span class="nv">$deviceCount</span><span class="k">))</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+  <span class="nb">exit</span> <span class="m">0</span>
+<span class="k">else</span>
+  <span class="nb">echo</span> <span class="s2">&quot;Invalid menu choice&quot;</span>
+  <span class="nb">exit</span> <span class="m">1</span>
+<span class="k">fi</span>
+$ chmod <span class="m">755</span> /usr/local/bin/unmount
+</pre></div>
+
+
+<p>Now when eject USB disk, run <code>unmount</code>, and choose a menu item to eject.
+See <a href="https://wiki.archlinux.org/index.php/USB_storage_devices">USB storage devices</a>
+for details. Or use <code>udiskie-umount -a</code> to unmount it manually.</p>
+<p>See <code>man udiskie</code> for more information.</p>
+<h1>Mint</h1>
+<p>Install: <code>sudo aptitude install udevil</code>;</p>
+<p>Start service: run <code>devmon</code> in dmenu when system startup,
+or add "devmon &amp;" into ~/.xsession;</p>
+<p>After plug USB key into computer, it will be automount to /media folder.
+If you do not startup devmon in background,
+you can run <code>devmon -a</code> to mount the USB key.</p>
+<p>Run <code>devmon -c</code> to unmount the USB key.</p>
+<p>See <code>man devmon</code> for more information.</p>
+<h1>Difference between .xinitrc and .xsession:</h1>
+<p>If you startup your system with <a href="https://wiki.archlinux.org/index.php/display_manager">display manager</a>,
+where you get a graphical login screen, it will read ~/.xsession.
+In case of you startup your system without display manager and login to shell,
+startup i3 (or other wm) with <code>startx</code>,
+then the <a href="http://en.wikipedia.org/wiki/Xinit">xinit</a> program will read ~/.xinitrc;</p>
+<p>See <a href="https://unix.stackexchange.com/questions/47359/what-is-xsession-for">What is “.xsession” for?</a> for details.</p>
+<p>See <a href="https://wiki.archlinux.org/index.php/Arch_boot_process">Arch boot process</a>
+for how Getty manage login process in system boot process.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2014-09-03T11:06:42+08:00">Sep 3, 2014</time>
+
+<h4>Last Updated</h4>
+<time datetime="2014-09-03T11:06:42+08:00">Sep 3, 2014</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#arch-ref">arch
+                    <span>4</span>
+</a></li>
+                <li><a href="/tags.html#automount-ref">automount
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#usb-ref">usb
+                    <span>5</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="Fabric, Tech, " />
+
+<meta property="og:title" content="Task Management in Fabric "/>
+<meta property="og:url" content="/task-management-in-fabric.html" />
+<meta property="og:description" content="I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. In the codes below for example, function &#34;detect&#34; should run on every host, but &#34;report&#34; and &#34;sendmail&#34; should run only once. So there are …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2014-03-28T18:28:17+08:00" />
+<meta property="" content="2014-03-28T18:28:17+08:00" />
+<meta name="twitter:title" content="Task Management in Fabric ">
+<meta name="twitter:description" content="I am developing a environment detect application with Fabric. Basically it run many tests on many hosts, then produce a summary report, optionally sending a email. In the codes below for example, function &#34;detect&#34; should run on every host, but &#34;report&#34; and &#34;sendmail&#34; should run only once. So there are …">
+
+        <title>Task Management in Fabric  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/task-management-in-fabric.html"> Task Management in Fabric  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>I am developing a environment detect application with Fabric.
+Basically it run many tests on many hosts, then produce a summary report,
+optionally sending a email. In the codes below for example,
+function "detect" should run on every host, but "report" and "sendmail"
+should run only once.</p>
+<p>So there are 2 strategies:</p>
+<ul>
+<li>
+<p>Define global hosts, when detections over, modify the hosts to none,
+  so report and send email will only run once;</p>
+</li>
+<li>
+<p>Use "report" as entrance, invoke detection within "report" task.</p>
+</li>
+</ul>
+<h1>Global hosts style</h1>
+<p>fabfile.py:</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fabric.api</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">hosts</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="n">env</span><span class="o">.</span><span class="n">hosts</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;chad@10.0.2.47&#39;</span><span class="p">,</span> <span class="s1">&#39;chad@10.0.2.49&#39;</span><span class="p">]</span>
+<span class="n">env</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="s1">&#39;mypasswd&#39;</span>
+<span class="n">env</span><span class="p">[</span><span class="s1">&#39;report&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">def</span> <span class="nf">checkJDK</span><span class="p">():</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="s1">&#39;java -version&#39;</span><span class="p">)</span>
+    <span class="n">cre</span> <span class="o">=</span> <span class="s1">&#39;java version .*1.6.0.*Java\(TM\)&#39;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">cre</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">S</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+<span class="k">def</span> <span class="nf">checkMem</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
+    <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;.*buffers/cache.*\d+\s+(\d+)&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">checkOS</span><span class="p">():</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="s1">&#39;uname -a&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">detect</span><span class="p">():</span>
+    <span class="n">host_report</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">host_report</span><span class="p">[</span><span class="s1">&#39;os&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">checkOS</span><span class="p">()</span>
+    <span class="n">host_report</span><span class="p">[</span><span class="s1">&#39;jdk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">checkJDK</span><span class="p">()</span>
+    <span class="n">env</span><span class="p">[</span><span class="s1">&#39;report&#39;</span><span class="p">][</span><span class="n">env</span><span class="o">.</span><span class="n">host</span><span class="p">]</span> <span class="o">=</span> <span class="n">host_report</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">hosts</span> <span class="o">=</span> <span class="p">[]</span>    <span class="c1"># make following tasks run once</span>
+
+<span class="k">def</span> <span class="nf">report</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Test Report:&#39;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">report</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">sendmail</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;send mail...&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Run it:</p>
+<div class="highlight"><pre><span></span>$ fab --hide<span class="o">=</span>everything detect report sendmail
+Test Report:
+<span class="o">{</span><span class="s1">&#39;10.0.2.49&#39;</span>: <span class="o">{</span><span class="s1">&#39;os&#39;</span>: <span class="s1">&#39;Linux&#39;</span>, <span class="s1">&#39;jdk&#39;</span>: True<span class="o">}</span>, <span class="s1">&#39;10.0.2.47&#39;</span>: <span class="o">{</span><span class="s1">&#39;os&#39;</span>: <span class="s1">&#39;Linux&#39;</span>, <span class="s1">&#39;jdk&#39;</span>: False<span class="o">}}</span>
+send mail...
+</pre></div>
+
+
+<h1>"execute" style</h1>
+<p>fab2.py:</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fabric.api</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">execute</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="k">def</span> <span class="nf">checkJDK</span><span class="p">():</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="s1">&#39;java -version&#39;</span><span class="p">)</span>
+    <span class="n">cre</span> <span class="o">=</span> <span class="s1">&#39;java version .*1.6.0.*Java\(TM\)&#39;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">cre</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">S</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+<span class="k">def</span> <span class="nf">checkMem</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
+    <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;.*buffers/cache.*\d+\s+(\d+)&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">checkOS</span><span class="p">():</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="s1">&#39;uname -a&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">detect</span><span class="p">():</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">loginfo</span><span class="p">[</span><span class="n">env</span><span class="o">.</span><span class="n">host_string</span><span class="p">]</span>
+    <span class="n">host_report</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">host_report</span><span class="p">[</span><span class="s1">&#39;os&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">checkOS</span><span class="p">()</span>
+    <span class="n">host_report</span><span class="p">[</span><span class="s1">&#39;jdk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">checkJDK</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">host_report</span>
+
+<span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">report</span><span class="p">():</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">hosts</span><span class="o">=</span> <span class="p">[</span><span class="s1">&#39;gcp@10.0.2.48&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp@10.0.2.49&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp@10.0.7.141&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp@10.0.7.142&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp@10.0.7.143:22&#39;</span><span class="p">]</span>
+    <span class="n">pwds</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;gcp&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp@123&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp@123&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp@123&#39;</span><span class="p">]</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">loginfo</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">hosts</span><span class="p">,</span> <span class="n">pwds</span><span class="p">))</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">detect</span><span class="p">,</span> <span class="n">hosts</span><span class="o">=</span><span class="n">host_list</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Test Report:&#39;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+<span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">sendmail</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;send mail...&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Run it:</p>
+<div class="highlight"><pre><span></span><span class="err">$</span> <span class="n">fab</span> <span class="o">-</span><span class="n">f</span> <span class="n">fab2</span><span class="p">.</span><span class="n">py</span> <span class="o">--</span><span class="n">hide</span><span class="o">=</span><span class="n">everything</span> <span class="n">report</span> <span class="n">sendmail</span>
+<span class="n">Test</span> <span class="nl">Report</span><span class="p">:</span>
+<span class="p">{</span><span class="err">&#39;</span><span class="n">gcp</span><span class="mf">@10.0.2.47</span><span class="err">&#39;</span><span class="o">:</span> <span class="p">{</span><span class="err">&#39;</span><span class="n">os</span><span class="err">&#39;</span><span class="o">:</span> <span class="err">&#39;</span><span class="n">Linux</span><span class="err">&#39;</span><span class="p">,</span> <span class="err">&#39;</span><span class="n">jdk</span><span class="err">&#39;</span><span class="o">:</span> <span class="n">False</span><span class="p">},</span> <span class="err">&#39;</span><span class="n">gcp</span><span class="mf">@10.0.2.49</span><span class="err">&#39;</span><span class="o">:</span> <span class="p">{</span><span class="err">&#39;</span><span class="n">os</span><span class="err">&#39;</span><span class="o">:</span> <span class="err">&#39;</span><span class="n">Linux</span><span class="err">&#39;</span><span class="p">,</span> <span class="err">&#39;</span><span class="n">jdk</span><span class="err">&#39;</span><span class="o">:</span> <span class="n">True</span><span class="p">},</span> <span class="p">...</span> <span class="p">}</span>
+<span class="n">send</span> <span class="n">mail</span><span class="p">...</span>
+</pre></div>
+
+
+<p>You can see there is no definition and modification of global hosts,
+no need to maintain global variable env['report'] manually in "report" style,
+and the "detect" function is hide from "fab" command line
+with the help of "@task" decorator.
+If you run "fab detect", it will complain "Command(s) not found",
+which provides more accurate visibility control.
+So I think it's better than the "global hosts" style.</p>
+<p>Notes:</p>
+<ol>
+<li>
+<p>the return value of "run" is the stdout and stderr of the remote command.</p>
+</li>
+<li>
+<p>Yuo can add attributes to "env" directly like "env.loginfo = ..." above.
+   And use this attribute with "env.loginfo[...]";</p>
+</li>
+<li>
+<p>The format of host string is "user@ip:port", or "user@ip" if port is 22;</p>
+</li>
+<li>
+<p>The function "execute" returns a dict, the key is the host_string,
+   the value is the return value of the function executed
+   ("detect" in this case).
+   The return value of "detect" is a dict,
+   so the "execute" function returns a nested dict.</p>
+</li>
+<li>
+<p>for fabric 1.11, you can use <a href="http://bit.ly/1TJ68oN">run_once decorator</a>.</p>
+</li>
+</ol>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2014-03-28T18:28:17+08:00">Mar 28, 2014</time>
+
+<h4>Last Updated</h4>
+<time datetime="2014-03-28T18:28:17+08:00">Mar 28, 2014</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#fabric-ref">Fabric
+                    <span>8</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

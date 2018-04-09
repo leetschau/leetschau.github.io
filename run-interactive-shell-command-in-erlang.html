@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="erlang, netcat, Tech, " />
+
+<meta property="og:title" content="Run Interactive Shell Command in Erlang "/>
+<meta property="og:url" content="/run-interactive-shell-command-in-erlang.html" />
+<meta property="og:description" content="The following simple Erlang netcat client demonstrates the communication between Erlang program and external OS process. The rc.erl start a netcat client to connect to a netcat server, and send some message to the server at a given time. Create Erlang server; -module(rc). -export([cmd/1]). cmd(Cmd …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2013-08-14T16:00:09+08:00" />
+<meta property="" content="2013-08-14T16:00:09+08:00" />
+<meta name="twitter:title" content="Run Interactive Shell Command in Erlang ">
+<meta name="twitter:description" content="The following simple Erlang netcat client demonstrates the communication between Erlang program and external OS process. The rc.erl start a netcat client to connect to a netcat server, and send some message to the server at a given time. Create Erlang server; -module(rc). -export([cmd/1]). cmd(Cmd …">
+
+        <title>Run Interactive Shell Command in Erlang  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/run-interactive-shell-command-in-erlang.html"> Run Interactive Shell Command in Erlang  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>The following simple Erlang netcat client demonstrates the communication between Erlang program and external OS process. The rc.erl start a netcat client to connect to a netcat server, and send some message to the server at a given time.</p>
+<ol>
+<li>
+<p>Create Erlang server;</p>
+<p>-module(rc). 
+-export([cmd/1]). 
+cmd(Cmd) -&gt; 
+    Opt = [stream, exit_status, stderr_to_stdout, eof], 
+    P = open_port({spawn, Cmd}, Opt), 
+    get_data(P, [], 0). 
+get_data(P, Sofar, 3) -&gt; 
+    port_command(P, "abcd"), 
+    get_data(P, Sofar, 4); 
+get_data(P, Sofar, Cnt) -&gt; 
+    receive 
+        {P, {data, Bin}} -&gt; 
+            io:format("rec Bin: ~p, Cnt=~p~n", [Bin, Cnt]), 
+            get_data(P, [Bin|Sofar], Cnt+1); 
+        {P, eof} -&gt; 
+            port_close(P), 
+            receive 
+                {P, {exit_status, N}} -&gt; 
+                    {N, lists:reverse(Sofar)} 
+            end 
+    end. </p>
+</li>
+<li>
+<p>Start netcat server: run command <code>nc -l 3333</code> at host 10.21.3.31;</p>
+</li>
+<li>
+<p>Start netcat client:</p>
+<p>$ erl 
+...</p>
+<p>1&gt; c(rc).</p>
+<p>{ok,rc} 
+2&gt; rc:cmd("nc 10.21.3.31 3333").</p>
+</li>
+<li>
+<p>Send message from server to client: press "1<CR>2<CR>3<CR>4<CR>^C", client output as follows:</p>
+<p>rec Bin: "1\n", Cnt=0
+rec Bin: "2\n", Cnt=1 
+rec Bin: "3\n", Cnt=2 
+rec Bin: "4\n", Cnt=4 
+{0,["1\n","2\n","3\n","4\n"]} 
+3&gt; </p>
+</li>
+</ol>
+<p>When you press <CR> after 3, you can receive "abcd" from netcat client.</p>
+<p>The pattern of Erlang-Shell communication is: </p>
+<ul>
+<li>
+<p>Use "open_port" to start a external shell process;</p>
+</li>
+<li>
+<p>Use "receive" clause to receive output of the process;</p>
+</li>
+<li>
+<p>Use "port_command" to send message to process;</p>
+</li>
+<li>
+<p>Use "port_close" to close the shell;</p>
+</li>
+</ul>
+<p>Notes:</p>
+<ol>
+<li>
+<p>For non-interactive shell command, os:cmd/1 is a better choice;</p>
+</li>
+<li>
+<p>If you want to catch the event that the peer close actively, add "eof" into option list of open_port; If you want to catch the exit value of the shell process, add "exit_status" to option list of open_port;</p>
+</li>
+<li>
+<p>Not specify "in" in option list of open_port when you want to send the process some message, or a "ebadf" exception arises, because "in" means this process only used for input, and "ebadf" means the file is not open for reading or writing.</p>
+</li>
+<li>
+<p><a href="http://www.cnblogs.com/gibbon/archive/2012/12/26/Erlang.html">Erlang port communicate with python</a> is a good demonstration of erlang calling a python script; Chapter 12 of "Programming Erlang" also concentrate Erlang interfacing techniques.</p>
+</li>
+</ol>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2013-08-14T16:00:09+08:00">Aug 14, 2013</time>
+
+<h4>Last Updated</h4>
+<time datetime="2013-08-14T16:00:09+08:00">Aug 14, 2013</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#erlang-ref">erlang
+                    <span>15</span>
+</a></li>
+                <li><a href="/tags.html#netcat-ref">netcat
+                    <span>3</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

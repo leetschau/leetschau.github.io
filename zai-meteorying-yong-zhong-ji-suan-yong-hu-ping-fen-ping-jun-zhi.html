@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="meteor, mongodb, average, Tech, " />
+
+<meta property="og:title" content="在Meteor应用中计算用户评分平均值 "/>
+<meta property="og:url" content="/zai-meteorying-yong-zhong-ji-suan-yong-hu-ping-fen-ping-jun-zhi.html" />
+<meta property="og:description" content="以下方法使用的客户端展现代码(html)是一样的： &lt;h2&gt;展会评分：&lt;span class=&#34;label label-success&#34;&gt;{{rankAverage}}&lt;/span&gt;&lt;/h2&gt;. 使用MapReduce MapReduce一次性将所有展会的用户评分平均值计算出来，优点是每次用户请求页面时不需要计算，直接从计算结果中取值。 缺点是实时性差，由于MapReduce计算比较耗时，且计算结果存储在一个单独的collection中， 新的计算结果会覆盖旧的，所以不能一次只计算一个展会的平均值（因为计算结果collection会覆盖掉有来包含所有结果的collection）， 只能在服务清闲的时间（比如凌晨）进行一次批量计算。 在MongoDB中运行mapReduce： db.userComments.mapReduce( function(){ emit(this.fairId, this.rank); }, function(key, values) { return Array.avg(values); }, { out: &#34;rank_avg&#34; } ); 客户端控制器(js): UserAvgRank = new Mongo.Collection …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2015-02-08T15:19:43+08:00" />
+<meta property="" content="2015-02-08T15:19:43+08:00" />
+<meta name="twitter:title" content="在Meteor应用中计算用户评分平均值 ">
+<meta name="twitter:description" content="以下方法使用的客户端展现代码(html)是一样的： &lt;h2&gt;展会评分：&lt;span class=&#34;label label-success&#34;&gt;{{rankAverage}}&lt;/span&gt;&lt;/h2&gt;. 使用MapReduce MapReduce一次性将所有展会的用户评分平均值计算出来，优点是每次用户请求页面时不需要计算，直接从计算结果中取值。 缺点是实时性差，由于MapReduce计算比较耗时，且计算结果存储在一个单独的collection中， 新的计算结果会覆盖旧的，所以不能一次只计算一个展会的平均值（因为计算结果collection会覆盖掉有来包含所有结果的collection）， 只能在服务清闲的时间（比如凌晨）进行一次批量计算。 在MongoDB中运行mapReduce： db.userComments.mapReduce( function(){ emit(this.fairId, this.rank); }, function(key, values) { return Array.avg(values); }, { out: &#34;rank_avg&#34; } ); 客户端控制器(js): UserAvgRank = new Mongo.Collection …">
+
+        <title>在Meteor应用中计算用户评分平均值  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/zai-meteorying-yong-zhong-ji-suan-yong-hu-ping-fen-ping-jun-zhi.html"> 在Meteor应用中计算用户评分平均值  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>以下方法使用的客户端展现代码(html)是一样的：
+<code>&lt;h2&gt;展会评分：&lt;span class="label label-success"&gt;{{rankAverage}}&lt;/span&gt;&lt;/h2&gt;</code>.</p>
+<h1>使用MapReduce</h1>
+<p>MapReduce一次性将所有展会的用户评分平均值计算出来，优点是每次用户请求页面时不需要计算，直接从计算结果中取值。
+缺点是实时性差，由于MapReduce计算比较耗时，且计算结果存储在一个单独的collection中，
+新的计算结果会覆盖旧的，所以不能一次只计算一个展会的平均值（因为计算结果collection会覆盖掉有来包含所有结果的collection），
+只能在服务清闲的时间（比如凌晨）进行一次批量计算。</p>
+<p>在MongoDB中运行mapReduce：</p>
+<div class="highlight"><pre><span></span>db.userComments.mapReduce(
+    function(){ emit(this.fairId, this.rank); },
+    function(key, values) { return Array.avg(values); },
+    { out: &quot;rank_avg&quot; }
+);
+</pre></div>
+
+
+<p>客户端控制器(js):</p>
+<div class="highlight"><pre><span></span><span class="nt">UserAvgRank</span> <span class="o">=</span> <span class="nt">new</span> <span class="nt">Mongo</span><span class="p">.</span><span class="nc">Collection</span><span class="o">(</span><span class="s2">&quot;rank_avg&quot;</span><span class="o">);</span>
+
+<span class="nt">Template</span><span class="p">.</span><span class="nc">UserComments</span><span class="p">.</span><span class="nc">helpers</span><span class="o">(</span><span class="p">{</span>
+  <span class="n">rankAverage</span><span class="p">:</span> <span class="nf">function</span><span class="p">()</span> <span class="err">{</span>
+    <span class="n">var</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">UserAvgRank</span><span class="o">.</span><span class="nf">findOne</span><span class="p">(</span><span class="err">{</span> <span class="n">_id</span><span class="err">:</span> <span class="n">Router</span><span class="err">.</span><span class="nf">current</span><span class="p">()</span><span class="err">.</span><span class="n">params</span><span class="err">.</span><span class="n">_id</span> <span class="err">}</span><span class="p">);</span>
+    <span class="err">return</span> <span class="err">Math.round(rec.value</span> <span class="err">*</span> <span class="err">10)</span> <span class="err">/</span> <span class="err">10</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="err">}</span><span class="o">);</span>
+</pre></div>
+
+
+<h1>aggregate计算平均值</h1>
+<p>使用MongoDB collection的aggregate方法在用户请求时实时计算平均值，优缺点与MapReduce方法正好相反。</p>
+<p>在Meteor 1.0.3版本中，不支持collection的aggregate方法，
+可以通过安装meteorhacks:aggregate包的方法解决这个问题，但这个方法也只能运行在服务端。</p>
+<div class="highlight"><pre><span></span><span class="nt">Template</span><span class="p">.</span><span class="nc">UserComments</span><span class="p">.</span><span class="nc">helpers</span><span class="o">(</span><span class="p">{</span>
+  <span class="n">rankAverage</span><span class="p">:</span> <span class="nf">function</span><span class="p">()</span> <span class="err">{</span>
+    <span class="n">var</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">Comments</span><span class="o">.</span><span class="nf">aggregate</span><span class="p">(</span> <span class="cp">[</span> <span class="p">{</span><span class="nv">$match</span><span class="p">:</span> <span class="p">{</span><span class="nx">fairId</span><span class="p">:</span> <span class="nx">Router.current</span><span class="p">()</span><span class="bp">.</span><span class="nx nx-Member">params._id</span><span class="p">}</span> <span class="p">},</span> <span class="p">{</span> <span class="nv">$group</span><span class="p">:</span> <span class="p">{</span><span class="nx">_id</span><span class="p">:</span> <span class="s2">&quot;$fairId&quot;</span><span class="p">,</span> <span class="nx">avgRank</span><span class="p">:</span> <span class="p">{</span><span class="nv">$avg</span><span class="p">:</span> <span class="s2">&quot;$rank&quot;</span><span class="p">}}</span> <span class="p">}</span> <span class="cp">]</span><span class="p">);</span>
+    <span class="err">return</span> <span class="err">Math.round(rec.avgRank</span> <span class="err">*</span> <span class="err">10)</span> <span class="err">/</span> <span class="err">10</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="err">}</span><span class="o">);</span>
+</pre></div>
+
+
+<h1>JavaScript手工计算</h1>
+<p>也是一种实时计算方法，代码量最大，但版本依赖性小。</p>
+<div class="highlight"><pre><span></span>Template.UserComments.helpers({
+  rankAverage: function() {
+    var rateNum = Comments.find().count();
+    if (rateNum === 0) return false;
+    var total = 0;
+    Comments.find( {} ).forEach(function(elem) {
+      total = total + elem.rank;
+    });
+    var avg = total / rateNum;
+    return Math.round(avg * 10) / 10;
+  }
+});
+</pre></div>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2015-02-08T15:19:43+08:00">Feb 8, 2015</time>
+
+<h4>Last Updated</h4>
+<time datetime="2015-02-08T15:19:43+08:00">Feb 8, 2015</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#average-ref">average
+                    <span>1</span>
+</a></li>
+                <li><a href="/tags.html#meteor-ref">meteor
+                    <span>47</span>
+</a></li>
+                <li><a href="/tags.html#mongodb-ref">mongodb
+                    <span>24</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="spark, yarn, hadoop, Tech, " />
+
+<meta property="og:title" content="Run Spark on Yarn Cluster "/>
+<meta property="og:url" content="/run-spark-on-yarn-cluster.html" />
+<meta property="og:description" content="Run WordCount on 3-Node Yarn Cluster According to How to Install and Set Up a 3-Node Hadoop Cluster. Create 3 Ubuntu 16.04 hosts with vagrant on Lenovo ThinkCenter. Configure the network, hostname and IP address in each Vagrantfile. The memory should be no less than 8GB for each host …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2018-02-13T16:00:04+08:00" />
+<meta property="" content="2018-02-13T16:04:15+08:00" />
+<meta name="twitter:title" content="Run Spark on Yarn Cluster ">
+<meta name="twitter:description" content="Run WordCount on 3-Node Yarn Cluster According to How to Install and Set Up a 3-Node Hadoop Cluster. Create 3 Ubuntu 16.04 hosts with vagrant on Lenovo ThinkCenter. Configure the network, hostname and IP address in each Vagrantfile. The memory should be no less than 8GB for each host …">
+
+        <title>Run Spark on Yarn Cluster  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/run-spark-on-yarn-cluster.html"> Run Spark on Yarn Cluster  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<h1>Run WordCount on 3-Node Yarn Cluster</h1>
+<p>According to <a href="https://linode.com/docs/databases/hadoop/how-to-install-and-set-up-hadoop-cluster/">How to Install and Set Up a 3-Node Hadoop Cluster</a>.</p>
+<p>Create 3 Ubuntu 16.04 hosts with vagrant on Lenovo ThinkCenter.
+Configure the network, hostname and IP address in each Vagrantfile.
+The memory should be no less than 8GB for each host.
+Or you have to configure yarn's memory usage manually.
+The node-master Vagrantfile:</p>
+<div class="highlight"><pre><span></span># -*- mode: ruby -*-
+Vagrant.configure(2) do |config|
+  config.vm.box = &quot;ubuntu/xenial64&quot;
+  config.ssh.username = &quot;ubuntu&quot;
+  config.ssh.password = &quot;3d7d18ebe09a49ff99028120&quot;
+  config.vm.define &quot;yarnmaster&quot;
+  config.vm.hostname = &quot;nodemaster&quot;
+  config.vm.network &quot;private_network&quot;, ip: &quot;192.0.2.1&quot;
+  config.vm.provider &quot;virtualbox&quot; do |vb|
+    vb.memory = &quot;8192&quot;
+  end
+end
+</pre></div>
+
+
+<p>Add the following lines into <em>/etc/hosts</em> of each host:</p>
+<div class="highlight"><pre><span></span>192.0.2.1    node-master
+192.0.2.2    node1
+192.0.2.3    node2
+</pre></div>
+
+
+<p>Install JDK on each host:</p>
+<div class="highlight"><pre><span></span>sudo apt update
+sudo apt install -y openjdk-8-jdk
+</pre></div>
+
+
+<p>Create <code>hadoop</code> user on each host:</p>
+<div class="highlight"><pre><span></span>sudo useradd -m hadoop
+sudo passwd hadoop   # input password: hadoop
+</pre></div>
+
+
+<p>Configure SSH access: on node-master:</p>
+<div class="highlight"><pre><span></span>sudo su - hadoop
+ssh-keygen
+ssh-copy-id hadoop@node-master
+ssh-copy-id hadoop@node1
+ssh-copy-id hadoop@node2
+</pre></div>
+
+
+<p>Install Hadoop as user <em>hadoop</em> on node-master and duplicate to other nodes:</p>
+<div class="highlight"><pre><span></span>wget http://mirror.bit.edu.cn/apache/hadoop/common/hadoop-2.9.0/hadoop-2.9.0.tar.gz
+tar xf hadoop-2.9.0.tar.gz
+mv hadoop-2.9.0 hadoop
+echo &#39;PATH=/home/hadoop/hadoop/bin:/home/hadoop/hadoop/sbin:$PATH&#39; &gt;&gt; $HOME/.profile
+</pre></div>
+
+
+<p>Modify files under <em>~/hadoop/etc/hadoop/</em> and duplicate the files on each node:</p>
+<div class="highlight"><pre><span></span>scp -r hadoop node1:~/
+scp -r hadoop node2:~/
+scp .profile node1:~/
+scp .profile node2:~/
+</pre></div>
+
+
+<p>Note 1: Spark 2.2.1 using Hadoop 2.7+, so we download Hadoop 2.9.0.</p>
+<p>Note 2: The memory of each host is 8GB. So I didn't modify the memory configurations.</p>
+<p>Start HDFS: on node-master, run:</p>
+<div class="highlight"><pre><span></span><span class="nt">hdfs</span> <span class="nt">namenode</span> <span class="nt">-format</span>
+<span class="nt">start-dfs</span><span class="p">.</span><span class="nc">sh</span>
+<span class="nt">jps</span>   <span class="err">#</span> <span class="nt">on</span> <span class="nt">node-master</span><span class="o">:</span> <span class="nt">NameNode</span> <span class="nt">and</span> <span class="nt">SecondaryNameNode</span><span class="o">;</span> <span class="nt">on</span> <span class="nt">node1</span><span class="o">/</span><span class="nt">2</span><span class="o">:</span> <span class="nt">DataNode</span>
+<span class="nt">hdfs</span> <span class="nt">dfsadmin</span> <span class="nt">-report</span>
+<span class="nt">hdfs</span> <span class="nt">dfs</span> <span class="nt">-mkdir</span> <span class="nt">-p</span> <span class="o">/</span><span class="nt">user</span><span class="o">/</span><span class="nt">hadoop</span>
+<span class="nt">wget</span> <span class="nt">-O</span> <span class="nt">alice</span><span class="p">.</span><span class="nc">txt</span> <span class="nt">https</span><span class="o">://</span><span class="nt">www</span><span class="p">.</span><span class="nc">gutenberg</span><span class="p">.</span><span class="nc">org</span><span class="o">/</span><span class="nt">files</span><span class="o">/</span><span class="nt">11</span><span class="o">/</span><span class="nt">11-0</span><span class="p">.</span><span class="nc">txt</span>
+<span class="nt">wget</span> <span class="nt">-O</span> <span class="nt">holmes</span><span class="p">.</span><span class="nc">txt</span> <span class="nt">https</span><span class="o">://</span><span class="nt">www</span><span class="p">.</span><span class="nc">gutenberg</span><span class="p">.</span><span class="nc">org</span><span class="o">/</span><span class="nt">ebooks</span><span class="o">/</span><span class="nt">1661</span><span class="p">.</span><span class="nc">txt</span><span class="p">.</span><span class="nc">utf-8</span>
+<span class="nt">wget</span> <span class="nt">-O</span> <span class="nt">frankenstein</span><span class="p">.</span><span class="nc">txt</span> <span class="nt">https</span><span class="o">://</span><span class="nt">www</span><span class="p">.</span><span class="nc">gutenberg</span><span class="p">.</span><span class="nc">org</span><span class="o">/</span><span class="nt">ebooks</span><span class="o">/</span><span class="nt">84</span><span class="p">.</span><span class="nc">txt</span><span class="p">.</span><span class="nc">utf-8</span>
+<span class="nt">hdfs</span> <span class="nt">dfs</span> <span class="nt">-mkdir</span> <span class="nt">books</span>
+<span class="nt">hdfs</span> <span class="nt">dfs</span> <span class="nt">-put</span> <span class="nt">alice</span><span class="p">.</span><span class="nc">txt</span> <span class="nt">holmes</span><span class="p">.</span><span class="nc">txt</span> <span class="nt">frankenstein</span><span class="p">.</span><span class="nc">txt</span> <span class="nt">books</span>
+<span class="err">#</span> <span class="nt">on</span> <span class="nt">node1</span><span class="o">:</span>
+<span class="nt">hdfs</span> <span class="nt">dfs</span> <span class="nt">-get</span> <span class="nt">books</span><span class="o">/</span><span class="nt">alice</span><span class="p">.</span><span class="nc">txt</span>
+</pre></div>
+
+
+<p>Start Yarn and run a <em>wordcount</em> app:</p>
+<div class="highlight"><pre><span></span><span class="nt">start-yarn</span><span class="p">.</span><span class="nc">sh</span>
+<span class="nt">jps</span>    <span class="err">#</span> <span class="nt">on</span> <span class="nt">node-master</span><span class="o">:</span> <span class="nt">ResourceManager</span><span class="o">;</span> <span class="nt">on</span> <span class="nt">node1</span><span class="o">/</span><span class="nt">2</span><span class="o">:</span> <span class="nt">NodeManager</span>
+<span class="nt">yarn</span> <span class="nt">node</span> <span class="nt">-list</span>     <span class="err">#</span> <span class="nt">this</span> <span class="nt">works</span> <span class="nt">on</span> <span class="nt">both</span> <span class="nt">node-master</span> <span class="nt">and</span> <span class="nt">node1</span><span class="o">/</span><span class="nt">2</span>
+<span class="nt">yarn</span> <span class="nt">application</span> <span class="nt">-list</span>
+<span class="nt">yarn</span> <span class="nt">jar</span> <span class="o">~/</span><span class="nt">hadoop</span><span class="o">/</span><span class="nt">share</span><span class="o">/</span><span class="nt">hadoop</span><span class="o">/</span><span class="nt">mapreduce</span><span class="o">/</span><span class="nt">hadoop-mapreduce-examples-2</span><span class="p">.</span><span class="nc">9</span><span class="p">.</span><span class="nc">0</span><span class="p">.</span><span class="nc">jar</span> <span class="nt">wordcount</span> <span class="s2">&quot;books/*&quot;</span> <span class="nt">output</span>
+<span class="nt">hdfs</span> <span class="nt">dfs</span> <span class="nt">-ls</span> <span class="nt">output</span>
+</pre></div>
+
+
+<h1>Run Spark on Yarn</h1>
+<p>According to <a href="https://linode.com/docs/databases/hadoop/install-configure-run-spark-on-top-of-hadoop-yarn-cluster/">Install, Configure, and Run Spark on Top of a Hadoop YARN Cluster</a>.</p>
+<p>Download and install Spark on each host (as user <strong>hadoop</strong>):</p>
+<div class="highlight"><pre><span></span>cd /home/hadoop
+wget https://d3kbcqa49mib13.cloudfront.net/spark-2.2.0-bin-hadoop2.7.tgz
+tar -xvf spark-2.2.0-bin-hadoop2.7.tgz
+mv spark-2.2.0-bin-hadoop2.7 spark
+</pre></div>
+
+
+<p>Edit <em>~/.profile</em>:</p>
+<div class="highlight"><pre><span></span>export PATH=/home/hadoop/spark/bin:$PATH
+export HADOOP_CONF_DIR=/home/hadoop/hadoop/etc/hadoop
+export SPARK_HOME=/home/hadoop/spark
+export LD_LIBRARY_PATH=/home/hadoop/hadoop/lib/native:$LD_LIBRARY_PATH
+</pre></div>
+
+
+<p>Run <code>spark-shell</code> on node-master, some errors raised.
+In the spark-shell, the <code>spark</code> variable doesn't exists.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2018-02-13T16:00:04+08:00">Feb 13, 2018</time>
+
+<h4>Last Updated</h4>
+<time datetime="2018-02-13T16:04:15+08:00">Feb 13, 2018</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#hadoop-ref">hadoop
+                    <span>7</span>
+</a></li>
+                <li><a href="/tags.html#spark-ref">spark
+                    <span>18</span>
+</a></li>
+                <li><a href="/tags.html#yarn-ref">yarn
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

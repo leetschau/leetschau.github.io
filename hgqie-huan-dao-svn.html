@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="SVN, Hg, Tech, " />
+
+<meta property="og:title" content="Hg切换到SVN "/>
+<meta property="og:url" content="/hgqie-huan-dao-svn.html" />
+<meta property="og:description" content="刚开始代码一般都是自己一个人写，建一个本地的Hg库，等代码到一定程度时，其他人加入开发团队，需要将代码提交到SVN库中以实现与其他人共同开发，实现这个切换的同时又不丢掉之前Hg库的版本历史，方法如下： 将Hg库里的源代码提交到SVN库里； 从SVN库里checkout代码到A文件夹下； 将原来Hg库中的.hg文件夹和.hgignore文件拷贝到A文件夹下； Hg( Mercurial )能够实现版本库“迁移”的原因是Hg里并不记载版本之间的变化，而是文件的全部内容，所以当版本库（.hg文件夹）被拷贝到另一个位置后，只要文件内容不变，即使其他元信息（如建立、修改时间等）不一样，Hg就认为是同一个文件。 其他方法： 方法1：首先在本地开发，建立hg库，当需要提交时svn库时，用hg的回退版本（update）功能，从hg中挑选出想提交的代码发布到svn中，之后代码开发切换到在svn的checkout版本中。好处：一开始不用规划svn库位置；缺点：各次提交的时间点信息丢失（可以在提交说明里加上原始提交时间）； 方法2：首先在svn库中建好文件夹，然后checkout到本地，然后在这个文件夹里建立hg库； 方法3：始终在本地hg库中开发，挑选出一些版本手工提交到svn库中，当其他开发人员修改代码提交svn后 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2012-09-11T11:24:49+08:00" />
+<meta property="" content="2012-09-11T11:24:49+08:00" />
+<meta name="twitter:title" content="Hg切换到SVN ">
+<meta name="twitter:description" content="刚开始代码一般都是自己一个人写，建一个本地的Hg库，等代码到一定程度时，其他人加入开发团队，需要将代码提交到SVN库中以实现与其他人共同开发，实现这个切换的同时又不丢掉之前Hg库的版本历史，方法如下： 将Hg库里的源代码提交到SVN库里； 从SVN库里checkout代码到A文件夹下； 将原来Hg库中的.hg文件夹和.hgignore文件拷贝到A文件夹下； Hg( Mercurial )能够实现版本库“迁移”的原因是Hg里并不记载版本之间的变化，而是文件的全部内容，所以当版本库（.hg文件夹）被拷贝到另一个位置后，只要文件内容不变，即使其他元信息（如建立、修改时间等）不一样，Hg就认为是同一个文件。 其他方法： 方法1：首先在本地开发，建立hg库，当需要提交时svn库时，用hg的回退版本（update）功能，从hg中挑选出想提交的代码发布到svn中，之后代码开发切换到在svn的checkout版本中。好处：一开始不用规划svn库位置；缺点：各次提交的时间点信息丢失（可以在提交说明里加上原始提交时间）； 方法2：首先在svn库中建好文件夹，然后checkout到本地，然后在这个文件夹里建立hg库； 方法3：始终在本地hg库中开发，挑选出一些版本手工提交到svn库中，当其他开发人员修改代码提交svn后 …">
+
+        <title>Hg切换到SVN  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/hgqie-huan-dao-svn.html"> Hg切换到SVN  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>刚开始代码一般都是自己一个人写，建一个本地的Hg库，等代码到一定程度时，其他人加入开发团队，需要将代码提交到SVN库中以实现与其他人共同开发，实现这个切换的同时又不丢掉之前Hg库的版本历史，方法如下：</p>
+<ol>
+<li>
+<p>将Hg库里的源代码提交到SVN库里；</p>
+</li>
+<li>
+<p>从SVN库里checkout代码到A文件夹下；</p>
+</li>
+<li>
+<p>将原来Hg库中的.hg文件夹和.hgignore文件拷贝到A文件夹下；</p>
+</li>
+</ol>
+<p>Hg( Mercurial )能够实现版本库“迁移”的原因是Hg里并不记载版本之间的变化，而是文件的全部内容，所以当版本库（.hg文件夹）被拷贝到另一个位置后，只要文件内容不变，即使其他元信息（如建立、修改时间等）不一样，Hg就认为是同一个文件。</p>
+<p>其他方法：</p>
+<p>方法1：首先在本地开发，建立hg库，当需要提交时svn库时，用hg的回退版本（update）功能，从hg中挑选出想提交的代码发布到svn中，之后代码开发切换到在svn的checkout版本中。好处：一开始不用规划svn库位置；缺点：各次提交的时间点信息丢失（可以在提交说明里加上原始提交时间）； </p>
+<p>方法2：首先在svn库中建好文件夹，然后checkout到本地，然后在这个文件夹里建立hg库；</p>
+<p>方法3：始终在本地hg库中开发，挑选出一些版本手工提交到svn库中，当其他开发人员修改代码提交svn后，还要更新本地svn代码，然后手工同步到hg代码中。这个方法只要安装TortoiseSVN，Eclipse不需要安装subclipse插件，适合在有自动测试配合的情况下使用； </p>
+<p>总结：如果一开始就计划svn/hg双库，最好用方法2；如果一开始没有计划，后来才要纳入svn版本控制，用方法1；方法3太过于繁琐，且手工同步难以杜绝操作失误，不建议使用。</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2012-09-11T11:24:49+08:00">Sep 11, 2012</time>
+
+<h4>Last Updated</h4>
+<time datetime="2012-09-11T11:24:49+08:00">Sep 11, 2012</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#hg-ref">Hg
+                    <span>11</span>
+</a></li>
+                <li><a href="/tags.html#svn-ref">SVN
+                    <span>12</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="BVT, Vagrant, Tech, " />
+
+<meta property="og:title" content="BVT Environment Based on Vagrant "/>
+<meta property="og:url" content="/bvt-environment-based-on-vagrant.html" />
+<meta property="og:description" content="Process Install common software in provision script, such as JDK, Ant; Write a shell script for a given build task; Run this script in Jenkins; Use Case Vagrantfile config.vm.box = &#34;precise64&#34; config.vm.define &#34;bs&#34; do |bvtserver| bvtserver.vm.hostname = &#34;bvt-server&#34; bvtserver.vm.network &#34;private_network&#34;, ip: &#34;192.168.50 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2014-04-22T12:07:51+08:00" />
+<meta property="" content="2014-04-22T12:07:51+08:00" />
+<meta name="twitter:title" content="BVT Environment Based on Vagrant ">
+<meta name="twitter:description" content="Process Install common software in provision script, such as JDK, Ant; Write a shell script for a given build task; Run this script in Jenkins; Use Case Vagrantfile config.vm.box = &#34;precise64&#34; config.vm.define &#34;bs&#34; do |bvtserver| bvtserver.vm.hostname = &#34;bvt-server&#34; bvtserver.vm.network &#34;private_network&#34;, ip: &#34;192.168.50 …">
+
+        <title>BVT Environment Based on Vagrant  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/bvt-environment-based-on-vagrant.html"> BVT Environment Based on Vagrant  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<h1>Process</h1>
+<ol>
+<li>
+<p>Install common software in provision script, such as JDK, Ant;</p>
+</li>
+<li>
+<p>Write a shell script for a given build task;</p>
+</li>
+<li>
+<p>Run this script in Jenkins;</p>
+</li>
+</ol>
+<h1>Use Case</h1>
+<h2>Vagrantfile</h2>
+<div class="highlight"><pre><span></span>config.vm.box = &quot;precise64&quot;
+config.vm.define &quot;bs&quot; do |bvtserver|
+  bvtserver.vm.hostname = &quot;bvt-server&quot;
+  bvtserver.vm.network &quot;private_network&quot;, ip: &quot;192.168.50.3&quot;,
+      virtualbox__intnet: &quot;gcptest-network&quot;
+  bvtserver.vm.provider :virtualbox do |vbox|
+    vbox.customize [&quot;modifyvm&quot;, :id, &quot;--natnet1&quot;, &quot;10.3/16&quot;]
+  end 
+  bvtserver.vm.provision :shell, path: &quot;bvtprov.sh&quot;, privileged: false
+end
+</pre></div>
+
+
+<h2>bvtprov.sh</h2>
+<p>This script install Subversion, zip, JDK and Ant on this VM.</p>
+<table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+sudo dpkg -i /vagrant/packages/svn_amd64_ubuntu12.04/*.deb
+sudo dpkg -i /vagrant/packages/zip_3.0-4_amd64.deb
+mkdir /home/vagrant/apps
+<span class="nb">cd</span> /home/vagrant/apps
+chmod <span class="m">755</span> /vagrant/packages/jdk-6u45-linux-x64.bin
+sh /vagrant/packages/jdk-6u45-linux-x64.bin
+tar jxf /vagrant/packages/apache-ant-1.9.3-bin.tar.bz2
+<span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+<span class="nb">export</span> <span class="nv">LC_ALL</span><span class="o">=</span>en_US.UTF-8
+</pre></div>
+</td></tr></table>
+
+<h2>A build task: build-gcp-web-6.1_P2_GZ.sh</h2>
+<p>This script checkout codes from Subersion server and compile, make zip for a specific project.</p>
+<div class="highlight"><pre><span></span>export PATH=<span class="nv">$PATH</span>:/home/vagrant/apps/jdk1.6.0_45/bin:/home/vagrant/apps/apache-ant-1.9.3/bin
+export LC_ALL=en_US.UTF-8
+
+projname=&quot;GCP6.1_P2_GZ&quot;
+
+svnprefix=&#39;svn co --non-interactive --no-auth-cache --username bvt --password mypwd&#39;
+svnroot=&#39;http://10.0.2.59:8118/svn/gcp/Development-Area&#39;
+<span class="nv">$svnprefix</span> <span class="cp">${</span><span class="n">svnroot</span><span class="cp">}</span>/7-Tools/deployment/packages/pubs /vagrant/packages
+<span class="nv">$svnprefix</span> <span class="cp">${</span><span class="n">svnroot</span><span class="cp">}</span>/3-SCL/Branch/<span class="nv">$projname</span> /vagrant/codes/<span class="nv">$projname</span>
+
+rm -rf /vagrant/codes/*.zip
+
+web_build=/vagrant/codes/web_build
+rm -rf <span class="nv">$web_build</span>;  mkdir <span class="nv">$web_build</span>
+tar zxf /vagrant/packages/apache-tomcat-6.0.39.tar.gz -C <span class="nv">$web_build</span>/
+mv <span class="nv">$web_build</span>/apache-tomcat-6.0.39 <span class="nv">$web_build</span>/web_server
+cp -r /vagrant/codes/<span class="nv">$projname</span>/WebRoot <span class="nv">$web_build</span>/web_server/webapps/<span class="nv">$projname</span>
+src_dir=/vagrant/codes/<span class="nv">$projname</span>/src
+class_dir=<span class="nv">$web_build</span>/web_server/webapps/<span class="nv">$projname</span>/WEB-INF/classes
+lib_dir=/vagrant/codes/<span class="nv">$projname</span>/WebRoot/WEB-INF/lib
+find <span class="nv">$src_dir</span> -type f -name &quot;*.java&quot; -exec javac -cp &quot;<span class="nv">$lib_dir</span>/*:<span class="nv">$src_dir</span>&quot; -d <span class="nv">$class_dir</span> {} \;
+rsync -auC --exclude=&#39;*.java&#39; <span class="nv">$src_dir</span>/ <span class="nv">$class_dir</span>/
+
+cd /vagrant/codes/web_build;  zip -q ../<span class="nv">$projname.zip</span> -r web_server -x &quot;*/.svn/*&quot;
+
+pkg_prefix=/vagrant/codes/<span class="cp">${</span><span class="n">projname</span><span class="cp">}</span>-
+rm -rf <span class="cp">${</span><span class="n">pkg_prefix</span><span class="cp">}</span>*
+pkgs=<span class="cp">${</span><span class="n">pkg_prefix</span><span class="cp">}</span>$(date +%Y%m%dT%H%M)
+mkdir <span class="nv">$pkgs</span>
+cp /vagrant/codes/*.zip <span class="nv">$pkgs</span>
+</pre></div>
+
+
+<h2>Run this task on Jenkins</h2>
+<p>Add the following shell commands in the "GCP-Web-6.1_P2_GZ" project in Jenkins:</p>
+<div class="highlight"><pre><span></span>cd ~/docs/bvtvm
+vagrant ssh [vm-name] -c &#39;sh /vagrant/build-gcp-web-6.1_P2_GZ.sh&#39;
+</pre></div>
+
+
+<p>The [vm-name] is the VM you want ssh to, "bs" in this case. If you have only one vm defined in Vagrantfile, you can omit the it, or you can get the value of it via <code>vagrant status</code>;</p>
+<p>Note: Try to avoid usage of relative path in scripts. If you have to(sush as make a tar file), use 'cd -' to jump back after operations.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2014-04-22T12:07:51+08:00">Apr 22, 2014</time>
+
+<h4>Last Updated</h4>
+<time datetime="2014-04-22T12:07:51+08:00">Apr 22, 2014</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#bvt-ref">BVT
+                    <span>4</span>
+</a></li>
+                <li><a href="/tags.html#vagrant-ref">Vagrant
+                    <span>12</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>
