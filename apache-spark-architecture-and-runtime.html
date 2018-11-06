@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="spark, structure, Tech, " />
+
+<meta property="og:title" content="Apache Spark Architecture and Runtime "/>
+<meta property="og:url" content="/apache-spark-architecture-and-runtime.html" />
+<meta property="og:description" content="Spark 的整体架构和关键概念 参考 Cluster Mode Overview， 当一个应用在 Spark 集群上运行时，总体来说包含两大部分： 基础设施集群和Spark Application。 Spark 目前支持的基础设施集群包括 Standalone（Spark 内置集群）， Apache Mesos, Hadoop YARN 和 Kubernetes。 基础设施集群包括两部分： Cluster manager: 运行在作为集群管理节点的主机上； Worker node: 承担具体计算工作的主机节点，被cluster manager 管理； 基础设施集群作为计算基础设施是持久存在的，与 Spark Application 的生命周期无关。 Spark Application 包含用户定义的计算过程，例如一个 Java/Scala jar 或者 python/R script， 包括 …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2018-09-11T14:34:40+08:00" />
+<meta property="" content="2018-09-12T15:51:16+08:00" />
+<meta name="twitter:title" content="Apache Spark Architecture and Runtime ">
+<meta name="twitter:description" content="Spark 的整体架构和关键概念 参考 Cluster Mode Overview， 当一个应用在 Spark 集群上运行时，总体来说包含两大部分： 基础设施集群和Spark Application。 Spark 目前支持的基础设施集群包括 Standalone（Spark 内置集群）， Apache Mesos, Hadoop YARN 和 Kubernetes。 基础设施集群包括两部分： Cluster manager: 运行在作为集群管理节点的主机上； Worker node: 承担具体计算工作的主机节点，被cluster manager 管理； 基础设施集群作为计算基础设施是持久存在的，与 Spark Application 的生命周期无关。 Spark Application 包含用户定义的计算过程，例如一个 Java/Scala jar 或者 python/R script， 包括 …">
+
+        <title>Apache Spark Architecture and Runtime  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="">Home</a></li>
+                            <li ><a href="/categories.html">Categories</a></li>
+                            <li ><a href="/tags.html">Tags</a></li>
+                            <li ><a href="/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="/apache-spark-architecture-and-runtime.html"> Apache Spark Architecture and Runtime  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<h1>Spark 的整体架构和关键概念</h1>
+<p>参考 <a href="https://spark.apache.org/docs/latest/cluster-overview.html">Cluster Mode Overview</a>，
+当一个应用在 Spark 集群上运行时，总体来说包含两大部分：
+基础设施集群和Spark Application。</p>
+<p>Spark 目前支持的基础设施集群包括 Standalone（Spark 内置集群），
+Apache Mesos, Hadoop YARN 和 Kubernetes。
+基础设施集群包括两部分：</p>
+<ul>
+<li>
+<p>Cluster manager: 运行在作为集群管理节点的主机上；</p>
+</li>
+<li>
+<p>Worker node: 承担具体计算工作的主机节点，被cluster manager 管理；</p>
+</li>
+</ul>
+<p>基础设施集群作为计算基础设施是持久存在的，与 Spark Application 的生命周期无关。</p>
+<p>Spark Application 包含用户定义的计算过程，例如一个 Java/Scala jar 或者 python/R script，
+包括 <em>driver program</em> 和 <em>executor</em> 两部分，
+它们都是 JVM process，生命周期与 Spark Application 的生命周期一致。
+<code>spark-shell</code> 和 <code>pyspark</code> 也是 Spark Application。</p>
+<p>其他主要概念包括（参考 "Glossary" in <a href="https://spark.apache.org/docs/latest/cluster-overview.html">Cluster Mode Overview</a>）：</p>
+<ul>
+<li>
+<p>Driver program: 负责运行Spark Application 的 <code>main</code> 方法并创建 SparkContext，
+  Driver 还内置了一个 web server （下面简称为 4040），
+  监听它所在主机的 4040 端口，下面将结合它分析 Spark Application 的逻辑运行过程。</p>
+</li>
+<li>
+<p>SparkContext: 由 driver program 创建，负责调度管理整个 Spark Application 各部分通信；</p>
+</li>
+<li>
+<p>SparkSession: SparkSession 是 Spark 2.x 中新出现的概念，由 Spark 1.x 中的
+  SparkContext 和 SQLContext 合并而来，为用户提供更一致的 API。
+  SparkSession 对象内部包含一个 SparkContext 对象，负责与 Spark cluster
+  通讯方面的工作；</p>
+</li>
+<li>
+<p>Executor: 运行在基础设施集群的一台 worker node 上，完成本地计算任务。
+  它可以同时执行 <code>spark.executor.cores</code> 个 task，默认值是主机的逻辑CPU数量，
+  即 <code>lscpu</code> 中 <code>CPU(s)</code> 的值，等于
+  <span class="math">\(Sockets \times Cores_per_socket \times Thread_per_core\)</span>.</p>
+</li>
+</ul>
+<h1>Spark Application 的物理运行过程</h1>
+<p>大体分为 client request, launch, execution, completion 几个阶段，详细参考
+"The Life Cycle of a Spark Application (Outside Spark)" in [SDG15].</p>
+<ol>
+<li>
+<p>Client Request: 用户将 Spark app 从 client 发给 cluster manager，
+   cluster manager 选择集群中的一个节点做 Spark driver；之后 client 执行完毕退出。</p>
+</li>
+<li>
+<p>Launch: Spark driver 开始执行用户程序，首先初始化 SparkContext，
+   由 SparkContext 连接 cluster manager (通过用户指定的 <code>--master</code> 参数），
+   将用户指定的 executor 数量和其他配置信息发给它用来创建 executors process，
+   cluster manager 按照要求在 worker node 上创建好 executors 后，将它们的位置信息
+   返回给 SparkContext，至此 Spark cluster 创建完毕。</p>
+</li>
+<li>
+<p>Execution: 具体计算工作在这一阶段完成，由 Spark driver 协调各个节点，
+   分配计算任务，接收任务执行结果。此阶段的信息和数据传输发生在 
+   Spark cluster 内部，与基础设施集群无关。</p>
+</li>
+<li>
+<p>Completion: Spark driver 执行结束，返回 成功/失败 结果，cluster manager 负责关闭
+   与此 Spark driver 相关的 executors.</p>
+</li>
+</ol>
+<h1>Spark Application 的逻辑运行过程</h1>
+<p>样例程序 (in Python):</p>
+<div class="highlight"><pre><span></span>$ pyspark
+<span class="nv">df1</span> <span class="o">=</span> spark.range<span class="o">(</span><span class="m">2</span>, <span class="m">10000000</span>, <span class="m">2</span><span class="o">)</span>
+<span class="nv">df2</span> <span class="o">=</span> spark.range<span class="o">(</span><span class="m">2</span>, <span class="m">10000000</span>, <span class="m">4</span><span class="o">)</span>
+<span class="nv">step1</span> <span class="o">=</span> df1.repartition<span class="o">(</span><span class="m">5</span><span class="o">)</span>
+<span class="nv">step12</span> <span class="o">=</span> df2.repartition<span class="o">(</span><span class="m">6</span><span class="o">)</span>
+<span class="nv">step2</span> <span class="o">=</span> step1.selectExpr<span class="o">(</span><span class="s2">&quot;id * 5 as id&quot;</span><span class="o">)</span>
+<span class="nv">step3</span> <span class="o">=</span> step2.join<span class="o">(</span>step12, <span class="o">[</span><span class="s2">&quot;id&quot;</span><span class="o">])</span>
+<span class="nv">step4</span> <span class="o">=</span> step3.selectExpr<span class="o">(</span><span class="s2">&quot;sum(id)&quot;</span><span class="o">)</span>
+step4.collect<span class="o">()</span> <span class="c1"># 2500000000000</span>
+</pre></div>
+
+
+<p>启动 <code>pyspark</code> 后，就可以在 <em>http://localhost:4040</em> 查看 app 运行情况了，
+这时 <em>Jobs</em> 和 <em>Stages</em> 页面均为空，<em>Executors</em> 页面显示有一个 executor，
+<em>ID</em> 为 <em>driver</em>，监听端口 33869，在系统命令行中输入 <code>jps</code> 可以看到一个名为
+<code>SparkSubmit</code> 的进程，PID为16270，通过 <code>netstat</code> 命令可以看到正是这个进程监听
+33869端口。</p>
+<p>运行<code>step4.collect()</code>前面的代码，可以看到4040页面上 Jobs 和 Stages 始终是空的，
+表示 job 没有实际执行。</p>
+<p>执行<code>step4.collect()</code>，4040 Jobs 页面上出现一条ID为0的记录
+（由于 <code>collect()</code> 方法是 action，前面的操作都是 transformation，
+表明一个 job 对应一个 action)。</p>
+<p>点击 job0 后出现 <em>Details for Job 0</em> 页面，包含6个 <em>Completed Stages</em>，
+ID 为 0 ~ 5。页面上的 <em>DAG Visualization</em> 图示了这6个 stage 之间的继承关系。</p>
+<p>其中 stage0 和 stage1 对应 <code>df1 = ...</code> 和 <code>df2 = ...</code> 两行，
+二者各包含8个task，stage0 的 <em>Shuffle Write</em> 为24MB，stage1为12MB，
+这是因为 <code>df1</code> 的长度是 <code>df2</code> 的二倍。
+由于代码是在单机 Spark 2.2 的 pyspark REPL 中运行，
+机器的逻辑CPU数为8，所以一个 stage 默认的（并行）task 数为8。</p>
+<p>点击 stage0 进入 <em>Details for Stage 0</em> 页面，其中的 <em>Shuffle Write Size / Records</em>
+的值为 <em>24.0 MB / 4999999</em>，与 <code>df1</code> 的长度吻合，这些 records 被平均分配给了
+8个 task，每个 task 的 <em>Shuffle Write Size / Records</em> 都是 1/8.</p>
+<p>Stage1 对应的 <code>df2</code> 的长度是 <code>df1</code> 的一半，所以处理的 records 也只有 stage0
+的一半。</p>
+<p>从 DAG 图可知 stage2 从 stage1 变化而来，stage2 的 <em>Shuffle Read</em> 和 stage1 的
+<em>Shuffle Write</em> 都是 12MB，也印证了这两个 stage 的继承关系，
+所以 stage2 对应代码行是 <code>step12 = df2.repartition(6)</code>，所以它包含6个 task。</p>
+<p>Stage3 对应 <code>step1 = df1.repartition(5)</code> 和 <code>step2 = step1.selectExpr(...)</code>，
+包含5个 task。</p>
+<p>Stage4 对应 <code>step3 = step2.join(...)</code>，所以父节点是 stage3 和 stage2，
+所以它的 shuffle read 值 (38.6MB) 是两个父节点各自 shuffle write 值
+(13MB 和 25.6MB) 的和。
+这个 stage 有200个 task，是因为 <code>spark.sql.shuffle.partitions</code> 的默认值是200。
+关于这个参数（以及其他配置参数）可以参考
+<a href="https://spark.apache.org/docs/latest/sql-programming-guide.html">Spark SQL, DataFrames and Datasets Guide</a>。</p>
+<p>Stage5 对应 <code>step4 = step3.selectExpr(...)</code> 和 <code>step4.collect()</code>，
+前者是一个 transformation，后者是action，所以两个归入一个 stage.</p>
+<h2>逻辑架构中的关键概念</h2>
+<ul>
+<li>
+<p>Job: 一个 job 包含一个或多个 stages，一个 job 对应一个 action ；</p>
+</li>
+<li>
+<p>Stage: 一个 stage 包含一组可并行计算的 tasks，一个 stage 对应一次 shuffle；</p>
+</li>
+<li>
+<p>Shuffle: 数据在 executor 间移动，叫做 shuffle，例如初始化 RDD，对 RDD 重新分区
+  (repartition), join, collect 都会引起 shuffle 动作；</p>
+</li>
+</ul>
+<h3>task</h3>
+<p>Spark 的 <em>task</em> 包含如下特征：</p>
+<ul>
+<li>
+<p>一个 task 只运行在一个 executor 上；</p>
+</li>
+<li>
+<p>一个 task 在一个 RDD 中的一个 partition 上执行一组 transformations;</p>
+</li>
+<li>
+<p>一个 task 可以使用 <code>spark.task.cpus</code> 个 CPU；</p>
+</li>
+<li>
+<p>同一个 stage 中不同 task 是并行执行的；</p>
+</li>
+</ul>
+<p>Task 的执行过程：</p>
+<p>Driver 序列化一个 function 对象，并发送给 executor，executor 收到后做反序列化，
+并在某个 partition 上执行之。</p>
+<p>Ref:</p>
+<p>[SDG15]: Chapter 15 of "How Spark Runs on a Cluter, in Spark: the Definitive Guide"
+by Bill Chambers.</p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2018-09-11T14:34:40+08:00">Sep 11, 2018</time>
+
+<h4>Last Updated</h4>
+<time datetime="2018-09-12T15:51:16+08:00">Sep 12, 2018</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="/tags.html#spark-ref">spark
+                    <span>20</span>
+</a></li>
+                <li><a href="/tags.html#structure-ref">structure
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

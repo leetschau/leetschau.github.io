@@ -14,13 +14,13 @@
 
 <meta property="og:title" content="在vim中执行shell命令的插件 "/>
 <meta property="og:url" content="/zai-vimzhong-zhi-xing-shellming-ling-de-cha-jian.html" />
-<meta property="og:description" content="需要做一个vim工具，基本功能是通过一个快捷键，把选中的内容（或者当前行）发送到指定的tmux pane中，并执行。 实现过程 目录结构：当前工作目录下有 sendcmd.vim 和 test.md 两个文件， 前者包含实现功能的 vim 函数，后者是包含要执行命令行的数据文件。 开发环境：tmux window 1 做sendcmd.vim开发，window 2 上下拆分为两个pane ，上面 (ptop) 是命令行，下面的 pane (pbottom) 中用 vim 打开数据文件test.md. 每次修改并保存sendcmd.vim后，在test.md中执行:so sendcmd.vim， 然后把光标移动到要执行的命令所在的行上按F3键就可以看到命令被发送到ptop里的 执行效果了 …" />
+<meta property="og:description" content="使用 Python, Haskell 的 REPL 时经常需要能够在一个文本文件中将 当前行（或者选中很多行）发送到 REPL 中， 并能够灵活地在文本编辑器（执行编辑好的脚本）和 REPL （手工输入并执行一些一次性的代码）间切换， 下面的几种方法使用不同的工具实现了这个目标。 基于 neoterm 的方法的优点是不依赖 vim 以外的工具，适合在不能使用 tmux 的场合 （例如使用 i3wm 时由于快捷键冲突无法使用 tmux）。 Based on neoterm Add the following lines into $MYVIMRC: let g:neoterm_default_mod = &#39;vertical&#39; let g:neoterm_autoscroll = 1 let g:neoterm_direct_open_repl …" />
 <meta property="og:site_name" content="DarkMatter in Cyberspace" />
 <meta property="og:article:author" content="Li Chao" />
 <meta property="og:article:published_time" content="2016-07-02T02:37:54+08:00" />
-<meta property="" content="2016-07-02T02:37:54+08:00" />
+<meta property="" content="2018-07-18T16:06:57+08:00" />
 <meta name="twitter:title" content="在vim中执行shell命令的插件 ">
-<meta name="twitter:description" content="需要做一个vim工具，基本功能是通过一个快捷键，把选中的内容（或者当前行）发送到指定的tmux pane中，并执行。 实现过程 目录结构：当前工作目录下有 sendcmd.vim 和 test.md 两个文件， 前者包含实现功能的 vim 函数，后者是包含要执行命令行的数据文件。 开发环境：tmux window 1 做sendcmd.vim开发，window 2 上下拆分为两个pane ，上面 (ptop) 是命令行，下面的 pane (pbottom) 中用 vim 打开数据文件test.md. 每次修改并保存sendcmd.vim后，在test.md中执行:so sendcmd.vim， 然后把光标移动到要执行的命令所在的行上按F3键就可以看到命令被发送到ptop里的 执行效果了 …">
+<meta name="twitter:description" content="使用 Python, Haskell 的 REPL 时经常需要能够在一个文本文件中将 当前行（或者选中很多行）发送到 REPL 中， 并能够灵活地在文本编辑器（执行编辑好的脚本）和 REPL （手工输入并执行一些一次性的代码）间切换， 下面的几种方法使用不同的工具实现了这个目标。 基于 neoterm 的方法的优点是不依赖 vim 以外的工具，适合在不能使用 tmux 的场合 （例如使用 i3wm 时由于快捷键冲突无法使用 tmux）。 Based on neoterm Add the following lines into $MYVIMRC: let g:neoterm_default_mod = &#39;vertical&#39; let g:neoterm_autoscroll = 1 let g:neoterm_direct_open_repl …">
 
         <title>在vim中执行shell命令的插件  · DarkMatter in Cyberspace
 </title>
@@ -70,8 +70,89 @@
 
             
             <hr>
-<p>需要做一个vim工具，基本功能是通过一个快捷键，把选中的内容（或者当前行）发送到指定的tmux pane中，并执行。</p>
-<h1>实现过程</h1>
+<p>使用 Python, Haskell 的 REPL 时经常需要能够在一个文本文件中将
+当前行（或者选中很多行）发送到 REPL 中，
+并能够灵活地在文本编辑器（执行编辑好的脚本）和
+REPL （手工输入并执行一些一次性的代码）间切换，
+下面的几种方法使用不同的工具实现了这个目标。</p>
+<p>基于 neoterm 的方法的优点是不依赖 vim 以外的工具，适合在不能使用 tmux 的场合
+（例如使用 i3wm 时由于快捷键冲突无法使用 tmux）。</p>
+<h1>Based on neoterm</h1>
+<p>Add the following lines into <code>$MYVIMRC</code>:</p>
+<div class="highlight"><pre><span></span>let g:neoterm_default_mod = &#39;vertical&#39;
+let g:neoterm_autoscroll = 1
+let g:neoterm_direct_open_repl = 1
+nnoremap &lt;silent&gt; &lt;Space&gt; :TREPLSendLine&lt;CR&gt;
+vnoremap &lt;silent&gt; &lt;Space&gt; :TREPLSendLine&lt;CR&gt;
+cabbrev ts T
+autocmd FileType haskell cabbrev tl T :load %
+autocmd FileType python cabbrev tl T run %
+cabbrev tg Ttoggle&lt;CR&gt;
+autocmd FileType haskell let g:neoterm_repl_command  = &#39;stack ghci&#39;
+autocmd FileType python let g:neoterm_repl_command  = &#39;ipython&#39;
+
+Plug &#39;kassio/neoterm&#39;
+</pre></div>
+
+
+<p>With above configurations, after open a python or haskell file and press
+<SPACE> key, for there's no existing terminal window existing,
+neoterm will create a new one automatically and send the current line into it.
+Or you can select multiple lines (in visual mode) and send to
+the terminal window with <SPACE> key.</p>
+<p>Reload a file with <code>:tl</code>.</p>
+<p>After the job is done, no need to quit with <code>Tclose</code>, just <code>:qa</code>.</p>
+<p>If you want input something on-the-fly in the REPL, you have 2 options:</p>
+<ul>
+<li>
+<p><code>:ts :set +m</code> and press Return key. <code>:ts</code> and pressing <SPACE> becomes <code>:T</code>.
+  All characters following is sent to REPL.
+  This is convenient, while you lose the tab-completion functionality in REPL.</p>
+</li>
+<li>
+<p>Jump to the REPL window, switch to insert mode with pressing <code>i</code>,
+  input something (for example <code>filter even [1,2,3]</code>),
+  leave insert mode with pressing <code>Ctrl-\ Ctrl-n</code>,
+  finally jump back to editor window.</p>
+</li>
+</ul>
+<p>Note: if you want open the terminal window in the bottom instead of right,
+use <code>let g:neoterm_default_mod = 'botright'</code>.
+See <code>:h mods</code> in vim for more options.</p>
+<h2>Paste mode in GHCi</h2>
+<p>When send the following lines into repl with neoterm,
+there are always errors at the line <code>where ...</code>:</p>
+<div class="highlight"><pre><span></span>drink aCup ozDrank = if ozDiff &gt;= 0
+                     then cup ozDiff
+                     else cup 0
+  where oldOz = getOz aCup
+        ozDiff = oldOz - ozDrank
+</pre></div>
+
+
+<p>The reason is GHCi believe the block is ended after <code>else ...</code>,
+even you've  added <code>:set +m</code>.</p>
+<p>The solution is add <code>:{</code> (with <code>:ts :{</code>) and <code>:}</code> before and after the block.
+See <a href="https://stackoverflow.com/questions/2846050/how-to-define-a-function-in-ghci-across-multiple-lines">How to define a function in ghci across multiple lines?</a>.</p>
+<h1>Based on vim plugin <em>vimux</em></h1>
+<p><a href="https://github.com/benmills/vimux">vimux</a> 能够自动检测tmux pane，
+基于它的工作流程是：</p>
+<p>为vim安装vimux插件并配置好快捷键（例如下面的配置将快捷键设为空格键）后，
+在一个 tmux window 中，左/上侧是vim窗口，右/下侧是repl，例如IPython或者GHCi，
+Normal模式下按空格键，将当前行发送到repl中执行，
+Visual模式下按空格键，选中的每行被一次发送到repl中执行。</p>
+<p>vim的安装配置方法：在 $MYVIMRC 中增加：</p>
+<div class="highlight"><pre><span></span>nnoremap &lt;Space&gt; :call VimuxRunCommand(getline(&quot;.&quot;))&lt;CR&gt;
+vnoremap &lt;Space&gt; :call VimuxRunCommand(getline(&quot;.&quot;))&lt;CR&gt;
+Plug &#39;benmills/vimux&#39;
+</pre></div>
+
+
+<p>目前这种方法的缺点是响应慢，优点是能正确处理 IPython 由于 autoindent 导致
+多行输入时缩进错误问题，以及其他一些辅助功能，例如自动关系repl pane等。</p>
+<h1>Based on Tmux send-keys</h1>
+<p>与 vimux 的原理相同，也是在 tmux 中利用 <code>send-keys</code> 命令将当前或者选中的文本
+发送到目标 pane 中。</p>
 <p>目录结构：当前工作目录下有 sendcmd.vim 和 test.md 两个文件，
 前者包含实现功能的 vim 函数，后者是包含要执行命令行的数据文件。</p>
 <p>开发环境：tmux window 1 做sendcmd.vim开发，window 2 上下拆分为两个pane
@@ -166,20 +247,27 @@ http -b POST $es/$idx/$type/_search query:=&#39;&quot;&#39;&quot;&#39;{&quot;boo
 <h2>整合进vim function</h2>
 <p>这一步将前面的测试结果放进vim函数中，实现在第10、20、24行上能够正确执行。</p>
 <p>sendcmd.vim：</p>
-<div class="highlight"><pre><span></span>function! SendCmd()
+<div class="highlight"><pre><span></span>function! SendCurLineInTmux()
   let curline = getline(&quot;.&quot;)
-  echom curline
   let escstr = substitute(curline, &quot;&#39;&quot;, &quot;&#39;\&quot;&#39;\&quot;&#39;&quot;, &#39;g&#39;)
-  let cmd = &quot;tmux send-keys -t top &#39;&quot; . escstr . &quot;&#39; Enter&quot;
-  echom cmd
+  let cmd = &quot;tmux send-keys -t right C-u &#39;&quot; . escstr . &quot;&#39; Enter&quot;
+  &quot; echom cmd
   echom system(cmd)
 endfunction
-nnoremap &lt;F3&gt; :call SendCmd()&lt;CR&gt;
+nnoremap &lt;silent&gt; &lt;Space&gt; :call SendCurLineInTmux()&lt;CR&gt;
+vnoremap &lt;silent&gt; &lt;Space&gt; :call SendCurLineInTmux()&lt;CR&gt;
 </pre></div>
 
 
+<p>这里要注意的是 <code>tmux send-keys -t right C-u</code> 中的 <code>C-u</code>，是为了解决 IPython
+的自动缩进问题，在 GHCi 中不存在这个问题，但加一个 Ctrl-u 也无妨。</p>
+<p>IPython低版本中可以用 <code>%autoindent</code> 关闭自动缩进，但在6.2版本中这个方法不起作用了。
+另外可以用 <code>%cpaste</code> 达到无缩进粘贴的目的，但要用 <code>Ctrl-D</code> 或者 <code>--</code> 表示输入结束，
+都不如在每一行首加 <code>Ctrl-u</code> 方便。</p>
+<p>将上面的 <em>sendcmd.vim</em> 中的内容加入到 $MYVIMRC 中就可以了。</p>
 <h2>制作成插件</h2>
-<p>当功能基本定型后，可以把脚本变成插件，避免每次使用时加载。</p>
+<p>当功能基本定型后，可以把脚本变成插件，避免手工修改配置文件。
+但对于很小的脚本来说，直接加入配置文件中也不麻烦。</p>
 <p>最简单的vim插件，只要在一个目录（tmuxcmd）里创建一个<code>plugin</code>目录，
 把.vim脚本放进去，然后把目录做成git库就行了：</p>
 <div class="highlight"><pre><span></span>mkdir -p tmuxcmd/plugin
@@ -215,7 +303,7 @@ git add ...; git commit -m &quot;...&quot;
             <time pubdate="pubdate" datetime="2016-07-02T02:37:54+08:00">Jul 2, 2016</time>
 
 <h4>Last Updated</h4>
-<time datetime="2016-07-02T02:37:54+08:00">Jul 2, 2016</time>
+<time datetime="2018-07-18T16:06:57+08:00">Jul 18, 2018</time>
 
             <h4>Category</h4>
             <a class="category-link" href="/categories.html#tech-ref">Tech</a>
@@ -228,7 +316,7 @@ git add ...; git commit -m &quot;...&quot;
                     <span>9</span>
 </a></li>
                 <li><a href="/tags.html#vim-ref">vim
-                    <span>87</span>
+                    <span>88</span>
 </a></li>
             </ul>
 <h4>Contact</h4>
