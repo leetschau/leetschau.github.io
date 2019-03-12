@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="openvpn, linode, Tech, " />
+
+<meta property="og:title" content="Build OpenVPN Server and Client "/>
+<meta property="og:url" content="http://leetschau.github.io/build-openvpn-server-and-client.html" />
+<meta property="og:description" content="Follow the instructions in How To Set Up an OpenVPN Server on Ubuntu 16.04 to configure OpenVPN server on linode server. Run the following command as user leo on OpenVPN server host: # Step 1: Install OpenVPN sudo apt update sudo apt install openvpn easy-rsa # Step 2: Set Up the …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2018-12-20T15:43:27+08:00" />
+<meta property="" content="2018-12-21T16:04:18+08:00" />
+<meta name="twitter:title" content="Build OpenVPN Server and Client ">
+<meta name="twitter:description" content="Follow the instructions in How To Set Up an OpenVPN Server on Ubuntu 16.04 to configure OpenVPN server on linode server. Run the following command as user leo on OpenVPN server host: # Step 1: Install OpenVPN sudo apt update sudo apt install openvpn easy-rsa # Step 2: Set Up the …">
+
+        <title>Build OpenVPN Server and Client  · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="http://leetschau.github.io/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="http://leetschau.github.io">Home</a></li>
+                            <li ><a href="http://leetschau.github.io/categories.html">Categories</a></li>
+                            <li ><a href="http://leetschau.github.io/tags.html">Tags</a></li>
+                            <li ><a href="http://leetschau.github.io/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="http://leetschau.github.io/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="http://leetschau.github.io/build-openvpn-server-and-client.html"> Build OpenVPN Server and Client  </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>Follow the instructions in <a href="https://www.digitalocean.com/community/tutorials/how-to-set-up-an-openvpn-server-on-ubuntu-16-04">How To Set Up an OpenVPN Server on Ubuntu 16.04</a>
+to configure OpenVPN server on linode server.</p>
+<p>Run the following command as user <em>leo</em> on OpenVPN server host:</p>
+<div class="highlight"><pre><span></span># Step 1: Install OpenVPN
+sudo apt update
+sudo apt install openvpn easy-rsa
+
+# Step 2: Set Up the CA Directory
+cd ~/docs
+make-cadir ./openvpn-ca
+cd openvpn-ca
+
+# Step 3: Configure the CA Variables
+vi vars # modify vars  # export KEY_NAME=&quot;linserver&quot;
+
+# Step 4: Build the Certificate Authority
+source vars
+./clean-all  # do NOT run this command when building the 2nd certificate
+./build-ca
+
+# Step 5: Create the Server Certificate, Key, and Encryption Files
+./build-key-server linserver  # match the name in step 3
+./build-dh
+sudo openvpn --genkey --secret keys/ta.key
+
+# Step 6: Generate a Client Certificate and Key Pair
+./build-key linclient
+## build the second client certificate, backup all files in *keys* folder
+./build-key e7450
+
+# Step 7: Configure the OpenVPN Service
+cd keys
+sudo cp ca.crt linserver.crt linserver.key ta.key dh2048.pem /etc/openvpn
+gunzip -c /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz | sudo tee /etc/openvpn/linserver.conf
+cd /etc/openvpn
+sudo vi linserver.conf # modify parameters
+## uncomment *client-to-client* and *duplicate-cn*
+
+# Step 8: Adjust the Server Networking Configuration
+sudo vi /etc/sysctl.conf
+sudo sysctl -p
+
+# Adjust the UFW Rules to Masquerade Client Connections
+# add the following lines into /etc/ufw/before.rules:
+# START OPENVPN RULES
+# NAT table rules
+*nat
+:POSTROUTING ACCEPT [0:0] 
+# Allow traffic from OpenVPN client to wlp11s0 (change to the interface you discovered!)
+-A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE
+COMMIT
+# END OPENVPN RULES
+
+
+sudo ufw allow 1194/udp
+sudo ufw disable
+sudo ufw enable
+
+# Step 9: Start and Enable the OpenVPN Service
+sudo systemctl start openvpn@linserver
+sudo systemctl status openvpn@linserver
+sudo systemctl enable openvpn@linserver
+
+# Step 10: Create Client Configuration Infrastructure
+mkdir -p ~/docs/openvpn-client-configs/files
+chmod 700 ~/docs/openvpn-client-configs/files
+cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf ~/docs/openvpn-client-configs/base.conf
+vi ~/docs/openvpn-client-configs/base.conf
+
+cat <span class="err">&lt;</span><span class="nt">&lt; EOF</span> <span class="nt">&gt;</span> ~/docs/openvpn-client-configs/make_config.sh
+#!/bin/bash
+# First argument: Client identifier
+KEY_DIR=~/docs/openvpn-ca/keys
+OUTPUT_DIR=~/docs/openvpn-client-configs/files
+BASE_CONFIG=~/docs/openvpn-client-configs/base.conf
+cat <span class="cp">${</span><span class="n">BASE_CONFIG</span><span class="cp">}</span> \
+    <span class="err">&lt;</span>(echo -e &#39;<span class="nt">&lt;ca&gt;</span>&#39;) \
+    <span class="cp">${</span><span class="n">KEY_DIR</span><span class="cp">}</span>/ca.crt \
+    <span class="err">&lt;</span>(echo -e &#39;<span class="nt">&lt;/ca&gt;</span>\n<span class="nt">&lt;cert&gt;</span>&#39;) \
+    <span class="cp">${</span><span class="n">KEY_DIR</span><span class="cp">}</span>/<span class="cp">${</span><span class="mi">1</span><span class="cp">}</span>.crt \
+    <span class="err">&lt;</span>(echo -e &#39;<span class="nt">&lt;/cert&gt;</span>\n<span class="nt">&lt;key&gt;</span>&#39;) \
+    <span class="cp">${</span><span class="n">KEY_DIR</span><span class="cp">}</span>/<span class="cp">${</span><span class="mi">1</span><span class="cp">}</span>.key \
+    <span class="err">&lt;</span>(echo -e &#39;<span class="nt">&lt;/key&gt;</span>\n<span class="nt">&lt;tls</span><span class="err">-auth</span><span class="nt">&gt;</span>&#39;) \
+    <span class="cp">${</span><span class="n">KEY_DIR</span><span class="cp">}</span>/ta.key \
+    <span class="err">&lt;</span>(echo -e &#39;<span class="nt">&lt;/tls-auth&gt;</span>&#39;) \
+    &gt; <span class="cp">${</span><span class="n">OUTPUT_DIR</span><span class="cp">}</span>/<span class="cp">${</span><span class="mi">1</span><span class="cp">}</span>.ovpn
+EOF
+chmod 700 ~/docs/openvpn-client-configs/make_config.sh
+
+# Step 11: Generate Client Configurations
+cd ~/docs/openvpn-client-configs
+sudo chown leo:leo -R /home/leo/docs/openvpn-ca/keys
+./make_config.sh linclient   # keep the same with the name set in Step 6
+./make_config.sh e7450       # build the 2nd certificate
+
+# transfer file ~/docs/openvpn-client-configs/files/linclient.ovpn to the client
+</pre></div>
+
+
+<p>Run the following script on a VPN client.
+For Linux:</p>
+<div class="highlight"><pre><span></span>sudo apt-get update
+sudo apt-get install openvpn
+# Edit file linclient.ovpn with the existence of file /etc/openvpn/update-resolv-conf
+sudo openvpn --config linclient.ovpn
+</pre></div>
+
+
+<p>After the connection is verifed, start OpenVPN service on client with
+<code>sudo openvpn --daemon --config linclient.ovpn</code>.</p>
+<p>Note:</p>
+<p>File /etc/openvpn/ipp.txt is the IP address of clients connected to this server.
+It's created by OpenVPN.
+When rebuilding a new server certificate, it's safe to delete it.</p>
+<p>Do NOT building with <a href="https://www.linode.com/docs/networking/vpn/set-up-a-hardened-openvpn-server/">Set up a Hardened OpenVPN Server on Debian 9</a>.
+Its network configuration is unnecessarily complicated and will make you
+lose connection with your host.</p>
+            
+            
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2018-12-20T15:43:27+08:00">Dec 20, 2018</time>
+
+<h4>Last Updated</h4>
+<time datetime="2018-12-21T16:04:18+08:00">Dec 21, 2018</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="http://leetschau.github.io/tags.html#linode-ref">linode
+                    <span>2</span>
+</a></li>
+                <li><a href="http://leetschau.github.io/tags.html#openvpn-ref">openvpn
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>
