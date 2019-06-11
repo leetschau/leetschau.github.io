@@ -18,7 +18,7 @@
 <meta property="og:site_name" content="DarkMatter in Cyberspace" />
 <meta property="og:article:author" content="Li Chao" />
 <meta property="og:article:published_time" content="2019-03-11T16:43:20+08:00" />
-<meta property="" content="2019-03-11T22:29:35+08:00" />
+<meta property="" content="2019-04-03T10:47:31+08:00" />
 <meta name="twitter:title" content="Idris Notes ">
 <meta name="twitter:description" content="Install Install Idris with stack install idris on Ubuntu. Or download Windows binaries idris-1.3.1-win64.exe and run it, which is actually an executable zip file. HelloWorld cat &lt;&lt; EOF &gt; hello.idr module Main main : IO () main = putStrLn &#34;Hello world&#34; EOF idris hello.idr -o hello ./hello Verified on Ubuntu …">
 
@@ -105,6 +105,103 @@ For example
 <code>:q</code> (quit), etc.</p>
 <p>Define local variable with <code>:let</code>, like <code>:let aa = 3</code>.</p>
 <p>Run shell command with <code>:!</code>, like <code>:! pwd</code>.</p>
+<h2>Workflow in Editor</h2>
+<h2>neovim</h2>
+<p>First install <a href="https://github.com/idris-hackers/idris-vim">idris-vim</a> with vim-plug:
+add <code>Plug 'idris-hackers/idris-vim'</code> into $MYVIMRC.</p>
+<p>You must have a running Idris REPL to use this plugin. To fulfill this, you have 2 options:</p>
+<ul>
+<li>
+<p>neovim terminal: open with <code>:sp|term idris WordLength.idr</code>,
+  or <code>:vsp|term</code> for REPL in a vertical split window,
+  or <code>:tabe|term idris WordLength.idr</code> for REPL in a new tab;</p>
+</li>
+<li>
+<p>An independent Idris REPL: run <code>idris WordLength.idr</code> in another console window;</p>
+</li>
+</ul>
+<p>To avoid keyboard shortcuts conflict, modify <code>&lt;LocalLeader&gt;c :call IdrisCaseSplit()&lt;ENTER&gt;</code>
+to <code>&lt;LocalLeader&gt;ic :call IdrisCaseSplit()&lt;ENTER&gt;</code> in the file
+$HOME/.config/nvim/plugged/idris-vim/ftplugin/idris.vim,
+where the added prefix <code>i</code> in shortcut represents <em>Idris</em>.</p>
+<p>Then add prefix <code>i</code> for the shortcuts of <code>IdrisReload</code>, <code>IdrisEval</code>
+and other relevant functions in the same way;</p>
+<p>The work-flow:</p>
+<ol>
+<li>
+<p>Open file <em>WordLength.idr</em> with nvim, write <code>allLengths : List String -&gt; List Nat</code>;</p>
+</li>
+<li>
+<p>Create an Idris REPL: </p>
+</li>
+<li>
+<p>Put the cursor on <code>allLengths</code> and press <code>&lt;leader&gt;id</code>:
+   the second line <code>allLengths xs = ?allLengths_rhs</code> will be created by the plugin.
+   Under the hood, the function <code>IdrisAddClause</code> do the magic;</p>
+</li>
+<li>
+<p>Put the cursor on <code>xs</code> and press <code>&lt;leader&gt;ic</code> in neovim (or <code>C-M-c</code> in VS Code),
+   the second line becomes:
+   <code>allLengths [] = ?allLengths_rhs_1
+   allLengths (x :: xs) = ?allLengths_rhs_2</code>
+   which are transformed by <code>IdrisCaseSplit</code> under the hood;</p>
+</li>
+<li>
+<p>Put the cursor on <code>?allLengths_rhs_1</code> and press <code>&lt;leader&gt;o</code>, this expression becomes
+   to <code>[]</code>, which is implemented by <code>IdrisProofSearch</code>.</p>
+</li>
+</ol>
+<p>Other useful shortcuts:</p>
+<ul>
+<li>
+<p><code>,h</code>: show doc;</p>
+</li>
+<li>
+<p><code>,t</code>: show type;</p>
+</li>
+<li>
+<p><code>,ii</code>: open response window;</p>
+</li>
+<li>
+<p><code>,ir</code>: reload file;</p>
+</li>
+<li>
+<p><code>,ie</code>: evaluate a expression;</p>
+</li>
+<li>
+<p><code>,l</code> (C-M-l): <code>IdrisMakeLemma</code>. Create a top-level function definition from a hole
+  (put the curor on the target hole and use this shortcut). Then rename the generated
+  function to what you want. See demo in TDDI, p72, step 5.</p>
+</li>
+</ul>
+<p>Note: <code>:h idris-vim.txt</code> for details of the Idris plugin.</p>
+<h2>VS Code</h2>
+<p>Install the <em>Idris</em> extension, and add the following lines into <em>settings.json</em>
+(open it with Ctrl-Shift-P, then <em>open settings</em>):</p>
+<div class="highlight"><pre><span></span>{
+  ...
+  &quot;idris.executablePath&quot;: &quot;d:/apps/idris-1.3.1/idris.exe&quot;,
+  &quot;idris.hoverMode&quot;: &quot;fallback&quot;,
+  &quot;idris.suggestMode&quot;: &quot;allWords&quot;,
+  &quot;idris.warnPartial&quot;: false,
+  &quot;idris.showOutputWhenTypechecking&quot;: false,
+  &quot;idris.numbersOfContinuousTypechecking&quot;: 10
+}
+</pre></div>
+
+
+<p>Add the following lines into <em>keybindings.json</em> (open it with Ctrl-Shift-P, then <em>open keyboard shortcuts</em>:</p>
+<div class="highlight"><pre><span></span>{
+  ...
+  { &quot;key&quot;: &quot;alt+ctrl+a&quot;, &quot;command&quot;: &quot;idris.add-clause&quot; },
+  { &quot;key&quot;: &quot;alt+ctrl+t&quot;, &quot;command&quot;: &quot;idris.type-of&quot; },
+  { &quot;key&quot;: &quot;alt+ctrl+c&quot;, &quot;command&quot;: &quot;idris.case-split&quot; },
+  { &quot;key&quot;: &quot;alt+ctrl+r&quot;, &quot;command&quot;: &quot;idris.start-refresh-repl&quot; }
+}
+</pre></div>
+
+
+<p>Above shortcuts are following the definitions in section 3.1.1 in TDDI.</p>
             
             
             <hr/>
@@ -115,7 +212,7 @@ For example
             <time pubdate="pubdate" datetime="2019-03-11T16:43:20+08:00">Mar 11, 2019</time>
 
 <h4>Last Updated</h4>
-<time datetime="2019-03-11T22:29:35+08:00">Mar 11, 2019</time>
+<time datetime="2019-04-03T10:47:31+08:00">Apr 3, 2019</time>
 
             <h4>Category</h4>
             <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>
