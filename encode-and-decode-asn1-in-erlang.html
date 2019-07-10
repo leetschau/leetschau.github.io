@@ -71,42 +71,42 @@
             
             <hr>
 <p>Firstly a template asn file (PP.asn here) was created. Then it's be used to encode some text, creating a segment binary data(stored in variable Bin), then Bin was decoded based on PP.asn. We can also store binaries into a file, then read from it.</p>
-<div class="highlight"><pre><span></span>$ cat PP.asn
-PP DEFINITIONS AUTOMATIC TAGS ::<span class="o">=</span>
-BEGIN
-  TGSN ::<span class="o">=</span>    INTEGER <span class="o">(</span><span class="m">0</span>..14<span class="o">)</span>
-  Persons ::<span class="o">=</span> SEQUENCE <span class="o">{</span>
-    name PrintableString,
-    location INTEGER <span class="o">{</span>home<span class="o">(</span><span class="m">0</span><span class="o">)</span>,field<span class="o">(</span><span class="m">1</span><span class="o">)</span>,roving<span class="o">(</span><span class="m">2</span><span class="o">)}</span>,
-    age INTEGER OPTIONAL
-  <span class="o">}</span>
-END
-$ erl
-Erlang/OTP <span class="m">17</span> <span class="o">[</span>erts-6.0<span class="o">]</span> <span class="o">[</span>source-07b8f44<span class="o">]</span> <span class="o">[</span>smp:2:2<span class="o">]</span> <span class="o">[</span>async-threads:10<span class="o">]</span> <span class="o">[</span>hipe<span class="o">]</span> <span class="o">[</span>kernel-poll:false<span class="o">]</span>
+<div class="highlight"><pre><span></span>$ <span class="nv">cat</span> <span class="nv">PP</span>.<span class="nv">asn</span>
+<span class="nv">PP</span> <span class="nv">DEFINITIONS</span> <span class="nv">AUTOMATIC</span> <span class="nv">TAGS</span> ::<span class="o">=</span>
+<span class="nv">BEGIN</span>
+  <span class="nv">TGSN</span> ::<span class="o">=</span>    <span class="nv">INTEGER</span> <span class="ss">(</span><span class="mi">0</span>..<span class="mi">14</span><span class="ss">)</span>
+  <span class="nv">Persons</span> ::<span class="o">=</span> <span class="nv">SEQUENCE</span> {
+    <span class="nv">name</span> <span class="nv">PrintableString</span>,
+    <span class="nv">location</span> <span class="nv">INTEGER</span> {<span class="nv">home</span><span class="ss">(</span><span class="mi">0</span><span class="ss">)</span>,<span class="nv">field</span><span class="ss">(</span><span class="mi">1</span><span class="ss">)</span>,<span class="nv">roving</span><span class="ss">(</span><span class="mi">2</span><span class="ss">)</span>},
+    <span class="nv">age</span> <span class="nv">INTEGER</span> <span class="nv">OPTIONAL</span>
+  }
+<span class="k">END</span>
+$ <span class="nv">erl</span>
+<span class="nv">Erlang</span><span class="o">/</span><span class="nv">OTP</span> <span class="mi">17</span> [<span class="nv">erts</span><span class="o">-</span><span class="mi">6</span>.<span class="mi">0</span>] [<span class="nv">source</span><span class="o">-</span><span class="mi">07</span><span class="nv">b8f44</span>] [<span class="nv">smp</span>:<span class="mi">2</span>:<span class="mi">2</span>] [<span class="nv">async</span><span class="o">-</span><span class="nv">threads</span>:<span class="mi">10</span>] [<span class="nv">hipe</span>] [<span class="nv">kernel</span><span class="o">-</span><span class="nv">poll</span>:<span class="nv">false</span>]
 
-Eshell V6.0  <span class="o">(</span>abort with ^G<span class="o">)</span>
-<span class="m">1</span>&gt; asn1ct:compile<span class="o">(</span><span class="s2">&quot;PP&quot;</span>, <span class="o">[</span>ber, verbose<span class="o">])</span>.
-Erlang ASN.1 compiler <span class="m">3</span>.0
-Compiling: <span class="s2">&quot;PP.asn&quot;</span>
-Options: <span class="o">[</span>ber,verbose,<span class="o">{</span>i,<span class="s2">&quot;.&quot;</span><span class="o">}]</span>
---<span class="o">{</span>generated,<span class="s2">&quot;PP.asn1db&quot;</span><span class="o">}</span>--
---<span class="o">{</span>generated,<span class="s2">&quot;PP.hrl&quot;</span><span class="o">}</span>--
---<span class="o">{</span>generated,<span class="s2">&quot;PP.erl&quot;</span><span class="o">}</span>--
-ok
-<span class="m">2</span>&gt; <span class="nv">Rockstar</span> <span class="o">=</span> <span class="o">{</span><span class="s1">&#39;Persons&#39;</span>,<span class="s2">&quot;Some Name&quot;</span>,roving,50<span class="o">}</span>.
-<span class="o">{</span><span class="s1">&#39;Persons&#39;</span>,<span class="s2">&quot;Some Name&quot;</span>,roving,50<span class="o">}</span>
-<span class="m">3</span>&gt; <span class="o">{</span>ok,Bin<span class="o">}</span> <span class="o">=</span> <span class="s1">&#39;PP&#39;</span>:encode<span class="o">(</span><span class="s1">&#39;Persons&#39;</span>,Rockstar<span class="o">)</span>.    
-<span class="o">{</span>ok,<span class="s">&lt;&lt;48,17,128,9,83,111,109,101,32,78,97,109,101,129,1,</span>
-<span class="s">      2,130,1,50&gt;&gt;}</span>
-<span class="s">4&gt; {ok,Persons} = &#39;PP&#39;:decode(&#39;Persons&#39;,Bin).  </span>
-<span class="s">{ok,{&#39;Persons&#39;,&quot;Some Name&quot;,roving,50}}</span>
-<span class="s">5&gt; file:write_file(&quot;test&quot;, Bin).</span>
-<span class="s">ok</span>
-<span class="s">6&gt; {ok, Bin2} = file:read_file(&quot;test&quot;).</span>
-<span class="s">{ok,&lt;&lt;48</span>,17,128,9,83,111,109,101,32,78,97,109,101,129,1,
-      <span class="m">2</span>,130,1,50&gt;&gt;<span class="o">}</span>
-<span class="m">7</span>&gt; <span class="o">{</span>ok,Persons<span class="o">}</span> <span class="o">=</span> <span class="s1">&#39;PP&#39;</span>:decode<span class="o">(</span><span class="s1">&#39;Persons&#39;</span>,Bin2<span class="o">)</span>.
-<span class="o">{</span>ok,<span class="o">{</span><span class="s1">&#39;Persons&#39;</span>,<span class="s2">&quot;Some Name&quot;</span>,roving,50<span class="o">}}</span>
+<span class="nv">Eshell</span> <span class="nv">V6</span>.<span class="mi">0</span>  <span class="ss">(</span><span class="nv">abort</span> <span class="nv">with</span> <span class="o">^</span><span class="nv">G</span><span class="ss">)</span>
+<span class="mi">1</span><span class="o">&gt;</span> <span class="nv">asn1ct</span>:<span class="nv">compile</span><span class="ss">(</span><span class="s2">&quot;</span><span class="s">PP</span><span class="s2">&quot;</span>, [<span class="nv">ber</span>, <span class="nv">verbose</span>]<span class="ss">)</span>.
+<span class="nv">Erlang</span> <span class="nv">ASN</span>.<span class="mi">1</span> <span class="nv">compiler</span> <span class="mi">3</span>.<span class="mi">0</span>
+<span class="nv">Compiling</span>: <span class="s2">&quot;</span><span class="s">PP.asn</span><span class="s2">&quot;</span>
+<span class="nv">Options</span>: [<span class="nv">ber</span>,<span class="nv">verbose</span>,{<span class="nv">i</span>,<span class="s2">&quot;</span><span class="s">.</span><span class="s2">&quot;</span>}]
+<span class="o">--</span>{<span class="nv">generated</span>,<span class="s2">&quot;</span><span class="s">PP.asn1db</span><span class="s2">&quot;</span>}<span class="o">--</span>
+<span class="o">--</span>{<span class="nv">generated</span>,<span class="s2">&quot;</span><span class="s">PP.hrl</span><span class="s2">&quot;</span>}<span class="o">--</span>
+<span class="o">--</span>{<span class="nv">generated</span>,<span class="s2">&quot;</span><span class="s">PP.erl</span><span class="s2">&quot;</span>}<span class="o">--</span>
+<span class="nv">ok</span>
+<span class="mi">2</span><span class="o">&gt;</span> <span class="nv">Rockstar</span> <span class="o">=</span> {<span class="s1">&#39;</span><span class="s">Persons</span><span class="s1">&#39;</span>,<span class="s2">&quot;</span><span class="s">Some Name</span><span class="s2">&quot;</span>,<span class="nv">roving</span>,<span class="mi">50</span>}.
+{<span class="s1">&#39;</span><span class="s">Persons</span><span class="s1">&#39;</span>,<span class="s2">&quot;</span><span class="s">Some Name</span><span class="s2">&quot;</span>,<span class="nv">roving</span>,<span class="mi">50</span>}
+<span class="mi">3</span><span class="o">&gt;</span> {<span class="nv">ok</span>,<span class="nv">Bin</span>} <span class="o">=</span> <span class="s1">&#39;</span><span class="s">PP</span><span class="s1">&#39;</span>:<span class="nv">encode</span><span class="ss">(</span><span class="s1">&#39;</span><span class="s">Persons</span><span class="s1">&#39;</span>,<span class="nv">Rockstar</span><span class="ss">)</span>.    
+{<span class="nv">ok</span>,<span class="o">&lt;&lt;</span><span class="mi">48</span>,<span class="mi">17</span>,<span class="mi">128</span>,<span class="mi">9</span>,<span class="mi">83</span>,<span class="mi">111</span>,<span class="mi">109</span>,<span class="mi">101</span>,<span class="mi">32</span>,<span class="mi">78</span>,<span class="mi">97</span>,<span class="mi">109</span>,<span class="mi">101</span>,<span class="mi">129</span>,<span class="mi">1</span>,
+      <span class="mi">2</span>,<span class="mi">130</span>,<span class="mi">1</span>,<span class="mi">50</span><span class="o">&gt;&gt;</span>}
+<span class="mi">4</span><span class="o">&gt;</span> {<span class="nv">ok</span>,<span class="nv">Persons</span>} <span class="o">=</span> <span class="s1">&#39;</span><span class="s">PP</span><span class="s1">&#39;</span>:<span class="nv">decode</span><span class="ss">(</span><span class="s1">&#39;</span><span class="s">Persons</span><span class="s1">&#39;</span>,<span class="nv">Bin</span><span class="ss">)</span>.  
+{<span class="nv">ok</span>,{<span class="s1">&#39;</span><span class="s">Persons</span><span class="s1">&#39;</span>,<span class="s2">&quot;</span><span class="s">Some Name</span><span class="s2">&quot;</span>,<span class="nv">roving</span>,<span class="mi">50</span>}}
+<span class="mi">5</span><span class="o">&gt;</span> <span class="nv">file</span>:<span class="nv">write_file</span><span class="ss">(</span><span class="s2">&quot;</span><span class="s">test</span><span class="s2">&quot;</span>, <span class="nv">Bin</span><span class="ss">)</span>.
+<span class="nv">ok</span>
+<span class="mi">6</span><span class="o">&gt;</span> {<span class="nv">ok</span>, <span class="nv">Bin2</span>} <span class="o">=</span> <span class="nv">file</span>:<span class="nv">read_file</span><span class="ss">(</span><span class="s2">&quot;</span><span class="s">test</span><span class="s2">&quot;</span><span class="ss">)</span>.
+{<span class="nv">ok</span>,<span class="o">&lt;&lt;</span><span class="mi">48</span>,<span class="mi">17</span>,<span class="mi">128</span>,<span class="mi">9</span>,<span class="mi">83</span>,<span class="mi">111</span>,<span class="mi">109</span>,<span class="mi">101</span>,<span class="mi">32</span>,<span class="mi">78</span>,<span class="mi">97</span>,<span class="mi">109</span>,<span class="mi">101</span>,<span class="mi">129</span>,<span class="mi">1</span>,
+      <span class="mi">2</span>,<span class="mi">130</span>,<span class="mi">1</span>,<span class="mi">50</span><span class="o">&gt;&gt;</span>}
+<span class="mi">7</span><span class="o">&gt;</span> {<span class="nv">ok</span>,<span class="nv">Persons</span>} <span class="o">=</span> <span class="s1">&#39;</span><span class="s">PP</span><span class="s1">&#39;</span>:<span class="nv">decode</span><span class="ss">(</span><span class="s1">&#39;</span><span class="s">Persons</span><span class="s1">&#39;</span>,<span class="nv">Bin2</span><span class="ss">)</span>.
+{<span class="nv">ok</span>,{<span class="s1">&#39;</span><span class="s">Persons</span><span class="s1">&#39;</span>,<span class="s2">&quot;</span><span class="s">Some Name</span><span class="s2">&quot;</span>,<span class="nv">roving</span>,<span class="mi">50</span>}}
 </pre></div>
             
             

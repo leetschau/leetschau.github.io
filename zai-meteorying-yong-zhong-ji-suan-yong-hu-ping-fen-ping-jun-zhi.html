@@ -78,23 +78,23 @@
 新的计算结果会覆盖旧的，所以不能一次只计算一个展会的平均值（因为计算结果collection会覆盖掉有来包含所有结果的collection），
 只能在服务清闲的时间（比如凌晨）进行一次批量计算。</p>
 <p>在MongoDB中运行mapReduce：</p>
-<div class="highlight"><pre><span></span>db.userComments.mapReduce(
-    function(){ emit(this.fairId, this.rank); },
-    function(key, values) { return Array.avg(values); },
-    { out: &quot;rank_avg&quot; }
-);
+<div class="highlight"><pre><span></span><span class="nv">db</span>.<span class="nv">userComments</span>.<span class="nv">mapReduce</span><span class="ss">(</span>
+    <span class="nv">function</span><span class="ss">()</span>{ <span class="nv">emit</span><span class="ss">(</span><span class="nv">this</span>.<span class="nv">fairId</span>, <span class="nv">this</span>.<span class="nv">rank</span><span class="ss">)</span><span class="c1">; },</span>
+    <span class="nv">function</span><span class="ss">(</span><span class="nv">key</span>, <span class="nv">values</span><span class="ss">)</span> { <span class="k">return</span> <span class="nv">Array</span>.<span class="nv">avg</span><span class="ss">(</span><span class="nv">values</span><span class="ss">)</span><span class="c1">; },</span>
+    { <span class="nv">out</span>: <span class="s2">&quot;</span><span class="s">rank_avg</span><span class="s2">&quot;</span> }
+<span class="ss">)</span><span class="c1">;</span>
 </pre></div>
 
 
 <p>客户端控制器(js):</p>
-<div class="highlight"><pre><span></span><span class="nt">UserAvgRank</span> <span class="o">=</span> <span class="nt">new</span> <span class="nt">Mongo</span><span class="p">.</span><span class="nc">Collection</span><span class="o">(</span><span class="s2">&quot;rank_avg&quot;</span><span class="o">);</span>
+<div class="highlight"><pre><span></span><span class="nv">UserAvgRank</span> <span class="o">=</span> <span class="nv">new</span> <span class="nv">Mongo</span>.<span class="nv">Collection</span><span class="ss">(</span><span class="s2">&quot;</span><span class="s">rank_avg</span><span class="s2">&quot;</span><span class="ss">)</span><span class="c1">;</span>
 
-<span class="nt">Template</span><span class="p">.</span><span class="nc">UserComments</span><span class="p">.</span><span class="nc">helpers</span><span class="o">(</span><span class="p">{</span>
-  <span class="n">rankAverage</span><span class="p">:</span> <span class="nf">function</span><span class="p">()</span> <span class="err">{</span>
-    <span class="n">var</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">UserAvgRank</span><span class="o">.</span><span class="nf">findOne</span><span class="p">(</span><span class="err">{</span> <span class="n">_id</span><span class="err">:</span> <span class="n">Router</span><span class="err">.</span><span class="nf">current</span><span class="p">()</span><span class="err">.</span><span class="n">params</span><span class="err">.</span><span class="n">_id</span> <span class="err">}</span><span class="p">);</span>
-    <span class="err">return</span> <span class="err">Math.round(rec.value</span> <span class="err">*</span> <span class="err">10)</span> <span class="err">/</span> <span class="err">10</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="err">}</span><span class="o">);</span>
+<span class="nv">Template</span>.<span class="nv">UserComments</span>.<span class="nv">helpers</span><span class="ss">(</span>{
+  <span class="nv">rankAverage</span>: <span class="nv">function</span><span class="ss">()</span> {
+    <span class="nv">var</span> <span class="nv">rec</span> <span class="o">=</span> <span class="nv">UserAvgRank</span>.<span class="nv">findOne</span><span class="ss">(</span>{ <span class="nv">_id</span>: <span class="nv">Router</span>.<span class="nv">current</span><span class="ss">()</span>.<span class="nb">params</span>.<span class="nv">_id</span> }<span class="ss">)</span><span class="c1">;</span>
+    <span class="k">return</span> <span class="nv">Math</span>.<span class="nv">round</span><span class="ss">(</span><span class="nv">rec</span>.<span class="nv">value</span> <span class="o">*</span> <span class="mi">10</span><span class="ss">)</span> <span class="o">/</span> <span class="mi">10</span><span class="c1">;</span>
+  }
+}<span class="ss">)</span><span class="c1">;</span>
 </pre></div>
 
 
@@ -102,29 +102,29 @@
 <p>使用MongoDB collection的aggregate方法在用户请求时实时计算平均值，优缺点与MapReduce方法正好相反。</p>
 <p>在Meteor 1.0.3版本中，不支持collection的aggregate方法，
 可以通过安装meteorhacks:aggregate包的方法解决这个问题，但这个方法也只能运行在服务端。</p>
-<div class="highlight"><pre><span></span><span class="nt">Template</span><span class="p">.</span><span class="nc">UserComments</span><span class="p">.</span><span class="nc">helpers</span><span class="o">(</span><span class="p">{</span>
-  <span class="n">rankAverage</span><span class="p">:</span> <span class="nf">function</span><span class="p">()</span> <span class="err">{</span>
-    <span class="n">var</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">Comments</span><span class="o">.</span><span class="nf">aggregate</span><span class="p">(</span> <span class="cp">[</span> <span class="p">{</span><span class="nv">$match</span><span class="p">:</span> <span class="p">{</span><span class="nx">fairId</span><span class="p">:</span> <span class="nx">Router.current</span><span class="p">()</span><span class="bp">.</span><span class="nx nx-Member">params._id</span><span class="p">}</span> <span class="p">},</span> <span class="p">{</span> <span class="nv">$group</span><span class="p">:</span> <span class="p">{</span><span class="nx">_id</span><span class="p">:</span> <span class="s2">&quot;$fairId&quot;</span><span class="p">,</span> <span class="nx">avgRank</span><span class="p">:</span> <span class="p">{</span><span class="nv">$avg</span><span class="p">:</span> <span class="s2">&quot;$rank&quot;</span><span class="p">}}</span> <span class="p">}</span> <span class="cp">]</span><span class="p">);</span>
-    <span class="err">return</span> <span class="err">Math.round(rec.avgRank</span> <span class="err">*</span> <span class="err">10)</span> <span class="err">/</span> <span class="err">10</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="err">}</span><span class="o">);</span>
+<div class="highlight"><pre><span></span><span class="nv">Template</span>.<span class="nv">UserComments</span>.<span class="nv">helpers</span><span class="ss">(</span>{
+  <span class="nv">rankAverage</span>: <span class="nv">function</span><span class="ss">()</span> {
+    <span class="nv">var</span> <span class="nv">rec</span> <span class="o">=</span> <span class="nv">Comments</span>.<span class="nv">aggregate</span><span class="ss">(</span> [ {$<span class="nv">match</span>: {<span class="nv">fairId</span>: <span class="nv">Router</span>.<span class="nv">current</span><span class="ss">()</span>.<span class="nb">params</span>.<span class="nv">_id</span>} }, { $<span class="nv">group</span>: {<span class="nv">_id</span>: <span class="s2">&quot;</span><span class="s">$fairId</span><span class="s2">&quot;</span>, <span class="nv">avgRank</span>: {<span class="mh">$a</span><span class="nv">vg</span>: <span class="s2">&quot;</span><span class="s">$rank</span><span class="s2">&quot;</span>}} } ]<span class="ss">)</span><span class="c1">;</span>
+    <span class="k">return</span> <span class="nv">Math</span>.<span class="nv">round</span><span class="ss">(</span><span class="nv">rec</span>.<span class="nv">avgRank</span> <span class="o">*</span> <span class="mi">10</span><span class="ss">)</span> <span class="o">/</span> <span class="mi">10</span><span class="c1">;</span>
+  }
+}<span class="ss">)</span><span class="c1">;</span>
 </pre></div>
 
 
 <h1>JavaScript手工计算</h1>
 <p>也是一种实时计算方法，代码量最大，但版本依赖性小。</p>
-<div class="highlight"><pre><span></span>Template.UserComments.helpers({
-  rankAverage: function() {
-    var rateNum = Comments.find().count();
-    if (rateNum === 0) return false;
-    var total = 0;
-    Comments.find( {} ).forEach(function(elem) {
-      total = total + elem.rank;
-    });
-    var avg = total / rateNum;
-    return Math.round(avg * 10) / 10;
+<div class="highlight"><pre><span></span><span class="nv">Template</span>.<span class="nv">UserComments</span>.<span class="nv">helpers</span><span class="ss">(</span>{
+  <span class="nv">rankAverage</span>: <span class="nv">function</span><span class="ss">()</span> {
+    <span class="nv">var</span> <span class="nv">rateNum</span> <span class="o">=</span> <span class="nv">Comments</span>.<span class="nv">find</span><span class="ss">()</span>.<span class="nv">count</span><span class="ss">()</span><span class="c1">;</span>
+    <span class="k">if</span> <span class="ss">(</span><span class="nv">rateNum</span> <span class="o">===</span> <span class="mi">0</span><span class="ss">)</span> <span class="k">return</span> <span class="nv">false</span><span class="c1">;</span>
+    <span class="nv">var</span> <span class="nv">total</span> <span class="o">=</span> <span class="mi">0</span><span class="c1">;</span>
+    <span class="nv">Comments</span>.<span class="nv">find</span><span class="ss">(</span> {} <span class="ss">)</span>.<span class="nv">forEach</span><span class="ss">(</span><span class="nv">function</span><span class="ss">(</span><span class="nv">elem</span><span class="ss">)</span> {
+      <span class="nv">total</span> <span class="o">=</span> <span class="nv">total</span> <span class="o">+</span> <span class="nv">elem</span>.<span class="nv">rank</span><span class="c1">;</span>
+    }<span class="ss">)</span><span class="c1">;</span>
+    <span class="nv">var</span> <span class="nv">avg</span> <span class="o">=</span> <span class="nv">total</span> <span class="o">/</span> <span class="nv">rateNum</span><span class="c1">;</span>
+    <span class="k">return</span> <span class="nv">Math</span>.<span class="nv">round</span><span class="ss">(</span><span class="nv">avg</span> <span class="o">*</span> <span class="mi">10</span><span class="ss">)</span> <span class="o">/</span> <span class="mi">10</span><span class="c1">;</span>
   }
-});
+}<span class="ss">)</span><span class="c1">;</span>
 </pre></div>
             
             

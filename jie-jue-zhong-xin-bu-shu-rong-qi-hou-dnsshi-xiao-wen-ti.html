@@ -106,8 +106,8 @@
 <h2>缓存问题？</h2>
 <p>由于DNS使用dnsmasq作为服务，猜测可能是由于dnsmasq使用了缓存，
 在容器IP地址变化后没有更新导致的，所以在DNS容器上重启了dnsmasq并将其缓存设置为0：</p>
-<div class="highlight"><pre><span></span>pkill dnsmasq
-dnsmasq -r /etc/resolv.dnsmasq -c 0
+<div class="highlight"><pre><span></span><span class="n">pkill</span> <span class="n">dnsmasq</span>
+<span class="n">dnsmasq</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">resolv</span><span class="p">.</span><span class="n">dnsmasq</span> <span class="o">-</span><span class="k">c</span> <span class="mi">0</span>
 </pre></div>
 
 
@@ -131,9 +131,9 @@ dnsmasq -r /etc/resolv.dnsmasq -c 0
 然后用<code>tail -f /var/log/dnsmasq.log</code>查看dnsmasq收到的dns查询，
 发现DNS周期性失效的原因是：dns cache超出TTL后，需要重新查询，
 在/etc/resolv.dnsmasq内容如下：</p>
-<div class="highlight"><pre><span></span>nameserver 127.0.0.11
-nameserver 8.8.8.8
-nameserver 8.8.4.4
+<div class="highlight"><pre><span></span><span class="n">nameserver</span> <span class="mi">127</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span><span class="mi">11</span>
+<span class="n">nameserver</span> <span class="mi">8</span><span class="p">.</span><span class="mi">8</span><span class="p">.</span><span class="mi">8</span><span class="p">.</span><span class="mi">8</span>
+<span class="n">nameserver</span> <span class="mi">8</span><span class="p">.</span><span class="mi">8</span><span class="p">.</span><span class="mi">4</span><span class="p">.</span><span class="mi">4</span>
 </pre></div>
 
 
@@ -158,29 +158,29 @@ dnsmasq没有查询第一位的上游nameserver <code>127.0.0.11</code>，
 <h2>dnsmasq 日志分析</h2>
 <p>以下日志是在一台VPN内网服务器上执行<code>curl -v staging-search_elasticsearch_1:9200</code>后，
 从dnsmasq所在Alphi容器的/var/log/messages中截取的日志，显示一次完整的容器名称查询过程：</p>
-<div class="highlight"><pre><span></span>2016-11 ... : query[A] staging-search_elasticsearch_1.localdomain from 172.31.99.100
-2016-11 ... : cached staging-search_elasticsearch_1.localdomain is NXDOMAIN
-2016-11 ... : query[AAAA] staging-search_elasticsearch_1.localdomain from 172.31.99.100
-2016-11 ... : forwarded staging-search_elasticsearch_1.localdomain to 127.0.0.11
-2016-11 ... : forwarded staging-search_elasticsearch_1.localdomain to 8.8.8.8
-2016-11 ... : forwarded staging-search_elasticsearch_1.localdomain to 8.8.4.4
-2016-11 ... : reply staging-search_elasticsearch_1.localdomain is NXDOMAIN
-2016-11 ... : query[A] staging-search_elasticsearch_1.pek2.qingcloud.com from 172.31.99.100
-2016-11 ... : cached staging-search_elasticsearch_1.pek2.qingcloud.com is NODATA-IPv4
-2016-11 ... : query[AAAA] staging-search_elasticsearch_1.pek2.qingcloud.com from 172.31.99.100
-2016-11 ... : forwarded staging-search_elasticsearch_1.pek2.qingcloud.com to 127.0.0.11
-2016-11 ... : reply staging-search_elasticsearch_1.pek2.qingcloud.com is NODATA-IPv6
-2016-11 ... : query[A] staging-search_elasticsearch_1 from 172.31.99.100
-2016-11 ... : cached staging-search_elasticsearch_1 is 172.18.2.5
-2016-11 ... : query[AAAA] staging-search_elasticsearch_1 from 172.31.99.100
-2016-11 ... : forwarded staging-search_elasticsearch_1 to 127.0.0.11
+<div class="highlight"><pre><span></span><span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">query</span><span class="o">[</span><span class="n">A</span><span class="o">]</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">localdomain</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">172.31.99.100</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">cached</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">localdomain</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">NXDOMAIN</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">query</span><span class="o">[</span><span class="n">AAAA</span><span class="o">]</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">localdomain</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">172.31.99.100</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">forwarded</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">localdomain</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="mf">127.0.0.11</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">forwarded</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">localdomain</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="mf">8.8.8.8</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">forwarded</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">localdomain</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="mf">8.8.4.4</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">reply</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">localdomain</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">NXDOMAIN</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">query</span><span class="o">[</span><span class="n">A</span><span class="o">]</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">pek2</span><span class="p">.</span><span class="n">qingcloud</span><span class="p">.</span><span class="n">com</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">172.31.99.100</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">cached</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">pek2</span><span class="p">.</span><span class="n">qingcloud</span><span class="p">.</span><span class="n">com</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">NODATA</span><span class="o">-</span><span class="n">IPv4</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">query</span><span class="o">[</span><span class="n">AAAA</span><span class="o">]</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">pek2</span><span class="p">.</span><span class="n">qingcloud</span><span class="p">.</span><span class="n">com</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">172.31.99.100</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">forwarded</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">pek2</span><span class="p">.</span><span class="n">qingcloud</span><span class="p">.</span><span class="n">com</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="mf">127.0.0.11</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">reply</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="p">.</span><span class="n">pek2</span><span class="p">.</span><span class="n">qingcloud</span><span class="p">.</span><span class="n">com</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">NODATA</span><span class="o">-</span><span class="n">IPv6</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">query</span><span class="o">[</span><span class="n">A</span><span class="o">]</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">172.31.99.100</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">cached</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="mf">172.18.2.5</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">query</span><span class="o">[</span><span class="n">AAAA</span><span class="o">]</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">172.31.99.100</span><span class="w"></span>
+<span class="mi">2016</span><span class="o">-</span><span class="mi">11</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="n">forwarded</span><span class="w"> </span><span class="n">staging</span><span class="o">-</span><span class="n">search_elasticsearch_1</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="mf">127.0.0.11</span><span class="w"></span>
 </pre></div>
 
 
 <p>客户端的/etc/resolv.conf内容：</p>
-<div class="highlight"><pre><span></span>nameserver 172.31.99.1
-nameserver 127.0.1.1
-search localdomain pek2.qingcloud.com
+<div class="highlight"><pre><span></span><span class="n">nameserver</span> <span class="mi">172</span><span class="p">.</span><span class="mi">31</span><span class="p">.</span><span class="mi">99</span><span class="p">.</span><span class="mi">1</span>
+<span class="n">nameserver</span> <span class="mi">127</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span><span class="mi">1</span><span class="p">.</span><span class="mi">1</span>
+<span class="k">search</span> <span class="n">localdomain</span> <span class="n">pek2</span><span class="p">.</span><span class="n">qingcloud</span><span class="p">.</span><span class="n">com</span>
 </pre></div>
             
             
