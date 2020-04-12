@@ -10,19 +10,19 @@
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary">
 
-<meta name="keywords" content="gogs, ubuntu, Tech, " />
+<meta name="keywords" content="gogs, ubuntu, gitea, Tech, " />
 
-<meta property="og:title" content="Build Self-hosted Git Service on Private Host "/>
+<meta property="og:title" content="Build Self-hosted Git Service on Private Host"/>
 <meta property="og:url" content="http://leetschau.github.io/build-self-hosted-git-service-on-private-host.html" />
-<meta property="og:description" content="Today I followed the instructions on Install from binary, download the gogs binary for Linux amd64 with tar.gz extension to a vagrant virtual host on ThinkCenter (IP address 172.18.0.244). Extract it to ~/apps/gogs folder: sudo useradd -m -p $(openssl passwd -1 mygitpwd) git su - git …" />
+<meta property="og:description" content="Gitea To setup a private Git service via SSH protocol in LAN, create a new user git on the host. This os_user_name is used in installation process, and appear in the repo address: &lt;os_user_name&gt;@192.168.0.254:&lt;gitea_user_name&gt;/&lt;repo_name&gt;.git. Following the conventions of repo address format of Github …" />
 <meta property="og:site_name" content="DarkMatter in Cyberspace" />
 <meta property="og:article:author" content="Li Chao" />
 <meta property="og:article:published_time" content="2018-03-08T15:53:36+08:00" />
-<meta property="" content="2018-03-26T10:09:53+08:00" />
-<meta name="twitter:title" content="Build Self-hosted Git Service on Private Host ">
-<meta name="twitter:description" content="Today I followed the instructions on Install from binary, download the gogs binary for Linux amd64 with tar.gz extension to a vagrant virtual host on ThinkCenter (IP address 172.18.0.244). Extract it to ~/apps/gogs folder: sudo useradd -m -p $(openssl passwd -1 mygitpwd) git su - git …">
+<meta property="" content="2019-12-24T17:04:26+08:00" />
+<meta name="twitter:title" content="Build Self-hosted Git Service on Private Host">
+<meta name="twitter:description" content="Gitea To setup a private Git service via SSH protocol in LAN, create a new user git on the host. This os_user_name is used in installation process, and appear in the repo address: &lt;os_user_name&gt;@192.168.0.254:&lt;gitea_user_name&gt;/&lt;repo_name&gt;.git. Following the conventions of repo address format of Github …">
 
-        <title>Build Self-hosted Git Service on Private Host  · DarkMatter in Cyberspace
+        <title>Build Self-hosted Git Service on Private Host · DarkMatter in Cyberspace
 </title>
         <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
         <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
@@ -61,7 +61,7 @@
 <article>
 <div class="row-fluid">
     <header class="page-header span10 offset2">
-    <h1><a href="http://leetschau.github.io/build-self-hosted-git-service-on-private-host.html"> Build Self-hosted Git Service on Private Host  </a></h1>
+    <h1><a href="http://leetschau.github.io/build-self-hosted-git-service-on-private-host.html"> Build Self-hosted Git Service on Private Host </a></h1>
     </header>
 </div>
 
@@ -70,24 +70,74 @@
 
             
             <hr>
+<h1>Gitea</h1>
+<p>To setup a private Git service via SSH protocol in LAN,
+create a new user <code>git</code> on the host.
+This <code>os_user_name</code> is used in installation process, and appear in the repo address:
+<code>&lt;os_user_name&gt;@192.168.0.254:&lt;gitea_user_name&gt;/&lt;repo_name&gt;.git</code>.
+Following the conventions of repo address format of Github or Gitlab,
+we name it <code>git</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="err">sudo useradd -m -s /bin/bash -g dataprovider -p $(openssl passwd -1 mygitpwd191224) git</span>
+</code></pre></div>
+
+
+<p>Then copy <code>gitea</code> executable to <em>/opt/git_service</em> and change the owership:</p>
+<div class="highlight"><pre><span></span><code><span class="err">sudo chown -R git:dataprovider /opt/git_service</span>
+</code></pre></div>
+
+
+<p>Login as <code>git</code> and start the service:</p>
+<div class="highlight"><pre><span></span><code><span class="err">su - git</span>
+<span class="err">cd /opt/git_service</span>
+<span class="err">./gitea web</span>
+</code></pre></div>
+
+
+<p>Open <em>192.168.0.254:3000</em> in browser, modify the following install parameters:</p>
+<div class="highlight"><pre><span></span><code><span class="err">Database Type: SQLite3</span>
+<span class="c">Domain: 192.168.0.254</span>
+<span class="err">Application URL: http://192.168.0.254:3000/</span>
+</code></pre></div>
+
+
+<p>Do NOT forget create admin account in the bottom of this installation page.</p>
+<p>After login, add client host's SSH key.
+Create a new repo, and push to the service from the client.</p>
+<p>To reinstall Gitea from scratch, delete everything in folder <em>/opt/git_service</em>
+execpt <code>gitea</code> itself and run <code>gitea web</code> again.</p>
+<p>To disable password complexity check when register,
+add <code>PASSWORD_COMPLEXITY = off</code> under the <code>[security]</code> section in file <em>$GITEA_HOME/custom/conf/app.ini</em>.</p>
+<p>See <a href="https://docs.gitea.io/en-us/config-cheat-sheet/">Configuration Cheat Sheet</a> for details.</p>
+<p>You can't delete an issue, but you can modify its title and contents.
+You could delete the record of the issue in database (however not recommended):</p>
+<div class="highlight"><pre><span></span><code>$ sudo apt install sqlite3
+$ su - git
+$ <span class="nb">cd</span> /opt/git_service/data
+$ sqlite3 gitea.db
+sqlite&gt; .tables
+sqlite&gt; SELECT * from issue
+</code></pre></div>
+
+
+<h1>Gogs</h1>
 <p>Today I followed the instructions on <a href="https://gogs.io/docs/installation/install_from_binary">Install from binary</a>,
 download the gogs binary for Linux amd64 with tar.gz extension to
 a vagrant virtual host on <em>ThinkCenter</em> (IP address <em>172.18.0.244</em>).
 Extract it to <em>~/apps/gogs</em> folder:</p>
-<div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">useradd</span> <span class="o">-</span><span class="n">m</span> <span class="o">-</span><span class="n">p</span> <span class="err">$</span><span class="p">(</span><span class="n">openssl</span> <span class="n">passwd</span> <span class="o">-</span><span class="mi">1</span> <span class="n">mygitpwd</span><span class="p">)</span> <span class="n">git</span>
-<span class="n">su</span> <span class="o">-</span> <span class="n">git</span>
-<span class="n">mkdir</span> <span class="n">apps</span><span class="p">;</span> <span class="n">cd</span> <span class="n">apps</span>
-<span class="n">tar</span> <span class="n">xf</span> <span class="o">/</span><span class="n">vagrant</span><span class="o">/</span><span class="n">gogs0</span><span class="p">.</span><span class="mi">11</span><span class="p">.</span><span class="mi">34</span><span class="p">.</span><span class="n">tar</span><span class="p">.</span><span class="n">gz</span>
-<span class="n">cd</span> <span class="n">gogs</span>
-<span class="p">.</span><span class="o">/</span><span class="n">gogs</span> <span class="n">web</span>    <span class="o">#</span> <span class="k">or</span> <span class="n">use</span> <span class="n">another</span> <span class="n">port</span> <span class="k">with</span> <span class="s1">&#39;-port 3001&#39;</span>
-</pre></div>
+<div class="highlight"><pre><span></span><code><span class="err">sudo useradd -m -p $(openssl passwd -1 mygitpwd) git</span>
+<span class="err">su - git</span>
+<span class="err">mkdir apps; cd apps</span>
+<span class="err">tar xf /vagrant/gogs0.11.34.tar.gz</span>
+<span class="err">cd gogs</span>
+<span class="err">./gogs web    # or use another port with &#39;-port 3001&#39;</span>
+</code></pre></div>
 
 
 <p>Open <em>172.18.0.244:3000</em> in browser, modify the following install parameters:</p>
-<div class="highlight"><pre><span></span><span class="k">Database</span> <span class="k">Type</span><span class="p">:</span> <span class="n">SQLite3</span>
-<span class="k">Domain</span><span class="p">:</span> <span class="mi">172</span><span class="p">.</span><span class="mi">18</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span><span class="mi">244</span>
-<span class="n">Application</span> <span class="n">URL</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mi">172</span><span class="p">.</span><span class="mi">18</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span><span class="mi">244</span><span class="p">:</span><span class="mi">3000</span><span class="o">/</span>
-</pre></div>
+<div class="highlight"><pre><span></span><code><span class="err">Database Type: SQLite3</span>
+<span class="c">Domain: 172.18.0.244</span>
+<span class="err">Application URL: http://172.18.0.244:3000/</span>
+</code></pre></div>
 
 
 <p>Then click <em>Install Gogs</em> to install Gogs service.
@@ -96,17 +146,17 @@ This user will be the administrator of the gogs system.</p>
 <h1>Run as Daemon</h1>
 <p>According to <a href="https://gogs.io/docs/intro/faqs#how-do-i-run-gogs-at-startup-with-systemd%3F">How do I run Gogs at startup with Systemd?</a>.</p>
 <p>Modify the following items in <code>$GOGS_HOME/scripts/systemd/gogs.service</code>:</p>
-<div class="highlight"><pre><span></span><span class="n">WorkingDirectory</span><span class="o">=/</span><span class="n">home</span><span class="o">/</span><span class="n">git</span><span class="o">/</span><span class="n">apps</span><span class="o">/</span><span class="n">gogs</span>
-<span class="n">ExecStart</span><span class="o">=/</span><span class="n">home</span><span class="o">/</span><span class="n">git</span><span class="o">/</span><span class="n">apps</span><span class="o">/</span><span class="n">gogs</span><span class="o">/</span><span class="n">gogs</span> <span class="n">web</span>
-</pre></div>
+<div class="highlight"><pre><span></span><code><span class="err">WorkingDirectory=/home/git/apps/gogs</span>
+<span class="err">ExecStart=/home/git/apps/gogs/gogs web</span>
+</code></pre></div>
 
 
 <p>And comment out <code>After=mariadb.service mysqld.service ...</code>,
 for here we use SQLite3 instead of mariadb, etc.</p>
 <p>Copy the file into folder <code>/etc/systemd/system</code> and run:</p>
-<div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">systemctl</span> <span class="n">enable</span> <span class="n">gogs</span>
-<span class="n">sudo</span> <span class="n">systemctl</span> <span class="k">start</span> <span class="n">gogs</span>
-</pre></div>
+<div class="highlight"><pre><span></span><code><span class="err">sudo systemctl enable gogs</span>
+<span class="err">sudo systemctl start gogs</span>
+</code></pre></div>
 
 
 <p>There's also an <em>init.d</em> <a href="https://github.com/gogits/gogs/blob/master/scripts/init/debian/gogs">script</a>
@@ -125,19 +175,19 @@ for details.</p>
 <h1>Clone with SSH</h1>
 <p>After adding the client's SSH public key in Gogs <em>Your Settings &gt; SSH Keys</em>,
 I could push an existing repository to Gogs:</p>
-<div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">remote</span> <span class="n">add</span> <span class="n">gogs</span> <span class="n">git</span><span class="mf">@172.18.0.244</span><span class="o">:</span><span class="n">leo</span><span class="o">/</span><span class="n">programming</span><span class="o">-</span><span class="n">style</span><span class="p">.</span><span class="n">git</span>
+<div class="highlight"><pre><span></span><code><span class="n">git</span> <span class="n">remote</span> <span class="n">add</span> <span class="n">gogs</span> <span class="n">git</span><span class="mf">@172.18.0.244</span><span class="o">:</span><span class="n">leo</span><span class="o">/</span><span class="n">programming</span><span class="o">-</span><span class="n">style</span><span class="p">.</span><span class="n">git</span>
 <span class="n">git</span> <span class="n">push</span> <span class="n">gogs</span> <span class="n">master</span>
-</pre></div>
+</code></pre></div>
 
 
 <p>And clone it from Gogs:
 <code>git clone git@172.18.0.244:leo/programming-style.git</code>.</p>
 <p>Under the hood, Gogs add something like the following lines to file
 <em>~/.ssh/authorized_keys</em> of user <em>git</em>:</p>
-<div class="highlight"><pre><span></span><span class="n">command</span><span class="o">=</span><span class="ss">&quot;/home/git/apps/gogs/gogs serv key-1 --config=&#39;/home/git/apps/gogs/custo</span>
-<span class="ss">m/conf/app.ini&#39;&quot;</span><span class="p">,</span><span class="k">no</span><span class="o">-</span><span class="n">port</span><span class="o">-</span><span class="n">forwarding</span><span class="p">,</span><span class="k">no</span><span class="o">-</span><span class="n">X11</span><span class="o">-</span><span class="n">forwarding</span><span class="p">,</span><span class="k">no</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">forwarding</span><span class="p">,</span><span class="k">no</span><span class="o">-</span><span class="n">pty</span>
- <span class="n">ssh</span><span class="o">-</span><span class="n">rsa</span> <span class="o">&lt;</span><span class="n">your</span><span class="o">-</span><span class="n">pub</span><span class="o">-</span><span class="k">key</span><span class="o">&gt;</span>
-</pre></div>
+<div class="highlight"><pre><span></span><code><span class="err">command=&quot;/home/git/apps/gogs/gogs serv key-1 --config=&#39;/home/git/apps/gogs/custo</span>
+<span class="err">m/conf/app.ini&#39;&quot;,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty</span>
+<span class="err"> ssh-rsa &lt;your-pub-key&gt;</span>
+</code></pre></div>
 
 
 <p>So if you can't push via ssh, check if the contents in <em>authorized_keys</em> is
@@ -152,12 +202,15 @@ generated correctly.</p>
             <time pubdate="pubdate" datetime="2018-03-08T15:53:36+08:00">Mar 8, 2018</time>
 
 <h4>Last Updated</h4>
-<time datetime="2018-03-26T10:09:53+08:00">Mar 26, 2018</time>
+<time datetime="2019-12-24T17:04:26+08:00">Dec 24, 2019</time>
 
             <h4>Category</h4>
             <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>
             <h4>Tags</h4>
             <ul class="list-of-tags tags-in-article">
+                <li><a href="http://leetschau.github.io/tags.html#gitea-ref">gitea
+                    <span>1</span>
+</a></li>
                 <li><a href="http://leetschau.github.io/tags.html#gogs-ref">gogs
                     <span>1</span>
 </a></li>
