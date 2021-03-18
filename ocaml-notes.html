@@ -18,7 +18,7 @@
 <meta property="og:site_name" content="DarkMatter in Cyberspace" />
 <meta property="og:article:author" content="Li Chao" />
 <meta property="og:article:published_time" content="2020-03-31T09:19:59+08:00" />
-<meta property="" content="2020-03-31T09:19:59+08:00" />
+<meta property="" content="2020-04-13T08:57:42+08:00" />
 <meta name="twitter:title" content="Ocaml Notes">
 <meta name="twitter:description" content="Ocaml is the only language with the following feature: Static type Compile to native binary code Powerful REPL Strong FP support Haskell is another one with these features, but it goes too far. Nim is also a good candidate, however, without REPL. Install Install Ocaml, package manager Opam, and REPL …">
 
@@ -107,8 +107,107 @@ but it goes too far.</p>
 
 <p>Ref:
 <a href="https://www.rockyourcode.com/step-by-step-guide-to-manage-ocaml-installations-with-asdf/">Step-by-Step Guide to Manage OCaml Installations With asdf</a></p>
+<h1>Vim Integration</h1>
+<div class="highlight"><pre><span></span><code><span class="err">opam install merlin</span>
+<span class="err">opam user-setup install</span>
+</code></pre></div>
+
+
+<h1>Frequently Used Operations</h1>
+<h2>Print function signiture</h2>
+<p>Input function name in utop, for example:</p>
+<div class="highlight"><pre><span></span><code><span class="err">utop # List.filter;;</span>
+<span class="err">- : &#39;a list -&gt; f:(&#39;a -&gt; bool) -&gt; &#39;a list = &lt;fun&gt;</span>
+</code></pre></div>
+
+
+<p>Here <code>utop #</code> is the prompt instead of codes written by user, the same below.</p>
+<h2>Read Files</h2>
+<p>Install <em>Core</em> with <code>opam install core</code> and
+add the following lines into ~/.ocamlinit:</p>
+<div class="highlight"><pre><span></span><code><span class="err">#use &quot;topfind&quot;;;</span>
+<span class="err">#thread</span>
+<span class="err">#require &quot;core.top&quot;</span>
+<span class="err">#require &quot;core.syntax&quot;</span>
+</code></pre></div>
+
+
+<p>Read file contents with:</p>
+<div class="highlight"><pre><span></span><code><span class="err">let res = Core.In_channel.read_all &quot;filename.txt&quot;;;</span>
+</code></pre></div>
+
+
+<h2>String match</h2>
+<p>For example, test if str <em>keyword</em> in <em>filelist</em>:</p>
+<div class="highlight"><pre><span></span><code>utop # #require &quot;core&quot;;;
+utop # #require &quot;str&quot;;;
+utop # let filter_files (filelist: string list) (keyword: string): string list =
+  let str_in_file kw filename =
+    let lines = Core.In_channel.read_lines filename in
+    let kw_reg = Str.regexp (&quot;.*&quot; ^ kw ^ &quot;.*&quot;) in
+    let matched = List.filter lines (fun line -&gt; Str.string_match kw_reg line 0) in
+    match List.length matched with
+      0 -&gt; false
+    | _ -&gt; true
+  in
+  List.filter filelist (fun afile -&gt; str_in_file keyword afile);;
+
+utop # let files = [&quot;/home/leo/apps/dsnote/notes.sh&quot;; &quot;/home/leo/apps/dsnote/README.md&quot;];;
+utop # let res = filter_files files &quot;power&quot;;;
+val res : string list = [&quot;/home/leo/apps/dsnote/README.md&quot;]
+</code></pre></div>
+
+
+<h1>Using 3rd Party Libraries</h1>
+<h2>In REPL</h2>
+<p>To use a 3rd party library in REPL, for example "Core" here,
+you should <code>#require</code> it:</p>
+<div class="highlight"><pre><span></span><code><span class="o">#</span><span class="n">require</span> <span class="ss">&quot;core.top&quot;</span>
+<span class="o">#</span><span class="n">require</span> <span class="ss">&quot;core.syntax&quot;</span>
+
+<span class="n">let</span> <span class="n">res</span> <span class="o">=</span> <span class="n">Core</span><span class="p">.</span><span class="n">In_channel</span><span class="p">.</span><span class="n">read_all</span> <span class="ss">&quot;filename.txt&quot;</span><span class="p">;;</span>
+</code></pre></div>
+
+
+<p><code>#require</code> is a command of <code>toplevel</code>, instead of a Ocaml function,
+so it can't be used in source file.</p>
+<p>Do NOT use <code>open</code>, it will mess up the namespace.
+For example, <code>List.filter</code> and <code>Core.List.filter</code> has different signatures.
+If you <code>open Core</code> in REPL while not in script file,
+<code>List.filter ...</code> will fail when compiled by <code>ocamlopt</code> but pass in REPL.</p>
+<h2>Compile sources</h2>
+<p>Prefix the compilation command with <code>ocamlfind</code>,
+and add <code>-package &lt;pkg_name&gt;</code> into the compilatin command:</p>
+<div class="highlight"><pre><span></span><code><span class="n">cat</span> <span class="o">&lt;&lt;</span> <span class="n">EOF</span> <span class="o">&gt;</span> <span class="n">read_file</span><span class="p">.</span><span class="n">ml</span>
+<span class="n">let</span> <span class="p">()</span> <span class="o">=</span> 
+  <span class="n">let</span> <span class="n">res</span> <span class="o">=</span> <span class="n">Core</span><span class="p">.</span><span class="n">In_channel</span><span class="p">.</span><span class="n">read_all</span> <span class="n">Sys</span><span class="p">.</span><span class="n">argv</span><span class="p">.(</span><span class="mi">1</span><span class="p">)</span> <span class="k">in</span>
+  <span class="n">print_endline</span> <span class="n">res</span>
+<span class="n">EOF</span>
+
+<span class="n">ocamlbuild</span> <span class="o">-</span><span class="n">pkgs</span> <span class="n">core</span> <span class="n">read_file</span><span class="p">.</span><span class="n">native</span>
+<span class="p">.</span><span class="o">/</span><span class="n">read_file</span><span class="p">.</span><span class="n">native</span> <span class="o">~/</span><span class="p">.</span><span class="n">asdf</span><span class="o">/</span><span class="n">LICENSE</span>
+
+<span class="n">ocamlfind</span> <span class="n">ocamlopt</span> <span class="o">-</span><span class="n">o</span> <span class="n">readfile</span> <span class="o">-</span><span class="n">linkpkg</span> <span class="o">-</span><span class="n">thread</span> <span class="o">-</span><span class="n">package</span> <span class="n">core</span> <span class="n">read_file</span><span class="p">.</span><span class="n">ml</span>
+<span class="p">.</span><span class="o">/</span><span class="n">readfile</span> <span class="o">~/</span><span class="p">.</span><span class="n">asdf</span><span class="o">/</span><span class="n">LICENSE</span>
+</code></pre></div>
+
+
+<p><code>ocamlbuild</code> is prefered to <code>ocamlfind</code> for cleaner syntax.</p>
+<p><code>ocamlfind</code> can only find packages listed in <code>ocamlfind list</code>.
+Get the location of the package with  <code>ocamlfind query &lt;pkg-name&gt;</code>,
+for example <code>ocamlfind query core</code>.</p>
+<p>Ref:</p>
+<p><a href="https://ocaml.org/learn/tutorials/compiling_ocaml_projects.html">Compiling OCaml projects</a></p>
             
             
+            <hr/>
+            <script src="https://utteranc.es/client.js"
+                    repo="leetschau/leetschau.github.io"
+                    issue-term="pathname"
+                    theme="github-light"
+                    crossorigin="anonymous"
+                    async>
+            </script>
             <hr/>
         </div>
         <section>
@@ -117,7 +216,7 @@ but it goes too far.</p>
             <time pubdate="pubdate" datetime="2020-03-31T09:19:59+08:00">Mar 31, 2020</time>
 
 <h4>Last Updated</h4>
-<time datetime="2020-03-31T09:19:59+08:00">Mar 31, 2020</time>
+<time datetime="2020-04-13T08:57:42+08:00">Apr 13, 2020</time>
 
             <h4>Category</h4>
             <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>

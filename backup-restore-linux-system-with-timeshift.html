@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="timeshift, Tech, " />
+
+<meta property="og:title" content="Backup &amp; Restore Linux System with Timeshift"/>
+<meta property="og:url" content="http://leetschau.github.io/backup-restore-linux-system-with-timeshift.html" />
+<meta property="og:description" content="Timeshift 主要用于备份和恢复系统， 有图形界面和命令行版本（timeshift --help）。 Backup System 安装 Mint 20 Xfce 系统时，/ 和 /home 挂载不同的磁盘分区（sda5 和 sda6）， 安装后磁盘使用情况如下： leo@tcserver:~$ df -h Filesystem Size Used Avail Use% Mounted on udev 16G 0 16G 0% /dev tmpfs 3.2G 1.5M 3.2G 1% /run /dev/sda5 92G 8.9G …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2020-10-09T09:10:39+08:00" />
+<meta property="" content="2020-10-09T09:10:39+08:00" />
+<meta name="twitter:title" content="Backup &amp; Restore Linux System with Timeshift">
+<meta name="twitter:description" content="Timeshift 主要用于备份和恢复系统， 有图形界面和命令行版本（timeshift --help）。 Backup System 安装 Mint 20 Xfce 系统时，/ 和 /home 挂载不同的磁盘分区（sda5 和 sda6）， 安装后磁盘使用情况如下： leo@tcserver:~$ df -h Filesystem Size Used Avail Use% Mounted on udev 16G 0 16G 0% /dev tmpfs 3.2G 1.5M 3.2G 1% /run /dev/sda5 92G 8.9G …">
+
+        <title>Backup &amp; Restore Linux System with Timeshift · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="http://leetschau.github.io/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="http://leetschau.github.io">Home</a></li>
+                            <li ><a href="http://leetschau.github.io/categories.html">Categories</a></li>
+                            <li ><a href="http://leetschau.github.io/tags.html">Tags</a></li>
+                            <li ><a href="http://leetschau.github.io/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="http://leetschau.github.io/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="http://leetschau.github.io/backup-restore-linux-system-with-timeshift.html"> Backup & Restore Linux System with Timeshift </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p><a href="https://github.com/teejee2008/timeshift">Timeshift</a> 主要用于备份和恢复系统，
+有图形界面和命令行版本（<code>timeshift --help</code>）。</p>
+<h1>Backup System</h1>
+<p>安装 Mint 20 Xfce 系统时，/ 和 /home 挂载不同的磁盘分区（sda5 和 sda6），
+安装后磁盘使用情况如下：</p>
+<div class="highlight"><pre><span></span><code><span class="err">leo@tcserver:~$ df -h</span>
+<span class="err">Filesystem      Size  Used Avail Use% Mounted on</span>
+<span class="err">udev             16G     0   16G   0% /dev</span>
+<span class="err">tmpfs           3.2G  1.5M  3.2G   1% /run</span>
+<span class="err">/dev/sda5        92G  8.9G   78G  11% /</span>
+<span class="err">tmpfs            16G     0   16G   0% /dev/shm</span>
+<span class="err">tmpfs           5.0M  8.0K  5.0M   1% /run/lock</span>
+<span class="err">tmpfs            16G     0   16G   0% /sys/fs/cgroup</span>
+<span class="err">/dev/sda6       301G  1.1G  285G   1% /home</span>
+<span class="err">tmpfs           3.2G   16K  3.2G   1% /run/user/1000</span>
+</code></pre></div>
+
+
+<p>执行 <code>sudo timeshift-gtk</code> 启动 Timeshift 界面（或者在 launcher 里输入 <em>timeshift</em> 启动），
+设置如下：</p>
+<ol>
+<li>Select snapshot type: Rsync</li>
+<li>Select snapshot location: /dev/sda6</li>
+</ol>
+<p>确定后点击 <em>Create</em> 创建镜像，再次检查磁盘使用情况：</p>
+<div class="highlight"><pre><span></span><code><span class="n">leo</span><span class="nv">@tcserver</span><span class="err">:</span><span class="o">~</span><span class="err">$</span><span class="w"> </span><span class="n">df</span><span class="w"> </span><span class="o">-</span><span class="n">h</span><span class="w"></span>
+<span class="n">Filesystem</span><span class="w">      </span><span class="k">Size</span><span class="w">  </span><span class="n">Used</span><span class="w"> </span><span class="n">Avail</span><span class="w"> </span><span class="k">Use</span><span class="o">%</span><span class="w"> </span><span class="n">Mounted</span><span class="w"> </span><span class="k">on</span><span class="w"></span>
+<span class="n">udev</span><span class="w">             </span><span class="mi">16</span><span class="n">G</span><span class="w">     </span><span class="mi">0</span><span class="w">   </span><span class="mi">16</span><span class="n">G</span><span class="w">   </span><span class="mi">0</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="n">dev</span><span class="w"></span>
+<span class="n">tmpfs</span><span class="w">           </span><span class="mf">3.2</span><span class="n">G</span><span class="w">  </span><span class="mf">1.6</span><span class="n">M</span><span class="w">  </span><span class="mf">3.2</span><span class="n">G</span><span class="w">   </span><span class="mi">1</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="n">run</span><span class="w"></span>
+<span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">sda5</span><span class="w">        </span><span class="mi">92</span><span class="n">G</span><span class="w">  </span><span class="mf">8.9</span><span class="n">G</span><span class="w">   </span><span class="mi">78</span><span class="n">G</span><span class="w">  </span><span class="mi">11</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="w"></span>
+<span class="n">tmpfs</span><span class="w">            </span><span class="mi">16</span><span class="n">G</span><span class="w">     </span><span class="mi">0</span><span class="w">   </span><span class="mi">16</span><span class="n">G</span><span class="w">   </span><span class="mi">0</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="w"></span>
+<span class="n">tmpfs</span><span class="w">           </span><span class="mf">5.0</span><span class="n">M</span><span class="w">  </span><span class="mf">8.0</span><span class="n">K</span><span class="w">  </span><span class="mf">5.0</span><span class="n">M</span><span class="w">   </span><span class="mi">1</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">lock</span><span class="w"></span>
+<span class="n">tmpfs</span><span class="w">            </span><span class="mi">16</span><span class="n">G</span><span class="w">     </span><span class="mi">0</span><span class="w">   </span><span class="mi">16</span><span class="n">G</span><span class="w">   </span><span class="mi">0</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="w"></span>
+<span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">sda6</span><span class="w">       </span><span class="mi">301</span><span class="n">G</span><span class="w">  </span><span class="mf">7.5</span><span class="n">G</span><span class="w">  </span><span class="mi">278</span><span class="n">G</span><span class="w">   </span><span class="mi">3</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="n">home</span><span class="w"></span>
+<span class="n">tmpfs</span><span class="w">           </span><span class="mf">3.2</span><span class="n">G</span><span class="w">   </span><span class="mi">16</span><span class="n">K</span><span class="w">  </span><span class="mf">3.2</span><span class="n">G</span><span class="w">   </span><span class="mi">1</span><span class="o">%</span><span class="w"> </span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="k">user</span><span class="o">/</span><span class="mi">1000</span><span class="w"></span>
+
+<span class="n">leo</span><span class="nv">@tcserver</span><span class="err">:</span><span class="o">~</span><span class="err">$</span><span class="w"> </span><span class="n">lsblk</span><span class="w"></span>
+<span class="n">NAME</span><span class="w">   </span><span class="nl">MAJ</span><span class="p">:</span><span class="nf">MIN</span><span class="w"> </span><span class="n">RM</span><span class="w">   </span><span class="k">SIZE</span><span class="w"> </span><span class="n">RO</span><span class="w"> </span><span class="n">TYPE</span><span class="w"> </span><span class="n">MOUNTPOINT</span><span class="w"></span>
+<span class="n">sda</span><span class="w">      </span><span class="mi">8</span><span class="err">:</span><span class="mi">0</span><span class="w">    </span><span class="mi">0</span><span class="w">   </span><span class="mf">1.8</span><span class="n">T</span><span class="w">  </span><span class="mi">0</span><span class="w"> </span><span class="k">disk</span><span class="w"> </span>
+<span class="err">├─</span><span class="n">sda1</span><span class="w">   </span><span class="mi">8</span><span class="err">:</span><span class="mi">1</span><span class="w">    </span><span class="mi">0</span><span class="w">   </span><span class="mi">350</span><span class="n">M</span><span class="w">  </span><span class="mi">0</span><span class="w"> </span><span class="n">part</span><span class="w"> </span>
+<span class="err">├─</span><span class="n">sda2</span><span class="w">   </span><span class="mi">8</span><span class="err">:</span><span class="mi">2</span><span class="w">    </span><span class="mi">0</span><span class="w">   </span><span class="mf">1.3</span><span class="n">T</span><span class="w">  </span><span class="mi">0</span><span class="w"> </span><span class="n">part</span><span class="w"> </span>
+<span class="err">├─</span><span class="n">sda3</span><span class="w">   </span><span class="mi">8</span><span class="err">:</span><span class="mi">3</span><span class="w">    </span><span class="mi">0</span><span class="w">     </span><span class="mi">1</span><span class="n">K</span><span class="w">  </span><span class="mi">0</span><span class="w"> </span><span class="n">part</span><span class="w"> </span>
+<span class="err">├─</span><span class="n">sda5</span><span class="w">   </span><span class="mi">8</span><span class="err">:</span><span class="mi">5</span><span class="w">    </span><span class="mi">0</span><span class="w">  </span><span class="mf">93.3</span><span class="n">G</span><span class="w">  </span><span class="mi">0</span><span class="w"> </span><span class="n">part</span><span class="w"> </span><span class="o">/</span><span class="w"></span>
+<span class="err">└─</span><span class="n">sda6</span><span class="w">   </span><span class="mi">8</span><span class="err">:</span><span class="mi">6</span><span class="w">    </span><span class="mi">0</span><span class="w"> </span><span class="mf">306.4</span><span class="n">G</span><span class="w">  </span><span class="mi">0</span><span class="w"> </span><span class="n">part</span><span class="w"> </span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">timeshift</span><span class="o">/</span><span class="k">backup</span><span class="w"></span>
+</code></pre></div>
+
+
+<p>可以看到 sda6 磁盘占用增加了 6.4 GB，sda5 不变。</p>
+<p>Timeshift 在备份分区的根目录下创建 timeshift 目录，
+所以这里所有备份都保存在 /home/timeshift 下。
+同时 <code>lsblk</code> 显示 sda6 还被挂载到 /run/timeshift/backup 下，
+也就是说 sda6 被同时挂载到文件树的两个位置上：</p>
+<div class="highlight"><pre><span></span><code><span class="err">leo@tcserver:~$ mount -l|grep sda6</span>
+<span class="err">/dev/sda6 on /home type ext4 (rw,relatime)</span>
+<span class="err">/dev/sda6 on /run/timeshift/backup type ext4 (rw,relatime)</span>
+</code></pre></div>
+
+
+<p>其他检查挂载情况的命令：</p>
+<ul>
+<li><code>findmnt | grep sda6</code></li>
+<li><code>cat /proc/mounts</code> is the same as <code>mount -l</code></li>
+</ul>
+<p>创建好备份后，点击 Comments 列，可以为此备份添加说明，方便恢复的时候选择。
+也可以用命令行创建备份：<code>timeshift --create --comments "basic system" --tags D</code>。</p>
+<p>多个系统挂载同一个 /home 分区，使用相同的 timeshift 目录。</p>
+<h1>Resotre System from Live USB</h1>
+<p>Boot machine with Mint 20 USB Live, start <em>Timeshift</em> app from <em>Start</em> menu.</p>
+<ol>
+<li>Select snapshot type: Rsync</li>
+<li>Select snapshot location: /dev/sda5 (the partiton has <em>timeshift</em> folder)</li>
+<li>In the snapshot list, select a snapshot previously created and click <em>Restore</em></li>
+<li>Select target device: ensure the listed target is correct</li>
+</ol>
+<p>Then Timeshift compare the snapshot with the actual disk, list actions to perform.
+After <em>Comfirm actions</em> the restoring is executed.</p>
+<p>This tool can also be used to restore boot loader and grub menu.</p>
+<h1>Configuration</h1>
+<p>Timeshift 有图形化配置界面，配置结果保存在 /etc/timeshift.json 里。
+此配置文件的模板文件是 /etc/default/timeshift.json。</p>
+<h1>Timeshift in Other distros</h1>
+<p>Fedora 32 can install with <code>dnf install timeshift</code>.</p>
+<p>CentOS 8 does NOT have this package, even after installing EPEL.</p>
+            
+            
+            <hr/>
+            <script src="https://utteranc.es/client.js"
+                    repo="leetschau/leetschau.github.io"
+                    issue-term="pathname"
+                    theme="github-light"
+                    crossorigin="anonymous"
+                    async>
+            </script>
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2020-10-09T09:10:39+08:00">Oct 9, 2020</time>
+
+<h4>Last Updated</h4>
+<time datetime="2020-10-09T09:10:39+08:00">Oct 9, 2020</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="http://leetschau.github.io/tags.html#timeshift-ref">timeshift
+                    <span>1</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

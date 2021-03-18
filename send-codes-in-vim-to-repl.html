@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"> 
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="Li Chao" />
+        <meta name="copyright" content="Li Chao" />
+
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary">
+
+<meta name="keywords" content="vim, plugin, tmux, neoterm, Tech, " />
+
+<meta property="og:title" content="Send Codes in Vim to REPL"/>
+<meta property="og:url" content="http://leetschau.github.io/send-codes-in-vim-to-repl.html" />
+<meta property="og:description" content="使用 Python, Haskell, Ruby 的 REPL 时经常需要能够在一个文本文件中将 当前行或者选中多行文本发送到 REPL 中运行， 并能够灵活地在文本编辑器（执行编辑好的脚本）和 REPL （手工输入并执行一些一次性的代码）间切换。 实现方法总体来说有两种，第一种使用 vim 自己的 terminal， 例如下面的 neovim 自带的 terminal， 第二种是将 editor 和 repl 包裹在 tmux 里。 第一种好处是集成度高，只要 vim 就行了， 缺点是 editor 和 repl 必须在同一台机器上。 第二种优缺点正好相反，需要手工启动 REPL（或者先登录远程主机再启动 REPL）， 但比前一种更灵活，适合的场景更广泛。 下面的几种方法使用不同的工具实现了下列目标： :tn …" />
+<meta property="og:site_name" content="DarkMatter in Cyberspace" />
+<meta property="og:article:author" content="Li Chao" />
+<meta property="og:article:published_time" content="2016-07-02T02:37:54+08:00" />
+<meta property="" content="2020-06-10T11:49:40+08:00" />
+<meta name="twitter:title" content="Send Codes in Vim to REPL">
+<meta name="twitter:description" content="使用 Python, Haskell, Ruby 的 REPL 时经常需要能够在一个文本文件中将 当前行或者选中多行文本发送到 REPL 中运行， 并能够灵活地在文本编辑器（执行编辑好的脚本）和 REPL （手工输入并执行一些一次性的代码）间切换。 实现方法总体来说有两种，第一种使用 vim 自己的 terminal， 例如下面的 neovim 自带的 terminal， 第二种是将 editor 和 repl 包裹在 tmux 里。 第一种好处是集成度高，只要 vim 就行了， 缺点是 editor 和 repl 必须在同一台机器上。 第二种优缺点正好相反，需要手工启动 REPL（或者先登录远程主机再启动 REPL）， 但比前一种更灵活，适合的场景更广泛。 下面的几种方法使用不同的工具实现了下列目标： :tn …">
+
+        <title>Send Codes in Vim to REPL · DarkMatter in Cyberspace
+</title>
+        <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/pygments.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/tipuesearch/tipuesearch.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/elegant.css" media="screen">
+        <link rel="stylesheet" type="text/css" href="http://leetschau.github.io/theme/css/custom.css" media="screen">
+    </head>
+    <body>
+        <div id="content-sans-footer">
+        <div class="navbar navbar-static-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="http://leetschau.github.io/"><span class=site-name>DarkMatter in Cyberspace</span></a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right top-menu">
+                            <li ><a href="http://leetschau.github.io">Home</a></li>
+                            <li ><a href="http://leetschau.github.io/categories.html">Categories</a></li>
+                            <li ><a href="http://leetschau.github.io/tags.html">Tags</a></li>
+                            <li ><a href="http://leetschau.github.io/archives.html">Archives</a></li>
+                            <li><form class="navbar-search" action="http://leetschau.github.io/search.html" onsubmit="return validateForm(this.elements['q'].value);"> <input type="text" class="search-query" placeholder="Search" name="q" id="tipue_search_input"></form></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span1"></div>
+                <div class="span10">
+<article>
+<div class="row-fluid">
+    <header class="page-header span10 offset2">
+    <h1><a href="http://leetschau.github.io/send-codes-in-vim-to-repl.html"> Send Codes in Vim to REPL </a></h1>
+    </header>
+</div>
+
+<div class="row-fluid">
+        <div class="span8 offset2 article-content">
+
+            
+            <hr>
+<p>使用 Python, Haskell, Ruby 的 REPL 时经常需要能够在一个文本文件中将
+当前行或者选中多行文本发送到 REPL 中运行，
+并能够灵活地在文本编辑器（执行编辑好的脚本）和
+REPL （手工输入并执行一些一次性的代码）间切换。</p>
+<p>实现方法总体来说有两种，第一种使用 vim 自己的 terminal，
+例如下面的 neovim 自带的 terminal，
+第二种是将 editor 和 repl 包裹在 tmux 里。
+第一种好处是集成度高，只要 vim 就行了，
+缺点是 editor 和 repl 必须在同一台机器上。
+第二种优缺点正好相反，需要手工启动 REPL（或者先登录远程主机再启动 REPL），
+但比前一种更灵活，适合的场景更广泛。</p>
+<p>下面的几种方法使用不同的工具实现了下列目标：</p>
+<ul>
+<li>
+<p><code>:tn</code>: 创建当前脚本语言对应的 REPL；</p>
+</li>
+<li>
+<p><code>:tl</code>: 将当前脚本加载到 REPL 中执行；</p>
+</li>
+<li>
+<p><code>:tg</code>: 显示/隐藏 REPL 窗口；</p>
+</li>
+<li>
+<p>使用空格键发送当前行，或者选中行到 REPL 中执行；</p>
+</li>
+<li>
+<p><code>:tt &lt;your command&gt;</code>: 在 REPL 中执行 <code>&lt;your command&gt;</code>;</p>
+</li>
+</ul>
+<p>基于 neoterm 的方法的优点是不依赖 vim 以外的工具，适合在不能使用 tmux 的场合
+（例如使用 i3wm 时由于快捷键冲突无法使用 tmux）。</p>
+<h1>Based on neoterm</h1>
+<p>Add the following lines into <code>$MYVIMRC</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">let</span> <span class="k">g</span><span class="p">:</span><span class="n">neoterm_default_mod</span> <span class="o">=</span> <span class="s1">&#39;vertical&#39;</span>
+<span class="n">let</span> <span class="k">g</span><span class="p">:</span><span class="n">neoterm_autoscroll</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">let</span> <span class="k">g</span><span class="p">:</span><span class="n">neoterm_direct_open_repl</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">let</span> <span class="k">g</span><span class="p">:</span><span class="n">neoterm_repl_ruby</span> <span class="o">=</span> <span class="s1">&#39;pry&#39;</span>
+<span class="n">let</span> <span class="k">g</span><span class="p">:</span><span class="n">neoterm_repl_python</span>  <span class="o">=</span> <span class="s1">&#39;ipython&#39;</span>
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">haskell</span> <span class="n">let</span> <span class="k">g</span><span class="p">:</span><span class="n">neoterm_repl_command</span>  <span class="o">=</span> <span class="s1">&#39;stack ghci&#39;</span>
+
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">haskell</span><span class="p">,</span><span class="n">python</span><span class="p">,</span><span class="n">ruby</span> <span class="n">nnoremap</span> <span class="o">&lt;</span><span class="n">silent</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="k">Space</span><span class="o">&gt;</span> <span class="p">:</span><span class="n">TREPLSendLine</span><span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;</span>
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">haskell</span><span class="p">,</span><span class="n">python</span><span class="p">,</span><span class="n">ruby</span> <span class="n">vnoremap</span> <span class="o">&lt;</span><span class="n">silent</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="k">Space</span><span class="o">&gt;</span> <span class="p">:</span><span class="n">TREPLSendLine</span><span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;</span>
+
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">haskell</span><span class="p">,</span><span class="n">python</span><span class="p">,</span><span class="n">ruby</span> <span class="n">cabbrev</span> <span class="n">tt</span> <span class="n">T</span>
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">haskell</span><span class="p">,</span><span class="n">python</span><span class="p">,</span><span class="n">ruby</span> <span class="n">cabbrev</span> <span class="n">tn</span> <span class="n">Tnew</span>
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">haskell</span><span class="p">,</span><span class="n">python</span><span class="p">,</span><span class="n">ruby</span> <span class="n">cabbrev</span> <span class="n">tg</span> <span class="n">Ttoggle</span>
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">haskell</span> <span class="n">cabbrev</span> <span class="n">tl</span> <span class="n">T</span> <span class="p">:</span><span class="k">load</span> <span class="o">%</span>
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">python</span> <span class="n">cabbrev</span> <span class="n">tl</span> <span class="n">T</span> <span class="n">run</span> <span class="o">%</span>
+<span class="n">autocmd</span> <span class="n">FileType</span> <span class="n">ruby</span> <span class="n">cabbrev</span> <span class="n">tl</span> <span class="n">T</span> <span class="k">load</span> <span class="s1">&#39;%&#39;</span>
+
+<span class="n">Plug</span> <span class="s1">&#39;kassio/neoterm&#39;</span>
+</code></pre></div>
+
+
+<p>With above configurations, after open a python or haskell file and press
+<SPACE> key, for there's no existing terminal window existing,
+neoterm will create a new one automatically and send the current line into it.
+Or you can select multiple lines (in visual mode) and send to
+the terminal window with <SPACE> key.</p>
+<p>Reload a file with <code>:tl</code>.</p>
+<p>After the job is done, no need to quit with <code>Tclose</code>, just <code>:qa</code>.</p>
+<p>If you want input something on-the-fly in the REPL, you have 2 options:</p>
+<ul>
+<li>
+<p><code>:tt :set +m</code> and press Return key. <code>:tt</code> and pressing <SPACE> becomes <code>:T</code>.
+  All characters following is sent to REPL.
+  This is convenient, while you lose the tab-completion functionality in REPL.</p>
+</li>
+<li>
+<p>Jump to the REPL window, switch to insert mode with pressing <code>i</code>,
+  input something (for example <code>filter even [1,2,3]</code>),
+  leave insert mode with pressing <code>Ctrl-\ Ctrl-n</code>,
+  finally jump back to editor window.</p>
+</li>
+</ul>
+<p>Note: if you want open the terminal window in the bottom instead of right,
+use <code>let g:neoterm_default_mod = 'botright'</code>.
+See <code>:h mods</code> in vim for more options.</p>
+<h2>Under the hood</h2>
+<p>If above shortcuts don't work, restart the vim.
+Or you can run it manually:</p>
+<ol>
+<li>
+<p>Open a new terminal window with <code>:sp | terminal</code></p>
+</li>
+<li>
+<p>Get terminal window ID with <code>:echo b:terminal_job_id</code></p>
+</li>
+<li>
+<p>Run a command, say <code>ls -la</code>, with <code>:call jobsend(7, "ls -la\n")</code>,
+   where the first parameter <em>7</em> of <code>jobsend</code> is from 
+   above step.</p>
+</li>
+</ol>
+<h2>Paste mode in GHCi</h2>
+<p>When send the following lines into repl with neoterm,
+there are always errors at the line <code>where ...</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="err">drink aCup ozDrank = if ozDiff &gt;= 0</span>
+<span class="err">                     then cup ozDiff</span>
+<span class="err">                     else cup 0</span>
+<span class="err">  where oldOz = getOz aCup</span>
+<span class="err">        ozDiff = oldOz - ozDrank</span>
+</code></pre></div>
+
+
+<p>The reason is GHCi believe the block is ended after <code>else ...</code>,
+even you've  added <code>:set +m</code>.</p>
+<p>The solution is add <code>:{</code> (with <code>:ts :{</code>) and <code>:}</code> before and after the block.
+See <a href="https://stackoverflow.com/questions/2846050/how-to-define-a-function-in-ghci-across-multiple-lines">How to define a function in ghci across multiple lines?</a>.</p>
+<h1>Based on vim plugin <em>vimux</em></h1>
+<p><a href="https://github.com/benmills/vimux">vimux</a> 能够自动检测tmux pane，
+基于它的工作流程是：</p>
+<p>为vim安装vimux插件并配置好快捷键（例如下面的配置将快捷键设为空格键）后，
+在一个 tmux window 中，左/上侧是vim窗口，右/下侧是repl，例如IPython或者GHCi，
+Normal模式下按空格键，将当前行发送到repl中执行，
+Visual模式下按空格键，选中的所有文本被整体发送到 IPython 的 <code>%cpaste</code> 区域中
+一次性执行。</p>
+<p>具体配置方法：</p>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! Vimux4IPython</span><span class="p">()</span><span class="w"></span>
+<span class="w">  </span><span class="n">call</span> <span class="n">VimuxRunCommand</span><span class="p">(</span><span class="s">&quot;%cpaste&quot;</span><span class="p">)</span>
+  <span class="n">call</span> <span class="s">VimuxRunCommand(@v,</span> <span class="s">0)</span>
+  <span class="n">call</span> <span class="s">VimuxRunCommand(&quot;^d&quot;)</span>
+<span class="n">endfunction</span>
+
+<span class="s">nnoremap</span> <span class="s">&lt;Space&gt;</span> <span class="s">:call</span> <span class="s">VimuxRunCommand(getline(&quot;.&quot;))&lt;CR&gt;</span>
+<span class="n">autocmd</span> <span class="s">FileType</span> <span class="s">python</span> <span class="s">vnoremap</span> <span class="s">&lt;Space&gt;</span> <span class="s">&quot;vy</span> <span class="s">:call</span> <span class="s">Vimux4IPython()&lt;CR&gt;</span>
+<span class="s">&quot;autocmd FileType python vnoremap &lt;Space&gt; &quot;</span><span class="n">vy</span> <span class="p">:</span><span class="n">call</span> <span class="n">VimuxRunCommand</span><span class="p">(</span><span class="s">&quot;%cpaste&quot;</span><span class="p">)</span><span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;</span> <span class="p">:</span><span class="n">call</span> <span class="n">VimuxRunCommand</span><span class="p">(@</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;</span> <span class="p">:</span><span class="n">call</span> <span class="n">VimuxSendKeys</span><span class="p">(</span><span class="s">&quot;^d&quot;</span><span class="p">)</span><span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;</span>
+
+<span class="n">Plug</span> <span class="s">&#39;benmills/vimux&#39;</span>
+</code></pre></div>
+
+
+<p><code>vnoremap</code> 将空格键映射到后面的命令上，这个命令包含两部分：</p>
+<ul>
+<li>用 <code>"vy</code> 将选中的文本拷贝到 v register 上</li>
+<li>调用 <code>Vimux4IPython()</code> 向 IPython console 发送命令</li>
+</ul>
+<p>VimuxRunCommand 函数的第一个参数是要执行的命令，
+第二个参数是执行完 <code>tmux send-keys</code> 后是否再发送一个回车，
+所以 <code>VimuxRunCommand(@v, 0)</code> 的第二个参数 0 保证了发送多行文本中间不会插入回车。</p>
+<p><code>VimuxRunCommand()</code> 底层调用了 <code>tmux send-keys</code>，
+所以需要发送 <code>alt</code>, <code>ctrl</code> 等时参考 <code>tmux send-keys</code> 的写法。</p>
+<p>实验发现 <code>VimuxSendText</code> 和 <code>VimuxSendKeys</code> 似乎是异步的，
+不能保证前面的命令执行完后再执行后面的命令，导致执行出错，
+所以全部使用了 VimuxRunCommand 命令，后来发现这个命令也会出现 "^d" 在 <code>@v</code> 前被发送的情况，
+下面被注释掉的目前可以保证顺序执行。</p>
+<p>完整内容参考 <a href="https://github.com/leetschau/vem/">vem</a> 的 profiles/python.yml。</p>
+<p>Note:</p>
+<p>另一个执行多行脚本的思路是基于 <code>%autoindent</code> 关闭 IPython console 的代码自动缩进，
+然后完全模拟多行输入，这个方案的问题是 <code>%autoindent</code> 只能在 on/off 间切换，
+不能用 <code>%autoindent 0</code> 之类的方法保持关闭状态，导致多次执行代码块时无法确定
+autoindent 是否关闭，可以用 <code>ipython --no-autoindent</code> 等方法保持其始终关闭的状态，
+在 IPython 里手工输入时，再手工开启，麻烦且容易出错。</p>
+<h2>指定 REPL 运行窗口</h2>
+<p>先执行 <code>:let g:VimuxRunnerIndex='3.1'</code>，再空格。</p>
+<h2>vimux 代码分析</h2>
+<p>vimux 全部代码位于 plugin/vimux.vim 中，代码量比较小。</p>
+<p>执行命令 (<code>VimuxRunCommand</code>) 流程：</p>
+<ol>
+<li>
+<p>若未定义 <code>g:VimuxRunnerIndex</code>，
+   或者 <code>g:VimuxRunnerIndex</code> 值对应的 tmux 窗口不存在，
+   则通过执行 <code>VimuxOpenRunner</code> 确定 <code>g:VimuxRunnerIndex</code> 的值（详细过程见下面）；</p>
+</li>
+<li>
+<p>若函数调用包含了第二个参数 (<code>exists("a:1")</code>) 则在发送完命令后在发送回车
+   (<code>VimuxSendKeys("Enter")</code>)</p>
+</li>
+<li>
+<p>定义复位指令，将当前命令记录在 <code>g:VimuxLastCommand</code> 中，
+   供后续执行 <code>VimuxRunLastCommand</code> 命令调用；</p>
+</li>
+<li>
+<p>发送 tmux 复位指令（取消未发送完的命令）：<code>call VimuxSendKeys(resetSequence)</code></p>
+</li>
+<li>
+<p>发送用户指定的命令文本：<code>call VimuxSendText(a:command)</code></p>
+</li>
+</ol>
+<p>确定 REPL runner (<code>VimuxOpenRunner</code>) 流程：</p>
+<ol>
+<li>
+<p>获取最近的 REPL 窗口（下面详述）；</p>
+</li>
+<li>
+<p>若要求使用最近窗口（<code>_VimuxOption("g:VimuxUseNearest", 1) == 1</code>）
+   且此窗口存在（<code>nearestIndex != -1</code>），
+   则将 REPL runner 定义为此窗口（<code>let g:VimuxRunnerIndex = nearestIndex</code>）；</p>
+</li>
+<li>
+<p>否则根据 <code>g:VimuxRunnerType</code>  的值新建一个 pane (<code>tmux split-pane -p ...</code>)
+   或者 window (<code>tmux new-window</code>) 作为 REPL runner</p>
+</li>
+</ol>
+<p>获取最近的 REPL 窗口（<code>_VimuxNearestIndex</code>）：</p>
+<ol>
+<li>
+<p>列出当前 window 中的所与 panes： <code>_VimuxTmux("list-"._VimuxRunnerType()."s")</code>，
+   实际上执行了 <code>tmux list-panes</code>，因为 <code>g:VimuxRunnerType</code> 默认值为 'pane';</p>
+</li>
+<li>
+<p>若所有 pane 均为 active（实际上是只有一个 active pane，<code>for</code> 循环只运行一次），
+   则返回 -1，否则返回第一个不为 active 的 pane 的标识符 x.y; </p>
+</li>
+</ol>
+<p>Note:</p>
+<p>根据上面确定 REPL runner 的规则，不指定 <code>g:VimuxRunnerIndex</code> 的情况下，
+REPL pane 可以在 vim pane 的左侧或者上面。</p>
+<p>vimscript 中调用函数有两种方法：直接执行函数时要加 <code>call</code>，
+用于其他函数的参数（最常见场景是打印函数返回值 <code>:echo myfunc()</code>）
+或者表达式时不加 <code>call</code>。</p>
+<p><a href="https://devhints.io/vimscript-functions">Vimscript functions</a> 查询 vimscript 函数很方便。</p>
+<h1>Based on Tmux send-keys</h1>
+<p>与 vimux 的原理相同，也是在 tmux 中利用 <code>send-keys</code> 命令将当前或者选中的文本
+发送到目标 pane 中。</p>
+<p>目录结构：当前工作目录下有 sendcmd.vim 和 test.md 两个文件，
+前者包含实现功能的 vim 函数，后者是包含要执行命令行的数据文件。</p>
+<p>开发环境：tmux window 1 做sendcmd.vim开发，window 2 上下拆分为两个pane
+，上面 (ptop) 是命令行，下面的 pane (pbottom) 中用 vim 打开数据文件test.md.</p>
+<p>每次修改并保存sendcmd.vim后，在test.md中执行<code>:so sendcmd.vim</code>，
+然后把光标移动到要执行的命令所在的行上按<code>F3</code>键就可以看到命令被发送到ptop里的
+执行效果了。</p>
+<h2>格式探测</h2>
+<p>这一步要解决的问题是：怎样的字符串，才能被<code>tmux send-keys</code>正确地传送出去，
+并能正确的执行。</p>
+<p>首先要保证运行<code>tmux send-keys</code>不报错，如果报错，
+将第5行的输出拷贝到一个单独的命令行中运行，解决错误。</p>
+<p>这一步通过后，如果命令被传送到<code>ptop</code>后报错，根据错误日志解决之。</p>
+<p>sendcmd.vim：</p>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SendCmd</span><span class="p">()</span><span class="w"></span>
+<span class="w">  </span><span class="n">let</span> <span class="n">curline</span> <span class="p">=</span> <span class="n">getline</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">)</span>
+  <span class="n">echom</span> <span class="s">curline</span>
+  <span class="n">let</span> <span class="s">cmd</span> <span class="s">=</span> <span class="s">&quot;tmux</span> <span class="s">send-keys</span> <span class="s">-t</span> <span class="s">top</span> <span class="s">&#39;&quot; . curline . &quot;&#39;</span> <span class="s">Enter&quot;</span>
+  <span class="n">echom</span> <span class="s">cmd</span>
+  <span class="n">echom</span> <span class="s">system(cmd)</span>
+<span class="n">endfunction</span>
+
+<span class="s">nnoremap</span> <span class="s">&lt;F3&gt;</span> <span class="s">:call</span> <span class="s">SendCmd()&lt;CR&gt;</span>
+</code></pre></div>
+
+
+<p>说明：</p>
+<ul>
+<li>为什么第4行中<code>curline</code>要用单引号（而不是双引号）包裹？</li>
+</ul>
+<p>因为要执行的命令中可能包含变量（如es, idx等），双引号包裹的变量会被求值，
+而我们的要求是这些变量不能被求值，要等到被发送到ptop后再被求值。由于这个原因，
+第4行包裹外层<code>tmux send-keys</code>的命令就只能用双引号包裹。</p>
+<ul>
+<li>vimscript如何连接字符串？</li>
+</ul>
+<p>同样参考第4行，用点（ . ）连接。</p>
+<ul>
+<li><code>tmux send-keys -t top</code> 可以将keys从下面的pane发给上面，
+也可以从左侧发到右侧，但如果是在右侧pane里执行这个语句，则会被发给自己。</li>
+</ul>
+<p>test.md：</p>
+<div class="highlight"><pre><span></span><code><span class="n">es</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mi">192</span><span class="p">.</span><span class="mi">168</span><span class="p">.</span><span class="mi">100</span><span class="p">.</span><span class="mi">231</span><span class="p">:</span><span class="mi">9200</span>
+<span class="n">api</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mi">192</span><span class="p">.</span><span class="mi">168</span><span class="p">.</span><span class="mi">100</span><span class="p">.</span><span class="mi">231</span><span class="p">:</span><span class="mi">8000</span>
+<span class="n">idx</span><span class="o">=</span><span class="n">production</span>
+<span class="k">type</span><span class="o">=</span><span class="n">Fair</span>
+
+<span class="o">#</span> <span class="k">get</span> <span class="n">elasticsearch</span> <span class="k">version</span>
+<span class="n">http</span> <span class="err">$</span><span class="n">es</span> <span class="o">|</span> <span class="n">jq</span> <span class="s1">&#39;.version.number&#39;</span>
+
+<span class="o">#</span> <span class="n">list</span> <span class="k">all</span> <span class="n">indices</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="k">GET</span> <span class="err">$</span><span class="n">es</span><span class="s1">&#39;/_cat/indices?v&#39;</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="k">GET</span> <span class="err">$</span><span class="n">es</span><span class="s1">&#39;&quot;&#39;</span><span class="ss">&quot;&#39;/_cat/indices?v&#39;&quot;</span><span class="s1">&#39;&quot;&#39;</span>
+
+<span class="o">#</span> <span class="n">list</span> <span class="k">all</span> <span class="n">types</span> <span class="k">of</span> <span class="n">a</span> <span class="k">index</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="k">GET</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="n">_mapping</span><span class="o">|</span><span class="n">jq</span> <span class="ss">&quot;.$idx.mappings|keys&quot;</span>
+
+<span class="o">#</span> <span class="n">list</span> <span class="k">all</span> <span class="n">properties</span> <span class="k">of</span> <span class="n">a</span> <span class="k">type</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="k">GET</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="n">_mapping</span><span class="o">|</span><span class="n">jq</span> <span class="ss">&quot;.$idx.mappings.$type.properties|keys&quot;</span>
+
+<span class="o">#</span> <span class="k">get</span> <span class="n">objects</span> <span class="k">count</span> <span class="k">in</span> <span class="n">a</span> <span class="k">type</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="k">GET</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="err">$</span><span class="k">type</span><span class="o">/</span><span class="n">_count</span><span class="o">|</span><span class="n">jq</span> <span class="s1">&#39;.count&#39;</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="k">GET</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="err">$</span><span class="k">type</span><span class="o">/</span><span class="n">_count</span><span class="o">|</span><span class="n">jq</span> <span class="s1">&#39;&quot;&#39;</span><span class="ss">&quot;&#39;.count&#39;&quot;</span><span class="s1">&#39;&quot;&#39;</span>
+
+<span class="o">#</span> <span class="n">query</span> <span class="k">result</span> <span class="k">count</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="n">POST</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="err">$</span><span class="k">type</span><span class="o">/</span><span class="n">_search</span> <span class="n">query</span><span class="p">:</span><span class="o">=</span><span class="s1">&#39;{&quot;bool&quot;:{&quot;must&quot;:[{&quot;query_string&quot;:{&quot;query&quot;:&quot;五金机械&quot;}}]}}&#39;</span> <span class="o">|</span> <span class="n">jq</span> <span class="s1">&#39;.hits.total&#39;</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="n">POST</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="err">$</span><span class="k">type</span><span class="o">/</span><span class="n">_search</span> <span class="n">query</span><span class="p">:</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="err">{</span><span class="ss">&quot;bool&quot;</span><span class="p">:</span><span class="err">{</span><span class="ss">&quot;must&quot;</span><span class="p">:[</span><span class="err">{</span><span class="ss">&quot;query_string&quot;</span><span class="p">:</span><span class="err">{</span><span class="ss">&quot;query&quot;</span><span class="p">:</span><span class="ss">&quot;五金机械&quot;</span><span class="err">}}</span><span class="p">]</span><span class="err">}}</span><span class="s1">&#39;&#39;</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="n">POST</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="err">$</span><span class="k">type</span><span class="o">/</span><span class="n">_search</span> <span class="n">query</span><span class="p">:</span><span class="o">=</span><span class="s1">&#39;&quot;&#39;</span><span class="ss">&quot;&#39;{&quot;</span><span class="n">bool</span><span class="ss">&quot;:{&quot;</span><span class="n">must</span><span class="ss">&quot;:[{&quot;</span><span class="n">query_string</span><span class="ss">&quot;:{&quot;</span><span class="n">query</span><span class="ss">&quot;:&quot;</span><span class="err">五金机械</span><span class="ss">&quot;}}]}}&#39;&quot;</span><span class="s1">&#39;&quot;&#39;</span>
+<span class="n">http</span> <span class="o">-</span><span class="n">b</span> <span class="n">POST</span> <span class="err">$</span><span class="n">es</span><span class="o">/</span><span class="err">$</span><span class="n">idx</span><span class="o">/</span><span class="err">$</span><span class="k">type</span><span class="o">/</span><span class="n">_search</span> <span class="n">query</span><span class="p">:</span><span class="o">=</span><span class="s1">&#39;&quot;&#39;</span><span class="ss">&quot;&#39;{&quot;</span><span class="n">bool</span><span class="ss">&quot;:{&quot;</span><span class="n">must</span><span class="ss">&quot;:[{&quot;</span><span class="n">query_string</span><span class="ss">&quot;:{&quot;</span><span class="n">query</span><span class="ss">&quot;:&quot;</span><span class="err">五金机械</span><span class="ss">&quot;}}]}}&#39;&quot;</span><span class="s1">&#39;&quot;&#39;</span> <span class="o">|</span> <span class="n">jq</span> <span class="s1">&#39;&quot;&#39;</span><span class="ss">&quot;&#39;.hits.total&#39;&quot;</span><span class="s1">&#39;&quot;&#39;</span>
+</code></pre></div>
+
+
+<p>通过不断尝试后，发现用<code>'"'"'</code>代替<code>'</code>就能正确的发送并执行，
+见第10,11行，20,21行，24~27行。</p>
+<p>下面以第10行为例分析其结构：</p>
+<ol>
+<li>
+<p>第一个单引号与外层的单引号结合，包裹它们中间的内容<code>http -b GET $es</code>，
+   保证里面的特殊字符（<code>$</code>）不会被求值；</p>
+</li>
+<li>
+<p>中间的<code>"'"</code>是一组，实现被<code>tmux</code>发送后，最终执行的命令行里仍有一个单引号
+   （<code>$es</code>后面的单引号）；</p>
+</li>
+<li>
+<p>最后的单引号，与后面的<code>'"'"'</code>中最左边的单引号组合，
+   包裹中间的内容<code>/_cat/indices?v</code>，如果没有这一组单引号，
+   里面的问好就会被求值，导致命令无法执行。</p>
+</li>
+</ol>
+<p>这一步实现了在第11、21、27行上按<code>F3</code>键可以正确执行。</p>
+<h2>整合进vim function</h2>
+<p>这一步将前面的测试结果放进vim函数中，实现在第10、20、24行上能够正确执行。</p>
+<p>sendcmd.vim：</p>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SendCurLineInTmux</span><span class="p">()</span><span class="w"></span>
+<span class="w">  </span><span class="n">let</span> <span class="n">curline</span> <span class="p">=</span> <span class="n">getline</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">)</span>
+  <span class="n">let</span> <span class="s">escstr</span> <span class="s">=</span> <span class="s">substitute(curline,</span> <span class="s">&quot;&#39;&quot;, &quot;&#39;\&quot;&#39;\&quot;&#39;&quot;,</span> <span class="s">&#39;g&#39;)</span>
+  <span class="n">let</span> <span class="s">cmd</span> <span class="s">=</span> <span class="s">&quot;tmux</span> <span class="s">send-keys</span> <span class="s">-t</span> <span class="s">right</span> <span class="s">C-u</span> <span class="s">&#39;&quot; . escstr . &quot;&#39;</span> <span class="s">Enter&quot;</span>
+  &quot; <span class="n">echom</span> <span class="n">cmd</span>
+  <span class="n">echom</span> <span class="s">system(cmd)</span>
+<span class="n">endfunction</span>
+<span class="s">nnoremap</span> <span class="s">&lt;silent&gt;</span> <span class="s">&lt;Space&gt;</span> <span class="s">:call</span> <span class="s">SendCurLineInTmux()&lt;CR&gt;</span>
+<span class="n">vnoremap</span> <span class="s">&lt;silent&gt;</span> <span class="s">&lt;Space&gt;</span> <span class="s">:call</span> <span class="s">SendCurLineInTmux()&lt;CR&gt;</span>
+</code></pre></div>
+
+
+<p>这里要注意的是 <code>tmux send-keys -t right C-u</code> 中的 <code>C-u</code>，是为了解决 IPython
+的自动缩进问题，在 GHCi 中不存在这个问题，但加一个 Ctrl-u 也无妨。</p>
+<p>IPython低版本中可以用 <code>%autoindent</code> 关闭自动缩进，但在6.2版本中这个方法不起作用了。
+另外可以用 <code>%cpaste</code> 达到无缩进粘贴的目的，但要用 <code>Ctrl-D</code> 或者 <code>--</code> 表示输入结束，
+都不如在每一行首加 <code>Ctrl-u</code> 方便。</p>
+<p>将上面的 <em>sendcmd.vim</em> 中的内容加入到 $MYVIMRC 中就可以了。</p>
+<h2>制作成插件</h2>
+<p>当功能基本定型后，可以把脚本变成插件，避免手工修改配置文件。
+但对于很小的脚本来说，直接加入配置文件中也不麻烦。</p>
+<p>最简单的vim插件，只要在一个目录（tmuxcmd）里创建一个<code>plugin</code>目录，
+把.vim脚本放进去，然后把目录做成git库就行了：</p>
+<div class="highlight"><pre><span></span><code><span class="err">mkdir -p tmuxcmd/plugin</span>
+<span class="err">mv test.vim tmuxcmd/plugin/tmuxcmd.vim</span>
+<span class="err">cd tmuxcmd</span>
+<span class="err">git init</span>
+<span class="err">git add ...; git commit -m &quot;...&quot;</span>
+</code></pre></div>
+
+
+<p>在.vimrc里加入这个插件：增加一行代码：<code>Plugin 'file:///home/leo/temp/tmuxcmd'</code></p>
+<p>安装：<code>vim +PluginInstall</code></p>
+<p>安装过程实际是把代码库clone到~/.vim/bundle下，
+修改~/.vim/bundle/tmuxcmd/plugin/tmuxcmd.vim文件在新的vim编辑器中不会生效。</p>
+<p>本地插件需要保存一个本地目录，更简单的方法是发布到github上，再用vundle安装：</p>
+<ol>
+<li>
+<p>把代码库push到github上：
+   <a href="https://github.com/leetschau/tmuxcmd">leetschau/tmuxcmd</a></p>
+</li>
+<li>
+<p>在.vimrc中，把原来的<code>Plugin 'file:///home/leo/temp/tmuxcmd'</code>换成
+   <code>Plugin 'leetschau/tmuxcmd'</code></p>
+</li>
+</ol>
+            
+            
+            <hr/>
+            <script src="https://utteranc.es/client.js"
+                    repo="leetschau/leetschau.github.io"
+                    issue-term="pathname"
+                    theme="github-light"
+                    crossorigin="anonymous"
+                    async>
+            </script>
+            <hr/>
+        </div>
+        <section>
+        <div class="span2" style="float:right;font-size:0.9em;">
+            <h4>Published</h4>
+            <time pubdate="pubdate" datetime="2016-07-02T02:37:54+08:00">Jul 2, 2016</time>
+
+<h4>Last Updated</h4>
+<time datetime="2020-06-10T11:49:40+08:00">Jun 10, 2020</time>
+
+            <h4>Category</h4>
+            <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>
+            <h4>Tags</h4>
+            <ul class="list-of-tags tags-in-article">
+                <li><a href="http://leetschau.github.io/tags.html#neoterm-ref">neoterm
+                    <span>1</span>
+</a></li>
+                <li><a href="http://leetschau.github.io/tags.html#plugin-ref">plugin
+                    <span>16</span>
+</a></li>
+                <li><a href="http://leetschau.github.io/tags.html#tmux-ref">tmux
+                    <span>10</span>
+</a></li>
+                <li><a href="http://leetschau.github.io/tags.html#vim-ref">vim
+                    <span>92</span>
+</a></li>
+            </ul>
+<h4>Contact</h4>
+    <a href="#" title="My You can add links in your config file Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-you can add links in your config file sidebar-social-links"></i></a>
+    <a href="#" title="My Another social link Profile" class="sidebar-social-links" target="_blank">
+    <i class="fa fa-another social link sidebar-social-links"></i></a>
+        </div>
+        </section>
+</div>
+</article>
+                </div>
+                <div class="span1"></div>
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+<footer>
+<div id="footer">
+    <ul class="footer-content">
+        <li class="elegant-power">Powered by <a href="http://getpelican.com/" title="Pelican Home Page">Pelican</a>. Theme: <a href="http://oncrashreboot.com/pelican-elegant" title="Theme Elegant Home Page">Elegant</a> by <a href="http://oncrashreboot.com" title="Talha Mansoor Home Page">Talha Mansoor</a></li>
+    </ul>
+</div>
+</footer>            <script src="http://code.jquery.com/jquery.min.js"></script>
+        <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+        <script>
+            function validateForm(query)
+            {
+                return (query.length > 0);
+            }
+        </script>
+
+    
+    </body>
+    <!-- Theme: Elegant built for Pelican
+    License : http://oncrashreboot.com/pelican-elegant -->
+</html>

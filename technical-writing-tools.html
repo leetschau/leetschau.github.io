@@ -18,7 +18,7 @@
 <meta property="og:site_name" content="DarkMatter in Cyberspace" />
 <meta property="og:article:author" content="Li Chao" />
 <meta property="og:article:published_time" content="2018-12-29T10:19:39+08:00" />
-<meta property="" content="2019-12-26T17:14:05+08:00" />
+<meta property="" content="2020-04-16T10:27:46+08:00" />
 <meta name="twitter:title" content="Technical Writing Tools">
 <meta name="twitter:description" content="AsciiDoc 编写复杂技术文档时，AsciiDoc 比 Markdown 提供了更完善的功能， 比 LaTeX 安装和使用方便，它的优点包括： 方便的 live preview: 用文本编辑器编写一个扩展名为 adoc 或者 asc 的文本文件， 在浏览器里安装一个插件asciidoctor-browser-extension， 然后在浏览器里以打开本地文件方式打开这个文本文件就可以实时预览了， 不需要专门的IDE（插件），也不需要文件监控和定时刷新工具； 这个插件目前只支持单个 asciidoc 文档的预览，不支持嵌入其他文档：include， 例如如果文档 book.adoc 中嵌入了另一个文档 hardware_os.adoc (include::hardware_os.adoc[leveloffset=+1]) 使用这个插件打开 book.adoc 后显示 Unresolved directive in book.adoc； 内置 …">
 
@@ -94,7 +94,13 @@
 <p>强大的自定义表格功能，能够合并单元格和定义对齐样式等，见下面的样例中的说明；</p>
 </li>
 <li>
-<p>内置 MathJax 支持: 加上 <code>[stem]</code> 就可以了；</p>
+<p>内置 MathJax 支持：在章标题（<code>= Chapter Title</code>）后面（在前面写无效）
+  加上 <code>:stem:</code>，默认使用 AsciiMath 语法，比 Latex 更简洁，语法见 http://asciimath.org/#syntax
+  行内公式例如 <code>stem:[sqrt(4) = 2]</code>，独立公式例如：
+  <code>[stem]
+  ++++ 
+  sqrt(4) = 2
+  ++++</code></p>
 </li>
 <li>
 <p>方便地生成流程图：支持生成 SVG 图，浏览器里可以直接预览；</p>
@@ -111,6 +117,45 @@
 以及个人项目 <a href="https://www.asciidoc3.org/">AsciiDoc3</a>，
 但整体来说 Python 社区的开发已经非常不活跃了，许多开发者
 <a href="https://github.com/asciidoc/asciidoc-py3/issues/11">转向了 Asciidoctor</a>.</p>
+<h2>安装和使用</h2>
+<div class="highlight"><pre><span></span><code><span class="err">gem install asciidoctor</span>
+</code></pre></div>
+
+
+<p>将 asciidoc 文档转换为 HTML 文档：<code>asciidoctor -a data-uri book.adoc</code></p>
+<h2>实时预览</h2>
+<h3>In Console</h3>
+<div class="highlight"><pre><span></span><code><span class="n">cat</span> <span class="o">&lt;&lt;</span> <span class="n">EOF</span> <span class="o">&gt;</span> <span class="n">live_preview</span>
+<span class="c1">#!/usr/bin/env python</span>
+
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">webbrowser</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">livereload</span> <span class="kn">import</span> <span class="n">Server</span><span class="p">,</span> <span class="n">shell</span>
+
+<span class="n">COMPILE_CMD</span> <span class="o">=</span> <span class="s1">&#39;asciidoctor -a data-uri book.adoc&#39;</span>
+<span class="n">compile_html</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">COMPILE_CMD</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;Linux&#39;</span><span class="p">:</span>
+    <span class="n">webbrowser</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;xdg-open&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">webbrowser</span><span class="o">.</span><span class="n">BackgroundBrowser</span><span class="p">(</span>
+        <span class="s2">&quot;xdg-open&quot;</span><span class="p">),</span> <span class="n">preferred</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="n">webbrowser</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;http://localhost:5500/book.html&#39;</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">autoraise</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="n">server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">()</span>
+<span class="n">server</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="s1">&#39;*.adoc&#39;</span><span class="p">,</span> <span class="n">shell</span><span class="p">(</span><span class="n">COMPILE_CMD</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
+<span class="n">server</span><span class="o">.</span><span class="n">serve</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5500</span><span class="p">)</span>
+<span class="n">EOF</span>
+</code></pre></div>
+
+
+<p>解决 Tmux 中频繁 alert 问题：</p>
+<p>每次文档变化时 livereload 服务都会在控制台打印日志，
+运行 livereload 服务的标题会不断被高亮，很烦人。</p>
+<p>解决方法是在此 window 的 tmux 命令提示符后运行：
+<code>set-window-option -t:0 monitor-activity on</code></p>
+<h3>GUI Solution</h3>
+<p>VS Code + Asciidoc language pack</p>
 <h2>一个复杂表格样例</h2>
 <p>表格定义中比较复杂的部分在于列定义和单元格定义，
 其中列定义格式为：
@@ -181,6 +226,14 @@ Google "restructuredtext write book" 可以找到一些文章，</p>
             
             
             <hr/>
+            <script src="https://utteranc.es/client.js"
+                    repo="leetschau/leetschau.github.io"
+                    issue-term="pathname"
+                    theme="github-light"
+                    crossorigin="anonymous"
+                    async>
+            </script>
+            <hr/>
         </div>
         <section>
         <div class="span2" style="float:right;font-size:0.9em;">
@@ -188,7 +241,7 @@ Google "restructuredtext write book" 可以找到一些文章，</p>
             <time pubdate="pubdate" datetime="2018-12-29T10:19:39+08:00">Dec 29, 2018</time>
 
 <h4>Last Updated</h4>
-<time datetime="2019-12-26T17:14:05+08:00">Dec 26, 2019</time>
+<time datetime="2020-04-16T10:27:46+08:00">Apr 16, 2020</time>
 
             <h4>Category</h4>
             <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>

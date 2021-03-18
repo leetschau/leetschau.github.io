@@ -14,13 +14,13 @@
 
 <meta property="og:title" content="Postgresql Notes"/>
 <meta property="og:url" content="http://leetschau.github.io/postgresql-notes.html" />
-<meta property="og:description" content="Documentations PostgreSQL Wiki 中文PostgreSQL Wiki 中文维基百科上的PostgreSQL" />
+<meta property="og:description" content="Install Postgresql orgnize data with 3-tiers structure: database &gt; schema &gt; table. Install as user leo on Ubuntu 20.04: $ sudo apt install postgresql $ sudo su - postgres postgres@wserver:~$ psql postgres=# CREATE SCHEMA test; CREATE SCHEMA postgres=# CREATE USER leo PASSWORD &#39;zhangjingg&#39;; CREATE ROLE postgres=# GRANT ALL ON SCHEMA test TO leo …" />
 <meta property="og:site_name" content="DarkMatter in Cyberspace" />
 <meta property="og:article:author" content="Li Chao" />
 <meta property="og:article:published_time" content="2013-12-12T18:27:30+08:00" />
-<meta property="" content="2013-12-12T18:27:30+08:00" />
+<meta property="" content="2021-02-20T20:24:34+08:00" />
 <meta name="twitter:title" content="Postgresql Notes">
-<meta name="twitter:description" content="Documentations PostgreSQL Wiki 中文PostgreSQL Wiki 中文维基百科上的PostgreSQL">
+<meta name="twitter:description" content="Install Postgresql orgnize data with 3-tiers structure: database &gt; schema &gt; table. Install as user leo on Ubuntu 20.04: $ sudo apt install postgresql $ sudo su - postgres postgres@wserver:~$ psql postgres=# CREATE SCHEMA test; CREATE SCHEMA postgres=# CREATE USER leo PASSWORD &#39;zhangjingg&#39;; CREATE ROLE postgres=# GRANT ALL ON SCHEMA test TO leo …">
 
         <title>Postgresql Notes · DarkMatter in Cyberspace
 </title>
@@ -70,12 +70,105 @@
 
             
             <hr>
+<h1>Install</h1>
+<p>Postgresql orgnize data with 3-tiers structure: database &gt; schema &gt; table.</p>
+<p>Install as user <em>leo</em> on Ubuntu 20.04:</p>
+<div class="highlight"><pre><span></span><code>$ sudo apt install postgresql
+$ sudo su - postgres
+postgres@wserver:~$ psql
+<span class="nv">postgres</span><span class="o">=</span><span class="c1"># CREATE SCHEMA test;</span>
+CREATE SCHEMA
+<span class="nv">postgres</span><span class="o">=</span><span class="c1"># CREATE USER leo PASSWORD &#39;zhangjingg&#39;;</span>
+CREATE ROLE
+<span class="nv">postgres</span><span class="o">=</span><span class="c1"># GRANT ALL ON SCHEMA test TO leo;</span>
+GRANT
+</code></pre></div>
+
+
+<p>Now you can login to Postgresql database as user <em>leo</em> with <code>psql -d postgres</code>.</p>
+<div class="highlight"><pre><span></span><code>$ psql -d postgres
+<span class="nv">postgres</span><span class="o">=</span>&gt; <span class="se">\c</span>
+You are now connected to database <span class="s2">&quot;postgres&quot;</span> as user <span class="s2">&quot;leo&quot;</span>.
+</code></pre></div>
+
+
+<h2>Allow remote connection</h2>
+<div class="highlight"><pre><span></span><code>$ sudo -u postgres psql -c <span class="s1">&#39;SHOW config_file&#39;</span>
+               config_file
+-----------------------------------------
+/etc/postgresql/12/main/postgresql.conf
+<span class="o">(</span><span class="m">1</span> row<span class="o">)</span>
+$ sudo vi /etc/postgresql/12/main/postgresql.conf
+$ sudo vi /etc/postgresql/12/main/postgresql.conf
+</code></pre></div>
+
+
+<p>Replace <code>#listen_addresses = 'localhost'</code> with <code>listen_addresses = '*'</code> in file
+/etc/postgresql/12/main/postgresql.conf.
+And add a line <code>host all all 192.168.1.0/24 md5</code> in section <em>IPv4 local connections</em>.
+Then restart service: <code>sudo systemctl restart postgresql</code>.</p>
+<p>Verify:</p>
+<div class="highlight"><pre><span></span><code>$ nc -zv <span class="m">192</span>.168.1.80 <span class="m">5432</span>
+Connection to <span class="m">192</span>.168.1.80 <span class="m">5432</span> port <span class="o">[</span>tcp/postgresql<span class="o">]</span> succeeded!
+</code></pre></div>
+
+
+<h2>Use as a container</h2>
+<p>Install with container and connect to it:</p>
+<div class="highlight"><pre><span></span><code><span class="n">podman</span><span class="w"> </span><span class="n">run</span><span class="w"> </span><span class="c1">--name postgre -e POSTGRES_PASSWORD=postGREpwd -d postgres</span>
+<span class="n">podman</span><span class="w"> </span><span class="k">exec</span><span class="w"> </span><span class="o">-</span><span class="n">it</span><span class="w"> </span><span class="n">postgre</span><span class="w"> </span><span class="n">psql</span><span class="w"> </span><span class="o">-</span><span class="n">U</span><span class="w"> </span><span class="n">postgres</span><span class="w"></span>
+
+<span class="n">postgres</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="err">\</span><span class="n">l</span><span class="w">  </span><span class="err">#</span><span class="w"> </span><span class="n">list</span><span class="w"> </span><span class="n">databases</span><span class="w"></span>
+
+<span class="n">postgres</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="k">create</span><span class="w"> </span><span class="k">database</span><span class="w"> </span><span class="n">mydb</span><span class="p">;</span><span class="w"></span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">DATABASE</span><span class="w"></span>
+
+<span class="n">postgres</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="err">\</span><span class="n">c</span><span class="w"></span>
+<span class="n">You</span><span class="w"> </span><span class="k">are</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="n">connected</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">database</span><span class="w"> </span><span class="ss">&quot;postgres&quot;</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="ss">&quot;postgres&quot;</span><span class="w"></span>
+
+<span class="n">postgres</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="err">\</span><span class="n">c</span><span class="w"> </span><span class="n">mydb</span><span class="w"></span>
+<span class="n">You</span><span class="w"> </span><span class="k">are</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="n">connected</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">database</span><span class="w"> </span><span class="ss">&quot;mydb&quot;</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="ss">&quot;postgres&quot;</span><span class="p">.</span><span class="w"></span>
+
+<span class="n">mydb</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="err">\</span><span class="n">d</span><span class="w">   </span><span class="err">#</span><span class="w"> </span><span class="n">notice</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">prompt</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="k">current</span><span class="w"> </span><span class="k">database</span><span class="w"> </span><span class="n">change</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="ss">&quot;mydb&quot;</span><span class="w"></span>
+<span class="n">Did</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">find</span><span class="w"> </span><span class="ow">any</span><span class="w"> </span><span class="n">relations</span><span class="p">.</span><span class="w"></span>
+
+<span class="n">mydb</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="k">create</span><span class="w"> </span><span class="nc">table</span><span class="w"> </span><span class="n">account</span><span class="w"> </span><span class="p">(</span><span class="nf">user_id</span><span class="w"> </span><span class="n">serial</span><span class="w"> </span><span class="k">primary</span><span class="w"> </span><span class="k">key</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="w"> </span><span class="nc">varchar</span><span class="w"> </span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="k">unique</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="k">null</span><span class="p">,</span><span class="w"></span>
+<span class="n">password</span><span class="w"> </span><span class="nc">varchar</span><span class="w"> </span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="k">null</span><span class="p">,</span><span class="w"> </span><span class="n">email</span><span class="w"> </span><span class="nc">varchar</span><span class="w"> </span><span class="p">(</span><span class="mi">255</span><span class="p">)</span><span class="w"> </span><span class="k">unique</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="k">null</span><span class="w"></span>
+<span class="p">);</span><span class="w"></span>
+<span class="k">CREATE</span><span class="w"> </span><span class="nc">TABLE</span><span class="w"></span>
+
+<span class="n">mydb</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="err">\</span><span class="n">d</span><span class="w"></span>
+<span class="w">                 </span><span class="n">List</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">relations</span><span class="w"></span>
+<span class="w"> </span><span class="k">Schema</span><span class="w"> </span><span class="o">|</span><span class="w">        </span><span class="n">Name</span><span class="w">         </span><span class="o">|</span><span class="w">   </span><span class="n">Type</span><span class="w">   </span><span class="o">|</span><span class="w">  </span><span class="n">Owner</span><span class="w"></span>
+<span class="c1">--------+---------------------+----------+----------</span>
+<span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">account</span><span class="w">             </span><span class="o">|</span><span class="w"> </span><span class="nc">table</span><span class="w">    </span><span class="o">|</span><span class="w"> </span><span class="n">postgres</span><span class="w"></span>
+<span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">account_user_id_seq</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="k">sequence</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">postgres</span><span class="w"></span>
+<span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="k">rows</span><span class="p">)</span><span class="w"></span>
+
+<span class="n">mydb</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">account</span><span class="w"> </span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">password</span><span class="p">,</span><span class="n">email</span><span class="p">)</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="s1">&#39;leo&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;mypwd&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;leo@leo.me&#39;</span><span class="p">);</span><span class="w"></span>
+<span class="k">INSERT</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="mi">1</span><span class="w"></span>
+<span class="n">mydb</span><span class="o">=</span><span class="err">#</span><span class="w"> </span><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">account</span><span class="p">;</span><span class="w"></span>
+<span class="w"> </span><span class="nf">user_id</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">username</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="o">|</span><span class="w">   </span><span class="n">email</span><span class="w"></span>
+<span class="c1">---------+----------+----------+------------</span>
+<span class="w">       </span><span class="mi">1</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">leo</span><span class="w">      </span><span class="o">|</span><span class="w"> </span><span class="n">mypwd</span><span class="w">    </span><span class="o">|</span><span class="w"> </span><span class="n">leo</span><span class="nv">@leo</span><span class="p">.</span><span class="n">me</span><span class="w"></span>
+<span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">row</span><span class="p">)</span><span class="w"></span>
+</code></pre></div>
+
+
 <h1>Documentations</h1>
 <p><a href="https://wiki.postgresql.org/wiki/Main_Page">PostgreSQL Wiki</a></p>
 <p><a href="https://wiki.postgresql.org/wiki/Chinese">中文PostgreSQL Wiki</a></p>
 <p><a href="http://zh.wikipedia.org/wiki/PostgreSQL">中文维基百科上的PostgreSQL</a></p>
             
             
+            <hr/>
+            <script src="https://utteranc.es/client.js"
+                    repo="leetschau/leetschau.github.io"
+                    issue-term="pathname"
+                    theme="github-light"
+                    crossorigin="anonymous"
+                    async>
+            </script>
             <hr/>
         </div>
         <section>
@@ -84,7 +177,7 @@
             <time pubdate="pubdate" datetime="2013-12-12T18:27:30+08:00">Dec 12, 2013</time>
 
 <h4>Last Updated</h4>
-<time datetime="2013-12-12T18:27:30+08:00">Dec 12, 2013</time>
+<time datetime="2021-02-20T20:24:34+08:00">Feb 20, 2021</time>
 
             <h4>Category</h4>
             <a class="category-link" href="http://leetschau.github.io/categories.html#tech-ref">Tech</a>
